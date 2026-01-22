@@ -112,7 +112,7 @@ const minimalItemXml = `<?xml version="1.0" encoding="UTF-8"?>
 describe('renderTemplate', () => {
   const parser = new DOMParser();
 
-  describe('Basic Initialization', () => {
+  describe('1. qti-printed-variable substitution', () => {
     test('returns template with variables substituted and sensitive content removed', () => {
       const itemDoc = parser.parseFromString(minimalItemXml, 'text/xml');
       const template = renderTemplate(itemDoc, {
@@ -150,6 +150,419 @@ describe('renderTemplate', () => {
 
       // Normalize both strings through the same parser/serializer for consistent formatting
       expect(normalizeXml(template)).toBe(normalizeXml(expectedXml));
+    });
+
+    test('handles missing variables gracefully by leaving them as empty', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
+  <qti-item-body>
+    <p>Value: <qti-printed-variable identifier="MISSING"/></p>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = renderTemplate(itemDoc, {
+        variables: {},
+        completionStatus: 'not_attempted',
+      });
+
+      expect(template).toContain('<p>Value: </p>');
+    });
+
+    test('substitutes numeric and string variables correctly', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
+  <qti-item-body>
+    <p>Number: <qti-printed-variable identifier="NUM"/> Text: <qti-printed-variable identifier="TEXT"/></p>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = renderTemplate(itemDoc, {
+        variables: {
+          NUM: 42.5,
+          TEXT: 'hello',
+        },
+        completionStatus: 'not_attempted',
+      });
+
+      expect(template).toContain('Number: 42.5 Text: hello');
+    });
+  });
+
+  describe('2. qti-template-block conditional visibility', () => {
+    test('shows template-block when template-identifier matches variable value', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
+  <qti-template-declaration identifier="SHOW_SECTION" cardinality="single" base-type="identifier"/>
+  <qti-item-body>
+    <qti-template-block template-identifier="section1" identifier="block1" show-hide="show">
+      <p>This is section 1</p>
+    </qti-template-block>
+    <qti-template-block template-identifier="section2" identifier="block2" show-hide="show">
+      <p>This is section 2</p>
+    </qti-template-block>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = renderTemplate(itemDoc, {
+        variables: {
+          SHOW_SECTION: 'section1',
+        },
+        completionStatus: 'not_attempted',
+      });
+
+      expect(template).toContain('This is section 1');
+      expect(template).not.toContain('This is section 2');
+    });
+
+    test('hides template-block when show-hide is "hide" and template-identifier matches', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
+  <qti-template-declaration identifier="HIDE_SECTION" cardinality="single" base-type="identifier"/>
+  <qti-item-body>
+    <qti-template-block template-identifier="secret" identifier="block1" show-hide="hide">
+      <p>This should be hidden</p>
+    </qti-template-block>
+    <p>This should be visible</p>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = renderTemplate(itemDoc, {
+        variables: {
+          HIDE_SECTION: 'secret',
+        },
+        completionStatus: 'not_attempted',
+      });
+
+      expect(template).not.toContain('This should be hidden');
+      expect(template).toContain('This should be visible');
+    });
+
+    test('handles multiple template-identifiers in a multiple cardinality variable', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
+  <qti-template-declaration identifier="VISIBLE_SECTIONS" cardinality="multiple" base-type="identifier"/>
+  <qti-item-body>
+    <qti-template-block template-identifier="intro" identifier="block1" show-hide="show">
+      <p>Introduction</p>
+    </qti-template-block>
+    <qti-template-block template-identifier="details" identifier="block2" show-hide="show">
+      <p>Details</p>
+    </qti-template-block>
+    <qti-template-block template-identifier="conclusion" identifier="block3" show-hide="show">
+      <p>Conclusion</p>
+    </qti-template-block>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = renderTemplate(itemDoc, {
+        variables: {
+          VISIBLE_SECTIONS: ['intro', 'conclusion'],
+        },
+        completionStatus: 'not_attempted',
+      });
+
+      expect(template).toContain('Introduction');
+      expect(template).not.toContain('Details');
+      expect(template).toContain('Conclusion');
+    });
+  });
+
+  describe('3. qti-template-inline conditional visibility', () => {
+    test('shows template-inline when template-identifier matches variable value', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
+  <qti-template-declaration identifier="WORD_CHOICE" cardinality="single" base-type="identifier"/>
+  <qti-item-body>
+    <p>The answer is <qti-template-inline template-identifier="correct" identifier="inline1" show-hide="show">definitely correct</qti-template-inline><qti-template-inline template-identifier="incorrect" identifier="inline2" show-hide="show">unfortunately incorrect</qti-template-inline>.</p>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = renderTemplate(itemDoc, {
+        variables: {
+          WORD_CHOICE: 'correct',
+        },
+        completionStatus: 'not_attempted',
+      });
+
+      expect(template).toContain('definitely correct');
+      expect(template).not.toContain('unfortunately incorrect');
+    });
+
+    test('hides template-inline when show-hide is "hide" and template-identifier matches', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
+  <qti-template-declaration identifier="HIDE_WORD" cardinality="single" base-type="identifier"/>
+  <qti-item-body>
+    <p>The <qti-template-inline template-identifier="secret" identifier="inline1" show-hide="hide">SECRET</qti-template-inline> word is hidden.</p>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = renderTemplate(itemDoc, {
+        variables: {
+          HIDE_WORD: 'secret',
+        },
+        completionStatus: 'not_attempted',
+      });
+
+      expect(template).not.toContain('SECRET');
+      expect(template).toContain('word is hidden');
+    });
+  });
+
+  describe('4. Feedback visibility based on outcome variables', () => {
+    test('shows feedback-block when outcome variable contains the identifier (show-hide="show")', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
+  <qti-outcome-declaration identifier="FEEDBACK" cardinality="multiple" base-type="identifier"/>
+  <qti-item-body>
+    <p>Question text here</p>
+    <qti-feedback-block identifier="correct" outcome-identifier="FEEDBACK" show-hide="show">
+      <p>Excellent work!</p>
+    </qti-feedback-block>
+    <qti-feedback-block identifier="incorrect" outcome-identifier="FEEDBACK" show-hide="show">
+      <p>Try again.</p>
+    </qti-feedback-block>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = renderTemplate(itemDoc, {
+        variables: {
+          FEEDBACK: ['correct'],
+        },
+        completionStatus: 'not_attempted',
+      });
+
+      expect(template).toContain('Excellent work!');
+      expect(template).not.toContain('Try again.');
+    });
+
+    test('hides feedback-block when outcome variable contains the identifier (show-hide="hide")', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
+  <qti-outcome-declaration identifier="HINTS" cardinality="multiple" base-type="identifier"/>
+  <qti-item-body>
+    <p>Question text here</p>
+    <qti-feedback-block identifier="hint1" outcome-identifier="HINTS" show-hide="hide">
+      <p>This is a hint that should be hidden</p>
+    </qti-feedback-block>
+    <qti-feedback-block identifier="hint2" outcome-identifier="HINTS" show-hide="show">
+      <p>This hint should be shown</p>
+    </qti-feedback-block>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = renderTemplate(itemDoc, {
+        variables: {
+          HINTS: ['hint1', 'hint2'],
+        },
+        completionStatus: 'not_attempted',
+      });
+
+      expect(template).not.toContain('This is a hint that should be hidden');
+      expect(template).toContain('This hint should be shown');
+    });
+
+    test('shows feedback-inline when outcome variable matches', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
+  <qti-outcome-declaration identifier="INLINE_FEEDBACK" cardinality="single" base-type="identifier"/>
+  <qti-item-body>
+    <p>Your answer is <qti-feedback-inline identifier="right" outcome-identifier="INLINE_FEEDBACK" show-hide="show">correct</qti-feedback-inline><qti-feedback-inline identifier="wrong" outcome-identifier="INLINE_FEEDBACK" show-hide="show">incorrect</qti-feedback-inline>!</p>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = renderTemplate(itemDoc, {
+        variables: {
+          INLINE_FEEDBACK: 'right',
+        },
+        completionStatus: 'not_attempted',
+      });
+
+      expect(template).toContain('correct');
+      expect(template).not.toContain('incorrect');
+    });
+
+    test('handles feedback with single cardinality outcome variable', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
+  <qti-outcome-declaration identifier="STATUS" cardinality="single" base-type="identifier"/>
+  <qti-item-body>
+    <qti-feedback-block identifier="complete" outcome-identifier="STATUS" show-hide="show">
+      <p>Task completed</p>
+    </qti-feedback-block>
+    <qti-feedback-block identifier="pending" outcome-identifier="STATUS" show-hide="show">
+      <p>Task pending</p>
+    </qti-feedback-block>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = renderTemplate(itemDoc, {
+        variables: {
+          STATUS: 'complete',
+        },
+        completionStatus: 'completed',
+      });
+
+      expect(template).toContain('Task completed');
+      expect(template).not.toContain('Task pending');
+    });
+  });
+
+  describe('5. Sensitive content removal', () => {
+    test('removes qti-response-declaration elements', () => {
+      const itemDoc = parser.parseFromString(minimalItemXml, 'text/xml');
+      const template = renderTemplate(itemDoc, {
+        variables: {},
+        completionStatus: 'not_attempted',
+      });
+
+      expect(template).not.toContain('qti-response-declaration');
+    });
+
+    test('removes qti-outcome-declaration elements', () => {
+      const itemDoc = parser.parseFromString(minimalItemXml, 'text/xml');
+      const template = renderTemplate(itemDoc, {
+        variables: {},
+        completionStatus: 'not_attempted',
+      });
+
+      expect(template).not.toContain('qti-outcome-declaration');
+    });
+
+    test('removes qti-template-declaration elements', () => {
+      const itemDoc = parser.parseFromString(minimalItemXml, 'text/xml');
+      const template = renderTemplate(itemDoc, {
+        variables: {},
+        completionStatus: 'not_attempted',
+      });
+
+      expect(template).not.toContain('qti-template-declaration');
+    });
+
+    test('removes qti-template-processing elements', () => {
+      const itemDoc = parser.parseFromString(minimalItemXml, 'text/xml');
+      const template = renderTemplate(itemDoc, {
+        variables: {},
+        completionStatus: 'not_attempted',
+      });
+
+      expect(template).not.toContain('qti-template-processing');
+    });
+
+    test('removes qti-response-processing elements', () => {
+      const itemDoc = parser.parseFromString(minimalItemXml, 'text/xml');
+      const template = renderTemplate(itemDoc, {
+        variables: {},
+        completionStatus: 'not_attempted',
+      });
+
+      expect(template).not.toContain('qti-response-processing');
+    });
+  });
+
+  describe('6. Math variable substitution in MathML', () => {
+    test('substitutes template variables within MathML mi elements', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+                     xmlns:m="http://www.w3.org/1998/Math/MathML"
+                     identifier="test">
+  <qti-template-declaration identifier="A" cardinality="single" base-type="integer" math-variable="true"/>
+  <qti-template-declaration identifier="B" cardinality="single" base-type="integer" math-variable="true"/>
+  <qti-item-body>
+    <p>Solve for x:
+      <m:math display="block">
+        <m:mrow>
+          <m:mi>A</m:mi>
+          <m:mo>+</m:mo>
+          <m:mi>x</m:mi>
+          <m:mo>=</m:mo>
+          <m:mi>B</m:mi>
+        </m:mrow>
+      </m:math>
+    </p>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = renderTemplate(itemDoc, {
+        variables: {
+          A: 5,
+          B: 12,
+        },
+        completionStatus: 'not_attempted',
+      });
+
+      // The variables should be substituted into MathML
+      expect(template).toContain('<m:mi>5</m:mi>');
+      expect(template).toContain('<m:mi>12</m:mi>');
+      expect(template).not.toContain('<m:mi>A</m:mi>');
+      expect(template).not.toContain('<m:mi>B</m:mi>');
+    });
+
+    test('substitutes template variables in MathML mn (number) elements', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+                     xmlns:m="http://www.w3.org/1998/Math/MathML"
+                     identifier="test">
+  <qti-template-declaration identifier="COEFF" cardinality="single" base-type="float" math-variable="true"/>
+  <qti-item-body>
+    <m:math>
+      <m:mn>COEFF</m:mn>
+    </m:math>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = renderTemplate(itemDoc, {
+        variables: {
+          COEFF: 3.14,
+        },
+        completionStatus: 'not_attempted',
+      });
+
+      expect(template).toContain('<m:mn>3.14</m:mn>');
+      expect(template).not.toContain('<m:mn>COEFF</m:mn>');
+    });
+
+    test('leaves non-variable MathML content unchanged', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+                     xmlns:m="http://www.w3.org/1998/Math/MathML"
+                     identifier="test">
+  <qti-template-declaration identifier="VAR" cardinality="single" base-type="integer" math-variable="true"/>
+  <qti-item-body>
+    <m:math>
+      <m:mrow>
+        <m:mi>VAR</m:mi>
+        <m:mo>+</m:mo>
+        <m:mi>x</m:mi>
+      </m:mrow>
+    </m:math>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = renderTemplate(itemDoc, {
+        variables: {
+          VAR: 7,
+        },
+        completionStatus: 'not_attempted',
+      });
+
+      expect(template).toContain('<m:mi>7</m:mi>');
+      expect(template).toContain('<m:mi>x</m:mi>'); // x should remain unchanged
+      expect(template).toContain('<m:mo>+</m:mo>'); // operators unchanged
     });
   });
 });
