@@ -1,0 +1,19 @@
+{
+  "name": "@project/root",
+  "version": "1.0.0",
+  "devDependencies": {
+    "cspell": "^5.18.5",
+    "syncpack": "^12.3.0"
+  },
+  "private": true,
+  "scripts": {
+    "build": "./scripts/build.bash",
+    "ci": "CI=true npm-run-all ci:*",
+    "ci:packages": "./scripts/ci.bash",
+    "ci:spelling": "git ls-files -- . ':!:packages/' | yarn cspell -c ./cspell.json --file-list stdin",
+    "ci:versions": "syncpack lint"
+  },
+  "workspaces": [
+    "packages/*"
+  ]
+}
