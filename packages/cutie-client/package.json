@@ -1,6 +1,7 @@
 {
-  "name": "@openstax/cutie",
+  "name": "@openstax/cutie-client",
   "version": "1.0.14",
+  "description": "Client-side interaction handlers for QTI v3 assessment items",
   "sideEffects": false,
   "dependencies": {
   },
