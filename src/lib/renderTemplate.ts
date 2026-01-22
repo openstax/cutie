@@ -36,16 +36,26 @@ export function renderTemplate(
   // Step 2: Substitute template variables into qti-printed-variable elements
   substituteVariables(root, state.variables);
 
-  // Step 3: Clean up empty text nodes and normalize whitespace
+  // Step 3: Process conditional template blocks and inlines
+  processTemplateConditionals(root, state.variables);
+
+  // Step 4: Process feedback visibility based on outcome variables
+  processFeedbackVisibility(root, state.variables);
+
+  // Step 5: Substitute math variables in MathML expressions
+  substituteMathVariables(root, state.variables);
+
+  // Step 6: Clean up empty text nodes and normalize whitespace
   normalizeWhitespace(root);
 
-  // Step 4: Serialize the sanitized document to XML string
+  // Step 7: Serialize the sanitized document to XML string
   return serializeToXml(clonedDoc);
 }
 
 /**
  * Substitutes variable values into qti-printed-variable elements.
  * Replaces each qti-printed-variable element with a text node containing the variable value.
+ * If the variable is missing or null/undefined, replaces with an empty text node.
  */
 function substituteVariables(
   root: Element,
@@ -60,16 +70,14 @@ function substituteVariables(
     if (!identifier) continue;
 
     const value = variables[identifier];
-    if (value === undefined || value === null) continue;
 
-    // Convert the value to a string representation
-    const textValue = String(value);
+    // Convert the value to a string representation (empty string if missing)
+    const textValue = value === undefined || value === null ? '' : String(value);
 
     // Create a text node with the value
     const textNode = root.ownerDocument.createTextNode(textValue);
 
     // Replace the qti-printed-variable element with the text node
-    // Also normalize surrounding whitespace to avoid extra newlines
     const parent = printedVar.parentNode;
     if (parent) {
       parent.replaceChild(textNode, printedVar);
@@ -101,6 +109,155 @@ function removeSensitiveElements(root: Element): void {
       element.parentNode?.removeChild(element);
     }
   }
+}
+
+/**
+ * Processes qti-template-block and qti-template-inline elements for conditional visibility.
+ *
+ * These elements have a template-identifier attribute that should match values in template variables.
+ * - If show-hide="show": element is visible only when template-identifier matches a variable value
+ * - If show-hide="hide": element is hidden when template-identifier matches a variable value
+ *
+ * The matching is done by finding a variable (any variable) that contains the template-identifier.
+ * Variables can be single values or arrays (multiple cardinality).
+ */
+function processTemplateConditionals(
+  root: Element,
+  variables: Record<string, unknown>
+): void {
+  // Process both template-block and template-inline elements
+  const templateElements = [
+    ...Array.from(root.getElementsByTagName('qti-template-block')),
+    ...Array.from(root.getElementsByTagName('qti-template-inline')),
+  ];
+
+  for (const element of templateElements) {
+    const templateIdentifier = element.getAttribute('template-identifier');
+    const showHide = element.getAttribute('show-hide');
+
+    if (!templateIdentifier) continue;
+
+    // Check if any variable contains this template identifier
+    const isMatch = checkVariableContains(variables, templateIdentifier);
+
+    // Determine if element should be removed
+    let shouldRemove = false;
+    if (showHide === 'show') {
+      // Remove if it doesn't match
+      shouldRemove = !isMatch;
+    } else if (showHide === 'hide') {
+      // Remove if it does match
+      shouldRemove = isMatch;
+    }
+
+    if (shouldRemove) {
+      element.parentNode?.removeChild(element);
+    }
+  }
+}
+
+/**
+ * Processes qti-feedback-block and qti-feedback-inline elements for conditional visibility.
+ *
+ * These elements have an outcome-identifier and identifier attribute.
+ * - outcome-identifier: references the outcome variable to check
+ * - identifier: the value to look for in that outcome variable
+ * - show-hide: "show" means visible when identifier is in outcome variable,
+ *              "hide" means hidden when identifier is in outcome variable
+ */
+function processFeedbackVisibility(
+  root: Element,
+  variables: Record<string, unknown>
+): void {
+  // Process both feedback-block and feedback-inline elements
+  const feedbackElements = [
+    ...Array.from(root.getElementsByTagName('qti-feedback-block')),
+    ...Array.from(root.getElementsByTagName('qti-feedback-inline')),
+  ];
+
+  for (const element of feedbackElements) {
+    const outcomeIdentifier = element.getAttribute('outcome-identifier');
+    const identifier = element.getAttribute('identifier');
+    const showHide = element.getAttribute('show-hide');
+
+    if (!outcomeIdentifier || !identifier) continue;
+
+    // Get the outcome variable value
+    const outcomeValue = variables[outcomeIdentifier];
+
+    // Check if the identifier is in the outcome variable
+    const isMatch = valueContains(outcomeValue, identifier);
+
+    // Determine if element should be removed
+    let shouldRemove = false;
+    if (showHide === 'show') {
+      // Remove if it doesn't match
+      shouldRemove = !isMatch;
+    } else if (showHide === 'hide') {
+      // Remove if it does match
+      shouldRemove = isMatch;
+    }
+
+    if (shouldRemove) {
+      element.parentNode?.removeChild(element);
+    }
+  }
+}
+
+/**
+ * Substitutes template variables into MathML expressions.
+ * Looks for <m:mi> and <m:mn> elements whose text content matches a variable identifier,
+ * and replaces the content with the variable's value.
+ */
+function substituteMathVariables(
+  root: Element,
+  variables: Record<string, unknown>
+): void {
+  // Get all MathML identifier (mi) and number (mn) elements
+  // MathML uses the namespace http://www.w3.org/1998/Math/MathML
+  const mathElements = [
+    ...Array.from(root.getElementsByTagName('m:mi')),
+    ...Array.from(root.getElementsByTagName('m:mn')),
+  ];
+
+  for (const mathElement of mathElements) {
+    const textContent = mathElement.textContent?.trim();
+    if (!textContent) continue;
+
+    // Check if this text content matches a variable identifier
+    const value = variables[textContent];
+    if (value === undefined || value === null) continue;
+
+    // Replace the text content with the variable value
+    mathElement.textContent = String(value);
+  }
+}
+
+/**
+ * Checks if any variable in the variables object contains the given identifier.
+ * Handles both single values and arrays (multiple cardinality).
+ */
+function checkVariableContains(
+  variables: Record<string, unknown>,
+  identifier: string
+): boolean {
+  for (const value of Object.values(variables)) {
+    if (valueContains(value, identifier)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Checks if a value contains the given identifier.
+ * Handles both single values and arrays.
+ */
+function valueContains(value: unknown, identifier: string): boolean {
+  if (Array.isArray(value)) {
+    return value.includes(identifier);
+  }
+  return value === identifier;
 }
 
 /**
