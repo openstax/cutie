@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        module: [lambda, frontend, utils]
+        module: [cutie]
     env:
       CI: true
     steps:

@@ -10,9 +10,5 @@ tsc_args=(--noEmit false --declaration)
 
 mkdir -p dist
 
-yarn sass --embed-sources --load-path ../../node_modules/ src/
-
 yarn -s tsc --project tsconfig.without-specs.esm.json "${tsc_args[@]}"
-rsync -av --include="*.scss" --include="*.css" --include="*.css.map" --include="*/" --exclude="*" src/ dist/esm/ 
 yarn -s tsc --project tsconfig.without-specs.cjs.json "${tsc_args[@]}"
-rsync -av --include="*.scss" --include="*.css" --include="*.css.map" --include="*/" --exclude="*" src/ dist/cjs/ 
