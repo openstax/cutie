@@ -1,7 +1,0 @@
-{
-  "extends": "./tsconfig.without-specs",
-  "compilerOptions": {
-    "module": "es6",
-    "outDir": "dist/esm"
-  }
-}

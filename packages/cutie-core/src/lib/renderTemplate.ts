@@ -1,3 +1,4 @@
+/* spell-checker: ignore inlines */
 import { XMLSerializer } from '@xmldom/xmldom';
 import { AttemptState } from '../types';
 

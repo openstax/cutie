@@ -1,3 +1,4 @@
+<!-- spell-checker: ignore typecheck -->
 # @openstax/cutie-example
 
 Example application demonstrating QTI v3 assessment items using the Cutie libraries.

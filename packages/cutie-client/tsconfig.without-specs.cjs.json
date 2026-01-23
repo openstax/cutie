@@ -1,7 +1,0 @@
-{
-  "extends": "./tsconfig.without-specs",
-  "compilerOptions": {
-    "module": "commonjs",
-    "outDir": "dist/cjs"
-  }
-}

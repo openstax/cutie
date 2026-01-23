@@ -1,3 +1,4 @@
+/* spell-checker: ignore DPAIR */
 import { DOMParser } from '@xmldom/xmldom';
 import { describe, expect, test } from 'vitest';
 import { initializeState } from './initializeState';

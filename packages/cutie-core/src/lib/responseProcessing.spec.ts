@@ -1,3 +1,4 @@
+/* spell-checker: ignore hotspot hotspots */
 import { DOMParser } from '@xmldom/xmldom';
 import { describe, expect, test } from 'vitest';
 import { AttemptState } from '../types';

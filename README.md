@@ -1,3 +1,4 @@
+<!-- spell-checker: ignore hotspots -->
 
 # Project Cutie
 
