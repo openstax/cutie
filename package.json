@@ -1,6 +1,6 @@
 {
   "name": "@openstax/cutie-core",
-  "version": "1.0.14",
+  "version": "1.0.0",
   "description": "Core QTI v3 processing engine for template and response processing",
   "type": "module",
   "sideEffects": false,
