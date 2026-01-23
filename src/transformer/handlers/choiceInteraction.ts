@@ -20,84 +20,7 @@ class ChoiceInteractionHandler implements ElementHandler {
 
     // Register styles once
     if (context.styleManager && !context.styleManager.hasStyle('qti-choice-interaction')) {
-      context.styleManager.addStyle('qti-choice-interaction', `
-        .qti-choice-interaction {
-          margin: 1em 0;
-          font-family: system-ui, -apple-system, sans-serif;
-        }
-
-        .qti-choice-interaction .qti-prompt {
-          font-weight: 600;
-          margin-bottom: 0.75em;
-          color: #333;
-        }
-
-        .qti-choice-interaction .qti-simple-choice-group {
-          display: flex;
-          flex-direction: column;
-          gap: 0.5em;
-        }
-
-        .qti-choice-interaction .qti-simple-choice {
-          display: flex;
-          align-items: flex-start;
-          gap: 0.5em;
-          padding: 0.5em;
-          border: 1px solid #ddd;
-          border-radius: 4px;
-          background-color: #fff;
-          cursor: pointer;
-          transition: background-color 0.2s, border-color 0.2s;
-        }
-
-        .qti-choice-interaction .qti-simple-choice:hover {
-          background-color: #f5f5f5;
-          border-color: #bbb;
-        }
-
-        /* Selected state using :has() */
-        .qti-choice-interaction .qti-simple-choice:has(input:checked) {
-          background-color: #e3f2fd;
-          border-color: #2196f3;
-        }
-
-        .qti-choice-interaction .qti-simple-choice:has(input:checked):hover {
-          background-color: #e3f2fd;
-          border-color: #2196f3;
-        }
-
-        /* Disabled state using :has() */
-        .qti-choice-interaction .qti-simple-choice:has(input:disabled) {
-          background-color: #f5f5f5;
-          border-color: #ddd;
-          cursor: not-allowed;
-          opacity: 0.6;
-        }
-
-        .qti-choice-interaction .qti-simple-choice:has(input:disabled):hover {
-          background-color: #f5f5f5;
-          border-color: #ddd;
-        }
-
-        .qti-choice-interaction .qti-simple-choice input {
-          margin-top: 0.25em;
-          cursor: pointer;
-        }
-
-        .qti-choice-interaction .qti-simple-choice:has(input:disabled) input {
-          cursor: not-allowed;
-        }
-
-        .qti-choice-interaction .qti-simple-choice label {
-          flex: 1;
-          cursor: pointer;
-          line-height: 1.5;
-        }
-
-        .qti-choice-interaction .qti-simple-choice:has(input:disabled) label {
-          cursor: not-allowed;
-        }
-      `);
+      context.styleManager.addStyle('qti-choice-interaction', CHOICE_INTERACTION_STYLES);
     }
 
     // Get required attributes
@@ -139,18 +62,18 @@ class ChoiceInteractionHandler implements ElementHandler {
       (child) => child.tagName.toLowerCase() === 'qti-simple-choice'
     );
 
-    // Add prompt if present
-    if (promptElement && context.transformChildren) {
-      const promptDiv = document.createElement('div');
-      promptDiv.className = 'qti-prompt';
-      const promptContent = context.transformChildren(promptElement);
-      promptDiv.appendChild(promptContent);
-      container.appendChild(promptDiv);
-    }
-
-    // Create choices container
-    const choicesContainer = document.createElement('div');
+    // Use fieldset for better accessibility (groups related form controls)
+    const choicesContainer = document.createElement('fieldset');
     choicesContainer.className = 'qti-simple-choice-group';
+
+    // Add legend if prompt is present
+    if (promptElement && context.transformChildren) {
+      const legend = document.createElement('legend');
+      legend.className = 'qti-prompt';
+      const promptContent = context.transformChildren(promptElement);
+      legend.appendChild(promptContent);
+      choicesContainer.appendChild(legend);
+    }
 
     // Process each simple-choice element
     const inputElements: HTMLInputElement[] = [];
@@ -261,3 +184,101 @@ class ChoiceInteractionHandler implements ElementHandler {
 
 // Register with priority 50 (after specific handlers, before unsupported catch-all)
 registry.register('choice-interaction', new ChoiceInteractionHandler(), 50);
+
+/**
+ * CSS styles for choice interaction
+ * Uses fieldset/legend for accessible grouping of related form controls
+ */
+const CHOICE_INTERACTION_STYLES = `
+  .qti-choice-interaction {
+    margin: 1em 0;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+
+  .qti-choice-interaction .qti-prompt {
+    font-weight: 600;
+    margin-bottom: 0.75em;
+    color: #333;
+  }
+
+  .qti-choice-interaction .qti-simple-choice-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+  }
+
+  /* Remove default fieldset styling for clean appearance */
+  .qti-choice-interaction fieldset.qti-simple-choice-group {
+    border: none;
+    padding: 0;
+    margin: 0;
+    min-width: 0;
+  }
+
+  .qti-choice-interaction fieldset.qti-simple-choice-group legend.qti-prompt {
+    padding: 0;
+    margin-bottom: 0.75em;
+    font-weight: 600;
+    color: #333;
+  }
+
+  .qti-choice-interaction .qti-simple-choice {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5em;
+    padding: 0.5em;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #fff;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+  }
+
+  .qti-choice-interaction .qti-simple-choice:hover {
+    background-color: #f5f5f5;
+    border-color: #bbb;
+  }
+
+  /* Selected state using :has() */
+  .qti-choice-interaction .qti-simple-choice:has(input:checked) {
+    background-color: #e3f2fd;
+    border-color: #2196f3;
+  }
+
+  .qti-choice-interaction .qti-simple-choice:has(input:checked):hover {
+    background-color: #e3f2fd;
+    border-color: #2196f3;
+  }
+
+  /* Disabled state using :has() */
+  .qti-choice-interaction .qti-simple-choice:has(input:disabled) {
+    background-color: #f5f5f5;
+    border-color: #ddd;
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  .qti-choice-interaction .qti-simple-choice:has(input:disabled):hover {
+    background-color: #f5f5f5;
+    border-color: #ddd;
+  }
+
+  .qti-choice-interaction .qti-simple-choice input {
+    margin-top: 0.25em;
+    cursor: pointer;
+  }
+
+  .qti-choice-interaction .qti-simple-choice:has(input:disabled) input {
+    cursor: not-allowed;
+  }
+
+  .qti-choice-interaction .qti-simple-choice label {
+    flex: 1;
+    cursor: pointer;
+    line-height: 1.5;
+  }
+
+  .qti-choice-interaction .qti-simple-choice:has(input:disabled) label {
+    cursor: not-allowed;
+  }
+`;

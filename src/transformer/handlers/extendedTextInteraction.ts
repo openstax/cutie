@@ -38,37 +38,7 @@ class ExtendedTextInteractionHandler implements ElementHandler {
 
     // Register styles once
     if (context.styleManager && !context.styleManager.hasStyle('qti-extended-text-interaction')) {
-      context.styleManager.addStyle(
-        'qti-extended-text-interaction',
-        `
-.qti-extended-text-interaction {
-  display: block;
-  margin: 8px 0;
-}
-
-.qti-extended-text-interaction .qti-prompt {
-  margin-bottom: 8px;
-}
-
-.qti-extended-text-interaction textarea {
-  width: 100%;
-  min-height: 120px;
-  padding: 8px;
-  font-size: 14px;
-  font-family: inherit;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  resize: vertical;
-  box-sizing: border-box;
-}
-
-.qti-extended-text-interaction textarea:disabled {
-  background-color: #f5f5f5;
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-        `.trim()
-      );
+      context.styleManager.addStyle('qti-extended-text-interaction', EXTENDED_TEXT_INTERACTION_STYLES);
     }
 
     // Create container for the interaction
@@ -124,6 +94,35 @@ class ExtendedTextInteractionHandler implements ElementHandler {
     return fragment;
   }
 }
+
+const EXTENDED_TEXT_INTERACTION_STYLES = `
+.qti-extended-text-interaction {
+  display: block;
+  margin: 8px 0;
+}
+
+.qti-extended-text-interaction .qti-prompt {
+  margin-bottom: 8px;
+}
+
+.qti-extended-text-interaction textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.qti-extended-text-interaction textarea:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+`.trim();
 
 // Register with priority 50 (after specific handlers, before unsupported catch-all at 500)
 registry.register('extended-text-interaction', new ExtendedTextInteractionHandler(), 50);
