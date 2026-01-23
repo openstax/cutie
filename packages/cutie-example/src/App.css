@@ -51,6 +51,21 @@ h2 {
   background: #fff;
 }
 
+.example-select {
+  width: 100%;
+  padding: 8px;
+  font-size: 13px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.example-select:focus {
+  outline: none;
+  border-color: #4a90e2;
+}
+
 .xml-input {
   width: 100%;
   min-height: 150px;

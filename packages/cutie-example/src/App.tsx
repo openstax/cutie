@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { beginAttempt } from '@openstax/cutie-core';
 import type { AttemptState } from '@openstax/cutie-core';
+import { examples } from './example-items';
 import './App.css';
 
 export function App() {
@@ -9,6 +10,19 @@ export function App() {
   const [sanitizedTemplate, setSanitizedTemplate] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [processing, setProcessing] = useState(false);
+
+  const handleExampleSelect = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedName = event.target.value;
+    if (!selectedName) {
+      setItemXml('');
+      return;
+    }
+
+    const example = examples.find(ex => ex.name === selectedName);
+    if (example) {
+      setItemXml(example.item);
+    }
+  };
 
   const handleProcess = async () => {
     setError('');
@@ -32,6 +46,18 @@ export function App() {
 
         <div className="panel">
           <h2>Item Definition</h2>
+          <select
+            className="example-select"
+            onChange={handleExampleSelect}
+            defaultValue=""
+          >
+            <option value="">Load example item...</option>
+            {examples.map((ex) => (
+              <option key={ex.name} value={ex.name}>
+                {ex.name}
+              </option>
+            ))}
+          </select>
           <textarea
             className="xml-input"
             value={itemXml}
