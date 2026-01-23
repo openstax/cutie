@@ -27,24 +27,7 @@ class TextEntryInteractionHandler implements ElementHandler {
 
     // Register styles once
     if (context.styleManager && !context.styleManager.hasStyle('qti-text-entry-interaction')) {
-      context.styleManager.addStyle('qti-text-entry-interaction', `
-        .qti-text-entry-interaction {
-          display: inline-block;
-          margin: 0 0.25em;
-          padding: 0.25em 0.5em;
-          border: 1px solid #ccc;
-          border-radius: 3px;
-          font-size: inherit;
-          font-family: inherit;
-          vertical-align: baseline;
-        }
-
-        .qti-text-entry-interaction:disabled {
-          background-color: #f5f5f5;
-          cursor: not-allowed;
-          opacity: 0.6;
-        }
-      `);
+      context.styleManager.addStyle('qti-text-entry-interaction', TEXT_ENTRY_INTERACTION_STYLES);
     }
 
     // Extract required response-identifier attribute
@@ -105,6 +88,25 @@ class TextEntryInteractionHandler implements ElementHandler {
     return fragment;
   }
 }
+
+const TEXT_ENTRY_INTERACTION_STYLES = `
+  .qti-text-entry-interaction {
+    display: inline-block;
+    margin: 0 0.25em;
+    padding: 0.25em 0.5em;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    font-size: inherit;
+    font-family: inherit;
+    vertical-align: baseline;
+  }
+
+  .qti-text-entry-interaction:disabled {
+    background-color: #f5f5f5;
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+`;
 
 // Register with priority 50 (before unsupported catch-all at 500)
 registry.register('text-entry-interaction', new TextEntryInteractionHandler(), 50);
