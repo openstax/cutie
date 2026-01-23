@@ -135,6 +135,8 @@ describe('renderTemplate', () => {
   identifier="template_digging" title="Digging a Hole"
   adaptive="false" time-dependent="false" xml:lang="en" >
 
+    <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="float"/>
+
     <qti-item-body>
       <p>If it takes 3
       men
@@ -421,14 +423,16 @@ describe('renderTemplate', () => {
   });
 
   describe('5. Sensitive content removal', () => {
-    test('removes qti-response-declaration elements', () => {
+    test('keeps qti-response-declaration for used interactions', () => {
       const itemDoc = parser.parseFromString(minimalItemXml, 'text/xml');
       const template = renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
       });
 
-      expect(template).not.toContain('qti-response-declaration');
+      // Response declaration should be kept since RESPONSE is used in the body
+      expect(template).toContain('qti-response-declaration');
+      expect(template).toContain('identifier="RESPONSE"');
     });
 
     test('removes qti-outcome-declaration elements', () => {
@@ -472,7 +476,222 @@ describe('renderTemplate', () => {
     });
   });
 
-  describe('6. Math variable substitution in MathML', () => {
+  describe('6. Response declaration sanitization', () => {
+    test('removes qti-correct-response from response declarations', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier">
+    <qti-correct-response>
+      <qti-value>ChoiceA</qti-value>
+    </qti-correct-response>
+  </qti-response-declaration>
+  <qti-item-body>
+    <qti-choice-interaction response-identifier="RESPONSE">
+      <qti-simple-choice identifier="ChoiceA">A</qti-simple-choice>
+      <qti-simple-choice identifier="ChoiceB">B</qti-simple-choice>
+    </qti-choice-interaction>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = renderTemplate(itemDoc, {
+        variables: {},
+        completionStatus: 'not_attempted',
+      });
+
+      expect(template).toContain('qti-response-declaration');
+      expect(template).not.toContain('qti-correct-response');
+      // ChoiceA should appear in the body choices but not in a correct-response element
+      expect(template).toContain('identifier="ChoiceA"');
+    });
+
+    test('removes qti-mapping from response declarations', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier">
+    <qti-mapping default-value="0">
+      <qti-map-entry map-key="ChoiceA" mapped-value="1"/>
+      <qti-map-entry map-key="ChoiceB" mapped-value="0.5"/>
+    </qti-mapping>
+  </qti-response-declaration>
+  <qti-item-body>
+    <qti-choice-interaction response-identifier="RESPONSE">
+      <qti-simple-choice identifier="ChoiceA">A</qti-simple-choice>
+      <qti-simple-choice identifier="ChoiceB">B</qti-simple-choice>
+    </qti-choice-interaction>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = renderTemplate(itemDoc, {
+        variables: {},
+        completionStatus: 'not_attempted',
+      });
+
+      expect(template).toContain('qti-response-declaration');
+      expect(template).not.toContain('qti-mapping');
+      expect(template).not.toContain('qti-map-entry');
+    });
+
+    test('removes response declarations not used in the filtered body', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
+  <qti-response-declaration identifier="RESPONSE1" cardinality="single" base-type="identifier"/>
+  <qti-response-declaration identifier="RESPONSE2" cardinality="single" base-type="identifier"/>
+  <qti-response-declaration identifier="UNUSED" cardinality="single" base-type="string"/>
+  <qti-item-body>
+    <qti-choice-interaction response-identifier="RESPONSE1">
+      <qti-simple-choice identifier="A">A</qti-simple-choice>
+    </qti-choice-interaction>
+    <qti-choice-interaction response-identifier="RESPONSE2">
+      <qti-simple-choice identifier="B">B</qti-simple-choice>
+    </qti-choice-interaction>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = renderTemplate(itemDoc, {
+        variables: {},
+        completionStatus: 'not_attempted',
+      });
+
+      expect(template).toContain('identifier="RESPONSE1"');
+      expect(template).toContain('identifier="RESPONSE2"');
+      expect(template).not.toContain('identifier="UNUSED"');
+    });
+
+    test('removes declarations for interactions hidden by template conditionals', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
+  <qti-response-declaration identifier="VISIBLE_RESPONSE" cardinality="single" base-type="identifier"/>
+  <qti-response-declaration identifier="HIDDEN_RESPONSE" cardinality="single" base-type="identifier"/>
+  <qti-item-body>
+    <qti-choice-interaction response-identifier="VISIBLE_RESPONSE">
+      <qti-simple-choice identifier="A">A</qti-simple-choice>
+    </qti-choice-interaction>
+    <qti-template-block template-identifier="showExtra" identifier="block1" show-hide="show">
+      <qti-choice-interaction response-identifier="HIDDEN_RESPONSE">
+        <qti-simple-choice identifier="B">B</qti-simple-choice>
+      </qti-choice-interaction>
+    </qti-template-block>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = renderTemplate(itemDoc, {
+        variables: {
+          // showExtra is not set, so template-block will be hidden
+        },
+        completionStatus: 'not_attempted',
+      });
+
+      expect(template).toContain('identifier="VISIBLE_RESPONSE"');
+      expect(template).not.toContain('identifier="HIDDEN_RESPONSE"');
+    });
+
+    test('injects qti-default-value for single cardinality response with saved value', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier"/>
+  <qti-item-body>
+    <qti-choice-interaction response-identifier="RESPONSE">
+      <qti-simple-choice identifier="ChoiceA">A</qti-simple-choice>
+      <qti-simple-choice identifier="ChoiceB">B</qti-simple-choice>
+    </qti-choice-interaction>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = renderTemplate(itemDoc, {
+        variables: {
+          RESPONSE: 'ChoiceB',
+        },
+        completionStatus: 'incomplete',
+      });
+
+      expect(template).toContain('qti-default-value');
+      expect(template).toContain('<qti-value>ChoiceB</qti-value>');
+    });
+
+    test('injects qti-default-value for multiple cardinality response with saved values', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
+  <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="identifier"/>
+  <qti-item-body>
+    <qti-choice-interaction response-identifier="RESPONSE" max-choices="3">
+      <qti-simple-choice identifier="A">A</qti-simple-choice>
+      <qti-simple-choice identifier="B">B</qti-simple-choice>
+      <qti-simple-choice identifier="C">C</qti-simple-choice>
+    </qti-choice-interaction>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = renderTemplate(itemDoc, {
+        variables: {
+          RESPONSE: ['A', 'C'],
+        },
+        completionStatus: 'incomplete',
+      });
+
+      expect(template).toContain('qti-default-value');
+      expect(template).toContain('<qti-value>A</qti-value>');
+      expect(template).toContain('<qti-value>C</qti-value>');
+      expect(template).not.toContain('<qti-value>B</qti-value>');
+    });
+
+    test('does not inject qti-default-value when response variable is undefined', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier"/>
+  <qti-item-body>
+    <qti-choice-interaction response-identifier="RESPONSE">
+      <qti-simple-choice identifier="A">A</qti-simple-choice>
+    </qti-choice-interaction>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = renderTemplate(itemDoc, {
+        variables: {},
+        completionStatus: 'not_attempted',
+      });
+
+      expect(template).toContain('qti-response-declaration');
+      expect(template).not.toContain('qti-default-value');
+    });
+
+    test('replaces existing qti-default-value with value from state', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier">
+    <qti-default-value>
+      <qti-value>OriginalDefault</qti-value>
+    </qti-default-value>
+  </qti-response-declaration>
+  <qti-item-body>
+    <qti-choice-interaction response-identifier="RESPONSE">
+      <qti-simple-choice identifier="ChoiceA">A</qti-simple-choice>
+      <qti-simple-choice identifier="ChoiceB">B</qti-simple-choice>
+    </qti-choice-interaction>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = renderTemplate(itemDoc, {
+        variables: {
+          RESPONSE: 'ChoiceA',
+        },
+        completionStatus: 'incomplete',
+      });
+
+      expect(template).toContain('qti-default-value');
+      expect(template).toContain('<qti-value>ChoiceA</qti-value>');
+      expect(template).not.toContain('OriginalDefault');
+    });
+  });
+
+  describe('7. Math variable substitution in MathML', () => {
     test('substitutes template variables within MathML mi elements', () => {
       const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
 <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
