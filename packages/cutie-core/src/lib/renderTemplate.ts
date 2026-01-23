@@ -13,9 +13,11 @@ import { AttemptState } from '../types';
  *    - qti-template-declaration elements
  *    - qti-template-processing rules
  *    - qti-response-processing rules
- *    - qti-correct-response declarations
+ *    - qti-correct-response, qti-mapping from response declarations
+ *    - Response declarations not used in the filtered body
  *    - Hidden feedback that shouldn't be visible yet
- * 5. Serializes the sanitized document to XML string
+ * 5. Injects current response values as qti-default-value elements
+ * 6. Serializes the sanitized document to XML string
  *
  * This runs after both initializeState and processResponse to generate
  * the template that the client will render.
@@ -47,10 +49,13 @@ export function renderTemplate(
   // Step 5: Substitute math variables in MathML expressions
   substituteMathVariables(root, state.variables);
 
-  // Step 6: Clean up empty text nodes and normalize whitespace
+  // Step 6: Sanitize response declarations (after body is filtered)
+  sanitizeResponseDeclarations(root, state.variables);
+
+  // Step 7: Clean up empty text nodes and normalize whitespace
   normalizeWhitespace(root);
 
-  // Step 7: Serialize the sanitized document to XML string
+  // Step 8: Serialize the sanitized document to XML string
   return serializeToXml(clonedDoc);
 }
 
@@ -90,15 +95,15 @@ function substituteVariables(
 /**
  * Removes sensitive elements from the document that should not be exposed to the client.
  * This includes:
- * - qti-response-declaration (may contain correct responses)
  * - qti-outcome-declaration
  * - qti-template-declaration
  * - qti-template-processing
  * - qti-response-processing
+ *
+ * Note: qti-response-declaration elements are kept but sanitized separately.
  */
 function removeSensitiveElements(root: Element): void {
   const sensitiveTagNames = [
-    'qti-response-declaration',
     'qti-outcome-declaration',
     'qti-template-declaration',
     'qti-template-processing',
@@ -260,6 +265,102 @@ function valueContains(value: unknown, identifier: string): boolean {
     return value.includes(identifier);
   }
   return value === identifier;
+}
+
+/**
+ * Sanitizes qti-response-declaration elements:
+ * 1. Collects response-identifier attributes from interaction elements in the body
+ * 2. Removes declarations for identifiers not used in the filtered body
+ * 3. Strips sensitive children (qti-correct-response, qti-mapping, qti-area-mapping)
+ * 4. Injects qti-default-value with current response values from state
+ */
+function sanitizeResponseDeclarations(
+  root: Element,
+  variables: Record<string, unknown>
+): void {
+  // Step 1: Find all response identifiers used in the item body
+  const itemBody = root.getElementsByTagName('qti-item-body')[0];
+  const usedIdentifiers = new Set<string>();
+
+  if (itemBody) {
+    // Get all elements in the body that might have response-identifier
+    const allElements = itemBody.getElementsByTagName('*');
+    for (let i = 0; i < allElements.length; i++) {
+      const element = allElements[i];
+      const responseId = element?.getAttribute('response-identifier');
+      if (responseId) {
+        usedIdentifiers.add(responseId);
+      }
+    }
+  }
+
+  // Step 2: Process all qti-response-declaration elements
+  const declarations = Array.from(
+    root.getElementsByTagName('qti-response-declaration')
+  );
+
+  for (const declaration of declarations) {
+    const identifier = declaration.getAttribute('identifier');
+
+    // Remove declarations not used in the body
+    if (!identifier || !usedIdentifiers.has(identifier)) {
+      declaration.parentNode?.removeChild(declaration);
+      continue;
+    }
+
+    // Step 3: Remove sensitive child elements
+    const sensitiveChildren = [
+      'qti-correct-response',
+      'qti-mapping',
+      'qti-area-mapping',
+    ];
+
+    for (const tagName of sensitiveChildren) {
+      const elements = Array.from(declaration.getElementsByTagName(tagName));
+      for (const element of elements) {
+        element.parentNode?.removeChild(element);
+      }
+    }
+
+    // Step 4: Inject default value if response exists in state
+    const responseValue = variables[identifier];
+    if (responseValue !== undefined && responseValue !== null) {
+      // Remove any existing qti-default-value first
+      const existingDefaults = Array.from(
+        declaration.getElementsByTagName('qti-default-value')
+      );
+      for (const existing of existingDefaults) {
+        existing.parentNode?.removeChild(existing);
+      }
+
+      // Create new qti-default-value element
+      const defaultValue = declaration.ownerDocument.createElement(
+        'qti-default-value'
+      );
+
+      // Handle different cardinalities
+      if (Array.isArray(responseValue)) {
+        // Multiple or ordered cardinality
+        for (const val of responseValue) {
+          const valueElement = declaration.ownerDocument.createElement(
+            'qti-value'
+          );
+          valueElement.textContent = String(val);
+          defaultValue.appendChild(valueElement);
+        }
+      } else {
+        // Single cardinality
+        const valueElement = declaration.ownerDocument.createElement(
+          'qti-value'
+        );
+        valueElement.textContent = String(responseValue);
+        defaultValue.appendChild(valueElement);
+      }
+
+      // Append to declaration
+      declaration.appendChild(defaultValue);
+    }
+  }
 }
 
 /**
