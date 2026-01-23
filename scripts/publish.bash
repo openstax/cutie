@@ -20,7 +20,7 @@ release_branch_name="release-$date_key"
 git checkout -b "$release_branch_name"
 
 packages=( \
-  "cuite-core" \
+  "cutie-core" \
   "cutie-client" \
 )
 

@@ -1,9 +1,10 @@
 // Source: https://github.com/1EdTech/qti-examples/blob/master/qtiv3-examples/packaging/items/math.xml
+/* spell-checker: ignore ESOL mrow msup */
 
 export const name = "Math with MathML - Relativity";
 
 export const item = `<?xml version="1.0" encoding="UTF-8"?>
-<!-- Thie example adapted from the PET Handbook, copyright University of Cambridge ESOL Examinations -->
+<!-- This example adapted from the PET Handbook, copyright University of Cambridge ESOL Examinations -->
 <qti-assessment-item
     xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -30,7 +31,7 @@ export const item = `<?xml version="1.0" encoding="UTF-8"?>
 					</m:mrow>
 				</m:math> ?</qti-prompt>
 			<qti-simple-choice identifier="E">Einstein</qti-simple-choice>
-			<qti-simple-choice identifier="G">Gallileo</qti-simple-choice>
+			<qti-simple-choice identifier="G">Galileo</qti-simple-choice>
 			<qti-simple-choice identifier="H">Hawking</qti-simple-choice>
 			<qti-simple-choice identifier="N">Newton</qti-simple-choice>
 		</qti-choice-interaction>

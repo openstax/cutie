@@ -1,4 +1,5 @@
 // Source: https://github.com/1EdTech/qti-examples/blob/master/qtiv3-examples/packaging/items/associate.xml
+/* spell-checker: ignore Prospero */
 
 export const name = "Associate Interaction - Shakespearian Rivals";
 

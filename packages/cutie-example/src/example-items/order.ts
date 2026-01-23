@@ -1,4 +1,5 @@
 // Source: https://github.com/1EdTech/qti-examples/blob/master/qtiv3-examples/packaging/items/order.xml
+/* spell-checker: ignore Barrichello Jenson */
 
 export const name = "Order Interaction - Grand Prix of Bahrain";
 

@@ -1,3 +1,4 @@
+/* spell-checker: ignore hotspot hottext */
 export interface ExampleItem {
   name: string;
   item: string;

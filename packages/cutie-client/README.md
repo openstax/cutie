@@ -1,3 +1,4 @@
+<!-- spell-checker: ignore typecheck hotspot -->
 # @openstax/cutie-client
 
 Browser-side rendering library for QTI v3 assessment items. Parses sanitized QTI XML from `@openstax/cutie-core` and renders it as interactive HTML.

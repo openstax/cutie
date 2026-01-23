@@ -27,7 +27,7 @@ export const item = `<?xml version="1.0" encoding="UTF-8"?>
 			<i>Jedi</i> accounted for more than 4% of this group!</p>
 		<qti-slider-interaction response-identifier="RESPONSE" lower-bound="0" upper-bound="100" step="1" step-label="false">
 			<qti-prompt>In total, what percentage of the UK population do you think were eventually
-				classifed as having no religion?</qti-prompt>
+				classified as having no religion?</qti-prompt>
 		</qti-slider-interaction>
 	</qti-item-body>
 	<qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/map_response.xml"/>

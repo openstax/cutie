@@ -1,9 +1,10 @@
 // Source: https://github.com/1EdTech/qti-examples/blob/master/qtiv3-examples/packaging/items/choice.xml
+/* spell-checker: ignore ESOL */
 
 export const name = "Single Choice - Unattended Luggage";
 
 export const item = `<?xml version="1.0" encoding="UTF-8"?>
-<!-- Thie example adapted from the PET Handbook, copyright University of Cambridge ESOL Examinations -->
+<!-- This example adapted from the PET Handbook, copyright University of Cambridge ESOL Examinations -->
 <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation=" http://www.imsglobal.org/xsd/imsqtiasi_v3p0 https://purl.imsglobal.org/spec/qti/v3p0/schema/xsd/imsqti_asiv3p0_v1p0.xsd " identifier="choice" title="Unattended Luggage" adaptive="false" time-dependent="false">
 	<qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier">
 		<qti-correct-response>

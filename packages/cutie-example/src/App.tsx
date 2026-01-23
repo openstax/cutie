@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { beginAttempt } from '@openstax/cutie-core';
 import type { AttemptState } from '@openstax/cutie-core';
 import { mountItem } from '@openstax/cutie-client';
+import type { MountedItem, ResponseData } from '@openstax/cutie-client';
 import { examples } from './example-items';
 import './App.css';
 
@@ -11,7 +12,10 @@ export function App() {
   const [sanitizedTemplate, setSanitizedTemplate] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [processing, setProcessing] = useState(false);
+  const [responses, setResponses] = useState<ResponseData | null>(null);
+  const [interactionsEnabled, setInteractionsEnabled] = useState(true);
   const previewRef = useRef<HTMLDivElement>(null);
+  const mountedItemRef = useRef<MountedItem | null>(null);
 
   const handleExampleSelect = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedName = event.target.value;
@@ -44,10 +48,39 @@ export function App() {
   // Mount/unmount item when sanitizedTemplate changes
   useEffect(() => {
     if (previewRef.current && sanitizedTemplate) {
-      const cleanup = mountItem(previewRef.current, sanitizedTemplate);
-      return cleanup;
+      const mountedItem = mountItem(previewRef.current, sanitizedTemplate);
+      mountedItemRef.current = mountedItem;
+
+      return () => {
+        mountedItem.unmount();
+        mountedItemRef.current = null;
+      };
     }
   }, [sanitizedTemplate]);
+
+  const handleSubmit = () => {
+    if (mountedItemRef.current) {
+      // Disable interactions during submission
+      setInteractionsEnabled(false);
+      mountedItemRef.current.setInteractionsEnabled(false);
+
+      // Collect responses
+      const collectedResponses = mountedItemRef.current.collectResponses();
+      setResponses(collectedResponses);
+
+      // Log for debugging
+      console.log('Collected responses:', collectedResponses);
+      console.log('Response identifiers:', mountedItemRef.current.getResponseIdentifiers());
+
+      // Re-enable interactions after a brief delay (simulating submission)
+      setTimeout(() => {
+        if (mountedItemRef.current) {
+          mountedItemRef.current.setInteractionsEnabled(true);
+          setInteractionsEnabled(true);
+        }
+      }, 1000);
+    }
+  };
 
   return (
     <div className="app-container">
@@ -101,9 +134,24 @@ export function App() {
             {sanitizedTemplate || 'No template yet'}
           </pre>
         </div>
+
+        <div className="panel">
+          <h2>Response Collection</h2>
+          <button
+            className="process-button"
+            onClick={handleSubmit}
+            disabled={!sanitizedTemplate || !interactionsEnabled}
+          >
+            {interactionsEnabled ? 'Submit Responses' : 'Submitting...'}
+          </button>
+          <pre className="output-display">
+            {responses ? JSON.stringify(responses, null, 2) : 'No responses collected yet'}
+          </pre>
+        </div>
       </div>
 
       <div className="preview-area">
+        <h2>Item Preview</h2>
         <div ref={previewRef} />
       </div>
     </div>
