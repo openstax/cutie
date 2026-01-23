@@ -1,3 +1,4 @@
+/* spell-checker: ignore parsererror */
 import type { ParsedQtiItem } from '../types';
 
 /**
