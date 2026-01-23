@@ -63,13 +63,16 @@ The transformation system uses a **priority-based handler registry** for process
 
 | Handler | Priority | Purpose |
 |---------|----------|---------|
+| `choiceInteraction` | 50 | Renders qti-choice-interaction (radio buttons or checkboxes) |
+| `extendedTextInteraction` | 50 | Renders qti-extended-text-interaction (multi-line text areas) |
+| `textEntryInteraction` | 50 | Renders qti-text-entry-interaction (inline text inputs) |
 | `unsupported` | 500 | Catch-all for unknown qti-* elements → shows yellow error box |
 | `htmlPassthrough` | 1000 | Standard HTML elements (p, div, etc.) → passes through as-is |
 
 **Future handlers** (to be implemented):
-- `qti-choice-interaction` (priority ~50)
-- `qti-text-entry-interaction` (priority ~50)
 - `qti-feedback-block` (priority ~50)
+- `qti-hotspot-interaction` (priority ~50)
+- `qti-inline-choice-interaction` (priority ~50)
 - etc.
 
 ### Handler Interface
