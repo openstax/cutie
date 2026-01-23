@@ -2,18 +2,19 @@
   "name": "@openstax/cutie-core",
   "version": "1.0.14",
   "description": "Core QTI v3 processing engine for template and response processing",
+  "type": "module",
   "sideEffects": false,
   "dependencies": {
     "@xmldom/xmldom": "^0.8.10"
   },
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^5.13.0",
-    "@typescript-eslint/parser": "^5.13.0",
+    "@eslint/js": "^9.39.1",
     "cspell": "^5.18.5",
-    "eslint": "^8.10.0",
-    "eslint-plugin-import": "^2.25.4",
+    "eslint": "^9.39.1",
+    "eslint-plugin-import": "^2.32.0",
     "npm-run-all": "^4.1.5",
-    "typescript": "4.6",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.46.4",
     "vitest": "^1.2.0"
   },
   "exports": {
