@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { beginAttempt } from '@openstax/cutie-core';
 import type { AttemptState } from '@openstax/cutie-core';
+import { mountItem } from '@openstax/cutie-client';
 import { examples } from './example-items';
 import './App.css';
 
@@ -10,6 +11,7 @@ export function App() {
   const [sanitizedTemplate, setSanitizedTemplate] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [processing, setProcessing] = useState(false);
+  const previewRef = useRef<HTMLDivElement>(null);
 
   const handleExampleSelect = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedName = event.target.value;
@@ -38,6 +40,14 @@ export function App() {
       setProcessing(false);
     }
   };
+
+  // Mount/unmount item when sanitizedTemplate changes
+  useEffect(() => {
+    if (previewRef.current && sanitizedTemplate) {
+      const cleanup = mountItem(previewRef.current, sanitizedTemplate);
+      return cleanup;
+    }
+  }, [sanitizedTemplate]);
 
   return (
     <div className="app-container">
@@ -94,9 +104,7 @@ export function App() {
       </div>
 
       <div className="preview-area">
-        <div className="preview-placeholder">
-          Item preview will appear here
-        </div>
+        <div ref={previewRef} />
       </div>
     </div>
   );
