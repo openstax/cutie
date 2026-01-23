@@ -1,7 +1,7 @@
 {
   "name": "@openstax/cutie-example",
   "private": true,
-  "version": "1.0.14",
+  "version": "1.0.0",
   "description": "Example application demonstrating QTI v3 assessment items",
   "type": "module",
   "scripts": {
