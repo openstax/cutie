@@ -8,7 +8,7 @@ cd "$project_dir"
 
 # packages that must be built before other ones (in this order)
 build_order=( \
-  "@openstax/cutie" \
+  "@openstax/cutie-core" \
 )
 
 # all other packages
