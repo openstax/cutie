@@ -14,6 +14,26 @@ export type ResponseData = Record<string, unknown>;
 export type StateObserver = (state: { interactionsEnabled: boolean }) => void;
 
 /**
+ * Manages style injection for handlers.
+ * Ensures styles are only injected once per ID.
+ */
+export interface StyleManager {
+  /**
+   * Register a style block with a unique ID.
+   * If the ID already exists, the style will not be re-injected.
+   *
+   * @param id - Unique identifier for this style block
+   * @param css - CSS content to inject
+   */
+  addStyle(id: string, css: string): void;
+
+  /**
+   * Check if a style ID has already been registered
+   */
+  hasStyle(id: string): boolean;
+}
+
+/**
  * Central state manager for an item instance.
  * Manages response collection and interaction enabled state with observer pattern.
  */
@@ -47,6 +67,12 @@ export interface TransformContext {
    * Handlers use this to register response accessors and observe state changes.
    */
   itemState?: ItemState;
+
+  /**
+   * Style manager for injecting CSS.
+   * Handlers use this to register styles that can use pseudo-selectors and pseudo-elements.
+   */
+  styleManager?: StyleManager;
 }
 
 /**

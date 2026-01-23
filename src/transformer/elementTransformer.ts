@@ -1,6 +1,7 @@
 import { createUnsupportedElement } from '../errors/errorDisplay';
 import { registry } from './registry';
-import type { TransformContext } from './types';
+import { DefaultStyleManager } from './styleManager';
+import type { StyleManager, TransformContext } from './types';
 
 // Import handlers to trigger registration
 import './handlers';
@@ -35,10 +36,14 @@ export function transformElement(
 ): DocumentFragment {
   const fragment = document.createDocumentFragment();
 
-  // Add transformChildren function to context for recursive transformation
+  // Create or use existing StyleManager
+  const styleManager = context.styleManager ?? new DefaultStyleManager();
+
+  // Add transformChildren function and styleManager to context for recursive transformation
   const contextWithTransform: TransformContext = {
     ...context,
-    transformChildren: (el: Element) => transformElement(el, context),
+    styleManager,
+    transformChildren: (el: Element) => transformElement(el, { ...context, styleManager }),
   };
 
   // Process all child nodes
@@ -61,4 +66,12 @@ export function transformElement(
   }
 
   return fragment;
+}
+
+/**
+ * Get the StyleManager from a context, creating one if needed.
+ * This is useful for handlers that need to ensure a StyleManager exists.
+ */
+export function getStyleManager(context: TransformContext): StyleManager {
+  return context.styleManager ?? new DefaultStyleManager();
 }
