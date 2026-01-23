@@ -19,25 +19,36 @@ release_branch_name="release-$date_key"
 
 git checkout -b "$release_branch_name"
 
-relative_package_dir="packages/cutie"
-package_dir="$project_dir/$relative_package_dir"
-cd "$package_dir";
-name=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('/dev/stdin').toString()).name)" < package.json)
-version=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('/dev/stdin').toString()).version)" < package.json)
+packages=( \
+  "cuite-core" \
+  "cutie-client" \
+)
 
-if [ $(git tag -l "$version") ]; then
-  echo "package version $name@$version already exists, skipping."
-else
-  echo "building $name@$version ..."
-  yarn build:clean
-  git add -f dist/
-  git commit -m "adding dist files"
+for package in "${packages[@]}"; do
+  relative_package_dir="packages/flex-page-$package"
+  package_dir="$project_dir/$relative_package_dir"
+  cd "$package_dir";
+  name=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('/dev/stdin').toString()).name)" < package.json)
+  version=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('/dev/stdin').toString()).version)" < package.json)
+  package_branch_name="$release_branch_name-$package"
+  package_tag_name="$package-$version"
 
-  cd "$project_dir";
-  git subtree split -P $relative_package_dir -b "$release_branch_name"
-  git checkout "$release_branch_name"
-  git tag "$version";
-  git push origin tag "$version"
-fi
+  if [ $(git tag -l "$package_tag_name") ]; then
+    echo "package version $name@$version already exists, skipping."
+  else
+    echo "building $name@$version ..."
+    yarn build:clean
+    git add -f dist/
+    git commit -m "adding dist files"
+
+    cd "$project_dir";
+    git subtree split -P $relative_package_dir -b "$package_branch_name"
+    git checkout "$package_branch_name"
+    git tag "$package_tag_name";
+    git push origin tag "$package_tag_name"
+
+    git checkout "$release_branch_name"
+  fi
+done
 
 git checkout "$current_branch"

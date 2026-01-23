@@ -1,0 +1,55 @@
+{
+  "name": "@openstax/cutie-client",
+  "version": "1.0.0",
+  "description": "Client-side QTI v3 rendering library for interactive assessment items",
+  "type": "module",
+  "sideEffects": false,
+  "dependencies": {},
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "cspell": "^5.18.5",
+    "eslint": "^9.39.1",
+    "eslint-plugin-import": "^2.32.0",
+    "npm-run-all": "^4.1.5",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.46.4",
+    "vitest": "^1.2.0"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js"
+    },
+    "./*": {
+      "import": "./dist/esm/*.js",
+      "require": "./dist/cjs/*.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "types": "index.d.ts",
+  "typesVersions": {
+    "*": {
+      "*": [
+        "dist/esm/*",
+        "dist/esm/*.d.ts",
+        "dist/esm/*/index.d.ts"
+      ]
+    }
+  },
+  "license": "MIT",
+  "main": "index.js",
+  "scripts": {
+    "build": "./script/build.bash",
+    "build:clean": "yarn clean && yarn build",
+    "ci": "CI=true npm-run-all ci:*",
+    "ci:lint": "eslint --max-warnings=0 .",
+    "ci:spelling": "git ls-files | yarn cspell -c ../../cspell.json --file-list stdin",
+    "ci:test": "vitest run",
+    "ci:typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  }
+}
