@@ -58,11 +58,16 @@ export function App() {
     }
   }, [sanitizedTemplate]);
 
+  useEffect(() => {
+    if (mountedItemRef.current) {
+      mountedItemRef.current.setInteractionsEnabled(interactionsEnabled);
+    }
+  }, [interactionsEnabled]);
+
   const handleSubmit = () => {
     if (mountedItemRef.current) {
       // Disable interactions during submission
       setInteractionsEnabled(false);
-      mountedItemRef.current.setInteractionsEnabled(false);
 
       // Collect responses
       const collectedResponses = mountedItemRef.current.collectResponses();
@@ -74,10 +79,7 @@ export function App() {
 
       // Re-enable interactions after a brief delay (simulating submission)
       setTimeout(() => {
-        if (mountedItemRef.current) {
-          mountedItemRef.current.setInteractionsEnabled(true);
-          setInteractionsEnabled(true);
-        }
+        setInteractionsEnabled(true);
       }, 1000);
     }
   };
@@ -137,13 +139,6 @@ export function App() {
 
         <div className="panel">
           <h2>Response Collection</h2>
-          <button
-            className="process-button"
-            onClick={handleSubmit}
-            disabled={!sanitizedTemplate || !interactionsEnabled}
-          >
-            {interactionsEnabled ? 'Submit Responses' : 'Submitting...'}
-          </button>
           <pre className="output-display">
             {responses ? JSON.stringify(responses, null, 2) : 'No responses collected yet'}
           </pre>
@@ -151,8 +146,16 @@ export function App() {
       </div>
 
       <div className="preview-area">
-        <h2>Item Preview</h2>
-        <div ref={previewRef} />
+        <div className="preview-card">
+          <div className="preview-item" ref={previewRef} />
+          <button
+            className="process-button"
+            onClick={handleSubmit}
+            disabled={!sanitizedTemplate || !interactionsEnabled}
+          >
+            {interactionsEnabled ? 'Submit' : 'Submitting...'}
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -1,3 +1,9 @@
+html {
+  font-family: "Neue Helvetica W01", Helvetica, Arial, sans-serif;
+  font-size: 62.5%;
+  text-size-adjust: 100%; /* Prevent font scaling in landscape while allowing user zoom */
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -16,7 +22,7 @@ body {
 }
 
 .sidebar {
-  width: 450px;
+  width: 40rem;
   display: flex;
   flex-direction: column;
   border-right: 1px solid #ddd;
@@ -25,8 +31,8 @@ body {
 }
 
 h1 {
-  font-size: 1.2rem;
-  padding: 12px 15px;
+  font-size: 1.8rem;
+  padding: 1.2rem 1.5rem;
   background: #fff;
   border-bottom: 1px solid #ddd;
   color: #333;
@@ -34,27 +40,26 @@ h1 {
 }
 
 h2 {
-  font-size: 0.85rem;
+  font-size: 1.2rem;
   font-weight: 600;
   color: #666;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 8px;
+  margin-bottom: 0.8rem;
 }
 
 .panel {
-  padding: 12px 15px;
+  padding: 1.2rem 1.5rem;
   border-bottom: 1px solid #ddd;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 1rem;
   background: #fff;
 }
 
 .example-select {
   width: 100%;
-  padding: 8px;
-  font-size: 13px;
+  padding: 1rem;
+  font-size: 1.2rem;
   border: 1px solid #ccc;
   border-radius: 3px;
   background: #fff;
@@ -68,10 +73,10 @@ h2 {
 
 .xml-input {
   width: 100%;
-  min-height: 150px;
-  padding: 8px;
+  min-height: 15rem;
+  padding: 1rem;
   font-family: 'Courier New', monospace;
-  font-size: 12px;
+  font-size: 1.2rem;
   border: 1px solid #ccc;
   border-radius: 3px;
   resize: vertical;
@@ -85,7 +90,7 @@ h2 {
 }
 
 .process-button {
-  padding: 8px 16px;
+  padding: 0.8rem 1.6rem;
   background-color: #4a90e2;
   color: white;
   border: none;
@@ -106,23 +111,23 @@ h2 {
 }
 
 .error-message {
-  padding: 8px;
+  padding: 1rem;
   background-color: #fee;
   border: 1px solid #fcc;
   border-radius: 3px;
   color: #c33;
-  font-size: 13px;
+  font-size: 1.3rem;
 }
 
 .output-display {
   margin: 0;
-  padding: 8px;
+  padding: 1rem;
   background: #fafafa;
   border: 1px solid #ddd;
   border-radius: 3px;
   overflow: auto;
   font-family: 'Courier New', monospace;
-  font-size: 11px;
+  font-size: 1.2rem;
   line-height: 1.4;
   color: #333;
   white-space: pre-wrap;
@@ -143,7 +148,14 @@ h2 {
   overflow: auto;
 }
 
-.preview-placeholder {
-  color: #999;
-  font-size: 14px;
+.preview-card {
+  padding: 2rem;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  background: #fff;
+  color: #424242;
+  font-size: 1.4rem;
+}
+.preview-card:has(.preview-item:empty) {
+  display: none;
 }
