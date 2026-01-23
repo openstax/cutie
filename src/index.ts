@@ -1,8 +1,8 @@
 import { DOMParser } from '@xmldom/xmldom';
 import { initializeState } from './lib/initializeState';
-import { processResponse } from './lib/responseProcessing';
 import { renderTemplate } from './lib/renderTemplate';
-import { ResponseData, AttemptState } from './types';
+import { processResponse } from './lib/responseProcessing';
+import { AttemptState, ResponseData } from './types';
 
 /**
  * Result of attempt operations containing updated state and template.

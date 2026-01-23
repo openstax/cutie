@@ -1,5 +1,5 @@
-import { describe, test, expect } from 'vitest';
 import { DOMParser } from '@xmldom/xmldom';
+import { describe, expect, test } from 'vitest';
 import { initializeState } from './initializeState';
 
 // from https://www.imsglobal.org/spec/qti/v3p0/impl#h.hs6z9wmqtzq7

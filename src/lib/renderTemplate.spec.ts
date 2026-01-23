@@ -1,5 +1,5 @@
-import { describe, test, expect } from 'vitest';
 import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
+import { describe, expect, test } from 'vitest';
 import { renderTemplate } from './renderTemplate';
 
 /**
