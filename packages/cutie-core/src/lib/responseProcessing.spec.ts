@@ -1,5 +1,6 @@
-import { describe, test, expect } from 'vitest';
 import { DOMParser } from '@xmldom/xmldom';
+import { describe, expect, test } from 'vitest';
+import { AttemptState } from '../types';
 import { processResponse } from './responseProcessing';
 
 const parser = new DOMParser();
@@ -2082,7 +2083,7 @@ describe('Complex Response Processing Scenarios', () => {
     const itemDoc = parser.parseFromString(itemXml, 'text/xml');
 
     // First attempt
-    let currentState = {
+    let currentState: AttemptState = {
       variables: { SCORE: 0, numAttempts: 0 },
       completionStatus: 'not_attempted' as const,
     };

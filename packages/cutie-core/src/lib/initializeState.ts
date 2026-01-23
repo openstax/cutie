@@ -1,4 +1,7 @@
 import { AttemptState } from '../types';
+import { getChildElements, getFirstChildElement } from '../utils/dom';
+import { deepEqual } from '../utils/equality';
+import { parseValue } from '../utils/typeParser';
 
 /**
  * Initializes the attempt state by processing template declarations and
@@ -143,11 +146,8 @@ function executeTemplateProcessing(itemDoc: Document, variables: Record<string, 
 
   try {
     // Execute each child rule in order
-    for (let i = 0; i < templateProcessing.childNodes.length; i++) {
-      const node = templateProcessing.childNodes[i];
-      if (node.nodeType === 1) { // Element node
-        executeTemplateRule(node as Element, variables);
-      }
+    for (const child of getChildElements(templateProcessing)) {
+      executeTemplateRule(child, variables);
     }
   } catch (error) {
     if (error instanceof ExitTemplateError) {
@@ -193,14 +193,12 @@ function executeSetTemplateValue(rule: Element, variables: Record<string, unknow
   if (!identifier) return;
 
   // Evaluate the expression (first child element)
-  for (let i = 0; i < rule.childNodes.length; i++) {
-    const node = rule.childNodes[i];
-    if (node.nodeType === 1) {
-      const value = evaluateExpression(node as Element, variables);
-      variables[identifier] = value;
-      break;
-    }
+  const child = getFirstChildElement(rule);
+  if (!child) {
+    throw new Error('Expected child element in <qti-set-template-value>');
   }
+  const value = evaluateExpression(child, variables);
+  variables[identifier] = value;
 }
 
 /**
@@ -208,23 +206,19 @@ function executeSetTemplateValue(rule: Element, variables: Record<string, unknow
  */
 function executeTemplateCondition(rule: Element, variables: Record<string, unknown>): void {
   // Find template-if, template-else-if, and template-else elements
-  for (let i = 0; i < rule.childNodes.length; i++) {
-    const node = rule.childNodes[i];
-    if (node.nodeType !== 1) continue;
-
-    const element = node as Element;
-    const localName = element.localName;
+  for (const child of getChildElements(rule)) {
+    const localName = child.localName;
 
     if (localName === 'qti-template-if') {
-      if (evaluateTemplateIf(element, variables)) {
+      if (evaluateTemplateIf(child, variables)) {
         return;
       }
     } else if (localName === 'qti-template-else-if') {
-      if (evaluateTemplateIf(element, variables)) {
+      if (evaluateTemplateIf(child, variables)) {
         return;
       }
     } else if (localName === 'qti-template-else') {
-      executeTemplateBlock(element, variables);
+      executeTemplateBlock(child, variables);
       return;
     }
   }
@@ -240,18 +234,19 @@ function evaluateTemplateIf(element: Element, variables: Record<string, unknown>
   let conditionResult = false;
   let conditionEvaluated = false;
 
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType !== 1) continue;
-
+  for (const child of getChildElements(element)) {
     if (!conditionEvaluated) {
       // This is the condition expression
-      conditionResult = evaluateExpression(node as Element, variables) as boolean;
+      const value = evaluateExpression(child, variables);
+      if (typeof value !== 'boolean') {
+        throw new Error(`Expected boolean value in <${element.localName}> condition, got ${typeof value}`);
+      }
+      conditionResult = value;
       conditionEvaluated = true;
     } else {
       // These are the rules to execute if condition is true
       if (conditionResult) {
-        executeTemplateRule(node as Element, variables);
+        executeTemplateRule(child, variables);
       }
     }
   }
@@ -263,11 +258,8 @@ function evaluateTemplateIf(element: Element, variables: Record<string, unknown>
  * Execute all rules in a template block (used for template-else)
  */
 function executeTemplateBlock(element: Element, variables: Record<string, unknown>): void {
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      executeTemplateRule(node as Element, variables);
-    }
+  for (const child of getChildElements(element)) {
+    executeTemplateRule(child, variables);
   }
 }
 
@@ -276,15 +268,16 @@ function executeTemplateBlock(element: Element, variables: Record<string, unknow
  */
 function executeTemplateConstraint(rule: Element, variables: Record<string, unknown>): void {
   // Evaluate the constraint expression (first child element)
-  for (let i = 0; i < rule.childNodes.length; i++) {
-    const node = rule.childNodes[i];
-    if (node.nodeType === 1) {
-      const result = evaluateExpression(node as Element, variables) as boolean;
-      if (!result) {
-        throw new ConstraintViolationError();
-      }
-      break;
-    }
+  const child = getFirstChildElement(rule);
+  if (!child) {
+    throw new Error('Expected child element in <qti-template-constraint>');
+  }
+  const result = evaluateExpression(child, variables);
+  if (typeof result !== 'boolean') {
+    throw new Error(`Expected boolean value in <qti-template-constraint>, got ${typeof result}`);
+  }
+  if (!result) {
+    throw new ConstraintViolationError();
   }
 }
 
@@ -297,14 +290,12 @@ function executeSetCorrectResponse(rule: Element, variables: Record<string, unkn
 
   // Store the correct response value for later comparison
   // We'll store it with a special prefix to distinguish from actual response values
-  for (let i = 0; i < rule.childNodes.length; i++) {
-    const node = rule.childNodes[i];
-    if (node.nodeType === 1) {
-      const value = evaluateExpression(node as Element, variables);
-      variables[`__correct_${identifier}`] = value;
-      break;
-    }
+  const child = getFirstChildElement(rule);
+  if (!child) {
+    throw new Error('Expected child element in <qti-set-correct-response>');
   }
+  const value = evaluateExpression(child, variables);
+  variables[`__correct_${identifier}`] = value;
 }
 
 /**
@@ -315,14 +306,12 @@ function executeSetDefaultValue(rule: Element, variables: Record<string, unknown
   if (!identifier) return;
 
   // Set the default value for an outcome variable
-  for (let i = 0; i < rule.childNodes.length; i++) {
-    const node = rule.childNodes[i];
-    if (node.nodeType === 1) {
-      const value = evaluateExpression(node as Element, variables);
-      variables[identifier] = value;
-      break;
-    }
+  const child = getFirstChildElement(rule);
+  if (!child) {
+    throw new Error('Expected child element in <qti-set-default-value>');
   }
+  const value = evaluateExpression(child, variables);
+  variables[identifier] = value;
 }
 
 /**
@@ -433,37 +422,6 @@ function evaluateExpression(element: Element, variables: Record<string, unknown>
   }
 }
 
-/**
- * Parse a value from string to the appropriate type
- */
-function parseValue(text: string, baseType: string): unknown {
-  const trimmed = text.trim();
-
-  switch (baseType) {
-    case 'boolean':
-      return trimmed === 'true';
-    case 'integer':
-      return parseInt(trimmed, 10);
-    case 'float':
-      return parseFloat(trimmed);
-    case 'string':
-      return trimmed;
-    case 'point':
-      const pointParts = trimmed.split(/\s+/);
-      return [parseInt(pointParts[0], 10), parseInt(pointParts[1], 10)];
-    case 'directedPair':
-    case 'pair':
-      const pairParts = trimmed.split(/\s+/);
-      return [pairParts[0], pairParts[1]];
-    case 'duration':
-      return parseFloat(trimmed);
-    case 'file':
-    case 'uri':
-      return trimmed;
-    default:
-      return trimmed;
-  }
-}
 
 /**
  * Evaluate qti-base-value
@@ -493,11 +451,8 @@ function evaluateVariable(element: Element, variables: Record<string, unknown>):
 function evaluateMultiple(element: Element, variables: Record<string, unknown>): unknown[] {
   const values: unknown[] = [];
 
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      values.push(evaluateExpression(node as Element, variables));
-    }
+  for (const child of getChildElements(element)) {
+    values.push(evaluateExpression(child, variables));
   }
 
   return values;
@@ -523,13 +478,11 @@ function evaluateRecord(element: Element, variables: Record<string, unknown>): R
     const fieldIdentifier = fieldElement.getAttribute('field-identifier');
     if (!fieldIdentifier) continue;
 
-    for (let j = 0; j < fieldElement.childNodes.length; j++) {
-      const node = fieldElement.childNodes[j];
-      if (node.nodeType === 1) {
-        record[fieldIdentifier] = evaluateExpression(node as Element, variables);
-        break;
-      }
+    const child = getFirstChildElement(fieldElement);
+    if (!child) {
+      throw new Error('Expected child element in <qti-field-value>');
     }
+    record[fieldIdentifier] = evaluateExpression(child, variables);
   }
 
   return record;
@@ -540,16 +493,16 @@ function evaluateRecord(element: Element, variables: Record<string, unknown>): R
  */
 function evaluateRandom(element: Element, variables: Record<string, unknown>): unknown {
   // Get the container (first child element)
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      const container = evaluateExpression(node as Element, variables) as unknown[];
-      if (Array.isArray(container) && container.length > 0) {
-        const randomIndex = Math.floor(Math.random() * container.length);
-        return container[randomIndex];
-      }
-      return null;
+  for (const child of getChildElements(element)) {
+    const container = evaluateExpression(child, variables);
+    if (!Array.isArray(container)) {
+      throw new Error(`Expected array value in <qti-random>, got ${typeof container}`);
     }
+    if (container.length > 0) {
+      const randomIndex = Math.floor(Math.random() * container.length);
+      return container[randomIndex];
+    }
+    return null;
   }
   return null;
 }
@@ -584,13 +537,13 @@ function evaluateRandomFloat(element: Element): number {
 function evaluateSum(element: Element, variables: Record<string, unknown>): number {
   let sum = 0;
 
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      const value = evaluateExpression(node as Element, variables) as number;
-      if (value !== null && value !== undefined) {
-        sum += value;
+  for (const child of getChildElements(element)) {
+    const value = evaluateExpression(child, variables);
+    if (value !== null && value !== undefined) {
+      if (typeof value !== 'number') {
+        throw new Error(`Expected number value in <qti-sum>, got ${typeof value}`);
       }
+      sum += value;
     }
   }
 
@@ -603,13 +556,13 @@ function evaluateSum(element: Element, variables: Record<string, unknown>): numb
 function evaluateProduct(element: Element, variables: Record<string, unknown>): number {
   let product = 1;
 
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      const value = evaluateExpression(node as Element, variables) as number;
-      if (value !== null && value !== undefined) {
-        product *= value;
+  for (const child of getChildElements(element)) {
+    const value = evaluateExpression(child, variables);
+    if (value !== null && value !== undefined) {
+      if (typeof value !== 'number') {
+        throw new Error(`Expected number value in <qti-product>, got ${typeof value}`);
       }
+      product *= value;
     }
   }
 
@@ -622,11 +575,12 @@ function evaluateProduct(element: Element, variables: Record<string, unknown>): 
 function evaluateSubtract(element: Element, variables: Record<string, unknown>): number {
   const values: number[] = [];
 
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      values.push(evaluateExpression(node as Element, variables) as number);
+  for (const child of getChildElements(element)) {
+    const value = evaluateExpression(child, variables);
+    if (typeof value !== 'number') {
+      throw new Error(`Expected number value in <qti-subtract>, got ${typeof value}`);
     }
+    values.push(value);
   }
 
   return values.length >= 2 ? values[0] - values[1] : 0;
@@ -638,11 +592,12 @@ function evaluateSubtract(element: Element, variables: Record<string, unknown>):
 function evaluateDivide(element: Element, variables: Record<string, unknown>): number {
   const values: number[] = [];
 
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      values.push(evaluateExpression(node as Element, variables) as number);
+  for (const child of getChildElements(element)) {
+    const value = evaluateExpression(child, variables);
+    if (typeof value !== 'number') {
+      throw new Error(`Expected number value in <qti-divide>, got ${typeof value}`);
     }
+    values.push(value);
   }
 
   return values.length >= 2 && values[1] !== 0 ? values[0] / values[1] : 0;
@@ -654,11 +609,12 @@ function evaluateDivide(element: Element, variables: Record<string, unknown>): n
 function evaluateIntegerDivide(element: Element, variables: Record<string, unknown>): number {
   const values: number[] = [];
 
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      values.push(evaluateExpression(node as Element, variables) as number);
+  for (const child of getChildElements(element)) {
+    const value = evaluateExpression(child, variables);
+    if (typeof value !== 'number') {
+      throw new Error(`Expected number value in <qti-integer-divide>, got ${typeof value}`);
     }
+    values.push(value);
   }
 
   return values.length >= 2 && values[1] !== 0 ? Math.floor(values[0] / values[1]) : 0;
@@ -670,11 +626,12 @@ function evaluateIntegerDivide(element: Element, variables: Record<string, unkno
 function evaluateIntegerModulus(element: Element, variables: Record<string, unknown>): number {
   const values: number[] = [];
 
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      values.push(evaluateExpression(node as Element, variables) as number);
+  for (const child of getChildElements(element)) {
+    const value = evaluateExpression(child, variables);
+    if (typeof value !== 'number') {
+      throw new Error(`Expected number value in <qti-integer-modulus>, got ${typeof value}`);
     }
+    values.push(value);
   }
 
   return values.length >= 2 && values[1] !== 0 ? values[0] % values[1] : 0;
@@ -684,12 +641,12 @@ function evaluateIntegerModulus(element: Element, variables: Record<string, unkn
  * Evaluate qti-truncate
  */
 function evaluateTruncate(element: Element, variables: Record<string, unknown>): number {
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      const value = evaluateExpression(node as Element, variables) as number;
-      return Math.trunc(value);
+  for (const child of getChildElements(element)) {
+    const value = evaluateExpression(child, variables);
+    if (typeof value !== 'number') {
+      throw new Error(`Expected number value in <qti-truncate>, got ${typeof value}`);
     }
+    return Math.trunc(value);
   }
   return 0;
 }
@@ -698,12 +655,12 @@ function evaluateTruncate(element: Element, variables: Record<string, unknown>):
  * Evaluate qti-round
  */
 function evaluateRound(element: Element, variables: Record<string, unknown>): number {
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      const value = evaluateExpression(node as Element, variables) as number;
-      return Math.round(value);
+  for (const child of getChildElements(element)) {
+    const value = evaluateExpression(child, variables);
+    if (typeof value !== 'number') {
+      throw new Error(`Expected number value in <qti-round>, got ${typeof value}`);
     }
+    return Math.round(value);
   }
   return 0;
 }
@@ -714,11 +671,12 @@ function evaluateRound(element: Element, variables: Record<string, unknown>): nu
 function evaluatePower(element: Element, variables: Record<string, unknown>): number {
   const values: number[] = [];
 
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      values.push(evaluateExpression(node as Element, variables) as number);
+  for (const child of getChildElements(element)) {
+    const value = evaluateExpression(child, variables);
+    if (typeof value !== 'number') {
+      throw new Error(`Expected number value in <qti-power>, got ${typeof value}`);
     }
+    values.push(value);
   }
 
   return values.length >= 2 ? Math.pow(values[0], values[1]) : 0;
@@ -730,11 +688,8 @@ function evaluatePower(element: Element, variables: Record<string, unknown>): nu
 function evaluateMatch(element: Element, variables: Record<string, unknown>): boolean {
   const values: unknown[] = [];
 
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      values.push(evaluateExpression(node as Element, variables));
-    }
+  for (const child of getChildElements(element)) {
+    values.push(evaluateExpression(child, variables));
   }
 
   if (values.length >= 2) {
@@ -757,11 +712,12 @@ function evaluateEqual(element: Element, variables: Record<string, unknown>): bo
 function evaluateLessThan(element: Element, variables: Record<string, unknown>): boolean {
   const values: number[] = [];
 
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      values.push(evaluateExpression(node as Element, variables) as number);
+  for (const child of getChildElements(element)) {
+    const value = evaluateExpression(child, variables);
+    if (typeof value !== 'number') {
+      throw new Error(`Expected number value in <qti-lt>, got ${typeof value}`);
     }
+    values.push(value);
   }
 
   return values.length >= 2 ? values[0] < values[1] : false;
@@ -773,11 +729,12 @@ function evaluateLessThan(element: Element, variables: Record<string, unknown>):
 function evaluateGreaterThan(element: Element, variables: Record<string, unknown>): boolean {
   const values: number[] = [];
 
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      values.push(evaluateExpression(node as Element, variables) as number);
+  for (const child of getChildElements(element)) {
+    const value = evaluateExpression(child, variables);
+    if (typeof value !== 'number') {
+      throw new Error(`Expected number value in <qti-gt>, got ${typeof value}`);
     }
+    values.push(value);
   }
 
   return values.length >= 2 ? values[0] > values[1] : false;
@@ -789,11 +746,12 @@ function evaluateGreaterThan(element: Element, variables: Record<string, unknown
 function evaluateLessThanOrEqual(element: Element, variables: Record<string, unknown>): boolean {
   const values: number[] = [];
 
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      values.push(evaluateExpression(node as Element, variables) as number);
+  for (const child of getChildElements(element)) {
+    const value = evaluateExpression(child, variables);
+    if (typeof value !== 'number') {
+      throw new Error(`Expected number value in <qti-lte>, got ${typeof value}`);
     }
+    values.push(value);
   }
 
   return values.length >= 2 ? values[0] <= values[1] : false;
@@ -805,11 +763,12 @@ function evaluateLessThanOrEqual(element: Element, variables: Record<string, unk
 function evaluateGreaterThanOrEqual(element: Element, variables: Record<string, unknown>): boolean {
   const values: number[] = [];
 
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      values.push(evaluateExpression(node as Element, variables) as number);
+  for (const child of getChildElements(element)) {
+    const value = evaluateExpression(child, variables);
+    if (typeof value !== 'number') {
+      throw new Error(`Expected number value in <qti-gte>, got ${typeof value}`);
     }
+    values.push(value);
   }
 
   return values.length >= 2 ? values[0] >= values[1] : false;
@@ -819,13 +778,13 @@ function evaluateGreaterThanOrEqual(element: Element, variables: Record<string, 
  * Evaluate qti-and
  */
 function evaluateAnd(element: Element, variables: Record<string, unknown>): boolean {
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      const value = evaluateExpression(node as Element, variables) as boolean;
-      if (!value) {
-        return false;
-      }
+  for (const child of getChildElements(element)) {
+    const value = evaluateExpression(child, variables);
+    if (typeof value !== 'boolean') {
+      throw new Error(`Expected boolean value in <qti-and>, got ${typeof value}`);
+    }
+    if (!value) {
+      return false;
     }
   }
   return true;
@@ -835,13 +794,13 @@ function evaluateAnd(element: Element, variables: Record<string, unknown>): bool
  * Evaluate qti-or
  */
 function evaluateOr(element: Element, variables: Record<string, unknown>): boolean {
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      const value = evaluateExpression(node as Element, variables) as boolean;
-      if (value) {
-        return true;
-      }
+  for (const child of getChildElements(element)) {
+    const value = evaluateExpression(child, variables);
+    if (typeof value !== 'boolean') {
+      throw new Error(`Expected boolean value in <qti-or>, got ${typeof value}`);
+    }
+    if (value) {
+      return true;
     }
   }
   return false;
@@ -851,12 +810,12 @@ function evaluateOr(element: Element, variables: Record<string, unknown>): boole
  * Evaluate qti-not
  */
 function evaluateNot(element: Element, variables: Record<string, unknown>): boolean {
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      const value = evaluateExpression(node as Element, variables) as boolean;
-      return !value;
+  for (const child of getChildElements(element)) {
+    const value = evaluateExpression(child, variables);
+    if (typeof value !== 'boolean') {
+      throw new Error(`Expected boolean value in <qti-not>, got ${typeof value}`);
     }
+    return !value;
   }
   return false;
 }
@@ -867,15 +826,15 @@ function evaluateNot(element: Element, variables: Record<string, unknown>): bool
 function evaluateIndex(element: Element, variables: Record<string, unknown>): unknown {
   const n = parseInt(element.getAttribute('n') || '1', 10);
 
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      const container = evaluateExpression(node as Element, variables) as unknown[];
-      if (Array.isArray(container) && n >= 1 && n <= container.length) {
-        return container[n - 1]; // 1-indexed in QTI
-      }
-      return null;
+  for (const child of getChildElements(element)) {
+    const container = evaluateExpression(child, variables);
+    if (!Array.isArray(container)) {
+      throw new Error(`Expected array value in <qti-index>, got ${typeof container}`);
     }
+    if (n >= 1 && n <= container.length) {
+      return container[n - 1]; // 1-indexed in QTI
+    }
+    return null;
   }
   return null;
 }
@@ -886,11 +845,8 @@ function evaluateIndex(element: Element, variables: Record<string, unknown>): un
 function evaluateContains(element: Element, variables: Record<string, unknown>): boolean {
   const values: unknown[] = [];
 
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      values.push(evaluateExpression(node as Element, variables));
-    }
+  for (const child of getChildElements(element)) {
+    values.push(evaluateExpression(child, variables));
   }
 
   if (values.length >= 2) {
@@ -911,11 +867,8 @@ function evaluateContains(element: Element, variables: Record<string, unknown>):
 function evaluateMember(element: Element, variables: Record<string, unknown>): boolean {
   const values: unknown[] = [];
 
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      values.push(evaluateExpression(node as Element, variables));
-    }
+  for (const child of getChildElements(element)) {
+    values.push(evaluateExpression(child, variables));
   }
 
   if (values.length >= 2) {
@@ -934,15 +887,12 @@ function evaluateMember(element: Element, variables: Record<string, unknown>): b
  * Evaluate qti-container-size
  */
 function evaluateContainerSize(element: Element, variables: Record<string, unknown>): number {
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      const container = evaluateExpression(node as Element, variables) as unknown[];
-      if (Array.isArray(container)) {
-        return container.length;
-      }
-      return 0;
+  for (const child of getChildElements(element)) {
+    const container = evaluateExpression(child, variables);
+    if (!Array.isArray(container)) {
+      throw new Error(`Expected array value in <qti-container-size>, got ${typeof container}`);
     }
+    return container.length;
   }
   return 0;
 }
@@ -953,11 +903,8 @@ function evaluateContainerSize(element: Element, variables: Record<string, unkno
 function evaluateDelete(element: Element, variables: Record<string, unknown>): unknown[] {
   const values: unknown[] = [];
 
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      values.push(evaluateExpression(node as Element, variables));
-    }
+  for (const child of getChildElements(element)) {
+    values.push(evaluateExpression(child, variables));
   }
 
   if (values.length >= 2) {
@@ -979,15 +926,13 @@ function evaluateRepeat(element: Element, variables: Record<string, unknown>): u
   const numberRepeats = parseInt(element.getAttribute('number-repeats') || '1', 10);
   const result: unknown[] = [];
 
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      const value = evaluateExpression(node as Element, variables);
-      for (let j = 0; j < numberRepeats; j++) {
-        result.push(value);
-      }
-      break;
-    }
+  const child = getFirstChildElement(element);
+  if (!child) {
+    throw new Error('Expected child element in <qti-repeat>');
+  }
+  const value = evaluateExpression(child, variables);
+  for (let j = 0; j < numberRepeats; j++) {
+    result.push(value);
   }
 
   return result;
@@ -1000,11 +945,8 @@ function evaluateSubstring(element: Element, variables: Record<string, unknown>)
   const caseSensitive = element.getAttribute('case-sensitive') !== 'false';
   const values: string[] = [];
 
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      values.push(String(evaluateExpression(node as Element, variables)));
-    }
+  for (const child of getChildElements(element)) {
+    values.push(String(evaluateExpression(child, variables)));
   }
 
   if (values.length >= 2) {
@@ -1023,11 +965,8 @@ function evaluateStringMatch(element: Element, variables: Record<string, unknown
   const caseSensitive = element.getAttribute('case-sensitive') !== 'false';
   const values: string[] = [];
 
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      values.push(String(evaluateExpression(node as Element, variables)));
-    }
+  for (const child of getChildElements(element)) {
+    values.push(String(evaluateExpression(child, variables)));
   }
 
   if (values.length >= 2) {
@@ -1046,13 +985,10 @@ function evaluatePatternMatch(element: Element, variables: Record<string, unknow
   const pattern = element.getAttribute('pattern');
   if (!pattern) return false;
 
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      const value = String(evaluateExpression(node as Element, variables));
-      const regex = new RegExp(pattern);
-      return regex.test(value);
-    }
+  for (const child of getChildElements(element)) {
+    const value = String(evaluateExpression(child, variables));
+    const regex = new RegExp(pattern);
+    return regex.test(value);
   }
 
   return false;
@@ -1062,12 +998,12 @@ function evaluatePatternMatch(element: Element, variables: Record<string, unknow
  * Evaluate qti-integer-to-float
  */
 function evaluateIntegerToFloat(element: Element, variables: Record<string, unknown>): number {
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      const value = evaluateExpression(node as Element, variables) as number;
-      return parseFloat(String(value));
+  for (const child of getChildElements(element)) {
+    const value = evaluateExpression(child, variables);
+    if (typeof value !== 'number') {
+      throw new Error(`Expected number value in <qti-integer-to-float>, got ${typeof value}`);
     }
+    return parseFloat(String(value));
   }
   return 0.0;
 }
@@ -1079,16 +1015,13 @@ function evaluateAnyN(element: Element, variables: Record<string, unknown>): boo
   const min = parseInt(element.getAttribute('min') || '1', 10);
   const max = parseInt(element.getAttribute('max') || String(Number.MAX_SAFE_INTEGER), 10);
 
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      const container = evaluateExpression(node as Element, variables) as boolean[];
-      if (Array.isArray(container)) {
-        const trueCount = container.filter(v => v === true).length;
-        return trueCount >= min && trueCount <= max;
-      }
-      return false;
+  for (const child of getChildElements(element)) {
+    const container = evaluateExpression(child, variables);
+    if (!Array.isArray(container)) {
+      throw new Error(`Expected array value in <qti-any-n>, got ${typeof container}`);
     }
+    const trueCount = container.filter(v => v === true).length;
+    return trueCount >= min && trueCount <= max;
   }
 
   return false;
@@ -1101,51 +1034,14 @@ function evaluateFieldValue(element: Element, variables: Record<string, unknown>
   const fieldIdentifier = element.getAttribute('field-identifier');
   if (!fieldIdentifier) return null;
 
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      const record = evaluateExpression(node as Element, variables) as Record<string, unknown>;
-      if (record && typeof record === 'object' && !Array.isArray(record)) {
-        return record[fieldIdentifier] ?? null;
-      }
-      return null;
+  for (const child of getChildElements(element)) {
+    const record = evaluateExpression(child, variables) as Record<string, unknown>;
+    if (record && typeof record === 'object' && !Array.isArray(record)) {
+      return record[fieldIdentifier] ?? null;
     }
+    return null;
   }
 
   return null;
 }
 
-/**
- * Deep equality check for comparing values
- */
-function deepEqual(a: unknown, b: unknown): boolean {
-  if (a === b) return true;
-
-  if (a === null || b === null) return a === b;
-  if (a === undefined || b === undefined) return a === b;
-
-  if (Array.isArray(a) && Array.isArray(b)) {
-    if (a.length !== b.length) return false;
-    for (let i = 0; i < a.length; i++) {
-      if (!deepEqual(a[i], b[i])) return false;
-    }
-    return true;
-  }
-
-  if (typeof a === 'object' && typeof b === 'object') {
-    const aKeys = Object.keys(a as object);
-    const bKeys = Object.keys(b as object);
-
-    if (aKeys.length !== bKeys.length) return false;
-
-    for (const key of aKeys) {
-      if (!deepEqual((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key])) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  return false;
-}

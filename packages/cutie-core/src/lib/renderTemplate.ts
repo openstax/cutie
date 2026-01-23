@@ -1,3 +1,4 @@
+import { XMLSerializer } from '@xmldom/xmldom';
 import { AttemptState } from '../types';
 
 /**
@@ -312,6 +313,6 @@ function normalizeWhitespace(root: Element): void {
  * Serializes the document to an XML string.
  */
 function serializeToXml(doc: Document): string {
-  const serializer = new (require('@xmldom/xmldom').XMLSerializer)();
+  const serializer = new XMLSerializer();
   return serializer.serializeToString(doc);
 }

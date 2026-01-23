@@ -1,4 +1,7 @@
-import { ResponseData, AttemptState } from '../types';
+import { AttemptState, ResponseData } from '../types';
+import { getChildElements, getFirstChildElement } from '../utils/dom';
+import { deepEqual, deepEqualUnordered } from '../utils/equality';
+import { parseResponseValue } from '../utils/typeParser';
 
 /**
  * Processes a response submission by executing response processing rules
@@ -42,11 +45,8 @@ export function processResponse(
       executeResponseTemplate(template, itemDoc, variables);
     } else {
       // Execute inline response processing rules
-      for (let i = 0; i < responseProcessing.childNodes.length; i++) {
-        const node = responseProcessing.childNodes[i];
-        if (node.nodeType === 1) { // Element node
-          executeResponseRule(node as Element, itemDoc, variables);
-        }
+      for (const child of getChildElements(responseProcessing)) {
+        executeResponseRule(child, itemDoc, variables);
       }
     }
   }
@@ -83,8 +83,7 @@ function executeResponseTemplate(
       executeMapResponsePointTemplate(itemDoc, variables);
       break;
     default:
-      // Unknown template, do nothing
-      break;
+      throw new Error(`Unknown response processing template: ${templateName}`);
   }
 }
 
@@ -195,12 +194,12 @@ function getCorrectResponse(itemDoc: Document, identifier: string): unknown {
 
         if (cardinality === 'single') {
           if (valueElements.length > 0) {
-            return parseValue(valueElements[0].textContent || '', baseType);
+            return parseResponseValue(valueElements[0].textContent || '', baseType);
           }
         } else if (cardinality === 'multiple' || cardinality === 'ordered') {
           const values: unknown[] = [];
           for (let j = 0; j < valueElements.length; j++) {
-            values.push(parseValue(valueElements[j].textContent || '', baseType));
+            values.push(parseResponseValue(valueElements[j].textContent || '', baseType));
           }
           return values;
         }
@@ -351,7 +350,7 @@ function isPointInArea(x: number, y: number, shape: string, coords: number[]): b
       }
       return false;
 
-    case 'poly':
+    case 'poly': {
       // coords: [x1, y1, x2, y2, x3, y3, ...]
       // Use ray casting algorithm
       if (coords.length < 6) return false;
@@ -368,6 +367,7 @@ function isPointInArea(x: number, y: number, shape: string, coords: number[]): b
         j = i;
       }
       return inside;
+    }
 
     default:
       return false;
@@ -408,14 +408,12 @@ function executeSetOutcomeValue(
   if (!identifier) return;
 
   // Evaluate the expression (first child element)
-  for (let i = 0; i < rule.childNodes.length; i++) {
-    const node = rule.childNodes[i];
-    if (node.nodeType === 1) {
-      const value = evaluateExpression(node as Element, itemDoc, variables);
-      variables[identifier] = value;
-      break;
-    }
+  const child = getFirstChildElement(rule);
+  if (!child) {
+    throw new Error('Expected child element in <qti-set-outcome-value>');
   }
+  const value = evaluateExpression(child, itemDoc, variables);
+  variables[identifier] = value;
 }
 
 /**
@@ -427,23 +425,19 @@ function executeResponseCondition(
   variables: Record<string, unknown>
 ): void {
   // Find response-if, response-else-if, and response-else elements
-  for (let i = 0; i < rule.childNodes.length; i++) {
-    const node = rule.childNodes[i];
-    if (node.nodeType !== 1) continue;
-
-    const element = node as Element;
-    const localName = element.localName;
+  for (const child of getChildElements(rule)) {
+    const localName = child.localName;
 
     if (localName === 'qti-response-if') {
-      if (evaluateResponseIf(element, itemDoc, variables)) {
+      if (evaluateResponseIf(child, itemDoc, variables)) {
         return; // Condition was true, stop processing
       }
     } else if (localName === 'qti-response-else-if') {
-      if (evaluateResponseIf(element, itemDoc, variables)) {
+      if (evaluateResponseIf(child, itemDoc, variables)) {
         return; // Condition was true, stop processing
       }
     } else if (localName === 'qti-response-else') {
-      executeResponseBlock(element, itemDoc, variables);
+      executeResponseBlock(child, itemDoc, variables);
       return;
     }
   }
@@ -461,18 +455,19 @@ function evaluateResponseIf(
   let conditionResult = false;
   let conditionEvaluated = false;
 
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType !== 1) continue;
-
+  for (const child of getChildElements(element)) {
     if (!conditionEvaluated) {
       // This is the condition expression
-      conditionResult = evaluateExpression(node as Element, itemDoc, variables) as boolean;
+      const value = evaluateExpression(child, itemDoc, variables);
+      if (typeof value !== 'boolean') {
+        throw new Error(`Expected boolean value in <${element.localName}> condition, got ${typeof value}`);
+      }
+      conditionResult = value;
       conditionEvaluated = true;
     } else {
       // These are the rules to execute if condition is true
       if (conditionResult) {
-        executeResponseRule(node as Element, itemDoc, variables);
+        executeResponseRule(child, itemDoc, variables);
       }
     }
   }
@@ -488,11 +483,8 @@ function executeResponseBlock(
   itemDoc: Document,
   variables: Record<string, unknown>
 ): void {
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      executeResponseRule(node as Element, itemDoc, variables);
-    }
+  for (const child of getChildElements(element)) {
+    executeResponseRule(child, itemDoc, variables);
   }
 }
 
@@ -580,7 +572,7 @@ function evaluateBaseValue(element: Element): unknown {
 
   if (!baseType) return text;
 
-  return parseValue(text, baseType);
+  return parseResponseValue(text, baseType);
 }
 
 function evaluateVariable(element: Element, variables: Record<string, unknown>): unknown {
@@ -597,11 +589,8 @@ function evaluateMultiple(
 ): unknown[] {
   const values: unknown[] = [];
 
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      values.push(evaluateExpression(node as Element, itemDoc, variables));
-    }
+  for (const child of getChildElements(element)) {
+    values.push(evaluateExpression(child, itemDoc, variables));
   }
 
   return values;
@@ -698,12 +687,9 @@ function evaluateMatch(
   const values: unknown[] = [];
   const childElements: Element[] = [];
 
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      childElements.push(node as Element);
-      values.push(evaluateExpression(node as Element, itemDoc, variables));
-    }
+  for (const child of getChildElements(element)) {
+    childElements.push(child);
+    values.push(evaluateExpression(child, itemDoc, variables));
   }
 
   if (values.length >= 2) {
@@ -727,12 +713,9 @@ function evaluateIsNull(
   itemDoc: Document,
   variables: Record<string, unknown>
 ): boolean {
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      const value = evaluateExpression(node as Element, itemDoc, variables);
-      return value === null || value === undefined;
-    }
+  for (const child of getChildElements(element)) {
+    const value = evaluateExpression(child, itemDoc, variables);
+    return value === null || value === undefined;
   }
   return true;
 }
@@ -742,13 +725,13 @@ function evaluateAnd(
   itemDoc: Document,
   variables: Record<string, unknown>
 ): boolean {
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      const value = evaluateExpression(node as Element, itemDoc, variables) as boolean;
-      if (!value) {
-        return false;
-      }
+  for (const child of getChildElements(element)) {
+    const value = evaluateExpression(child, itemDoc, variables);
+    if (typeof value !== 'boolean') {
+      throw new Error(`Expected boolean value in <qti-and>, got ${typeof value}`);
+    }
+    if (!value) {
+      return false;
     }
   }
   return true;
@@ -759,13 +742,13 @@ function evaluateOr(
   itemDoc: Document,
   variables: Record<string, unknown>
 ): boolean {
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      const value = evaluateExpression(node as Element, itemDoc, variables) as boolean;
-      if (value) {
-        return true;
-      }
+  for (const child of getChildElements(element)) {
+    const value = evaluateExpression(child, itemDoc, variables);
+    if (typeof value !== 'boolean') {
+      throw new Error(`Expected boolean value in <qti-or>, got ${typeof value}`);
+    }
+    if (value) {
+      return true;
     }
   }
   return false;
@@ -776,12 +759,12 @@ function evaluateNot(
   itemDoc: Document,
   variables: Record<string, unknown>
 ): boolean {
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      const value = evaluateExpression(node as Element, itemDoc, variables) as boolean;
-      return !value;
+  for (const child of getChildElements(element)) {
+    const value = evaluateExpression(child, itemDoc, variables);
+    if (typeof value !== 'boolean') {
+      throw new Error(`Expected boolean value in <qti-not>, got ${typeof value}`);
     }
+    return !value;
   }
   return false;
 }
@@ -793,13 +776,13 @@ function evaluateSum(
 ): number {
   let sum = 0;
 
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      const value = evaluateExpression(node as Element, itemDoc, variables) as number;
-      if (value !== null && value !== undefined) {
-        sum += value;
+  for (const child of getChildElements(element)) {
+    const value = evaluateExpression(child, itemDoc, variables);
+    if (value !== null && value !== undefined) {
+      if (typeof value !== 'number') {
+        throw new Error(`Expected number value in <qti-sum>, got ${typeof value}`);
       }
+      sum += value;
     }
   }
 
@@ -813,13 +796,13 @@ function evaluateProduct(
 ): number {
   let product = 1;
 
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      const value = evaluateExpression(node as Element, itemDoc, variables) as number;
-      if (value !== null && value !== undefined) {
-        product *= value;
+  for (const child of getChildElements(element)) {
+    const value = evaluateExpression(child, itemDoc, variables);
+    if (value !== null && value !== undefined) {
+      if (typeof value !== 'number') {
+        throw new Error(`Expected number value in <qti-product>, got ${typeof value}`);
       }
+      product *= value;
     }
   }
 
@@ -833,11 +816,12 @@ function evaluateSubtract(
 ): number {
   const values: number[] = [];
 
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      values.push(evaluateExpression(node as Element, itemDoc, variables) as number);
+  for (const child of getChildElements(element)) {
+    const value = evaluateExpression(child, itemDoc, variables);
+    if (typeof value !== 'number') {
+      throw new Error(`Expected number value in <qti-subtract>, got ${typeof value}`);
     }
+    values.push(value);
   }
 
   return values.length >= 2 ? values[0] - values[1] : 0;
@@ -850,11 +834,12 @@ function evaluateDivide(
 ): number {
   const values: number[] = [];
 
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      values.push(evaluateExpression(node as Element, itemDoc, variables) as number);
+  for (const child of getChildElements(element)) {
+    const value = evaluateExpression(child, itemDoc, variables);
+    if (typeof value !== 'number') {
+      throw new Error(`Expected number value in <qti-divide>, got ${typeof value}`);
     }
+    values.push(value);
   }
 
   return values.length >= 2 && values[1] !== 0 ? values[0] / values[1] : 0;
@@ -867,11 +852,12 @@ function evaluateLessThan(
 ): boolean {
   const values: number[] = [];
 
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      values.push(evaluateExpression(node as Element, itemDoc, variables) as number);
+  for (const child of getChildElements(element)) {
+    const value = evaluateExpression(child, itemDoc, variables);
+    if (typeof value !== 'number') {
+      throw new Error(`Expected number value in <qti-lt>, got ${typeof value}`);
     }
+    values.push(value);
   }
 
   return values.length >= 2 ? values[0] < values[1] : false;
@@ -884,11 +870,12 @@ function evaluateGreaterThan(
 ): boolean {
   const values: number[] = [];
 
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      values.push(evaluateExpression(node as Element, itemDoc, variables) as number);
+  for (const child of getChildElements(element)) {
+    const value = evaluateExpression(child, itemDoc, variables);
+    if (typeof value !== 'number') {
+      throw new Error(`Expected number value in <qti-gt>, got ${typeof value}`);
     }
+    values.push(value);
   }
 
   return values.length >= 2 ? values[0] > values[1] : false;
@@ -901,11 +888,12 @@ function evaluateLessThanOrEqual(
 ): boolean {
   const values: number[] = [];
 
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      values.push(evaluateExpression(node as Element, itemDoc, variables) as number);
+  for (const child of getChildElements(element)) {
+    const value = evaluateExpression(child, itemDoc, variables);
+    if (typeof value !== 'number') {
+      throw new Error(`Expected number value in <qti-lte>, got ${typeof value}`);
     }
+    values.push(value);
   }
 
   return values.length >= 2 ? values[0] <= values[1] : false;
@@ -918,11 +906,12 @@ function evaluateGreaterThanOrEqual(
 ): boolean {
   const values: number[] = [];
 
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      values.push(evaluateExpression(node as Element, itemDoc, variables) as number);
+  for (const child of getChildElements(element)) {
+    const value = evaluateExpression(child, itemDoc, variables);
+    if (typeof value !== 'number') {
+      throw new Error(`Expected number value in <qti-gte>, got ${typeof value}`);
     }
+    values.push(value);
   }
 
   return values.length >= 2 ? values[0] >= values[1] : false;
@@ -935,11 +924,8 @@ function evaluateMember(
 ): boolean {
   const values: unknown[] = [];
 
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      values.push(evaluateExpression(node as Element, itemDoc, variables));
-    }
+  for (const child of getChildElements(element)) {
+    values.push(evaluateExpression(child, itemDoc, variables));
   }
 
   if (values.length >= 2) {
@@ -961,11 +947,8 @@ function evaluateContains(
 ): boolean {
   const values: unknown[] = [];
 
-  for (let i = 0; i < element.childNodes.length; i++) {
-    const node = element.childNodes[i];
-    if (node.nodeType === 1) {
-      values.push(evaluateExpression(node as Element, itemDoc, variables));
-    }
+  for (const child of getChildElements(element)) {
+    values.push(evaluateExpression(child, itemDoc, variables));
   }
 
   if (values.length >= 2) {
@@ -982,114 +965,6 @@ function evaluateContains(
 
 // Helper functions
 
-function parseValue(text: string, baseType: string): unknown {
-  const trimmed = text.trim();
-
-  switch (baseType) {
-    case 'boolean':
-      return trimmed === 'true';
-    case 'integer':
-      return parseInt(trimmed, 10);
-    case 'float':
-      return parseFloat(trimmed);
-    case 'string':
-      return trimmed;
-    case 'point':
-      const pointParts = trimmed.split(/\s+/);
-      return trimmed; // Keep as string for processing
-    case 'identifier':
-      return trimmed;
-    case 'directedPair':
-    case 'pair':
-      return trimmed;
-    case 'duration':
-      return parseFloat(trimmed);
-    case 'file':
-    case 'uri':
-      return trimmed;
-    default:
-      return trimmed;
-  }
-}
-
-function deepEqual(a: unknown, b: unknown): boolean {
-  if (a === b) return true;
-
-  if (a === null || b === null) return a === b;
-  if (a === undefined || b === undefined) return a === b;
-
-  if (Array.isArray(a) && Array.isArray(b)) {
-    if (a.length !== b.length) return false;
-    for (let i = 0; i < a.length; i++) {
-      if (!deepEqual(a[i], b[i])) return false;
-    }
-    return true;
-  }
-
-  if (typeof a === 'object' && typeof b === 'object') {
-    const aKeys = Object.keys(a as object);
-    const bKeys = Object.keys(b as object);
-
-    if (aKeys.length !== bKeys.length) return false;
-
-    for (const key of aKeys) {
-      if (!deepEqual((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key])) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  return false;
-}
-
-/**
- * Deep equality check for unordered containers (multiple cardinality)
- * Treats arrays as sets where order doesn't matter
- */
-function deepEqualUnordered(a: unknown, b: unknown): boolean {
-  if (a === b) return true;
-
-  if (a === null || b === null) return a === b;
-  if (a === undefined || b === undefined) return a === b;
-
-  if (Array.isArray(a) && Array.isArray(b)) {
-    if (a.length !== b.length) return false;
-
-    // For unordered comparison, check that every item in a has a match in b
-    const bCopy = [...b];
-    for (const aItem of a) {
-      let found = false;
-      for (let i = 0; i < bCopy.length; i++) {
-        if (deepEqual(aItem, bCopy[i])) {
-          bCopy.splice(i, 1); // Remove matched item
-          found = true;
-          break;
-        }
-      }
-      if (!found) return false;
-    }
-    return true;
-  }
-
-  if (typeof a === 'object' && typeof b === 'object') {
-    const aKeys = Object.keys(a as object);
-    const bKeys = Object.keys(b as object);
-
-    if (aKeys.length !== bKeys.length) return false;
-
-    for (const key of aKeys) {
-      if (!deepEqual((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key])) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  return false;
-}
 
 // Type definitions
 
