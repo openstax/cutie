@@ -5,28 +5,23 @@ import { isQtiElement, normalizeTagName, parseXml, serializeElement } from './xm
 /**
  * Parse QTI XML to Slate document structure
  *
- * @param xml - Full QTI XML or just qti-item-body content
- * @returns Array of Slate descendants
+ * @param xml - Full QTI XML document (qti-assessment-item)
+ * @returns Array of Slate descendants representing qti-item-body content
  */
 export function parseXmlToSlate(xml: string): Descendant[] {
-  // Wrap in a temporary root to handle fragments with multiple root elements
-  const wrappedXml = `<temp-root>${xml}</temp-root>`;
-  const doc = parseXml(wrappedXml);
+  const doc = parseXml(xml);
   if (!doc) {
     throw new Error('Failed to parse QTI XML');
   }
 
-  const root = doc.documentElement;
-
   // Find qti-item-body element
-  const itemBody = root.querySelector('qti-item-body');
-  if (itemBody) {
-    // Convert children of qti-item-body to Slate nodes
-    return convertNodesToSlate(Array.from(itemBody.childNodes), true);
+  const itemBody = doc.querySelector('qti-item-body');
+  if (!itemBody) {
+    throw new Error('No qti-item-body found in QTI XML document');
   }
 
-  // Otherwise, convert direct children of temp-root
-  return convertNodesToSlate(Array.from(root.childNodes), true);
+  // Convert children of qti-item-body to Slate nodes
+  return convertNodesToSlate(Array.from(itemBody.childNodes), true);
 }
 
 /**
@@ -60,17 +55,71 @@ function convertNodesToSlate(nodes: Node[], isRootLevel = false): Descendant[] {
 }
 
 /**
+ * Check if an element is block-level
+ */
+function isBlockElement(element: Element): boolean {
+  const blockTags = [
+    'p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+    'ul', 'ol', 'li', 'blockquote', 'pre',
+    'qti-item-body', 'qti-prompt', 'qti-choice-interaction',
+    'qti-simple-choice', 'qti-text-entry-interaction', 'qti-extended-text-interaction',
+  ];
+  return blockTags.includes(element.tagName.toLowerCase());
+}
+
+/**
+ * Check if a text node is structural whitespace (XML formatting)
+ * Returns true if the text node appears between block-level elements
+ */
+function isStructuralWhitespace(node: Node): boolean {
+  const parent = node.parentElement;
+  if (!parent) return false;
+
+  // Check if parent is a block-level element
+  if (!isBlockElement(parent)) return false;
+
+  // Check if this text node is surrounded by block-level siblings
+  // (or is at the start/end of the parent with block siblings)
+  const siblings = Array.from(parent.childNodes);
+  const nodeIndex = siblings.findIndex(sibling => sibling === node);
+
+  // Look at adjacent siblings
+  const prevSibling = nodeIndex > 0 ? siblings[nodeIndex - 1] : null;
+  const nextSibling = nodeIndex < siblings.length - 1 ? siblings[nodeIndex + 1] : null;
+
+  const prevIsBlock = prevSibling?.nodeType === Node.ELEMENT_NODE &&
+                      isBlockElement(prevSibling as Element);
+  const nextIsBlock = nextSibling?.nodeType === Node.ELEMENT_NODE &&
+                      isBlockElement(nextSibling as Element);
+
+  // If between two block elements, or at boundary with a block element, it's structural
+  return prevIsBlock || nextIsBlock || nodeIndex === 0 || nodeIndex === siblings.length - 1;
+}
+
+/**
  * Convert a single DOM node to Slate node(s)
  */
 function convertNodeToSlate(node: Node): Descendant | Descendant[] | null {
   // Text node
   if (node.nodeType === Node.TEXT_NODE) {
     const text = node.textContent || '';
-    // Skip whitespace-only text nodes (they appear between block elements in XML)
-    if (text.trim() === '') {
+
+    // Normalize whitespace: collapse sequences of spaces, tabs, and newlines to single space
+    // This mirrors HTML rendering behavior where XML formatting (indentation, line breaks)
+    // should not affect the displayed text
+    const normalizedText = text.replace(/[\s\n\r\t]+/g, ' ');
+
+    // Skip if normalized to empty string
+    if (normalizedText === '') {
       return null;
     }
-    return { text };
+
+    // Skip whitespace-only text that is structural (XML formatting between blocks)
+    if (normalizedText === ' ' && isStructuralWhitespace(node)) {
+      return null;
+    }
+
+    return { text: normalizedText };
   }
 
   // Element node

@@ -3,6 +3,18 @@ import { serializeSlateToXml } from './slateToXml';
 import { parseXmlToSlate } from './xmlToSlate';
 
 /**
+ * Wrap content in a minimal QTI assessment item for testing
+ */
+function wrapInQtiItem(content: string): string {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test-item" title="Test Item">
+  <qti-item-body>
+${content}
+  </qti-item-body>
+</qti-assessment-item>`;
+}
+
+/**
  * Normalize XML for comparison by removing whitespace between tags
  */
 function normalizeXml(xml: string): string {
@@ -23,57 +35,63 @@ function extractItemBodyContent(xml: string): string {
 describe('XML Round-trip Tests', () => {
   describe('XHTML elements', () => {
     it('should preserve simple paragraph', () => {
-      const input = '<p>Hello world</p>';
+      const content = '<p>Hello world</p>';
+      const input = wrapInQtiItem(content);
 
       const slateNodes = parseXmlToSlate(input);
       const { xml } = serializeSlateToXml(slateNodes);
       const output = extractItemBodyContent(xml);
 
-      expect(normalizeXml(output)).toBe(normalizeXml(input));
+      expect(normalizeXml(output)).toBe(normalizeXml(content));
     });
 
     it('should preserve paragraph with bold text', () => {
-      const input = '<p>Hello <strong>world</strong></p>';
+      const content = '<p>Hello <strong>world</strong></p>';
+      const input = wrapInQtiItem(content);
 
       const slateNodes = parseXmlToSlate(input);
       const { xml } = serializeSlateToXml(slateNodes);
       const output = extractItemBodyContent(xml);
 
-      expect(normalizeXml(output)).toBe(normalizeXml(input));
+      expect(normalizeXml(output)).toBe(normalizeXml(content));
     });
 
     it('should preserve paragraph with italic text', () => {
-      const input = '<p>Hello <em>world</em></p>';
+      const content = '<p>Hello <em>world</em></p>';
+      const input = wrapInQtiItem(content);
 
       const slateNodes = parseXmlToSlate(input);
       const { xml } = serializeSlateToXml(slateNodes);
       const output = extractItemBodyContent(xml);
 
-      expect(normalizeXml(output)).toBe(normalizeXml(input));
+      expect(normalizeXml(output)).toBe(normalizeXml(content));
     });
 
     it('should preserve mixed formatting', () => {
-      const input = '<p>Normal <strong>bold</strong> and <em>italic</em> text</p>';
+      const content = '<p>Normal <strong>bold</strong> and <em>italic</em> text</p>';
+      const input = wrapInQtiItem(content);
 
       const slateNodes = parseXmlToSlate(input);
       const { xml } = serializeSlateToXml(slateNodes);
       const output = extractItemBodyContent(xml);
 
-      expect(normalizeXml(output)).toBe(normalizeXml(input));
+      expect(normalizeXml(output)).toBe(normalizeXml(content));
     });
 
     it('should preserve headings', () => {
-      const input = '<h1>Title</h1><h2>Subtitle</h2>';
+      const content = '<h1>Title</h1><h2>Subtitle</h2>';
+      const input = wrapInQtiItem(content);
 
       const slateNodes = parseXmlToSlate(input);
       const { xml } = serializeSlateToXml(slateNodes);
       const output = extractItemBodyContent(xml);
 
-      expect(normalizeXml(output)).toBe(normalizeXml(input));
+      expect(normalizeXml(output)).toBe(normalizeXml(content));
     });
 
     it('should preserve div with attributes', () => {
-      const input = '<div class="container" id="main">Content</div>';
+      const content = '<div class="container" id="main">Content</div>';
+      const input = wrapInQtiItem(content);
 
       const slateNodes = parseXmlToSlate(input);
       const { xml } = serializeSlateToXml(slateNodes);
@@ -85,29 +103,32 @@ describe('XML Round-trip Tests', () => {
     });
 
     it('should preserve unordered lists', () => {
-      const input = '<ul><li>Item 1</li><li>Item 2</li></ul>';
+      const content = '<ul><li>Item 1</li><li>Item 2</li></ul>';
+      const input = wrapInQtiItem(content);
 
       const slateNodes = parseXmlToSlate(input);
       const { xml } = serializeSlateToXml(slateNodes);
       const output = extractItemBodyContent(xml);
 
-      expect(normalizeXml(output)).toBe(normalizeXml(input));
+      expect(normalizeXml(output)).toBe(normalizeXml(content));
     });
 
     it('should preserve ordered lists', () => {
-      const input = '<ol><li>First</li><li>Second</li></ol>';
+      const content = '<ol><li>First</li><li>Second</li></ol>';
+      const input = wrapInQtiItem(content);
 
       const slateNodes = parseXmlToSlate(input);
       const { xml } = serializeSlateToXml(slateNodes);
       const output = extractItemBodyContent(xml);
 
-      expect(normalizeXml(output)).toBe(normalizeXml(input));
+      expect(normalizeXml(output)).toBe(normalizeXml(content));
     });
   });
 
   describe('QTI interactions', () => {
     it('should preserve text entry interaction with all attributes', () => {
-      const input = '<qti-text-entry-interaction response-identifier="RESPONSE_1" expected-length="10" pattern-mask="[0-9]+" placeholder-text="Enter number"></qti-text-entry-interaction>';
+      const content = '<qti-text-entry-interaction response-identifier="RESPONSE_1" expected-length="10" pattern-mask="[0-9]+" placeholder-text="Enter number"></qti-text-entry-interaction>';
+      const input = wrapInQtiItem(content);
 
       const slateNodes = parseXmlToSlate(input);
       const { xml, responseIdentifiers } = serializeSlateToXml(slateNodes);
@@ -121,7 +142,8 @@ describe('XML Round-trip Tests', () => {
     });
 
     it('should preserve extended text interaction', () => {
-      const input = '<qti-extended-text-interaction response-identifier="RESPONSE_2" expected-lines="5"></qti-extended-text-interaction>';
+      const content = '<qti-extended-text-interaction response-identifier="RESPONSE_2" expected-lines="5"></qti-extended-text-interaction>';
+      const input = wrapInQtiItem(content);
 
       const slateNodes = parseXmlToSlate(input);
       const { xml, responseIdentifiers } = serializeSlateToXml(slateNodes);
@@ -133,12 +155,13 @@ describe('XML Round-trip Tests', () => {
     });
 
     it('should preserve choice interaction with choices', () => {
-      const input = `
+      const content = `
         <qti-choice-interaction response-identifier="RESPONSE_3" max-choices="1" shuffle="true">
           <qti-simple-choice identifier="choice-1">First choice</qti-simple-choice>
           <qti-simple-choice identifier="choice-2">Second choice</qti-simple-choice>
         </qti-choice-interaction>
       `;
+      const input = wrapInQtiItem(content);
 
       const slateNodes = parseXmlToSlate(input);
       const { xml, responseIdentifiers } = serializeSlateToXml(slateNodes);
@@ -154,13 +177,14 @@ describe('XML Round-trip Tests', () => {
     });
 
     it('should preserve choice interaction with prompt', () => {
-      const input = `
+      const content = `
         <qti-choice-interaction response-identifier="R1" max-choices="1">
           <qti-prompt>Select the correct answer:</qti-prompt>
           <qti-simple-choice identifier="a">Answer A</qti-simple-choice>
           <qti-simple-choice identifier="b">Answer B</qti-simple-choice>
         </qti-choice-interaction>
       `;
+      const input = wrapInQtiItem(content);
 
       const slateNodes = parseXmlToSlate(input);
       const { xml } = serializeSlateToXml(slateNodes);
@@ -174,20 +198,22 @@ describe('XML Round-trip Tests', () => {
 
   describe('complex structures', () => {
     it('should preserve nested XHTML', () => {
-      const input = '<div><p>Paragraph in <strong>div</strong></p></div>';
+      const content = '<div><p>Paragraph in <strong>div</strong></p></div>';
+      const input = wrapInQtiItem(content);
 
       const slateNodes = parseXmlToSlate(input);
       const { xml } = serializeSlateToXml(slateNodes);
       const output = extractItemBodyContent(xml);
 
-      expect(normalizeXml(output)).toBe(normalizeXml(input));
+      expect(normalizeXml(output)).toBe(normalizeXml(content));
     });
 
     it('should preserve mixed content with interactions', () => {
-      const input = `
+      const content = `
         <p>Enter your answer: <qti-text-entry-interaction response-identifier="R1"></qti-text-entry-interaction></p>
         <p>More text here</p>
       `;
+      const input = wrapInQtiItem(content);
 
       const slateNodes = parseXmlToSlate(input);
       const { xml, responseIdentifiers } = serializeSlateToXml(slateNodes);
@@ -200,13 +226,14 @@ describe('XML Round-trip Tests', () => {
     });
 
     it('should preserve question with multiple interactions', () => {
-      const input = `
+      const content = `
         <div>
           <h2>Question 1</h2>
           <p>Part A: <qti-text-entry-interaction response-identifier="R1"></qti-text-entry-interaction></p>
           <p>Part B: <qti-text-entry-interaction response-identifier="R2"></qti-text-entry-interaction></p>
         </div>
       `;
+      const input = wrapInQtiItem(content);
 
       const slateNodes = parseXmlToSlate(input);
       const { xml, responseIdentifiers } = serializeSlateToXml(slateNodes);
@@ -221,7 +248,8 @@ describe('XML Round-trip Tests', () => {
 
   describe('attribute preservation', () => {
     it('should preserve custom data attributes', () => {
-      const input = '<div data-test="value" data-id="123">Content</div>';
+      const content = '<div data-test="value" data-id="123">Content</div>';
+      const input = wrapInQtiItem(content);
 
       const slateNodes = parseXmlToSlate(input);
       const { xml } = serializeSlateToXml(slateNodes);
@@ -232,7 +260,8 @@ describe('XML Round-trip Tests', () => {
     });
 
     it('should preserve style and class attributes', () => {
-      const input = '<div class="highlight" style="color: red;">Styled</div>';
+      const content = '<div class="highlight" style="color: red;">Styled</div>';
+      const input = wrapInQtiItem(content);
 
       const slateNodes = parseXmlToSlate(input);
       const { xml } = serializeSlateToXml(slateNodes);
@@ -245,7 +274,8 @@ describe('XML Round-trip Tests', () => {
 
   describe('unknown QTI elements', () => {
     it('should preserve unknown QTI elements with raw XML', () => {
-      const input = '<qti-hotspot-interaction response-identifier="R1" max-choices="2"><qti-hotspot-choice identifier="h1">Hot 1</qti-hotspot-choice></qti-hotspot-interaction>';
+      const content = '<qti-hotspot-interaction response-identifier="R1" max-choices="2"><qti-hotspot-choice identifier="h1">Hot 1</qti-hotspot-choice></qti-hotspot-interaction>';
+      const input = wrapInQtiItem(content);
 
       const slateNodes = parseXmlToSlate(input);
       const { xml } = serializeSlateToXml(slateNodes);
@@ -259,7 +289,7 @@ describe('XML Round-trip Tests', () => {
 
   describe('complete QTI items', () => {
     it('should preserve a complete question', () => {
-      const input = `
+      const content = `
         <div class="question">
           <h3>Math Question</h3>
           <p>What is 2 + 2?</p>
@@ -270,6 +300,7 @@ describe('XML Round-trip Tests', () => {
           </qti-choice-interaction>
         </div>
       `;
+      const input = wrapInQtiItem(content);
 
       const slateNodes = parseXmlToSlate(input);
       const { xml, responseIdentifiers, errors } = serializeSlateToXml(slateNodes);
@@ -297,17 +328,19 @@ describe('XML Round-trip Tests', () => {
 
   describe('edge cases', () => {
     it('should handle empty elements', () => {
-      const input = '<p></p>';
+      const content = '<p></p>';
+      const input = wrapInQtiItem(content);
 
       const slateNodes = parseXmlToSlate(input);
       const { xml } = serializeSlateToXml(slateNodes);
       const output = extractItemBodyContent(xml);
 
-      expect(normalizeXml(output)).toBe(normalizeXml(input));
+      expect(normalizeXml(output)).toBe(normalizeXml(content));
     });
 
     it('should handle self-closing tags', () => {
-      const input = '<img src="test.jpg" alt="Test" />';
+      const content = '<img src="test.jpg" alt="Test" />';
+      const input = wrapInQtiItem(content);
 
       const slateNodes = parseXmlToSlate(input);
       const { xml } = serializeSlateToXml(slateNodes);
@@ -318,7 +351,8 @@ describe('XML Round-trip Tests', () => {
     });
 
     it('should handle special characters in text', () => {
-      const input = '<p>Text with &lt;special&gt; &amp; "characters"</p>';
+      const content = '<p>Text with &lt;special&gt; &amp; "characters"</p>';
+      const input = wrapInQtiItem(content);
 
       const slateNodes = parseXmlToSlate(input);
       const { xml } = serializeSlateToXml(slateNodes);
@@ -328,6 +362,166 @@ describe('XML Round-trip Tests', () => {
       expect(output).toContain('&lt;');
       expect(output).toContain('&gt;');
       expect(output).toContain('&amp;');
+    });
+  });
+
+  describe('whitespace handling', () => {
+    it('should collapse consecutive spaces in text', () => {
+      const content = '<p>Hello    World</p>';
+      const input = wrapInQtiItem(content);
+      const slateNodes = parseXmlToSlate(input);
+
+      // Check Slate representation has single space
+      expect(slateNodes[0]).toHaveProperty('children');
+      const children = (slateNodes[0] as any).children;
+      expect(children[0].text).toBe('Hello World');
+    });
+
+    it('should collapse newlines to spaces', () => {
+      const content = '<p>Hello\n\nWorld</p>';
+      const input = wrapInQtiItem(content);
+      const slateNodes = parseXmlToSlate(input);
+
+      const children = (slateNodes[0] as any).children;
+      expect(children[0].text).toBe('Hello World');
+    });
+
+    it('should collapse tabs to spaces', () => {
+      const content = '<p>Hello\t\tWorld</p>';
+      const input = wrapInQtiItem(content);
+      const slateNodes = parseXmlToSlate(input);
+
+      const children = (slateNodes[0] as any).children;
+      expect(children[0].text).toBe('Hello World');
+    });
+
+    it('should collapse mixed whitespace (spaces, tabs, newlines)', () => {
+      const content = '<p>Hello \t\n  \t World</p>';
+      const input = wrapInQtiItem(content);
+      const slateNodes = parseXmlToSlate(input);
+
+      const children = (slateNodes[0] as any).children;
+      expect(children[0].text).toBe('Hello World');
+    });
+
+    it('should handle XML formatting indentation', () => {
+      const content = `
+        <p>
+          This is a paragraph
+          split across lines
+        </p>
+      `;
+      const input = wrapInQtiItem(content);
+      const slateNodes = parseXmlToSlate(input);
+
+      const children = (slateNodes[0] as any).children;
+      // XML formatting (indentation, newlines) should collapse to single spaces
+      expect(children[0].text).toBe(' This is a paragraph split across lines ');
+    });
+
+    it('should preserve space between inline elements', () => {
+      const content = '<p><strong>Hello</strong> <em>World</em></p>';
+      const input = wrapInQtiItem(content);
+      const slateNodes = parseXmlToSlate(input);
+
+      const children = (slateNodes[0] as any).children;
+      // Should have three children: "Hello" (bold), " " (space), "World" (italic)
+      expect(children).toHaveLength(3);
+      expect(children[0].text).toBe('Hello');
+      expect(children[0].bold).toBe(true);
+      expect(children[1].text).toBe(' ');
+      expect(children[2].text).toBe('World');
+      expect(children[2].italic).toBe(true);
+    });
+
+    it('should only create line breaks with br elements', () => {
+      const content = '<p>Line 1<br/>Line 2</p>';
+      const input = wrapInQtiItem(content);
+      const slateNodes = parseXmlToSlate(input);
+
+      const children = (slateNodes[0] as any).children;
+      // Should have three children: text "Line 1", line-break element, text "Line 2"
+      expect(children).toHaveLength(3);
+      expect(children[0].text).toBe('Line 1');
+      expect(children[1].type).toBe('line-break');
+      expect(children[2].text).toBe('Line 2');
+    });
+
+    it('should not create line breaks from newlines in source', () => {
+      const content = '<p>Line 1\nLine 2</p>';
+      const input = wrapInQtiItem(content);
+      const slateNodes = parseXmlToSlate(input);
+
+      const children = (slateNodes[0] as any).children;
+      // Should have single text node with space instead of newline
+      expect(children).toHaveLength(1);
+      expect(children[0].text).toBe('Line 1 Line 2');
+    });
+
+    it('should handle whitespace in choice interactions', () => {
+      const content = `
+        <qti-choice-interaction response-identifier="R1" max-choices="1">
+          <qti-simple-choice identifier="a">
+            Option A
+          </qti-simple-choice>
+          <qti-simple-choice identifier="b">
+            Option B
+          </qti-simple-choice>
+        </qti-choice-interaction>
+      `;
+      const input = wrapInQtiItem(content);
+      const slateNodes = parseXmlToSlate(input);
+
+      const choiceInteraction = slateNodes[0] as any;
+      const choices = choiceInteraction.children;
+
+      // Each choice should have normalized text
+      expect(choices[0].children[0].text).toBe(' Option A ');
+      expect(choices[1].children[0].text).toBe(' Option B ');
+    });
+
+    it('should preserve single spaces between words', () => {
+      const content = '<p>This is a normal sentence with single spaces.</p>';
+      const input = wrapInQtiItem(content);
+      const slateNodes = parseXmlToSlate(input);
+
+      const children = (slateNodes[0] as any).children;
+      expect(children[0].text).toBe('This is a normal sentence with single spaces.');
+    });
+
+    it('should handle whitespace around inline elements correctly', () => {
+      const content = '<p>Start <strong>bold</strong> end</p>';
+      const input = wrapInQtiItem(content);
+      const slateNodes = parseXmlToSlate(input);
+
+      const children = (slateNodes[0] as any).children;
+      expect(children).toHaveLength(3);
+      expect(children[0].text).toBe('Start ');
+      expect(children[1].text).toBe('bold');
+      expect(children[1].bold).toBe(true);
+      expect(children[2].text).toBe(' end');
+    });
+
+    it('should collapse whitespace in complex nested structures', () => {
+      const content = `
+        <div>
+          <p>
+            Paragraph with
+            multiple lines
+          </p>
+          <p>
+            Another paragraph
+          </p>
+        </div>
+      `;
+      const input = wrapInQtiItem(content);
+      const slateNodes = parseXmlToSlate(input);
+
+      const divElement = slateNodes[0] as any;
+      const paragraphs = divElement.children;
+
+      expect(paragraphs[0].children[0].text).toBe(' Paragraph with multiple lines ');
+      expect(paragraphs[1].children[0].text).toBe(' Another paragraph ');
     });
   });
 });
