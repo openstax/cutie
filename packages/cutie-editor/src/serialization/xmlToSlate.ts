@@ -1,0 +1,309 @@
+import type { Descendant } from 'slate';
+import type { ElementAttributes, SlateElement, SlateText } from '../types';
+import { isQtiElement, normalizeTagName, parseXml, serializeElement } from './xmlUtils';
+
+/**
+ * Parse QTI XML to Slate document structure
+ *
+ * @param xml - Full QTI XML or just qti-item-body content
+ * @returns Array of Slate descendants
+ */
+export function parseXmlToSlate(xml: string): Descendant[] {
+  // Wrap in a temporary root to handle fragments with multiple root elements
+  const wrappedXml = `<temp-root>${xml}</temp-root>`;
+  const doc = parseXml(wrappedXml);
+  if (!doc) {
+    throw new Error('Failed to parse QTI XML');
+  }
+
+  const root = doc.documentElement;
+
+  // Find qti-item-body element
+  const itemBody = root.querySelector('qti-item-body');
+  if (itemBody) {
+    // Convert children of qti-item-body to Slate nodes
+    return convertNodesToSlate(Array.from(itemBody.childNodes), true);
+  }
+
+  // Otherwise, convert direct children of temp-root
+  return convertNodesToSlate(Array.from(root.childNodes), true);
+}
+
+/**
+ * Convert a list of DOM nodes to Slate descendants
+ * @param nodes - DOM nodes to convert
+ * @param isRootLevel - Whether this is the document root level (requires at least one node)
+ */
+function convertNodesToSlate(nodes: Node[], isRootLevel = false): Descendant[] {
+  const result: Descendant[] = [];
+
+  for (const node of nodes) {
+    const converted = convertNodeToSlate(node);
+    if (converted) {
+      if (Array.isArray(converted)) {
+        result.push(...converted);
+      } else {
+        result.push(converted);
+      }
+    }
+  }
+
+  // Ensure we have at least one node at root level (Slate requirement)
+  if (isRootLevel && result.length === 0) {
+    result.push({
+      type: 'paragraph',
+      children: [{ text: '' }],
+    });
+  }
+
+  return result;
+}
+
+/**
+ * Convert a single DOM node to Slate node(s)
+ */
+function convertNodeToSlate(node: Node): Descendant | Descendant[] | null {
+  // Text node
+  if (node.nodeType === Node.TEXT_NODE) {
+    const text = node.textContent || '';
+    // Skip whitespace-only text nodes (they appear between block elements in XML)
+    if (text.trim() === '') {
+      return null;
+    }
+    return { text };
+  }
+
+  // Element node
+  if (node.nodeType === Node.ELEMENT_NODE) {
+    const element = node as Element;
+    const tagName = normalizeTagName(element.tagName);
+    const attributes = extractAttributes(element);
+
+    // QTI interactions
+    if (tagName === 'qti-text-entry-interaction') {
+      return {
+        type: 'qti-text-entry-interaction',
+        children: [{ text: '' }],
+        attributes: {
+          'response-identifier': attributes['response-identifier'] || '',
+          'expected-length': attributes['expected-length'],
+          'pattern-mask': attributes['pattern-mask'],
+          'placeholder-text': attributes['placeholder-text'],
+          ...attributes,
+        },
+      };
+    }
+
+    if (tagName === 'qti-extended-text-interaction') {
+      return {
+        type: 'qti-extended-text-interaction',
+        children: [{ text: '' }],
+        attributes: {
+          'response-identifier': attributes['response-identifier'] || '',
+          'expected-lines': attributes['expected-lines'],
+          'expected-length': attributes['expected-length'],
+          'placeholder-text': attributes['placeholder-text'],
+          ...attributes,
+        },
+      };
+    }
+
+    if (tagName === 'qti-choice-interaction') {
+      const children = convertNodesToSlate(Array.from(element.childNodes));
+      return {
+        type: 'qti-choice-interaction',
+        children: children.length > 0 ? children : [{ type: 'qti-simple-choice', children: [{ text: '' }], attributes: { identifier: 'choice-1' } }],
+        attributes: {
+          'response-identifier': attributes['response-identifier'] || '',
+          'max-choices': attributes['max-choices'] || '1',
+          'min-choices': attributes['min-choices'],
+          shuffle: attributes['shuffle'],
+          ...attributes,
+        },
+      } as SlateElement;
+    }
+
+    if (tagName === 'qti-prompt') {
+      const children = convertNodesToSlate(Array.from(element.childNodes));
+      return {
+        type: 'qti-prompt',
+        children: children.length > 0 ? children : [{ text: '' }],
+        attributes,
+      } as SlateElement;
+    }
+
+    if (tagName === 'qti-simple-choice') {
+      const children = convertNodesToSlate(Array.from(element.childNodes));
+      return {
+        type: 'qti-simple-choice',
+        children: children.length > 0 ? children : [{ text: '' }],
+        attributes: {
+          identifier: attributes['identifier'] || '',
+          fixed: attributes['fixed'],
+          ...attributes,
+        },
+      } as SlateElement;
+    }
+
+    // Unknown QTI elements - preserve with warning
+    if (isQtiElement(tagName)) {
+      const children = convertNodesToSlate(Array.from(element.childNodes));
+      const rawXml = serializeElement(element);
+
+      return {
+        type: 'qti-unknown',
+        originalTagName: tagName,
+        children: children.length > 0 ? children : [{ text: '' }],
+        attributes,
+        rawXml,
+        isVoid: element.childNodes.length === 0,
+      };
+    }
+
+    // XHTML elements
+    if (tagName === 'p') {
+      const children = convertNodesToSlate(Array.from(element.childNodes));
+      return {
+        type: 'paragraph',
+        children: children.length > 0 ? children : [{ text: '' }],
+        attributes,
+      };
+    }
+
+    if (tagName === 'div') {
+      const children = convertNodesToSlate(Array.from(element.childNodes));
+      return {
+        type: 'div',
+        children: children.length > 0 ? children : [{ text: '' }],
+        attributes,
+      };
+    }
+
+    if (tagName === 'span') {
+      const children = convertNodesToSlate(Array.from(element.childNodes));
+      return {
+        type: 'span',
+        children: children.length > 0 ? children : [{ text: '' }],
+        attributes,
+      };
+    }
+
+    if (tagName.match(/^h[1-6]$/)) {
+      const level = parseInt(tagName[1], 10) as 1 | 2 | 3 | 4 | 5 | 6;
+      const children = convertNodesToSlate(Array.from(element.childNodes));
+      return {
+        type: 'heading',
+        level,
+        children: children.length > 0 ? children : [{ text: '' }],
+        attributes,
+      };
+    }
+
+    if (tagName === 'strong' || tagName === 'b') {
+      const children = convertNodesToSlate(Array.from(element.childNodes));
+      // Apply bold mark to text children
+      return applyMarkToChildren(children, 'bold');
+    }
+
+    if (tagName === 'em' || tagName === 'i') {
+      const children = convertNodesToSlate(Array.from(element.childNodes));
+      // Apply italic mark to text children
+      return applyMarkToChildren(children, 'italic');
+    }
+
+    if (tagName === 'u') {
+      const children = convertNodesToSlate(Array.from(element.childNodes));
+      // Apply underline mark to text children
+      return applyMarkToChildren(children, 'underline');
+    }
+
+    if (tagName === 'code') {
+      const children = convertNodesToSlate(Array.from(element.childNodes));
+      // Apply code mark to text children
+      return applyMarkToChildren(children, 'code');
+    }
+
+    if (tagName === 'img') {
+      return {
+        type: 'image',
+        children: [{ text: '' }],
+        attributes: {
+          src: attributes['src'] || '',
+          alt: attributes['alt'],
+          width: attributes['width'],
+          height: attributes['height'],
+          ...attributes,
+        },
+      };
+    }
+
+    if (tagName === 'br') {
+      return {
+        type: 'line-break',
+        children: [{ text: '' }],
+        attributes,
+      };
+    }
+
+    if (tagName === 'ul' || tagName === 'ol') {
+      const children = convertNodesToSlate(Array.from(element.childNodes));
+      return {
+        type: 'list',
+        ordered: tagName === 'ol',
+        children: children.filter(child => 'type' in child && child.type === 'list-item'),
+        attributes,
+      } as SlateElement;
+    }
+
+    if (tagName === 'li') {
+      const children = convertNodesToSlate(Array.from(element.childNodes));
+      return {
+        type: 'list-item',
+        children: children.length > 0 ? children : [{ text: '' }],
+        attributes,
+      };
+    }
+
+    // Default: treat as div
+    const children = convertNodesToSlate(Array.from(element.childNodes));
+    return {
+      type: 'div',
+      children: children.length > 0 ? children : [{ text: '' }],
+      attributes,
+    };
+  }
+
+  // Other node types (comments, etc.) - skip
+  return null;
+}
+
+/**
+ * Extract all attributes from an element as kebab-case object
+ */
+function extractAttributes(element: Element): ElementAttributes {
+  const attributes: ElementAttributes = {};
+
+  for (let i = 0; i < element.attributes.length; i++) {
+    const attr = element.attributes[i];
+    // Keep attribute names in original case (usually kebab-case in XML)
+    attributes[attr.name] = attr.value;
+  }
+
+  return attributes;
+}
+
+/**
+ * Apply a text mark to all text nodes in children
+ */
+function applyMarkToChildren(
+  children: Descendant[],
+  mark: 'bold' | 'italic' | 'underline' | 'code'
+): Descendant[] {
+  return children.map(child => {
+    if ('text' in child) {
+      const textNode = child as SlateText;
+      return { ...textNode, [mark]: true };
+    }
+    return child;
+  });
+}

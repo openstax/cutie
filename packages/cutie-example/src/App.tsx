@@ -94,7 +94,8 @@ export function App() {
       case 'editor':
         return (
           <EditorTab
-            selectedExample={selectedExample}
+            itemXml={itemXml}
+            setItemXml={setItemXml}
             setSanitizedTemplate={setSanitizedTemplate}
             setAttemptState={setAttemptState}
           />
