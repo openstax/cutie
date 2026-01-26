@@ -579,3 +579,69 @@ function checkDuplicateIdentifiers(context: SerializationContext): void {
     }
   }
 }
+
+/**
+ * Serialize Slate document back to full QTI XML document
+ *
+ * This function takes the original QTI XML and Slate nodes (representing item-body content),
+ * and returns a complete QTI document with the item-body updated.
+ *
+ * @param nodes - Slate descendants representing the edited item-body content
+ * @param originalQtiXml - Original full QTI XML document
+ * @returns Serialization result with full QTI XML string, identifiers, and errors
+ */
+export function serializeSlateToQti(
+  nodes: Descendant[],
+  originalQtiXml: string
+): SerializationResult {
+  // Parse the original QTI document
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(originalQtiXml, 'application/xml');
+
+  // Find the assessment item element
+  const assessmentItem = doc.querySelector('qti-assessment-item');
+  if (!assessmentItem) {
+    return {
+      xml: originalQtiXml,
+      responseIdentifiers: [],
+      errors: [{
+        type: 'invalid-xml',
+        message: 'Invalid QTI XML structure - no qti-assessment-item found',
+      }],
+    };
+  }
+
+  // Find the existing item-body element
+  const oldItemBody = assessmentItem.querySelector('qti-item-body');
+  if (!oldItemBody) {
+    return {
+      xml: originalQtiXml,
+      responseIdentifiers: [],
+      errors: [{
+        type: 'invalid-xml',
+        message: 'Invalid QTI XML structure - no qti-item-body found',
+      }],
+    };
+  }
+
+  // Create new item-body with edited content
+  const itemBodyResult = serializeSlateToXml(nodes);
+
+  // Parse the new item-body
+  const newItemBodyDoc = parser.parseFromString(itemBodyResult.xml, 'application/xml');
+  const newItemBody = newItemBodyDoc.documentElement;
+
+  // Replace the old item-body with the new one
+  const imported = doc.importNode(newItemBody, true);
+  assessmentItem.replaceChild(imported, oldItemBody);
+
+  // Serialize the complete document back to XML
+  const serializer = new XMLSerializer();
+  const fullXml = serializer.serializeToString(doc);
+
+  return {
+    xml: fullXml,
+    responseIdentifiers: itemBodyResult.responseIdentifiers,
+    errors: itemBodyResult.errors,
+  };
+}

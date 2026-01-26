@@ -1,4 +1,4 @@
-import type { BaseEditor, Descendant } from 'slate';
+import type { BaseEditor } from 'slate';
 import type { HistoryEditor } from 'slate-history';
 import type { ReactEditor } from 'slate-react';
 
@@ -267,14 +267,12 @@ export interface ValidationError {
  * Props for the SlateEditor component
  */
 export interface SlateEditorProps {
-  /** Document value to load (causes remount when changed) */
-  value: Descendant[];
-  /** Change handler */
-  onChange: (value: Descendant[]) => void;
-  /** Optional document key to force remount when loading new documents */
-  documentKey?: string;
-  /** Optional auto-serialize callback */
-  onSerialize?: (result: SerializationResult) => void;
+  /** Full QTI XML document to edit */
+  qtiXml: string;
+  /** Called when the QTI XML changes (debounced) */
+  onQtiChange?: (xml: string, result: SerializationResult) => void;
+  /** Called when there's an error parsing or serializing */
+  onError?: (error: string) => void;
   /** Optional CSS class name */
   className?: string;
   /** Whether the editor is read-only */

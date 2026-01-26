@@ -8,7 +8,7 @@ export { SlateEditor } from './editor/SlateEditor';
 
 // Export serialization utilities
 export { parseXmlToSlate } from './serialization/xmlToSlate';
-export { serializeSlateToXml } from './serialization/slateToXml';
+export { serializeSlateToXml, serializeSlateToQti } from './serialization/slateToXml';
 
 // Export plugins
 export {

@@ -1,18 +1,20 @@
-import { useCallback, useMemo } from 'react';
-import { createEditor } from 'slate';
+import { useCallback, useMemo, useState, useRef, useEffect } from 'react';
+import { createEditor, Descendant } from 'slate';
 import { Slate, Editable, withReact, RenderElementProps, RenderLeafProps } from 'slate-react';
 import { withHistory } from 'slate-history';
 import type { SlateEditorProps, SlateElement } from '../types';
 import { withQtiInteractions, withXhtml, withUnknownElements } from '../plugins';
 import { Toolbar } from './Toolbar';
+import { parseXmlToSlate } from '../serialization/xmlToSlate';
+import { serializeSlateToQti } from '../serialization/slateToXml';
 
 /**
  * Main Slate editor component for QTI editing
  */
 export function SlateEditor({
-  value,
-  onChange,
-  documentKey,
+  qtiXml,
+  onQtiChange,
+  onError,
   className = '',
   readOnly = false,
   placeholder = 'Enter content...',
@@ -22,6 +24,63 @@ export function SlateEditor({
     const baseEditor = withReact(withHistory(createEditor()));
     return withUnknownElements(withQtiInteractions(withXhtml(baseEditor)));
   }, []);
+
+  // Track the current QTI XML to detect external changes
+  const qtiXmlRef = useRef(qtiXml);
+
+  // Parse QTI XML to Slate format
+  const initialValue = useMemo(() => {
+    try {
+      return parseXmlToSlate(qtiXml);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to parse QTI XML';
+      onError?.(errorMessage);
+      // Return a default paragraph if parsing fails
+      return [{ type: 'paragraph', children: [{ text: '' }] }] as Descendant[];
+    }
+  }, [qtiXml, onError]);
+
+  // Internal Slate value state
+  const [value, setValue] = useState<Descendant[]>(initialValue);
+
+  // Handle Slate value changes
+  const handleChange = useCallback((newValue: Descendant[]) => {
+    setValue(newValue);
+
+    // Serialize back to QTI and notify parent
+    if (onQtiChange && !readOnly) {
+      try {
+        const result = serializeSlateToQti(newValue, qtiXmlRef.current);
+
+        // Check for errors
+        if (result.errors && result.errors.length > 0) {
+          const errorMessages = result.errors.map(e => e.message).join(', ');
+          onError?.(errorMessages);
+        }
+
+        // Update the ref and notify parent
+        qtiXmlRef.current = result.xml;
+        onQtiChange(result.xml, result);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to serialize QTI XML';
+        onError?.(errorMessage);
+      }
+    }
+  }, [onQtiChange, onError, readOnly]);
+
+  // When qtiXml changes externally, update the editor
+  useEffect(() => {
+    if (qtiXml !== qtiXmlRef.current) {
+      qtiXmlRef.current = qtiXml;
+      try {
+        const newValue = parseXmlToSlate(qtiXml);
+        setValue(newValue);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to parse QTI XML';
+        onError?.(errorMessage);
+      }
+    }
+  }, [qtiXml, onError]);
 
   // Render element callback
   const renderElement = useCallback((props: RenderElementProps) => {
@@ -33,13 +92,9 @@ export function SlateEditor({
     return <Leaf {...props} />;
   }, []);
 
-  // Use documentKey to force remount when loading new documents
-  // If not provided, we'll rely on the parent managing the key via React's key prop
-  const internalKey = documentKey ?? 'editor';
-
   return (
     <div className={`slate-editor ${className}`}>
-      <Slate key={internalKey} editor={editor} initialValue={value} onChange={onChange}>
+      <Slate key={qtiXml} editor={editor} initialValue={value} onChange={handleChange}>
         <Toolbar />
         <Editable
           renderElement={renderElement}
