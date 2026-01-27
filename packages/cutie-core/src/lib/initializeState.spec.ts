@@ -2183,4 +2183,176 @@ describe('initializeState', () => {
       expect(state.variables.PARAM1).toBe('default-value');
     });
   });
+
+  describe('Standard Outcome Extraction', () => {
+    test('extracts SCORE from outcome declaration', () => {
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+        <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+          identifier="score-test" title="Score Test">
+          <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+            <qti-default-value>
+              <qti-value>0.0</qti-value>
+            </qti-default-value>
+          </qti-outcome-declaration>
+          <qti-item-body><p>Test</p></qti-item-body>
+        </qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(xml, 'text/xml');
+      const state = initializeState(itemDoc);
+
+      expect(state.score).toBe(0.0);
+      expect(state.variables.SCORE).toBe(0.0);
+    });
+
+    test('extracts MAXSCORE from outcome declaration when present', () => {
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+        <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+          identifier="maxscore-test" title="MaxScore Test">
+          <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+            <qti-default-value>
+              <qti-value>0.0</qti-value>
+            </qti-default-value>
+          </qti-outcome-declaration>
+          <qti-outcome-declaration identifier="MAXSCORE" cardinality="single" base-type="float">
+            <qti-default-value>
+              <qti-value>10.0</qti-value>
+            </qti-default-value>
+          </qti-outcome-declaration>
+          <qti-item-body><p>Test</p></qti-item-body>
+        </qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(xml, 'text/xml');
+      const state = initializeState(itemDoc);
+
+      expect(state.score).toBe(0.0);
+      expect(state.maxScore).toBe(10.0);
+    });
+
+    test('derives maxScore from mapping upper-bound when MAXSCORE not declared', () => {
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+        <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+          identifier="mapping-test" title="Mapping Test">
+          <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier">
+            <qti-mapping default-value="0" upper-bound="5">
+              <qti-map-entry map-key="A" mapped-value="1"/>
+              <qti-map-entry map-key="B" mapped-value="2"/>
+            </qti-mapping>
+          </qti-response-declaration>
+          <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+            <qti-default-value>
+              <qti-value>0.0</qti-value>
+            </qti-default-value>
+          </qti-outcome-declaration>
+          <qti-item-body><p>Test</p></qti-item-body>
+        </qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(xml, 'text/xml');
+      const state = initializeState(itemDoc);
+
+      expect(state.score).toBe(0.0);
+      expect(state.maxScore).toBe(5);
+    });
+
+    test('returns null maxScore when neither MAXSCORE nor upper-bound exists', () => {
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+        <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+          identifier="no-max-test" title="No Max Test">
+          <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+            <qti-default-value>
+              <qti-value>0.0</qti-value>
+            </qti-default-value>
+          </qti-outcome-declaration>
+          <qti-item-body><p>Test</p></qti-item-body>
+        </qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(xml, 'text/xml');
+      const state = initializeState(itemDoc);
+
+      expect(state.score).toBe(0.0);
+      expect(state.maxScore).toBe(null);
+    });
+
+    test('returns null score for non-scored items (no SCORE declaration)', () => {
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+        <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+          identifier="survey-test" title="Survey Test">
+          <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="string"/>
+          <qti-item-body><p>Survey question</p></qti-item-body>
+        </qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(xml, 'text/xml');
+      const state = initializeState(itemDoc);
+
+      expect(state.score).toBe(null);
+      expect(state.maxScore).toBe(null);
+    });
+
+    test('handles SCORE with non-zero default value', () => {
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+        <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+          identifier="nonzero-score-test" title="Non-Zero Score Test">
+          <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+            <qti-default-value>
+              <qti-value>5.0</qti-value>
+            </qti-default-value>
+          </qti-outcome-declaration>
+          <qti-item-body><p>Test</p></qti-item-body>
+        </qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(xml, 'text/xml');
+      const state = initializeState(itemDoc);
+
+      expect(state.score).toBe(5.0);
+      expect(state.variables.SCORE).toBe(5.0);
+    });
+
+    test('handles invalid upper-bound value gracefully', () => {
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+        <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+          identifier="invalid-bound-test" title="Invalid Bound Test">
+          <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier">
+            <qti-mapping default-value="0" upper-bound="invalid">
+              <qti-map-entry map-key="A" mapped-value="1"/>
+            </qti-mapping>
+          </qti-response-declaration>
+          <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+            <qti-default-value>
+              <qti-value>0.0</qti-value>
+            </qti-default-value>
+          </qti-outcome-declaration>
+          <qti-item-body><p>Test</p></qti-item-body>
+        </qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(xml, 'text/xml');
+      const state = initializeState(itemDoc);
+
+      expect(state.score).toBe(0.0);
+      expect(state.maxScore).toBe(null);
+    });
+
+    test('derives maxScore of 1 for match_correct template', () => {
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+        <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+          identifier="match-correct-test" title="Match Correct Test">
+          <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier">
+            <qti-correct-response>
+              <qti-value>ChoiceA</qti-value>
+            </qti-correct-response>
+          </qti-response-declaration>
+          <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+            <qti-default-value>
+              <qti-value>0</qti-value>
+            </qti-default-value>
+          </qti-outcome-declaration>
+          <qti-item-body><p>Test</p></qti-item-body>
+          <qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>
+        </qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(xml, 'text/xml');
+      const state = initializeState(itemDoc);
+
+      expect(state.score).toBe(0);
+      expect(state.maxScore).toBe(1);
+    });
+  });
 });

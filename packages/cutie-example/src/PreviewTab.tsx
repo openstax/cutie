@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { AttemptState } from '@openstax/cutie-core';
+import { submitResponse } from '@openstax/cutie-core';
 import { mountItem } from '@openstax/cutie-client';
 import type { MountedItem, ResponseData } from '@openstax/cutie-client';
 
@@ -8,12 +9,20 @@ interface PreviewTabProps {
   sanitizedTemplate: string;
   responses: ResponseData | null;
   setResponses: (responses: ResponseData | null) => void;
+  itemXml?: string;
+  onStateUpdate?: (state: AttemptState) => void;
 }
 
-export function PreviewTab({ attemptState, sanitizedTemplate, responses, setResponses }: PreviewTabProps) {
+export function PreviewTab({ attemptState, sanitizedTemplate, responses, setResponses, itemXml, onStateUpdate }: PreviewTabProps) {
   const [interactionsEnabled, setInteractionsEnabled] = useState(true);
+  const [localAttemptState, setLocalAttemptState] = useState<AttemptState | null>(attemptState);
   const previewRef = useRef<HTMLDivElement>(null);
   const mountedItemRef = useRef<MountedItem | null>(null);
+
+  // Sync with parent attempt state
+  useEffect(() => {
+    setLocalAttemptState(attemptState);
+  }, [attemptState]);
 
   // Mount/unmount item when sanitizedTemplate changes
   useEffect(() => {
@@ -34,8 +43,8 @@ export function PreviewTab({ attemptState, sanitizedTemplate, responses, setResp
     }
   }, [interactionsEnabled]);
 
-  const handleSubmit = () => {
-    if (mountedItemRef.current) {
+  const handleSubmit = async () => {
+    if (mountedItemRef.current && itemXml && localAttemptState) {
       // Disable interactions during submission
       setInteractionsEnabled(false);
 
@@ -44,13 +53,35 @@ export function PreviewTab({ attemptState, sanitizedTemplate, responses, setResp
       setResponses(collectedResponses);
 
       // Log for debugging
+      console.log('=== SUBMISSION START ===');
+      console.log('Current attempt state:', localAttemptState);
       console.log('Collected responses:', collectedResponses);
       console.log('Response identifiers:', mountedItemRef.current.getResponseIdentifiers());
 
-      // Re-enable interactions after a brief delay (simulating submission)
-      setTimeout(() => {
-        setInteractionsEnabled(true);
-      }, 1000);
+      try {
+        // Process the response
+        const result = await submitResponse(collectedResponses, localAttemptState, itemXml);
+        console.log('Response processing result:', result);
+        console.log('New state:', result.state);
+        console.log('Score:', result.state.score);
+        console.log('Max score:', result.state.maxScore);
+        console.log('=== SUBMISSION END ===');
+
+        // Update local state
+        setLocalAttemptState(result.state);
+
+        // Notify parent if callback provided
+        if (onStateUpdate) {
+          onStateUpdate(result.state);
+        }
+      } catch (error) {
+        console.error('Error processing response:', error);
+      } finally {
+        // Re-enable interactions after a brief delay
+        setTimeout(() => {
+          setInteractionsEnabled(true);
+        }, 1000);
+      }
     }
   };
 
@@ -62,7 +93,7 @@ export function PreviewTab({ attemptState, sanitizedTemplate, responses, setResp
         <div className="panel">
           <h2>Attempt State</h2>
           <pre className="output-display">
-            {attemptState ? JSON.stringify(attemptState, null, 2) : 'No state yet'}
+            {localAttemptState ? JSON.stringify(localAttemptState, null, 2) : 'No state yet'}
           </pre>
         </div>
 

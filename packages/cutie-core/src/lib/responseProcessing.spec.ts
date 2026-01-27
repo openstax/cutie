@@ -59,6 +59,8 @@ describe('processResponse - Basic Response Processing', () => {
     const currentState = {
       variables: { SCORE: 0 },
       completionStatus: 'not_attempted' as const,
+      score: 0,
+      maxScore: null,
     };
     const submission = { RESPONSE: 'choiceA' };
 
@@ -117,6 +119,8 @@ describe('processResponse - Basic Response Processing', () => {
     const currentState = {
       variables: { SCORE: 0 },
       completionStatus: 'not_attempted' as const,
+      score: 0,
+      maxScore: null,
     };
     const submission = { RESPONSE: 'choiceB' };
 
@@ -167,6 +171,8 @@ describe('processResponse - Basic Response Processing', () => {
     const currentState = {
       variables: { SCORE: 0 },
       completionStatus: 'not_attempted' as const,
+      score: 0,
+      maxScore: null,
     };
     const submission = {}; // No response submitted
 
@@ -233,6 +239,8 @@ describe('processResponse - Basic Response Processing', () => {
     const currentState = {
       variables: { SCORE: 0 },
       completionStatus: 'not_attempted' as const,
+      score: 0,
+      maxScore: null,
     };
     const submission = { RESPONSE1: 'choiceA', RESPONSE2: 'choiceX' };
 
@@ -300,6 +308,8 @@ describe('processResponse - Basic Response Processing', () => {
     const currentState = {
       variables: { SCORE: 0 },
       completionStatus: 'not_attempted' as const,
+      score: 0,
+      maxScore: null,
     };
     const submission = { RESPONSE: 'choiceB' };
 
@@ -341,6 +351,8 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: null,
       };
       const submission = { RESPONSE: 'choiceB' };
 
@@ -380,6 +392,8 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: null,
       };
       const submission = { RESPONSE: 'choiceA' };
 
@@ -418,6 +432,8 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: null,
       };
       const submission = {}; // No response
 
@@ -458,6 +474,8 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: null,
       };
       const submission = { RESPONSE: ['choiceA', 'choiceC'] };
 
@@ -498,6 +516,8 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: null,
       };
       // Only selecting one of the two correct choices
       const submission = { RESPONSE: ['choiceA'] };
@@ -541,6 +561,8 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: null,
       };
       const submission = { RESPONSE: ['step1', 'step2', 'step3'] };
 
@@ -576,6 +598,8 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: null,
       };
       const submission = { RESPONSE: 'Paris' };
 
@@ -614,6 +638,8 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: null,
       };
       const submission = { RESPONSE: 'choiceB' };
 
@@ -653,6 +679,8 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: null,
       };
       const submission = { RESPONSE: 'choiceB' };
 
@@ -700,6 +728,8 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: null,
       };
       const submission = { RESPONSE: 'choiceC' };
 
@@ -741,6 +771,8 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: null,
       };
       const submission = {}; // No response
 
@@ -786,6 +818,8 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: null,
       };
       // Select both correct choices
       const submission = { RESPONSE: ['choiceA', 'choiceC'] };
@@ -830,6 +864,8 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: null,
       };
       // Select correct but also select wrong
       const submission = { RESPONSE: ['choiceA', 'choiceB'] };
@@ -874,6 +910,8 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: null,
       };
       // Only select the wrong answer with big penalty
       const submission = { RESPONSE: ['choiceB'] };
@@ -919,6 +957,8 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: null,
       };
       const submission = { RESPONSE: ['choiceA', 'choiceB'] };
 
@@ -962,6 +1002,8 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: null,
       };
       const submission = { RESPONSE: 'choiceA' };
 
@@ -1003,6 +1045,8 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: null,
       };
       // Click inside the circle (center at 100,100 with radius 50)
       const submission = { RESPONSE: '100 100' };
@@ -1041,6 +1085,8 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: null,
       };
       const submission = {}; // No click
 
@@ -1079,6 +1125,8 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: null,
       };
       // Click both hotspots
       const submission = { RESPONSE: ['100 100', '200 200'] };
@@ -1118,6 +1166,8 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: null,
       };
       // Click inside rectangle (x between 50-150, y between 50-150)
       const submission = { RESPONSE: '100 100' };
@@ -1156,6 +1206,8 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: null,
       };
       // Click far outside the circle
       const submission = { RESPONSE: '500 500' };
@@ -1208,6 +1260,8 @@ describe('Response Processing Operators and Expressions', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: null,
       };
       const submission = { RESPONSE: 'A' };
 
@@ -1258,6 +1312,8 @@ describe('Response Processing Operators and Expressions', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: null,
       };
       // Order doesn't matter for multiple cardinality
       const submission = { RESPONSE: ['A', 'B'] };
@@ -1308,6 +1364,8 @@ describe('Response Processing Operators and Expressions', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: null,
       };
       // Wrong order
       const submission = { RESPONSE: ['B', 'A'] };
@@ -1352,6 +1410,8 @@ describe('Response Processing Operators and Expressions', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: null,
       };
       const submission = { RESPONSE: 'paris' }; // lowercase
 
@@ -1396,6 +1456,8 @@ describe('Response Processing Operators and Expressions', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: null,
       };
       const submission = { RESPONSE: 42 };
 
@@ -1449,6 +1511,8 @@ describe('Response Processing Operators and Expressions', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: null,
       };
       const submission = { RESPONSE: 'choiceC' };
 
@@ -1501,6 +1565,8 @@ describe('Response Processing Operators and Expressions', () => {
       const currentState = {
         variables: { SCORE: 0, WAS_NULL: false },
         completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: null,
       };
       const submission = {}; // No response
 
@@ -1550,6 +1616,8 @@ describe('Response Processing Operators and Expressions', () => {
       const currentState = {
         variables: { WAS_NULL: true },
         completionStatus: 'not_attempted' as const,
+        score: null,
+        maxScore: null,
       };
       const submission = { RESPONSE: 'A' };
 
@@ -1607,6 +1675,8 @@ describe('Response Processing Operators and Expressions', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: null,
       };
       const submission = { RESPONSE1: 'A', RESPONSE2: 'B' };
 
@@ -1659,6 +1729,8 @@ describe('Response Processing Operators and Expressions', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: null,
       };
       const submission = { RESPONSE: 'B' };
 
@@ -1707,6 +1779,8 @@ describe('Response Processing Operators and Expressions', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: null,
       };
       // Response is B, which is NOT A, so condition should be true
       const submission = { RESPONSE: 'B' };
@@ -1758,6 +1832,8 @@ describe('Response Processing Operators and Expressions', () => {
       const currentState = {
         variables: { PARTIAL1: 0.3, PARTIAL2: 0.7, SCORE: 0 },
         completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: null,
       };
       const submission = {};
 
@@ -1806,6 +1882,8 @@ describe('Response Processing Operators and Expressions', () => {
       const currentState = {
         variables: { RAW_SCORE: 5, MULTIPLIER: 2, SCORE: 0 },
         completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: null,
       };
       const submission = {};
 
@@ -1855,6 +1933,8 @@ describe('Response Processing Operators and Expressions', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: null,
       };
       const submission = { RESPONSE: ['A', 'B'] };
 
@@ -1939,6 +2019,8 @@ describe('Complex Response Processing Scenarios', () => {
     const currentState = {
       variables: { SCORE: 0, SCORE_PART1: 0, SCORE_PART2: 0 },
       completionStatus: 'not_attempted' as const,
+      score: 0,
+      maxScore: null,
     };
     const submission = { RESPONSE_PART1: 'B', RESPONSE_PART2: 'X' };
 
@@ -2021,6 +2103,8 @@ describe('Complex Response Processing Scenarios', () => {
     const currentState = {
       variables: { SCORE: 0, FEEDBACK_ID: 'none' },
       completionStatus: 'not_attempted' as const,
+      score: 0,
+      maxScore: null,
     };
     const submission = { RESPONSE: 'choiceB' };
 
@@ -2087,6 +2171,8 @@ describe('Complex Response Processing Scenarios', () => {
     let currentState: AttemptState = {
       variables: { SCORE: 0, numAttempts: 0 },
       completionStatus: 'not_attempted' as const,
+      score: 0,
+      maxScore: null,
     };
     let submission = { RESPONSE: 'choiceB' };
 
@@ -2103,5 +2189,224 @@ describe('Complex Response Processing Scenarios', () => {
 
     expect(newState.variables.numAttempts).toBe(2);
     expect(newState.variables.SCORE).toBe(1);
+  });
+
+  describe('Standard Outcome Extraction After Response Processing', () => {
+    test('updates score after match_correct template execution', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+                     identifier="choice-item"
+                     title="Simple Choice Item">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier">
+    <qti-correct-response>
+      <qti-value>choiceA</qti-value>
+    </qti-correct-response>
+  </qti-response-declaration>
+
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value>
+      <qti-value>0</qti-value>
+    </qti-default-value>
+  </qti-outcome-declaration>
+
+  <qti-item-body>
+    <p>What is 2 + 2?</p>
+    <qti-choice-interaction response-identifier="RESPONSE" shuffle="false" max-choices="1">
+      <qti-simple-choice identifier="choiceA">4</qti-simple-choice>
+      <qti-simple-choice identifier="choiceB">3</qti-simple-choice>
+    </qti-choice-interaction>
+  </qti-item-body>
+
+  <qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+
+      const currentState: AttemptState = {
+        variables: { SCORE: 0 },
+        completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: null,
+      };
+
+      // Submit correct response
+      const submission = { RESPONSE: 'choiceA' };
+      const newState = processResponse(itemDoc, submission, currentState);
+
+      expect(newState.score).toBe(1);
+      expect(newState.variables.SCORE).toBe(1);
+      expect(newState.completionStatus).toBe('completed');
+    });
+
+    test('exposes maxScore derived from upper-bound after response processing', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+                     identifier="mapping-item"
+                     title="Mapping Item">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier">
+    <qti-mapping default-value="0" upper-bound="10">
+      <qti-map-entry map-key="A" mapped-value="5"/>
+      <qti-map-entry map-key="B" mapped-value="3"/>
+    </qti-mapping>
+  </qti-response-declaration>
+
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value>
+      <qti-value>0</qti-value>
+    </qti-default-value>
+  </qti-outcome-declaration>
+
+  <qti-item-body>
+    <p>Test question</p>
+  </qti-item-body>
+
+  <qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/map_response.xml"/>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+
+      const currentState: AttemptState = {
+        variables: { SCORE: 0 },
+        completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: 10,
+      };
+
+      const submission = { RESPONSE: 'A' };
+      const newState = processResponse(itemDoc, submission, currentState);
+
+      expect(newState.score).toBe(5);
+      expect(newState.maxScore).toBe(10);
+      expect(newState.completionStatus).toBe('completed');
+    });
+
+    test('maintains null score for non-scored items after response processing', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+                     identifier="survey-item"
+                     title="Survey Item">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="string"/>
+
+  <qti-item-body>
+    <p>What is your opinion?</p>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+
+      const currentState: AttemptState = {
+        variables: {},
+        completionStatus: 'not_attempted' as const,
+        score: null,
+        maxScore: null,
+      };
+
+      const submission = { RESPONSE: 'My opinion' };
+      const newState = processResponse(itemDoc, submission, currentState);
+
+      expect(newState.score).toBe(null);
+      expect(newState.maxScore).toBe(null);
+      expect(newState.completionStatus).toBe('completed');
+    });
+
+    test('exposes explicit MAXSCORE after response processing', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+                     identifier="explicit-max-item"
+                     title="Explicit Max Item">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier">
+    <qti-correct-response>
+      <qti-value>choiceA</qti-value>
+    </qti-correct-response>
+  </qti-response-declaration>
+
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value>
+      <qti-value>0</qti-value>
+    </qti-default-value>
+  </qti-outcome-declaration>
+
+  <qti-outcome-declaration identifier="MAXSCORE" cardinality="single" base-type="float">
+    <qti-default-value>
+      <qti-value>100</qti-value>
+    </qti-default-value>
+  </qti-outcome-declaration>
+
+  <qti-item-body>
+    <p>Test question</p>
+  </qti-item-body>
+
+  <qti-response-processing>
+    <qti-response-condition>
+      <qti-response-if>
+        <qti-match>
+          <qti-variable identifier="RESPONSE"/>
+          <qti-correct identifier="RESPONSE"/>
+        </qti-match>
+        <qti-set-outcome-value identifier="SCORE">
+          <qti-base-value base-type="float">100</qti-base-value>
+        </qti-set-outcome-value>
+      </qti-response-if>
+    </qti-response-condition>
+  </qti-response-processing>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+
+      const currentState: AttemptState = {
+        variables: { SCORE: 0, MAXSCORE: 100 },
+        completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: 100,
+      };
+
+      const submission = { RESPONSE: 'choiceA' };
+      const newState = processResponse(itemDoc, submission, currentState);
+
+      expect(newState.score).toBe(100);
+      expect(newState.maxScore).toBe(100);
+      expect(newState.completionStatus).toBe('completed');
+    });
+
+    test('derives maxScore of 1 for match_correct template after response processing', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+                     identifier="match-correct-item"
+                     title="Match Correct Item">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier">
+    <qti-correct-response>
+      <qti-value>ChoiceA</qti-value>
+    </qti-correct-response>
+  </qti-response-declaration>
+
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value>
+      <qti-value>0</qti-value>
+    </qti-default-value>
+  </qti-outcome-declaration>
+
+  <qti-item-body>
+    <p>Test question</p>
+  </qti-item-body>
+
+  <qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+
+      const currentState: AttemptState = {
+        variables: { SCORE: 0 },
+        completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: 1,
+      };
+
+      const submission = { RESPONSE: 'ChoiceA' };
+      const newState = processResponse(itemDoc, submission, currentState);
+
+      expect(newState.score).toBe(1);
+      expect(newState.maxScore).toBe(1);
+      expect(newState.completionStatus).toBe('completed');
+    });
   });
 });

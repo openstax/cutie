@@ -108,6 +108,8 @@ export function App() {
             sanitizedTemplate={sanitizedTemplate}
             responses={responses}
             setResponses={setResponses}
+            itemXml={itemXml}
+            onStateUpdate={setAttemptState}
           />
         );
     }
