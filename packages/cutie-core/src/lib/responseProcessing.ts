@@ -1,7 +1,11 @@
 import { AttemptState, ResponseData } from '../types';
 import { getChildElements, getFirstChildElement } from '../utils/dom';
-import { deepEqual, deepEqualUnordered } from '../utils/equality';
+import { deepEqual } from '../utils/equality';
 import { parseResponseValue } from '../utils/typeParser';
+import {
+  evaluateExpression as evaluateExpressionShared,
+  type SubEvaluate,
+} from './expressionEvaluator/index';
 
 /**
  * Processes a response submission by executing response processing rules
@@ -504,113 +508,27 @@ function evaluateExpression(
   itemDoc: Document,
   variables: Record<string, unknown>
 ): unknown {
+  const subEvaluate: SubEvaluate = (el: Element, doc: Document, vars: Record<string, unknown>) =>
+    evaluateExpression(el, doc, vars);
+
   const localName = element.localName;
 
   switch (localName) {
-    // Base values
-    case 'qti-base-value':
-      return evaluateBaseValue(element);
-    case 'qti-null':
-      return null;
-    case 'qti-variable':
-      return evaluateVariable(element, variables);
-
-    // Containers
-    case 'qti-multiple':
-      return evaluateMultiple(element, itemDoc, variables);
-    case 'qti-ordered':
-      return evaluateOrdered(element, itemDoc, variables);
-
     // Response-specific operators
     case 'qti-correct':
       return evaluateCorrect(element, itemDoc);
     case 'qti-map-response':
-      return evaluateMapResponse(element, itemDoc, variables);
+      return evaluateMapResponse(element, itemDoc, variables, subEvaluate);
     case 'qti-map-response-point':
-      return evaluateMapResponsePoint(element, itemDoc, variables);
+      return evaluateMapResponsePoint(element, itemDoc, variables, subEvaluate);
 
-    // Boolean operators
-    case 'qti-match':
-      return evaluateMatch(element, itemDoc, variables);
-    case 'qti-is-null':
-      return evaluateIsNull(element, itemDoc, variables);
-    case 'qti-and':
-      return evaluateAnd(element, itemDoc, variables);
-    case 'qti-or':
-      return evaluateOr(element, itemDoc, variables);
-    case 'qti-not':
-      return evaluateNot(element, itemDoc, variables);
-
-    // Arithmetic operators
-    case 'qti-sum':
-      return evaluateSum(element, itemDoc, variables);
-    case 'qti-product':
-      return evaluateProduct(element, itemDoc, variables);
-    case 'qti-subtract':
-      return evaluateSubtract(element, itemDoc, variables);
-    case 'qti-divide':
-      return evaluateDivide(element, itemDoc, variables);
-
-    // Comparison operators
-    case 'qti-lt':
-      return evaluateLessThan(element, itemDoc, variables);
-    case 'qti-gt':
-      return evaluateGreaterThan(element, itemDoc, variables);
-    case 'qti-lte':
-      return evaluateLessThanOrEqual(element, itemDoc, variables);
-    case 'qti-gte':
-      return evaluateGreaterThanOrEqual(element, itemDoc, variables);
-
-    // Container operators
-    case 'qti-member':
-      return evaluateMember(element, itemDoc, variables);
-    case 'qti-contains':
-      return evaluateContains(element, itemDoc, variables);
-
+    // Fall through to shared evaluator for all other operators
     default:
-      return null;
+      return evaluateExpressionShared(element, itemDoc, variables, subEvaluate);
   }
 }
 
 // Expression evaluators
-
-function evaluateBaseValue(element: Element): unknown {
-  const baseType = element.getAttribute('base-type');
-  const text = element.textContent || '';
-
-  if (!baseType) return text;
-
-  return parseResponseValue(text, baseType);
-}
-
-function evaluateVariable(element: Element, variables: Record<string, unknown>): unknown {
-  const identifier = element.getAttribute('identifier');
-  if (!identifier) return null;
-
-  return variables[identifier] ?? null;
-}
-
-function evaluateMultiple(
-  element: Element,
-  itemDoc: Document,
-  variables: Record<string, unknown>
-): unknown[] {
-  const values: unknown[] = [];
-
-  for (const child of getChildElements(element)) {
-    values.push(evaluateExpression(child, itemDoc, variables));
-  }
-
-  return values;
-}
-
-function evaluateOrdered(
-  element: Element,
-  itemDoc: Document,
-  variables: Record<string, unknown>
-): unknown[] {
-  return evaluateMultiple(element, itemDoc, variables);
-}
 
 function evaluateCorrect(element: Element, itemDoc: Document): unknown {
   const identifier = element.getAttribute('identifier');
@@ -622,7 +540,8 @@ function evaluateCorrect(element: Element, itemDoc: Document): unknown {
 function evaluateMapResponse(
   element: Element,
   itemDoc: Document,
-  variables: Record<string, unknown>
+  variables: Record<string, unknown>,
+  _subEvaluate: SubEvaluate
 ): number {
   const identifier = element.getAttribute('identifier') || 'RESPONSE';
   const responseValue = variables[identifier];
@@ -660,7 +579,8 @@ function evaluateMapResponse(
 function evaluateMapResponsePoint(
   element: Element,
   itemDoc: Document,
-  variables: Record<string, unknown>
+  variables: Record<string, unknown>,
+  _subEvaluate: SubEvaluate
 ): number {
   const identifier = element.getAttribute('identifier') || 'RESPONSE';
   const responseValue = variables[identifier];
@@ -685,290 +605,6 @@ function evaluateMapResponsePoint(
   }
 
   return score;
-}
-
-function evaluateMatch(
-  element: Element,
-  itemDoc: Document,
-  variables: Record<string, unknown>
-): boolean {
-  const values: unknown[] = [];
-  const childElements: Element[] = [];
-
-  for (const child of getChildElements(element)) {
-    childElements.push(child);
-    values.push(evaluateExpression(child, itemDoc, variables));
-  }
-
-  if (values.length >= 2) {
-    // Check if either value comes from a qti-multiple container (unordered)
-    const isFirstMultiple = childElements[0]?.localName === 'qti-multiple';
-    const isSecondMultiple = childElements[1]?.localName === 'qti-multiple';
-
-    // If either is explicitly multiple (unordered), use unordered comparison
-    if (isFirstMultiple || isSecondMultiple) {
-      return deepEqualUnordered(values[0], values[1]);
-    }
-
-    return deepEqual(values[0], values[1]);
-  }
-
-  return false;
-}
-
-function evaluateIsNull(
-  element: Element,
-  itemDoc: Document,
-  variables: Record<string, unknown>
-): boolean {
-  for (const child of getChildElements(element)) {
-    const value = evaluateExpression(child, itemDoc, variables);
-    return value === null || value === undefined;
-  }
-  return true;
-}
-
-function evaluateAnd(
-  element: Element,
-  itemDoc: Document,
-  variables: Record<string, unknown>
-): boolean {
-  for (const child of getChildElements(element)) {
-    const value = evaluateExpression(child, itemDoc, variables);
-    if (typeof value !== 'boolean') {
-      throw new Error(`Expected boolean value in <qti-and>, got ${typeof value}`);
-    }
-    if (!value) {
-      return false;
-    }
-  }
-  return true;
-}
-
-function evaluateOr(
-  element: Element,
-  itemDoc: Document,
-  variables: Record<string, unknown>
-): boolean {
-  for (const child of getChildElements(element)) {
-    const value = evaluateExpression(child, itemDoc, variables);
-    if (typeof value !== 'boolean') {
-      throw new Error(`Expected boolean value in <qti-or>, got ${typeof value}`);
-    }
-    if (value) {
-      return true;
-    }
-  }
-  return false;
-}
-
-function evaluateNot(
-  element: Element,
-  itemDoc: Document,
-  variables: Record<string, unknown>
-): boolean {
-  for (const child of getChildElements(element)) {
-    const value = evaluateExpression(child, itemDoc, variables);
-    if (typeof value !== 'boolean') {
-      throw new Error(`Expected boolean value in <qti-not>, got ${typeof value}`);
-    }
-    return !value;
-  }
-  return false;
-}
-
-function evaluateSum(
-  element: Element,
-  itemDoc: Document,
-  variables: Record<string, unknown>
-): number {
-  let sum = 0;
-
-  for (const child of getChildElements(element)) {
-    const value = evaluateExpression(child, itemDoc, variables);
-    if (value !== null && value !== undefined) {
-      if (typeof value !== 'number') {
-        throw new Error(`Expected number value in <qti-sum>, got ${typeof value}`);
-      }
-      sum += value;
-    }
-  }
-
-  return sum;
-}
-
-function evaluateProduct(
-  element: Element,
-  itemDoc: Document,
-  variables: Record<string, unknown>
-): number {
-  let product = 1;
-
-  for (const child of getChildElements(element)) {
-    const value = evaluateExpression(child, itemDoc, variables);
-    if (value !== null && value !== undefined) {
-      if (typeof value !== 'number') {
-        throw new Error(`Expected number value in <qti-product>, got ${typeof value}`);
-      }
-      product *= value;
-    }
-  }
-
-  return product;
-}
-
-function evaluateSubtract(
-  element: Element,
-  itemDoc: Document,
-  variables: Record<string, unknown>
-): number {
-  const values: number[] = [];
-
-  for (const child of getChildElements(element)) {
-    const value = evaluateExpression(child, itemDoc, variables);
-    if (typeof value !== 'number') {
-      throw new Error(`Expected number value in <qti-subtract>, got ${typeof value}`);
-    }
-    values.push(value);
-  }
-
-  return values.length >= 2 ? values[0] - values[1] : 0;
-}
-
-function evaluateDivide(
-  element: Element,
-  itemDoc: Document,
-  variables: Record<string, unknown>
-): number {
-  const values: number[] = [];
-
-  for (const child of getChildElements(element)) {
-    const value = evaluateExpression(child, itemDoc, variables);
-    if (typeof value !== 'number') {
-      throw new Error(`Expected number value in <qti-divide>, got ${typeof value}`);
-    }
-    values.push(value);
-  }
-
-  return values.length >= 2 && values[1] !== 0 ? values[0] / values[1] : 0;
-}
-
-function evaluateLessThan(
-  element: Element,
-  itemDoc: Document,
-  variables: Record<string, unknown>
-): boolean {
-  const values: number[] = [];
-
-  for (const child of getChildElements(element)) {
-    const value = evaluateExpression(child, itemDoc, variables);
-    if (typeof value !== 'number') {
-      throw new Error(`Expected number value in <qti-lt>, got ${typeof value}`);
-    }
-    values.push(value);
-  }
-
-  return values.length >= 2 ? values[0] < values[1] : false;
-}
-
-function evaluateGreaterThan(
-  element: Element,
-  itemDoc: Document,
-  variables: Record<string, unknown>
-): boolean {
-  const values: number[] = [];
-
-  for (const child of getChildElements(element)) {
-    const value = evaluateExpression(child, itemDoc, variables);
-    if (typeof value !== 'number') {
-      throw new Error(`Expected number value in <qti-gt>, got ${typeof value}`);
-    }
-    values.push(value);
-  }
-
-  return values.length >= 2 ? values[0] > values[1] : false;
-}
-
-function evaluateLessThanOrEqual(
-  element: Element,
-  itemDoc: Document,
-  variables: Record<string, unknown>
-): boolean {
-  const values: number[] = [];
-
-  for (const child of getChildElements(element)) {
-    const value = evaluateExpression(child, itemDoc, variables);
-    if (typeof value !== 'number') {
-      throw new Error(`Expected number value in <qti-lte>, got ${typeof value}`);
-    }
-    values.push(value);
-  }
-
-  return values.length >= 2 ? values[0] <= values[1] : false;
-}
-
-function evaluateGreaterThanOrEqual(
-  element: Element,
-  itemDoc: Document,
-  variables: Record<string, unknown>
-): boolean {
-  const values: number[] = [];
-
-  for (const child of getChildElements(element)) {
-    const value = evaluateExpression(child, itemDoc, variables);
-    if (typeof value !== 'number') {
-      throw new Error(`Expected number value in <qti-gte>, got ${typeof value}`);
-    }
-    values.push(value);
-  }
-
-  return values.length >= 2 ? values[0] >= values[1] : false;
-}
-
-function evaluateMember(
-  element: Element,
-  itemDoc: Document,
-  variables: Record<string, unknown>
-): boolean {
-  const values: unknown[] = [];
-
-  for (const child of getChildElements(element)) {
-    values.push(evaluateExpression(child, itemDoc, variables));
-  }
-
-  if (values.length >= 2) {
-    const value = values[0];
-    const container = values[1];
-
-    if (Array.isArray(container)) {
-      return container.some(item => deepEqual(item, value));
-    }
-  }
-
-  return false;
-}
-
-function evaluateContains(
-  element: Element,
-  itemDoc: Document,
-  variables: Record<string, unknown>
-): boolean {
-  const values: unknown[] = [];
-
-  for (const child of getChildElements(element)) {
-    values.push(evaluateExpression(child, itemDoc, variables));
-  }
-
-  if (values.length >= 2) {
-    const container = values[0];
-    const value = values[1];
-
-    if (Array.isArray(container)) {
-      return container.some(item => deepEqual(item, value));
-    }
-  }
-
-  return false;
 }
 
 // Helper functions
