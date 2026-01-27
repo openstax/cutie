@@ -2327,7 +2327,8 @@ describe('initializeState', () => {
       const state = initializeState(itemDoc);
 
       expect(state.score).toBe(0.0);
-      expect(state.maxScore).toBe(null);
+      // With improved deriveMaxScore, invalid upper-bound falls back to sum of map-entries
+      expect(state.maxScore).toBe(1);
     });
 
     test('derives maxScore of 1 for match_correct template', () => {
