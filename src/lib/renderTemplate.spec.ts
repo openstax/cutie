@@ -124,6 +124,8 @@ describe('renderTemplate', () => {
           MIN: 40,
         },
         completionStatus: 'not_attempted',
+        score: null,
+        maxScore: null,
       });
 
       // Expected output preserves the original formatting, with variables substituted literally
@@ -167,6 +169,8 @@ describe('renderTemplate', () => {
       const template = renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        score: null,
+        maxScore: null,
       });
 
       expect(template).toContain('<p>Value: </p>');
@@ -187,6 +191,8 @@ describe('renderTemplate', () => {
           TEXT: 'hello',
         },
         completionStatus: 'not_attempted',
+        score: null,
+        maxScore: null,
       });
 
       expect(template).toContain('Number: 42.5 Text: hello');
@@ -214,6 +220,8 @@ describe('renderTemplate', () => {
           SHOW_SECTION: 'section1',
         },
         completionStatus: 'not_attempted',
+        score: null,
+        maxScore: null,
       });
 
       expect(template).toContain('This is section 1');
@@ -238,6 +246,8 @@ describe('renderTemplate', () => {
           HIDE_SECTION: 'secret',
         },
         completionStatus: 'not_attempted',
+        score: null,
+        maxScore: null,
       });
 
       expect(template).not.toContain('This should be hidden');
@@ -267,6 +277,8 @@ describe('renderTemplate', () => {
           VISIBLE_SECTIONS: ['intro', 'conclusion'],
         },
         completionStatus: 'not_attempted',
+        score: null,
+        maxScore: null,
       });
 
       expect(template).toContain('Introduction');
@@ -291,6 +303,8 @@ describe('renderTemplate', () => {
           WORD_CHOICE: 'correct',
         },
         completionStatus: 'not_attempted',
+        score: null,
+        maxScore: null,
       });
 
       expect(template).toContain('definitely correct');
@@ -312,6 +326,8 @@ describe('renderTemplate', () => {
           HIDE_WORD: 'secret',
         },
         completionStatus: 'not_attempted',
+        score: null,
+        maxScore: null,
       });
 
       expect(template).not.toContain('SECRET');
@@ -341,6 +357,8 @@ describe('renderTemplate', () => {
           FEEDBACK: ['correct'],
         },
         completionStatus: 'not_attempted',
+        score: null,
+        maxScore: null,
       });
 
       expect(template).toContain('Excellent work!');
@@ -368,6 +386,8 @@ describe('renderTemplate', () => {
           HINTS: ['hint1', 'hint2'],
         },
         completionStatus: 'not_attempted',
+        score: null,
+        maxScore: null,
       });
 
       expect(template).not.toContain('This is a hint that should be hidden');
@@ -389,6 +409,8 @@ describe('renderTemplate', () => {
           INLINE_FEEDBACK: 'right',
         },
         completionStatus: 'not_attempted',
+        score: null,
+        maxScore: null,
       });
 
       expect(template).toContain('correct');
@@ -415,6 +437,8 @@ describe('renderTemplate', () => {
           STATUS: 'complete',
         },
         completionStatus: 'completed',
+        score: null,
+        maxScore: null,
       });
 
       expect(template).toContain('Task completed');
@@ -428,6 +452,8 @@ describe('renderTemplate', () => {
       const template = renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        score: null,
+        maxScore: null,
       });
 
       // Response declaration should be kept since RESPONSE is used in the body
@@ -440,6 +466,8 @@ describe('renderTemplate', () => {
       const template = renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        score: null,
+        maxScore: null,
       });
 
       expect(template).not.toContain('qti-outcome-declaration');
@@ -450,6 +478,8 @@ describe('renderTemplate', () => {
       const template = renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        score: null,
+        maxScore: null,
       });
 
       expect(template).not.toContain('qti-template-declaration');
@@ -460,6 +490,8 @@ describe('renderTemplate', () => {
       const template = renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        score: null,
+        maxScore: null,
       });
 
       expect(template).not.toContain('qti-template-processing');
@@ -470,6 +502,8 @@ describe('renderTemplate', () => {
       const template = renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        score: null,
+        maxScore: null,
       });
 
       expect(template).not.toContain('qti-response-processing');
@@ -497,6 +531,8 @@ describe('renderTemplate', () => {
       const template = renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        score: null,
+        maxScore: null,
       });
 
       expect(template).toContain('qti-response-declaration');
@@ -526,6 +562,8 @@ describe('renderTemplate', () => {
       const template = renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        score: null,
+        maxScore: null,
       });
 
       expect(template).toContain('qti-response-declaration');
@@ -553,6 +591,8 @@ describe('renderTemplate', () => {
       const template = renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        score: null,
+        maxScore: null,
       });
 
       expect(template).toContain('identifier="RESPONSE1"');
@@ -583,6 +623,8 @@ describe('renderTemplate', () => {
           // showExtra is not set, so template-block will be hidden
         },
         completionStatus: 'not_attempted',
+        score: null,
+        maxScore: null,
       });
 
       expect(template).toContain('identifier="VISIBLE_RESPONSE"');
@@ -607,6 +649,8 @@ describe('renderTemplate', () => {
           RESPONSE: 'ChoiceB',
         },
         completionStatus: 'incomplete',
+        score: null,
+        maxScore: null,
       });
 
       expect(template).toContain('qti-default-value');
@@ -632,6 +676,8 @@ describe('renderTemplate', () => {
           RESPONSE: ['A', 'C'],
         },
         completionStatus: 'incomplete',
+        score: null,
+        maxScore: null,
       });
 
       expect(template).toContain('qti-default-value');
@@ -655,6 +701,8 @@ describe('renderTemplate', () => {
       const template = renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        score: null,
+        maxScore: null,
       });
 
       expect(template).toContain('qti-response-declaration');
@@ -683,6 +731,8 @@ describe('renderTemplate', () => {
           RESPONSE: 'ChoiceA',
         },
         completionStatus: 'incomplete',
+        score: null,
+        maxScore: null,
       });
 
       expect(template).toContain('qti-default-value');
@@ -721,6 +771,8 @@ describe('renderTemplate', () => {
           B: 12,
         },
         completionStatus: 'not_attempted',
+        score: null,
+        maxScore: null,
       });
 
       // The variables should be substituted into MathML
@@ -749,6 +801,8 @@ describe('renderTemplate', () => {
           COEFF: 3.14,
         },
         completionStatus: 'not_attempted',
+        score: null,
+        maxScore: null,
       });
 
       expect(template).toContain('<m:mn>3.14</m:mn>');
@@ -778,6 +832,8 @@ describe('renderTemplate', () => {
           VAR: 7,
         },
         completionStatus: 'not_attempted',
+        score: null,
+        maxScore: null,
       });
 
       expect(template).toContain('<m:mi>7</m:mi>');

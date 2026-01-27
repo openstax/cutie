@@ -43,9 +43,13 @@ export function initializeState(itemDoc: Document): AttemptState {
     }
   }
 
+  const { score, maxScore } = extractStandardOutcomes(variables, itemDoc);
+
   return {
     variables,
-    completionStatus: 'not_attempted'
+    completionStatus: 'not_attempted',
+    score,
+    maxScore
   };
 }
 
@@ -1040,6 +1044,73 @@ function evaluateFieldValue(element: Element, variables: Record<string, unknown>
       return record[fieldIdentifier] ?? null;
     }
     return null;
+  }
+
+  return null;
+}
+
+/**
+ * Extract standard outcome variables (SCORE, MAXSCORE) from variables object.
+ */
+function extractStandardOutcomes(
+  variables: Record<string, unknown>,
+  itemDoc: Document
+): { score: number | null; maxScore: number | null } {
+  // Extract SCORE
+  const scoreValue = variables['SCORE'];
+  const score = typeof scoreValue === 'number' ? scoreValue : null;
+
+  // Extract or derive MAXSCORE
+  let maxScore: number | null = null;
+
+  // Check if MAXSCORE outcome variable exists
+  const maxScoreValue = variables['MAXSCORE'];
+  if (typeof maxScoreValue === 'number') {
+    maxScore = maxScoreValue;
+  } else {
+    // Derive from response mapping upper-bound
+    maxScore = deriveMaxScoreFromMapping(itemDoc);
+  }
+
+  return { score, maxScore };
+}
+
+/**
+ * Derive maximum score from response declaration mapping upper-bound or response processing template.
+ * Returns the first upper-bound found, or infers from template type, or null if none exists.
+ */
+function deriveMaxScoreFromMapping(itemDoc: Document): number | null {
+  // First check for explicit mapping upper-bound
+  const responseDeclarations = itemDoc.getElementsByTagName('qti-response-declaration');
+
+  for (let i = 0; i < responseDeclarations.length; i++) {
+    const declaration = responseDeclarations[i];
+    const mappingElement = declaration.getElementsByTagName('qti-mapping')[0];
+
+    if (mappingElement) {
+      const upperBound = mappingElement.getAttribute('upper-bound');
+      if (upperBound !== null) {
+        const parsed = parseFloat(upperBound);
+        if (!isNaN(parsed)) {
+          return parsed;
+        }
+      }
+    }
+  }
+
+  // If no mapping found, check response processing template
+  const responseProcessing = itemDoc.getElementsByTagName('qti-response-processing')[0];
+  if (responseProcessing) {
+    const template = responseProcessing.getAttribute('template');
+    if (template) {
+      // Normalize template URL to get the template name
+      const templateName = template.split('/').pop()?.replace('.xml', '') || '';
+
+      // match_correct template always scores 0 or 1
+      if (templateName === 'match_correct' || templateName === 'CC2_match_basic' || templateName === 'CC2_match') {
+        return 1;
+      }
+    }
   }
 
   return null;

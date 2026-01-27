@@ -28,6 +28,21 @@ export interface AttemptState {
    * the item session should be ended.
    */
   completionStatus: 'not_attempted' | 'incomplete' | 'completed' | 'unknown';
+
+  /**
+   * Current score for this attempt, extracted from SCORE outcome variable.
+   * Null if the SCORE outcome variable does not exist (non-scored items).
+   */
+  score: number | null;
+
+  /**
+   * Maximum possible score for this item.
+   * Derived from:
+   * 1. MAXSCORE outcome variable if explicitly declared, OR
+   * 2. upper-bound attribute from response mapping, OR
+   * 3. null if neither exists
+   */
+  maxScore: number | null;
 }
 
 /**
