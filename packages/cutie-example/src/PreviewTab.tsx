@@ -90,26 +90,32 @@ export function PreviewTab({ attemptState, sanitizedTemplate, responses, setResp
       <div className="sidebar">
         <h1>Cutie QTI Processor</h1>
 
-        <div className="panel">
-          <h2>Attempt State</h2>
+        <details className="panel" open>
+          <summary>
+            <h2>Attempt State</h2>
+          </summary>
           <pre className="output-display">
             {localAttemptState ? JSON.stringify(localAttemptState, null, 2) : 'No state yet'}
           </pre>
-        </div>
+        </details>
 
-        <div className="panel">
-          <h2>Sanitized Template</h2>
+        <details className="panel" open>
+          <summary>
+            <h2>Sanitized Template</h2>
+          </summary>
           <pre className="output-display xml-output">
             {sanitizedTemplate || 'No template yet'}
           </pre>
-        </div>
+        </details>
 
-        <div className="panel">
-          <h2>Response Collection</h2>
+        <details className="panel" open>
+          <summary>
+            <h2>Response Collection</h2>
+          </summary>
           <pre className="output-display">
             {responses ? JSON.stringify(responses, null, 2) : 'No responses collected yet'}
           </pre>
-        </div>
+        </details>
       </div>
 
       <div className="preview-area">

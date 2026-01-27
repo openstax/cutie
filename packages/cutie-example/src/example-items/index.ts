@@ -18,6 +18,7 @@ import * as associate from './associate';
 import * as hottext from './hottext';
 import * as math from './math';
 import * as selectPoint from './select-point';
+import * as multiInput from './multi-input';
 
 export const examples: ExampleItem[] = [
   choice,
@@ -34,4 +35,5 @@ export const examples: ExampleItem[] = [
   hottext,
   math,
   selectPoint,
+  multiInput,
 ];
