@@ -179,7 +179,7 @@ function Element({ attributes, children, element }: RenderElementProps): React.J
             borderRadius: '8px',
           }}
         >
-          <legend style={{ padding: '0 8px', fontWeight: 'bold', color: '#388e3c' }}>
+          <legend contentEditable={false} style={{ padding: '0 8px', fontWeight: 'bold', color: '#388e3c', userSelect: 'none' }}>
             Choice Interaction: {el.attributes['response-identifier']}
           </legend>
           {children}
@@ -205,7 +205,7 @@ function Element({ attributes, children, element }: RenderElementProps): React.J
             borderRadius: '4px',
           }}
         >
-          <span contentEditable={false} style={{ marginRight: '8px', color: '#689f38' }}>
+          <span contentEditable={false} style={{ marginRight: '8px', color: '#689f38', userSelect: 'none' }}>
             [{el.attributes.identifier}]
           </span>
           {children}
@@ -214,9 +214,10 @@ function Element({ attributes, children, element }: RenderElementProps): React.J
 
     case 'qti-unknown':
       return (
-        <div
+        <span
           {...attributes}
           style={{
+            display: 'inline-block',
             padding: '12px',
             margin: '8px 0',
             backgroundColor: '#fff3e0',
@@ -224,25 +225,27 @@ function Element({ attributes, children, element }: RenderElementProps): React.J
             borderRadius: '4px',
           }}
         >
-          <div
+          <span
             contentEditable={false}
             style={{
+              display: 'block',
               marginBottom: '8px',
               padding: '4px 8px',
               backgroundColor: '#ffe0b2',
               borderRadius: '4px',
               fontSize: '0.9em',
               color: '#e65100',
+              userSelect: 'none',
             }}
           >
             ⚠️ Unsupported element: <code>{el.originalTagName}</code>
-            <div style={{ fontSize: '0.85em', marginTop: '4px' }}>
+            <span style={{ display: 'block', fontSize: '0.85em', marginTop: '4px' }}>
               This QTI element is not yet supported by the editor. Content will be preserved when
               you save.
-            </div>
-          </div>
+            </span>
+          </span>
           {children}
-        </div>
+        </span>
       );
 
     case 'paragraph':
