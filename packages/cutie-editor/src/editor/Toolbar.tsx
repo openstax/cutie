@@ -12,6 +12,21 @@ import {
  */
 export function Toolbar(): React.JSX.Element {
   const editor = useSlate();
+  const [interactionsOpen, setInteractionsOpen] = React.useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  React.useEffect(() => {
+    if (interactionsOpen) {
+      const handleClickOutside = (event: MouseEvent) => {
+        if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+          setInteractionsOpen(false);
+        }
+      };
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [interactionsOpen]);
 
   return (
     <div
@@ -90,39 +105,60 @@ export function Toolbar(): React.JSX.Element {
 
       <div style={{ width: '1px', backgroundColor: '#ddd', margin: '0 4px' }} />
 
-      {/* QTI Interaction buttons */}
-      <ToolbarButton
-        onMouseDown={(event) => {
-          event.preventDefault();
-          insertTextEntryInteraction(editor);
-        }}
-        title="Insert Text Entry"
-        style={{ backgroundColor: '#e3f2fd' }}
-      >
-        Text Entry
-      </ToolbarButton>
+      {/* QTI Interactions dropdown */}
+      <div ref={dropdownRef} style={{ position: 'relative' }}>
+        <ToolbarButton
+          onMouseDown={(event) => {
+            event.preventDefault();
+            setInteractionsOpen(!interactionsOpen);
+          }}
+          title="Insert Interaction"
+        >
+          Interactions ▾
+        </ToolbarButton>
 
-      <ToolbarButton
-        onMouseDown={(event) => {
-          event.preventDefault();
-          insertExtendedTextInteraction(editor);
-        }}
-        title="Insert Extended Text"
-        style={{ backgroundColor: '#f3e5f5' }}
-      >
-        Extended Text
-      </ToolbarButton>
-
-      <ToolbarButton
-        onMouseDown={(event) => {
-          event.preventDefault();
-          insertChoiceInteraction(editor);
-        }}
-        title="Insert Choice"
-        style={{ backgroundColor: '#e8f5e9' }}
-      >
-        Choice
-      </ToolbarButton>
+        {interactionsOpen && (
+          <div
+            style={{
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              marginTop: '4px',
+              backgroundColor: '#fff',
+              border: '1px solid #ccc',
+              borderRadius: '4px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+              zIndex: 1000,
+              minWidth: '160px',
+            }}
+          >
+            <DropdownItem
+              onClick={() => {
+                insertTextEntryInteraction(editor);
+                setInteractionsOpen(false);
+              }}
+            >
+              Text Entry
+            </DropdownItem>
+            <DropdownItem
+              onClick={() => {
+                insertExtendedTextInteraction(editor);
+                setInteractionsOpen(false);
+              }}
+            >
+              Extended Text
+            </DropdownItem>
+            <DropdownItem
+              onClick={() => {
+                insertChoiceInteraction(editor);
+                setInteractionsOpen(false);
+              }}
+            >
+              Choice
+            </DropdownItem>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -154,6 +190,48 @@ function ToolbarButton({
         fontSize: '14px',
         fontFamily: 'inherit',
         ...style,
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+/**
+ * Dropdown menu item component
+ */
+function DropdownItem({
+  children,
+  onClick,
+  style = {},
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  style?: React.CSSProperties;
+}): React.JSX.Element {
+  return (
+    <button
+      onMouseDown={(event) => {
+        event.preventDefault();
+        onClick();
+      }}
+      style={{
+        display: 'block',
+        width: '100%',
+        padding: '8px 12px',
+        border: 'none',
+        backgroundColor: '#fff',
+        cursor: 'pointer',
+        fontSize: '14px',
+        fontFamily: 'inherit',
+        textAlign: 'left',
+        ...style,
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.backgroundColor = '#f5f5f5';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.backgroundColor = style.backgroundColor || '#fff';
       }}
     >
       {children}
