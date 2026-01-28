@@ -37,7 +37,6 @@ export function EditorTab({ itemXml, setItemXml, setSanitizedTemplate, setAttemp
   return (
     <div className="tab-content-full">
       <div className="panel editor-panel">
-        <h2>Editor</h2>
         <div style={{
           border: '1px solid #ddd',
           borderRadius: '4px',

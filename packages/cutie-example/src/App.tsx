@@ -19,19 +19,40 @@ export function App() {
   const [responses, setResponses] = useState<ResponseData | null>(null);
   const [selectedExample, setSelectedExample] = useState('');
 
-  const handleExampleSelect = (event: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleExampleSelect = async (event: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedName = event.target.value;
-    setSelectedExample(selectedName);
 
     if (!selectedName) {
-      setItemXml('');
+      return;
+    }
+
+    // Confirm if there's existing content
+    if (itemXml.trim() && !confirm('Loading an example will overwrite the current item. Continue?')) {
+      // Reset select to placeholder
+      setSelectedExample('');
       return;
     }
 
     const example = examples.find(ex => ex.name === selectedName);
     if (example) {
       setItemXml(example.item);
+
+      // Auto-process the item
+      setError('');
+      setProcessing(true);
+      try {
+        const result = await beginAttempt(example.item);
+        setAttemptState(result.state);
+        setSanitizedTemplate(result.template);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unknown error occurred');
+      } finally {
+        setProcessing(false);
+      }
     }
+
+    // Reset select back to placeholder
+    setSelectedExample('');
   };
 
   const handleProcess = async () => {
@@ -56,19 +77,6 @@ export function App() {
         return (
           <div className="tab-content-full">
             <div className="panel xml-panel">
-              <h2>Item Definition</h2>
-              <select
-                className="example-select"
-                onChange={handleExampleSelect}
-                value={selectedExample}
-              >
-                <option value="">Load example item...</option>
-                {examples.map((ex) => (
-                  <option key={ex.name} value={ex.name}>
-                    {ex.name}
-                  </option>
-                ))}
-              </select>
               <textarea
                 className="xml-input xml-input-large"
                 value={itemXml}
@@ -118,24 +126,41 @@ export function App() {
   return (
     <>
       <div className="tabs">
-        <button
-          className={`tab ${activeTab === 'xml' ? 'active' : ''}`}
-          onClick={() => setActiveTab('xml')}
-        >
-          XML
-        </button>
-        <button
-          className={`tab ${activeTab === 'editor' ? 'active' : ''}`}
-          onClick={() => setActiveTab('editor')}
-        >
-          Editor
-        </button>
-        <button
-          className={`tab ${activeTab === 'preview' ? 'active' : ''}`}
-          onClick={() => setActiveTab('preview')}
-        >
-          Preview
-        </button>
+        <div className="tabs-left">
+          <button
+            className={`tab ${activeTab === 'xml' ? 'active' : ''}`}
+            onClick={() => setActiveTab('xml')}
+          >
+            XML
+          </button>
+          <button
+            className={`tab ${activeTab === 'editor' ? 'active' : ''}`}
+            onClick={() => setActiveTab('editor')}
+          >
+            Editor
+          </button>
+          <button
+            className={`tab ${activeTab === 'preview' ? 'active' : ''}`}
+            onClick={() => setActiveTab('preview')}
+          >
+            Preview
+          </button>
+        </div>
+        <div className="tabs-right">
+          <select
+            className="example-select-nav"
+            onChange={handleExampleSelect}
+            value={selectedExample}
+            disabled={processing}
+          >
+            <option value="">Load example item...</option>
+            {examples.map((ex) => (
+              <option key={ex.name} value={ex.name}>
+                {ex.name}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
       {renderTabContent()}
     </>
