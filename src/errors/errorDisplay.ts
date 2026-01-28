@@ -6,10 +6,11 @@
  * @returns HTMLElement configured with error styling
  */
 export function createErrorElement(title: string, message: string): HTMLElement {
-  const container = document.createElement('div');
+  const container = document.createElement('span');
 
   // Apply inline styles for consistent appearance
   Object.assign(container.style, {
+    display: 'inline-block',
     backgroundColor: '#fff3cd',
     border: '2px solid #ffc107',
     borderRadius: '4px',
