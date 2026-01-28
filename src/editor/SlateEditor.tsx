@@ -1,12 +1,18 @@
 import { useCallback, useMemo, useState, useRef, useEffect } from 'react';
-import { createEditor, Descendant } from 'slate';
+import { createEditor, Descendant, Editor, Element as SlateElementType, Transforms } from 'slate';
 import { Slate, Editable, withReact, RenderElementProps, RenderLeafProps } from 'slate-react';
 import { withHistory } from 'slate-history';
-import type { SlateEditorProps, SlateElement } from '../types';
+import type { Path } from 'slate';
+import type { SlateEditorProps, SlateElement, ElementAttributes } from '../types';
 import { withQtiInteractions, withXhtml, withUnknownElements } from '../plugins';
 import { Toolbar } from './Toolbar';
 import { parseXmlToSlate } from '../serialization/xmlToSlate';
 import { serializeSlateToQti } from '../serialization/slateToXml';
+import { PropertiesPanel } from '../components/PropertiesPanel';
+import { TextEntryElement } from '../interactions/textEntry/Element';
+import { ExtendedTextElement } from '../interactions/extendedText/Element';
+import { ChoiceElement } from '../interactions/choice/Element';
+import { useStyle } from '../hooks/useStyle';
 
 /**
  * Main Slate editor component for QTI editing
@@ -43,9 +49,37 @@ export function SlateEditor({
   // Internal Slate value state
   const [value, setValue] = useState<Descendant[]>(initialValue);
 
+  // Track selected interaction element for properties panel
+  const [selectedElement, setSelectedElement] = useState<SlateElement | null>(null);
+  const [selectedPath, setSelectedPath] = useState<Path | null>(null);
+
   // Handle Slate value changes
   const handleChange = useCallback((newValue: Descendant[]) => {
     setValue(newValue);
+
+    // Track selected interaction for properties panel
+    const { selection } = editor;
+    if (!selection) {
+      setSelectedElement(null);
+      setSelectedPath(null);
+    } else {
+      // Find interaction element at selection
+      const [match] = Editor.nodes(editor, {
+        at: selection,
+        match: (n) =>
+          SlateElementType.isElement(n) &&
+          isInteractionElement(n as SlateElement),
+      });
+
+      if (match) {
+        const [node, path] = match;
+        setSelectedElement(node as SlateElement);
+        setSelectedPath(path);
+      } else {
+        setSelectedElement(null);
+        setSelectedPath(null);
+      }
+    }
 
     // Serialize back to QTI and notify parent
     if (onQtiChange && !readOnly) {
@@ -66,7 +100,7 @@ export function SlateEditor({
         onError?.(errorMessage);
       }
     }
-  }, [onQtiChange, onError, readOnly]);
+  }, [editor, onQtiChange, onError, readOnly]);
 
   // When qtiXml changes externally, update the editor
   useEffect(() => {
@@ -82,6 +116,14 @@ export function SlateEditor({
     }
   }, [qtiXml, onError]);
 
+  // Handle attribute updates from properties panel
+  const handleUpdateAttributes = useCallback(
+    (path: Path, attributes: ElementAttributes) => {
+      Transforms.setNodes(editor, { attributes } as any, { at: path });
+    },
+    [editor]
+  );
+
   // Render element callback
   const renderElement = useCallback((props: RenderElementProps) => {
     return <Element {...props} />;
@@ -92,26 +134,48 @@ export function SlateEditor({
     return <Leaf {...props} />;
   }, []);
 
+  // Add container styles
+  useStyle('slate-editor-container', EDITOR_LAYOUT_STYLES);
+
   return (
-    <div className={`slate-editor ${className}`}>
-      <Slate key={qtiXml} editor={editor} initialValue={value} onChange={handleChange}>
-        <Toolbar />
-        <Editable
-          renderElement={renderElement}
-          renderLeaf={renderLeaf}
-          placeholder={placeholder}
-          readOnly={readOnly}
-          spellCheck
-          autoFocus
-          style={{
-            padding: '16px',
-            minHeight: '300px',
-            maxHeight: '500px',
-            overflowY: 'auto',
-          }}
-        />
-      </Slate>
+    <div className="slate-editor-container">
+      <div className={`slate-editor ${className}`}>
+        <Slate key={qtiXml} editor={editor} initialValue={value} onChange={handleChange}>
+          <Toolbar />
+          <Editable
+            renderElement={renderElement}
+            renderLeaf={renderLeaf}
+            placeholder={placeholder}
+            readOnly={readOnly}
+            spellCheck
+            autoFocus
+            style={{
+              padding: '16px',
+              minHeight: '300px',
+              maxHeight: '500px',
+              overflowY: 'auto',
+            }}
+          />
+        </Slate>
+      </div>
+      <PropertiesPanel
+        editor={editor}
+        selectedElement={selectedElement}
+        selectedPath={selectedPath}
+        onUpdateAttributes={handleUpdateAttributes}
+      />
     </div>
+  );
+}
+
+/**
+ * Helper function to check if an element is an interaction
+ */
+function isInteractionElement(element: SlateElement): boolean {
+  return (
+    element.type === 'qti-text-entry-interaction' ||
+    element.type === 'qti-extended-text-interaction' ||
+    element.type === 'qti-choice-interaction'
   );
 }
 
@@ -123,68 +187,13 @@ function Element({ attributes, children, element }: RenderElementProps): React.J
 
   switch (el.type) {
     case 'qti-text-entry-interaction':
-      return (
-        <span
-          {...attributes}
-          contentEditable={false}
-          style={{
-            display: 'inline-block',
-            padding: '2px 8px',
-            margin: '0 4px',
-            backgroundColor: '#e3f2fd',
-            border: '1px solid #2196f3',
-            borderRadius: '4px',
-            fontSize: '0.9em',
-            color: '#1976d2',
-            userSelect: 'none',
-          }}
-        >
-          {children}
-          <span style={{ fontWeight: 'bold' }}>
-            [Text Entry: {el.attributes['response-identifier']}]
-          </span>
-        </span>
-      );
+      return <TextEntryElement attributes={attributes} children={children} element={element} />;
 
     case 'qti-extended-text-interaction':
-      return (
-        <div
-          {...attributes}
-          contentEditable={false}
-          style={{
-            padding: '8px',
-            margin: '8px 0',
-            backgroundColor: '#f3e5f5',
-            border: '1px solid #9c27b0',
-            borderRadius: '4px',
-            color: '#7b1fa2',
-            userSelect: 'none',
-          }}
-        >
-          {children}
-          <div style={{ fontWeight: 'bold' }}>
-            [Extended Text: {el.attributes['response-identifier']}]
-          </div>
-        </div>
-      );
+      return <ExtendedTextElement attributes={attributes} children={children} element={element} />;
 
     case 'qti-choice-interaction':
-      return (
-        <fieldset
-          {...attributes}
-          style={{
-            margin: '16px 0',
-            padding: '12px',
-            border: '2px solid #4caf50',
-            borderRadius: '8px',
-          }}
-        >
-          <legend contentEditable={false} style={{ padding: '0 8px', fontWeight: 'bold', color: '#388e3c', userSelect: 'none' }}>
-            Choice Interaction: {el.attributes['response-identifier']}
-          </legend>
-          {children}
-        </fieldset>
-      );
+      return <ChoiceElement attributes={attributes} children={children} element={element} />;
 
     case 'qti-prompt':
       return (
@@ -330,3 +339,21 @@ function Leaf({ attributes, children, leaf }: RenderLeafProps): React.JSX.Elemen
 
   return <span {...attributes}>{content}</span>;
 }
+
+/**
+ * Layout styles for editor container
+ */
+const EDITOR_LAYOUT_STYLES = `
+  .slate-editor-container {
+    display: flex;
+    height: 100%;
+    gap: 0;
+  }
+
+  .slate-editor {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+`;
