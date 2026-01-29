@@ -79,7 +79,7 @@ export function ChoicePropertiesPanel({
       />
 
       <div style={{ marginTop: '16px', padding: '12px', background: '#f0f9ff', borderRadius: '4px', fontSize: '13px', color: '#0369a1' }}>
-        💡 Tip: Choice identifiers can be edited directly in the interaction above.
+        💡 Tip: Choice identifiers can be edited directly in the editor.
       </div>
     </div>
   );
