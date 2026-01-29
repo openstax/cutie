@@ -192,10 +192,32 @@ function convertNodeToSlate(node: Node): Descendant | Descendant[] | null {
         attributes: {},
       };
 
-      // Wrap choice text content in choice-content element (second child)
+      // If content doesn't have paragraph children, wrap in paragraph for proper editing
+      const hasParagraph = children.some(child => 'type' in child && child.type === 'paragraph');
+
+      let contentChildren: Descendant[];
+      if (!hasParagraph && children.length > 0) {
+        // Wrap text/inline content in paragraph
+        contentChildren = [{
+          type: 'paragraph',
+          children: children,
+          attributes: {},
+        }];
+      } else if (children.length > 0) {
+        contentChildren = children;
+      } else {
+        // Empty choice - add empty paragraph
+        contentChildren = [{
+          type: 'paragraph',
+          children: [{ text: '' }],
+          attributes: {},
+        }];
+      }
+
+      // Wrap content in choice-content element (second child)
       const contentWrapper: SlateElement = {
         type: 'choice-content',
-        children: children.length > 0 ? children : [{ text: '' }],
+        children: contentChildren,
         attributes: {},
       };
 

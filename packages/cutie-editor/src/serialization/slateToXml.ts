@@ -87,6 +87,23 @@ function convertSlateNodeToXml(
     case 'choice-content':
       // Unwrap choice-content - return its children directly (it's editor-only wrapper)
       const fragment = context.doc.createDocumentFragment();
+
+      // If there's exactly one child and it's a paragraph, unwrap it for clean XML
+      if (element.children.length === 1) {
+        const onlyChild = element.children[0];
+        if ('type' in onlyChild && onlyChild.type === 'paragraph') {
+          // Unwrap paragraph - serialize its children directly
+          for (const grandchild of onlyChild.children) {
+            const childNode = convertSlateNodeToXml(grandchild, context);
+            if (childNode) {
+              fragment.appendChild(childNode);
+            }
+          }
+          return fragment;
+        }
+      }
+
+      // Otherwise serialize all children normally
       for (const child of element.children) {
         const childNode = convertSlateNodeToXml(child, context);
         if (childNode) {

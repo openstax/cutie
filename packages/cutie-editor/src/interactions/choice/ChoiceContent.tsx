@@ -10,12 +10,7 @@ export function ChoiceContent({
   children,
 }: RenderElementProps): React.JSX.Element {
   return (
-    <div
-      {...attributes}
-      style={{
-        display: 'inline',
-      }}
-    >
+    <div {...attributes}>
       {children}
     </div>
   );
