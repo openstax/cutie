@@ -15,11 +15,12 @@ export {
   withQtiInteractions,
   withXhtml,
   withUnknownElements,
-  generateResponseId,
-  insertTextEntryInteraction,
-  insertExtendedTextInteraction,
-  insertChoiceInteraction,
 } from './plugins';
+
+// Export interaction insertion functions
+export { insertChoiceInteraction } from './interactions/choice';
+export { insertTextEntryInteraction } from './interactions/textEntry';
+export { insertExtendedTextInteraction } from './interactions/extendedText';
 
 // Export types
 export type {

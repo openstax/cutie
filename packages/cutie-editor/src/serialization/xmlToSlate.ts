@@ -1,6 +1,16 @@
 import type { Descendant } from 'slate';
+import { choiceParsers } from '../interactions/choice';
+import { extendedTextParsers } from '../interactions/extendedText';
+import { textEntryParsers } from '../interactions/textEntry';
 import type { ElementAttributes, SlateElement, SlateText } from '../types';
 import { isQtiElement, normalizeTagName, parseXml, serializeElement } from './xmlUtils';
+
+// Single contact point per interaction: spread all parser objects
+const interactionParsers: Record<string, (element: Element, convertChildren: (nodes: Node[]) => Descendant[]) => SlateElement | SlateElement[]> = {
+  ...choiceParsers,
+  ...textEntryParsers,
+  ...extendedTextParsers,
+};
 
 /**
  * Parse QTI XML to Slate document structure
@@ -128,109 +138,10 @@ function convertNodeToSlate(node: Node): Descendant | Descendant[] | null {
     const tagName = normalizeTagName(element.tagName);
     const attributes = extractAttributes(element);
 
-    // QTI interactions
-    if (tagName === 'qti-text-entry-interaction') {
-      return {
-        type: 'qti-text-entry-interaction',
-        children: [{ text: '' }],
-        attributes: {
-          'response-identifier': attributes['response-identifier'] || '',
-          'expected-length': attributes['expected-length'],
-          'pattern-mask': attributes['pattern-mask'],
-          'placeholder-text': attributes['placeholder-text'],
-          ...attributes,
-        },
-      };
-    }
-
-    if (tagName === 'qti-extended-text-interaction') {
-      return {
-        type: 'qti-extended-text-interaction',
-        children: [{ text: '' }],
-        attributes: {
-          'response-identifier': attributes['response-identifier'] || '',
-          'expected-lines': attributes['expected-lines'],
-          'expected-length': attributes['expected-length'],
-          'placeholder-text': attributes['placeholder-text'],
-          ...attributes,
-        },
-      };
-    }
-
-    if (tagName === 'qti-choice-interaction') {
-      const children = convertNodesToSlate(Array.from(element.childNodes));
-      return {
-        type: 'qti-choice-interaction',
-        children: children.length > 0 ? children : [{ type: 'qti-simple-choice', children: [{ text: '' }], attributes: { identifier: 'choice-1' } }],
-        attributes: {
-          'response-identifier': attributes['response-identifier'] || '',
-          'max-choices': attributes['max-choices'] || '1',
-          'min-choices': attributes['min-choices'],
-          shuffle: attributes['shuffle'],
-          ...attributes,
-        },
-      } as SlateElement;
-    }
-
-    if (tagName === 'qti-prompt') {
-      const children = convertNodesToSlate(Array.from(element.childNodes));
-      return {
-        type: 'qti-prompt',
-        children: children.length > 0 ? children : [{ text: '' }],
-        attributes,
-      } as SlateElement;
-    }
-
-    if (tagName === 'qti-simple-choice') {
-      const children = convertNodesToSlate(Array.from(element.childNodes));
-      const identifier = attributes['identifier'] || '';
-
-      // Create the editable ID label as first child
-      const idLabel: SlateElement = {
-        type: 'choice-id-label',
-        children: [{ text: identifier }],
-        attributes: {},
-      };
-
-      // If content doesn't have paragraph children, wrap in paragraph for proper editing
-      const hasParagraph = children.some(child => 'type' in child && child.type === 'paragraph');
-
-      let contentChildren: Descendant[];
-      if (!hasParagraph && children.length > 0) {
-        // Wrap text/inline content in paragraph
-        contentChildren = [{
-          type: 'paragraph',
-          children: children,
-          attributes: {},
-        }];
-      } else if (children.length > 0) {
-        contentChildren = children;
-      } else {
-        // Empty choice - add empty paragraph
-        contentChildren = [{
-          type: 'paragraph',
-          children: [{ text: '' }],
-          attributes: {},
-        }];
-      }
-
-      // Wrap content in choice-content element (second child)
-      const contentWrapper: SlateElement = {
-        type: 'choice-content',
-        children: contentChildren,
-        attributes: {},
-      };
-
-      // qti-simple-choice has exactly 2 children: ID label and content wrapper
-      return {
-        type: 'qti-simple-choice',
-        children: [idLabel, contentWrapper],
-        attributes: {
-          identifier,
-          fixed: attributes['fixed'],
-          ...attributes,
-        },
-      } as SlateElement;
+    // Check interaction parsers first
+    const parser = interactionParsers[tagName];
+    if (parser) {
+      return parser(element, (nodes) => convertNodesToSlate(nodes));
     }
 
     // Unknown QTI elements - preserve with warning

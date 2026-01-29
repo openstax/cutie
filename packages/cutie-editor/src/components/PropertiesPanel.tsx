@@ -1,8 +1,8 @@
 import type { Path } from 'slate';
 import { useStyle } from '../hooks/useStyle';
-import { ChoicePropertiesPanel } from '../interactions/choice/PropertiesPanel';
-import { TextEntryPropertiesPanel } from '../interactions/textEntry/PropertiesPanel';
-import { ExtendedTextPropertiesPanel } from '../interactions/extendedText/PropertiesPanel';
+import { choicePropertiesPanels } from '../interactions/choice';
+import { textEntryPropertiesPanels } from '../interactions/textEntry';
+import { extendedTextPropertiesPanels } from '../interactions/extendedText';
 import type { SlateElement, ElementAttributes } from '../types';
 
 interface PropertiesPanelProps {
@@ -10,6 +10,14 @@ interface PropertiesPanelProps {
   selectedPath: Path | null;
   onUpdateAttributes: (path: Path, attributes: ElementAttributes) => void;
 }
+
+// Single contact point per interaction: spread all properties panel objects
+// Using any for the component type to handle the specific element types
+const propertiesPanels: Record<string, React.ComponentType<any>> = {
+  ...choicePropertiesPanels,
+  ...textEntryPropertiesPanels,
+  ...extendedTextPropertiesPanels,
+};
 
 /**
  * Main properties panel component that routes to interaction-specific editors
@@ -31,50 +39,22 @@ export function PropertiesPanel({
     );
   }
 
-  // Render appropriate editor based on interaction type
-  let content: React.JSX.Element | null = null;
-
-  switch (selectedElement.type) {
-    case 'qti-text-entry-interaction':
-      content = (
-        <TextEntryPropertiesPanel
-          element={selectedElement}
-          path={selectedPath}
-          onUpdate={onUpdateAttributes}
-        />
-      );
-      break;
-
-    case 'qti-extended-text-interaction':
-      content = (
-        <ExtendedTextPropertiesPanel
-          element={selectedElement}
-          path={selectedPath}
-          onUpdate={onUpdateAttributes}
-        />
-      );
-      break;
-
-    case 'qti-choice-interaction':
-      content = (
-        <ChoicePropertiesPanel
-          element={selectedElement}
-          path={selectedPath}
-          onUpdate={onUpdateAttributes}
-        />
-      );
-      break;
-
-    default:
-      // Non-interaction element selected
-      content = (
-        <div className="properties-panel-empty">
-          Select an interaction to edit its properties
-        </div>
-      );
+  const Panel = propertiesPanels[selectedElement.type];
+  if (Panel) {
+    return (
+      <div className="properties-panel">
+        <Panel element={selectedElement} path={selectedPath} onUpdate={onUpdateAttributes} />
+      </div>
+    );
   }
 
-  return <div className="properties-panel">{content}</div>;
+  return (
+    <div className="properties-panel">
+      <div className="properties-panel-empty">
+        Select an interaction to edit its properties
+      </div>
+    </div>
+  );
 }
 
 const PROPERTIES_PANEL_STYLES = `
