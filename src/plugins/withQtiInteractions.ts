@@ -29,7 +29,7 @@ export function withQtiInteractions(editor: CustomEditor): CustomEditor {
     return isVoid(element);
   };
 
-  // Mark text-entry as inline
+  // Mark text-entry as inline (but NOT choice-id-label - it should be block to avoid spacers)
   editor.isInline = (element: Element) => {
     if ('type' in element) {
       const type = element.type as string;
@@ -45,6 +45,7 @@ export function withQtiInteractions(editor: CustomEditor): CustomEditor {
 
     return isInline(element);
   };
+
 
   return editor;
 }
@@ -179,7 +180,18 @@ export function insertChoiceInteraction(
       attributes: {
         identifier: choice.identifier,
       },
-      children: [{ text: choice.text || choice.identifier }],
+      children: [
+        {
+          type: 'choice-id-label',
+          children: [{ text: choice.identifier }],
+          attributes: {},
+        },
+        {
+          type: 'choice-content',
+          children: [{ text: choice.text || choice.identifier }],
+          attributes: {},
+        },
+      ],
     })),
   };
 

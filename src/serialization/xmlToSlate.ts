@@ -183,11 +183,28 @@ function convertNodeToSlate(node: Node): Descendant | Descendant[] | null {
 
     if (tagName === 'qti-simple-choice') {
       const children = convertNodesToSlate(Array.from(element.childNodes));
+      const identifier = attributes['identifier'] || '';
+
+      // Create the editable ID label as first child
+      const idLabel: SlateElement = {
+        type: 'choice-id-label',
+        children: [{ text: identifier }],
+        attributes: {},
+      };
+
+      // Wrap choice text content in choice-content element (second child)
+      const contentWrapper: SlateElement = {
+        type: 'choice-content',
+        children: children.length > 0 ? children : [{ text: '' }],
+        attributes: {},
+      };
+
+      // qti-simple-choice has exactly 2 children: ID label and content wrapper
       return {
         type: 'qti-simple-choice',
-        children: children.length > 0 ? children : [{ text: '' }],
+        children: [idLabel, contentWrapper],
         attributes: {
-          identifier: attributes['identifier'] || '',
+          identifier,
           fixed: attributes['fixed'],
           ...attributes,
         },

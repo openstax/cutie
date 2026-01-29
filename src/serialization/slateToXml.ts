@@ -80,6 +80,21 @@ function convertSlateNodeToXml(
     case 'qti-simple-choice':
       return convertSimpleChoice(element, context);
 
+    case 'choice-id-label':
+      // Skip choice-id-label during serialization (it's editor-only, identifier is in parent attributes)
+      return null;
+
+    case 'choice-content':
+      // Unwrap choice-content - return its children directly (it's editor-only wrapper)
+      const fragment = context.doc.createDocumentFragment();
+      for (const child of element.children) {
+        const childNode = convertSlateNodeToXml(child, context);
+        if (childNode) {
+          fragment.appendChild(childNode);
+        }
+      }
+      return fragment;
+
     case 'qti-unknown':
       return convertUnknownQtiElement(element, context);
 
@@ -275,10 +290,25 @@ function convertSimpleChoice(
 ): Element {
   const xmlElement = createXmlElement(context.doc, 'qti-simple-choice');
 
-  // Set attributes
-  setAttributes(xmlElement, element.attributes);
+  // Extract identifier from choice-id-label (first child)
+  let identifier = '';
+  const firstChild = element.children[0];
+  if (firstChild && 'type' in firstChild && firstChild.type === 'choice-id-label') {
+    // Get text content from choice-id-label
+    identifier = firstChild.children
+      .filter((child): child is { text: string } => 'text' in child)
+      .map(child => child.text)
+      .join('');
+  }
 
-  // Convert children
+  // Set attributes with identifier from label
+  const attributes = { ...element.attributes };
+  if (identifier) {
+    attributes.identifier = identifier;
+  }
+  setAttributes(xmlElement, attributes);
+
+  // Convert children (choice-id-label will be skipped by the switch statement)
   for (const child of element.children) {
     const childNode = convertSlateNodeToXml(child, context);
     if (childNode) {

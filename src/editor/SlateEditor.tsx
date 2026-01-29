@@ -12,6 +12,8 @@ import { PropertiesPanel } from '../components/PropertiesPanel';
 import { TextEntryElement } from '../interactions/textEntry/Element';
 import { ExtendedTextElement } from '../interactions/extendedText/Element';
 import { ChoiceElement } from '../interactions/choice/Element';
+import { ChoiceIdLabel } from '../interactions/choice/ChoiceIdLabel';
+import { ChoiceContent } from '../interactions/choice/ChoiceContent';
 import { useStyle } from '../hooks/useStyle';
 
 /**
@@ -159,7 +161,6 @@ export function SlateEditor({
         </Slate>
       </div>
       <PropertiesPanel
-        editor={editor}
         selectedElement={selectedElement}
         selectedPath={selectedPath}
         onUpdateAttributes={handleUpdateAttributes}
@@ -195,6 +196,12 @@ function Element({ attributes, children, element }: RenderElementProps): React.J
     case 'qti-choice-interaction':
       return <ChoiceElement attributes={attributes} children={children} element={element} />;
 
+    case 'choice-id-label':
+      return <ChoiceIdLabel attributes={attributes} children={children} element={element} />;
+
+    case 'choice-content':
+      return <ChoiceContent attributes={attributes} children={children} element={element} />;
+
     case 'qti-prompt':
       return (
         <div {...attributes} style={{ marginBottom: '8px', fontWeight: 500 }}>
@@ -214,9 +221,6 @@ function Element({ attributes, children, element }: RenderElementProps): React.J
             borderRadius: '4px',
           }}
         >
-          <span contentEditable={false} style={{ marginRight: '8px', color: '#689f38', userSelect: 'none' }}>
-            [{el.attributes.identifier}]
-          </span>
           {children}
         </div>
       );

@@ -1,5 +1,4 @@
 import type { Path } from 'slate';
-import type { Editor } from 'slate';
 import { useStyle } from '../hooks/useStyle';
 import { ChoicePropertiesPanel } from '../interactions/choice/PropertiesPanel';
 import { TextEntryPropertiesPanel } from '../interactions/textEntry/PropertiesPanel';
@@ -7,7 +6,6 @@ import { ExtendedTextPropertiesPanel } from '../interactions/extendedText/Proper
 import type { SlateElement, ElementAttributes } from '../types';
 
 interface PropertiesPanelProps {
-  editor: Editor;
   selectedElement: SlateElement | null;
   selectedPath: Path | null;
   onUpdateAttributes: (path: Path, attributes: ElementAttributes) => void;
@@ -17,7 +15,6 @@ interface PropertiesPanelProps {
  * Main properties panel component that routes to interaction-specific editors
  */
 export function PropertiesPanel({
-  editor,
   selectedElement,
   selectedPath,
   onUpdateAttributes,
@@ -61,7 +58,6 @@ export function PropertiesPanel({
     case 'qti-choice-interaction':
       content = (
         <ChoicePropertiesPanel
-          editor={editor}
           element={selectedElement}
           path={selectedPath}
           onUpdate={onUpdateAttributes}
