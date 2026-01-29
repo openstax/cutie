@@ -1,4 +1,6 @@
 import type { Descendant } from 'slate';
+import { promptParsers } from '../elements/prompt';
+import { simpleChoiceParsers } from '../elements/simpleChoice';
 import { choiceParsers } from '../interactions/choice';
 import { extendedTextParsers } from '../interactions/extendedText';
 import { textEntryParsers } from '../interactions/textEntry';
@@ -10,6 +12,8 @@ const interactionParsers: Record<string, (element: Element, convertChildren: (no
   ...choiceParsers,
   ...textEntryParsers,
   ...extendedTextParsers,
+  ...promptParsers,
+  ...simpleChoiceParsers,
 };
 
 /**

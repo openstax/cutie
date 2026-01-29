@@ -12,6 +12,8 @@ import { PropertiesPanel } from '../components/PropertiesPanel';
 import { choiceRenderers } from '../interactions/choice';
 import { textEntryRenderers } from '../interactions/textEntry';
 import { extendedTextRenderers } from '../interactions/extendedText';
+import { promptRenderers } from '../elements/prompt';
+import { simpleChoiceRenderers } from '../elements/simpleChoice';
 import { useStyle } from '../hooks/useStyle';
 
 /**
@@ -183,6 +185,8 @@ const interactionRenderers: Record<string, React.ComponentType<RenderElementProp
   ...choiceRenderers,
   ...textEntryRenderers,
   ...extendedTextRenderers,
+  ...promptRenderers,
+  ...simpleChoiceRenderers,
 };
 
 /**

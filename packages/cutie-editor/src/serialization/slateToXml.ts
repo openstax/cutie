@@ -1,4 +1,6 @@
 import type { Descendant } from 'slate';
+import { promptSerializers } from '../elements/prompt';
+import { simpleChoiceSerializers } from '../elements/simpleChoice';
 import { choiceSerializers } from '../interactions/choice';
 import { extendedTextSerializers } from '../interactions/extendedText';
 import { textEntrySerializers } from '../interactions/textEntry';
@@ -57,6 +59,8 @@ const interactionSerializers: Record<string, (el: SlateElement, ctx: Serializati
   ...choiceSerializers,
   ...textEntrySerializers,
   ...extendedTextSerializers,
+  ...promptSerializers,
+  ...simpleChoiceSerializers,
 };
 
 /**
