@@ -188,7 +188,13 @@ export function insertChoiceInteraction(
         },
         {
           type: 'choice-content',
-          children: [{ text: choice.text || choice.identifier }],
+          children: [
+            {
+              type: 'paragraph',
+              children: [{ text: choice.text || choice.identifier }],
+              attributes: {},
+            },
+          ],
           attributes: {},
         },
       ],
