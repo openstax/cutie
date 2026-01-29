@@ -1,4 +1,7 @@
 import type { Descendant } from 'slate';
+import { choiceSerializers } from '../interactions/choice';
+import { extendedTextSerializers } from '../interactions/extendedText';
+import { textEntrySerializers } from '../interactions/textEntry';
 import type { SerializationResult, SlateElement, SlateText, ValidationError } from '../types';
 import { createXmlDocument, createXmlElement } from './xmlUtils';
 
@@ -49,6 +52,13 @@ interface SerializationContext {
   errors: ValidationError[];
 }
 
+// Single contact point per interaction: spread all serializer objects
+const interactionSerializers: Record<string, (el: SlateElement, ctx: SerializationContext, convertChildren: (children: Descendant[], parent: Element | DocumentFragment) => void) => Element | DocumentFragment | null> = {
+  ...choiceSerializers,
+  ...textEntrySerializers,
+  ...extendedTextSerializers,
+};
+
 /**
  * Convert a Slate node to an XML element or text node
  */
@@ -64,53 +74,24 @@ function convertSlateNodeToXml(
   // Element node
   const element = node as SlateElement;
 
+  // Helper to convert children
+  const convertChildren = (children: Descendant[], parent: Element | DocumentFragment) => {
+    for (const child of children) {
+      const childNode = convertSlateNodeToXml(child, context);
+      if (childNode) {
+        parent.appendChild(childNode);
+      }
+    }
+  };
+
+  // Check interaction serializers first
+  const serializer = interactionSerializers[element.type];
+  if (serializer) {
+    return serializer(element, context, convertChildren);
+  }
+
+  // Fall through to generic elements
   switch (element.type) {
-    case 'qti-text-entry-interaction':
-      return convertTextEntryInteraction(element, context);
-
-    case 'qti-extended-text-interaction':
-      return convertExtendedTextInteraction(element, context);
-
-    case 'qti-choice-interaction':
-      return convertChoiceInteraction(element, context);
-
-    case 'qti-prompt':
-      return convertPrompt(element, context);
-
-    case 'qti-simple-choice':
-      return convertSimpleChoice(element, context);
-
-    case 'choice-id-label':
-      // Skip choice-id-label during serialization (it's editor-only, identifier is in parent attributes)
-      return null;
-
-    case 'choice-content':
-      // Unwrap choice-content - return its children directly (it's editor-only wrapper)
-      const fragment = context.doc.createDocumentFragment();
-
-      // If there's exactly one child and it's a paragraph, unwrap it for clean XML
-      if (element.children.length === 1) {
-        const onlyChild = element.children[0];
-        if ('type' in onlyChild && onlyChild.type === 'paragraph') {
-          // Unwrap paragraph - serialize its children directly
-          for (const grandchild of onlyChild.children) {
-            const childNode = convertSlateNodeToXml(grandchild, context);
-            if (childNode) {
-              fragment.appendChild(childNode);
-            }
-          }
-          return fragment;
-        }
-      }
-
-      // Otherwise serialize all children normally
-      for (const child of element.children) {
-        const childNode = convertSlateNodeToXml(child, context);
-        if (childNode) {
-          fragment.appendChild(childNode);
-        }
-      }
-      return fragment;
 
     case 'qti-unknown':
       return convertUnknownQtiElement(element, context);
@@ -186,154 +167,6 @@ function convertTextNodeToXml(
   }
 
   return textNode;
-}
-
-/**
- * Convert QTI text entry interaction
- */
-function convertTextEntryInteraction(
-  element: SlateElement & { type: 'qti-text-entry-interaction' },
-  context: SerializationContext
-): Element {
-  const xmlElement = createXmlElement(context.doc, 'qti-text-entry-interaction');
-
-  // Track response identifier
-  const responseId = element.attributes['response-identifier'];
-  if (responseId) {
-    context.responseIdentifiers.push(responseId);
-  } else {
-    context.errors.push({
-      type: 'missing-identifier',
-      message: 'Text entry interaction missing response-identifier',
-    });
-  }
-
-  // Set attributes
-  setAttributes(xmlElement, element.attributes);
-
-  return xmlElement;
-}
-
-/**
- * Convert QTI extended text interaction
- */
-function convertExtendedTextInteraction(
-  element: SlateElement & { type: 'qti-extended-text-interaction' },
-  context: SerializationContext
-): Element {
-  const xmlElement = createXmlElement(context.doc, 'qti-extended-text-interaction');
-
-  // Track response identifier
-  const responseId = element.attributes['response-identifier'];
-  if (responseId) {
-    context.responseIdentifiers.push(responseId);
-  } else {
-    context.errors.push({
-      type: 'missing-identifier',
-      message: 'Extended text interaction missing response-identifier',
-    });
-  }
-
-  // Set attributes
-  setAttributes(xmlElement, element.attributes);
-
-  return xmlElement;
-}
-
-/**
- * Convert QTI choice interaction
- */
-function convertChoiceInteraction(
-  element: SlateElement & { type: 'qti-choice-interaction' },
-  context: SerializationContext
-): Element {
-  const xmlElement = createXmlElement(context.doc, 'qti-choice-interaction');
-
-  // Track response identifier
-  const responseId = element.attributes['response-identifier'];
-  if (responseId) {
-    context.responseIdentifiers.push(responseId);
-  } else {
-    context.errors.push({
-      type: 'missing-identifier',
-      message: 'Choice interaction missing response-identifier',
-    });
-  }
-
-  // Set attributes
-  setAttributes(xmlElement, element.attributes);
-
-  // Convert children
-  for (const child of element.children) {
-    const childNode = convertSlateNodeToXml(child, context);
-    if (childNode) {
-      xmlElement.appendChild(childNode);
-    }
-  }
-
-  return xmlElement;
-}
-
-/**
- * Convert QTI prompt
- */
-function convertPrompt(
-  element: SlateElement & { type: 'qti-prompt' },
-  context: SerializationContext
-): Element {
-  const xmlElement = createXmlElement(context.doc, 'qti-prompt');
-
-  if (element.attributes) {
-    setAttributes(xmlElement, element.attributes);
-  }
-
-  // Convert children
-  for (const child of element.children) {
-    const childNode = convertSlateNodeToXml(child, context);
-    if (childNode) {
-      xmlElement.appendChild(childNode);
-    }
-  }
-
-  return xmlElement;
-}
-
-/**
- * Convert QTI simple choice
- */
-function convertSimpleChoice(
-  element: SlateElement & { type: 'qti-simple-choice' },
-  context: SerializationContext
-): Element {
-  const xmlElement = createXmlElement(context.doc, 'qti-simple-choice');
-
-  // Extract identifier from choice-id-label (first child)
-  let identifier = '';
-  const firstChild = element.children[0];
-  if (firstChild && 'type' in firstChild && firstChild.type === 'choice-id-label') {
-    // Get text content from choice-id-label
-    identifier = firstChild.children
-      .filter((child): child is { text: string } => 'text' in child)
-      .map(child => child.text)
-      .join('');
-  }
-
-  // Set attributes with identifier from label
-  const attributes = { ...element.attributes };
-  if (identifier) {
-    attributes.identifier = identifier;
-  }
-  setAttributes(xmlElement, attributes);
-
-  // Convert children (choice-id-label will be skipped by the switch statement)
-  for (const child of element.children) {
-    const childNode = convertSlateNodeToXml(child, context);
-    if (childNode) {
-      xmlElement.appendChild(childNode);
-    }
-  }
-
-  return xmlElement;
 }
 
 /**

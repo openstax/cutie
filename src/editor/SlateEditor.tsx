@@ -9,11 +9,9 @@ import { Toolbar } from './Toolbar';
 import { parseXmlToSlate } from '../serialization/xmlToSlate';
 import { serializeSlateToQti } from '../serialization/slateToXml';
 import { PropertiesPanel } from '../components/PropertiesPanel';
-import { TextEntryElement } from '../interactions/textEntry/Element';
-import { ExtendedTextElement } from '../interactions/extendedText/Element';
-import { ChoiceElement } from '../interactions/choice/Element';
-import { ChoiceIdLabel } from '../interactions/choice/ChoiceIdLabel';
-import { ChoiceContent } from '../interactions/choice/ChoiceContent';
+import { choiceRenderers } from '../interactions/choice';
+import { textEntryRenderers } from '../interactions/textEntry';
+import { extendedTextRenderers } from '../interactions/extendedText';
 import { useStyle } from '../hooks/useStyle';
 
 /**
@@ -180,50 +178,27 @@ function isInteractionElement(element: SlateElement): boolean {
   );
 }
 
+// Single contact point per interaction: spread all renderer objects
+const interactionRenderers: Record<string, React.ComponentType<RenderElementProps>> = {
+  ...choiceRenderers,
+  ...textEntryRenderers,
+  ...extendedTextRenderers,
+};
+
 /**
  * Element renderer component
  */
 function Element({ attributes, children, element }: RenderElementProps): React.JSX.Element {
   const el = element as SlateElement;
 
+  // Check interaction renderers first
+  const Renderer = interactionRenderers[el.type];
+  if (Renderer) {
+    return <Renderer attributes={attributes} children={children} element={element} />;
+  }
+
+  // Fall through to generic elements
   switch (el.type) {
-    case 'qti-text-entry-interaction':
-      return <TextEntryElement attributes={attributes} children={children} element={element} />;
-
-    case 'qti-extended-text-interaction':
-      return <ExtendedTextElement attributes={attributes} children={children} element={element} />;
-
-    case 'qti-choice-interaction':
-      return <ChoiceElement attributes={attributes} children={children} element={element} />;
-
-    case 'choice-id-label':
-      return <ChoiceIdLabel attributes={attributes} children={children} element={element} />;
-
-    case 'choice-content':
-      return <ChoiceContent attributes={attributes} children={children} element={element} />;
-
-    case 'qti-prompt':
-      return (
-        <div {...attributes} style={{ marginBottom: '8px', fontWeight: 500 }}>
-          {children}
-        </div>
-      );
-
-    case 'qti-simple-choice':
-      return (
-        <div
-          {...attributes}
-          style={{
-            padding: '8px',
-            margin: '4px 0',
-            backgroundColor: '#f1f8e9',
-            border: '1px solid #c5e1a5',
-            borderRadius: '4px',
-          }}
-        >
-          {children}
-        </div>
-      );
 
     case 'qti-unknown':
       return (

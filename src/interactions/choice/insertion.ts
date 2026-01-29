@@ -1,0 +1,99 @@
+import { Editor, Element, Transforms } from 'slate';
+
+/**
+ * Generate a unique response identifier
+ */
+function generateResponseId(editor: Editor): string {
+  const existingIds = new Set<string>();
+
+  // Collect all existing response identifiers
+  const nodes = Array.from(Editor.nodes(editor, {
+    at: [],
+    match: (n) => {
+      if (!Element.isElement(n)) return false;
+      if (!('type' in n)) return false;
+      const type = n.type as string;
+      return (
+        type === 'qti-text-entry-interaction' ||
+        type === 'qti-extended-text-interaction' ||
+        type === 'qti-choice-interaction'
+      );
+    },
+  }));
+
+  for (const [node] of nodes) {
+    if (Element.isElement(node) && 'attributes' in node) {
+      const attrs = node.attributes as any;
+      if (attrs && attrs['response-identifier']) {
+        existingIds.add(attrs['response-identifier']);
+      }
+    }
+  }
+
+  // Generate unique ID
+  let counter = 1;
+  let id = `RESPONSE_${counter}`;
+  while (existingIds.has(id)) {
+    counter++;
+    id = `RESPONSE_${counter}`;
+  }
+
+  return id;
+}
+
+/**
+ * Insert a choice interaction at the current selection
+ */
+export function insertChoiceInteraction(
+  editor: Editor,
+  config: {
+    responseIdentifier?: string;
+    maxChoices?: string;
+    minChoices?: string;
+    shuffle?: boolean;
+    choices?: Array<{ identifier: string; text?: string }>;
+  } = {}
+): void {
+  const responseId = config.responseIdentifier || generateResponseId(editor);
+  const choices = config.choices || [
+    { identifier: 'choice-1', text: 'Choice 1' },
+    { identifier: 'choice-2', text: 'Choice 2' },
+  ];
+
+  const choiceInteraction = {
+    type: 'qti-choice-interaction',
+    attributes: {
+      'response-identifier': responseId,
+      'max-choices': config.maxChoices || '1',
+      'min-choices': config.minChoices,
+      shuffle: config.shuffle ? 'true' : undefined,
+    },
+    children: choices.map((choice) => ({
+      type: 'qti-simple-choice',
+      attributes: {
+        identifier: choice.identifier,
+      },
+      children: [
+        {
+          type: 'choice-id-label',
+          children: [{ text: choice.identifier }],
+          attributes: {},
+        },
+        {
+          type: 'choice-content',
+          children: [
+            {
+              type: 'paragraph',
+              children: [{ text: choice.text || choice.identifier }],
+              attributes: {},
+            },
+          ],
+          attributes: {},
+        },
+      ],
+    })),
+  };
+
+  Transforms.insertNodes(editor, choiceInteraction as any);
+  Transforms.insertNodes(editor, { type: 'paragraph', children: [{ text: '' }] } as any);
+}

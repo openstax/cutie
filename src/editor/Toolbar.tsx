@@ -1,11 +1,9 @@
 import React from 'react';
 import { Editor, Transforms, Element as SlateElement } from 'slate';
 import { useSlate } from 'slate-react';
-import {
-  insertTextEntryInteraction,
-  insertExtendedTextInteraction,
-  insertChoiceInteraction,
-} from '../plugins';
+import { insertChoiceInteraction } from '../interactions/choice';
+import { insertTextEntryInteraction } from '../interactions/textEntry';
+import { insertExtendedTextInteraction } from '../interactions/extendedText';
 
 /**
  * Toolbar component for the Slate editor
