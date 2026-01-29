@@ -142,7 +142,7 @@ export function SlateEditor({
   return (
     <div className="slate-editor-container">
       <div className={`slate-editor ${className}`}>
-        <Slate key={qtiXml} editor={editor} initialValue={value} onChange={handleChange}>
+        <Slate editor={editor} initialValue={value} onChange={handleChange}>
           <Toolbar />
           <Editable
             renderElement={renderElement}
