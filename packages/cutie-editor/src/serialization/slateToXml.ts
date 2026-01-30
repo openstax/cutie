@@ -5,7 +5,15 @@ import { choiceSerializers } from '../interactions/choice';
 import { extendedTextSerializers } from '../interactions/extendedText';
 import { textEntrySerializers } from '../interactions/textEntry';
 import type { SerializationResult, SlateElement, SlateText, ValidationError } from '../types';
+import { type XmlNode, xmlNodeToDom } from './xmlNode';
 import { createXmlDocument, createXmlElement } from './xmlUtils';
+
+/**
+ * Internal result type that includes response declarations
+ */
+interface InternalSerializationResult extends SerializationResult {
+  responseDeclarations: Map<string, XmlNode>;
+}
 
 /**
  * Serialize Slate document to QTI XML
@@ -13,7 +21,7 @@ import { createXmlDocument, createXmlElement } from './xmlUtils';
  * @param nodes - Slate descendants
  * @returns Serialization result with XML string, identifiers, and errors
  */
-export function serializeSlateToXml(nodes: Descendant[]): SerializationResult {
+export function serializeSlateToXml(nodes: Descendant[]): InternalSerializationResult {
   const doc = createXmlDocument();
   const itemBody = doc.documentElement;
 
@@ -21,6 +29,7 @@ export function serializeSlateToXml(nodes: Descendant[]): SerializationResult {
     doc,
     responseIdentifiers: [],
     errors: [],
+    responseDeclarations: new Map(),
   };
 
   // Convert Slate nodes to XML
@@ -42,16 +51,18 @@ export function serializeSlateToXml(nodes: Descendant[]): SerializationResult {
     xml,
     responseIdentifiers: context.responseIdentifiers,
     errors: context.errors.length > 0 ? context.errors : undefined,
+    responseDeclarations: context.responseDeclarations,
   };
 }
 
 /**
  * Serialization context for tracking state
  */
-interface SerializationContext {
+export interface SerializationContext {
   doc: XMLDocument;
   responseIdentifiers: string[];
   errors: ValidationError[];
+  responseDeclarations: Map<string, XmlNode>;
 }
 
 // Single contact point per interaction: spread all serializer objects
@@ -465,6 +476,39 @@ function checkDuplicateIdentifiers(context: SerializationContext): void {
 }
 
 /**
+ * Update response declarations in the assessment item
+ *
+ * Removes all existing response declarations and re-adds them from the collected
+ * declarations map. This ensures that renamed or removed declarations don't leave
+ * orphaned elements in the document.
+ *
+ * @param assessmentItem - The qti-assessment-item element
+ * @param declarations - Map of response identifier to XmlNode
+ * @param doc - The XML document
+ */
+function updateResponseDeclarations(
+  assessmentItem: Element,
+  declarations: Map<string, XmlNode>,
+  doc: Document
+): void {
+  const itemBody = assessmentItem.querySelector('qti-item-body');
+
+  // Remove ALL existing response declarations
+  // This is safe because all interactions are serialized and add their declarations
+  // to the map, so we have a complete picture of what should exist
+  const existingDeclarations = assessmentItem.querySelectorAll('qti-response-declaration');
+  for (const existing of existingDeclarations) {
+    existing.remove();
+  }
+
+  // Insert all response declarations (before qti-item-body)
+  for (const [, node] of declarations) {
+    const element = xmlNodeToDom(node, doc);
+    assessmentItem.insertBefore(element, itemBody);
+  }
+}
+
+/**
  * Serialize Slate document back to full QTI XML document
  *
  * This function takes the original QTI XML and Slate nodes (representing item-body content),
@@ -510,6 +554,9 @@ export function serializeSlateToQti(
 
   // Create new item-body with edited content
   const itemBodyResult = serializeSlateToXml(nodes);
+
+  // Update response declarations using collected data from serialization
+  updateResponseDeclarations(assessmentItem, itemBodyResult.responseDeclarations, doc);
 
   // Parse the new item-body
   const newItemBodyDoc = parser.parseFromString(itemBodyResult.xml, 'application/xml');

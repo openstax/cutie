@@ -1,6 +1,10 @@
 import type { BaseEditor } from 'slate';
 import type { HistoryEditor } from 'slate-history';
 import type { ReactEditor } from 'slate-react';
+import type { XmlNode } from './serialization/xmlNode';
+
+// Re-export XmlNode for convenience
+export type { XmlNode } from './serialization/xmlNode';
 
 // ============================================================================
 // Slate Editor Type Extensions
@@ -39,6 +43,7 @@ export interface QtiTextEntryInteraction {
     'pattern-mask'?: string;
     'placeholder-text'?: string;
   } & ElementAttributes;
+  responseDeclaration: XmlNode;
 }
 
 /**
@@ -53,6 +58,7 @@ export interface QtiExtendedTextInteraction {
     'expected-length'?: string;
     'placeholder-text'?: string;
   } & ElementAttributes;
+  responseDeclaration: XmlNode;
 }
 
 /**
@@ -67,6 +73,7 @@ export interface QtiChoiceInteraction {
     'min-choices'?: string;
     'shuffle'?: string;
   } & ElementAttributes;
+  responseDeclaration: XmlNode;
 }
 
 /**

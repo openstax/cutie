@@ -5,10 +5,27 @@ import { choiceParsers } from '../interactions/choice';
 import { extendedTextParsers } from '../interactions/extendedText';
 import { textEntryParsers } from '../interactions/textEntry';
 import type { ElementAttributes, SlateElement, SlateText } from '../types';
+import { domToXmlNode, type XmlNode } from './xmlNode';
 import { isQtiElement, normalizeTagName, parseXml, serializeElement } from './xmlUtils';
 
+/**
+ * Parser context for passing response declarations to interaction parsers
+ */
+export interface ParserContext {
+  responseDeclarations: Map<string, XmlNode>;
+}
+
+/**
+ * Parser function type that receives element, child converter, and optional context
+ */
+type ParserFn = (
+  element: Element,
+  convertChildren: (nodes: Node[]) => Descendant[],
+  context?: ParserContext
+) => SlateElement | SlateElement[];
+
 // Single contact point per interaction: spread all parser objects
-const interactionParsers: Record<string, (element: Element, convertChildren: (nodes: Node[]) => Descendant[]) => SlateElement | SlateElement[]> = {
+const interactionParsers: Record<string, ParserFn> = {
   ...choiceParsers,
   ...textEntryParsers,
   ...extendedTextParsers,
@@ -34,20 +51,32 @@ export function parseXmlToSlate(xml: string): Descendant[] {
     throw new Error('No qti-item-body found in QTI XML document');
   }
 
+  // Extract response declarations into a map (once, upfront)
+  const responseDeclarations = new Map<string, XmlNode>();
+  for (const decl of doc.querySelectorAll('qti-response-declaration')) {
+    const id = decl.getAttribute('identifier');
+    if (id) {
+      responseDeclarations.set(id, domToXmlNode(decl));
+    }
+  }
+
+  const context: ParserContext = { responseDeclarations };
+
   // Convert children of qti-item-body to Slate nodes
-  return convertNodesToSlate(Array.from(itemBody.childNodes), true);
+  return convertNodesToSlate(Array.from(itemBody.childNodes), true, context);
 }
 
 /**
  * Convert a list of DOM nodes to Slate descendants
  * @param nodes - DOM nodes to convert
  * @param isRootLevel - Whether this is the document root level (requires at least one node)
+ * @param context - Parser context with response declarations
  */
-function convertNodesToSlate(nodes: Node[], isRootLevel = false): Descendant[] {
+function convertNodesToSlate(nodes: Node[], isRootLevel = false, context?: ParserContext): Descendant[] {
   const result: Descendant[] = [];
 
   for (const node of nodes) {
-    const converted = convertNodeToSlate(node);
+    const converted = convertNodeToSlate(node, context);
     if (converted) {
       if (Array.isArray(converted)) {
         result.push(...converted);
@@ -112,8 +141,10 @@ function isStructuralWhitespace(node: Node): boolean {
 
 /**
  * Convert a single DOM node to Slate node(s)
+ * @param node - DOM node to convert
+ * @param context - Parser context with response declarations
  */
-function convertNodeToSlate(node: Node): Descendant | Descendant[] | null {
+function convertNodeToSlate(node: Node, context?: ParserContext): Descendant | Descendant[] | null {
   // Text node
   if (node.nodeType === Node.TEXT_NODE) {
     const text = node.textContent || '';
@@ -145,12 +176,12 @@ function convertNodeToSlate(node: Node): Descendant | Descendant[] | null {
     // Check interaction parsers first
     const parser = interactionParsers[tagName];
     if (parser) {
-      return parser(element, (nodes) => convertNodesToSlate(nodes));
+      return parser(element, (nodes) => convertNodesToSlate(nodes, false, context), context);
     }
 
     // Unknown QTI elements - preserve with warning
     if (isQtiElement(tagName)) {
-      const children = convertNodesToSlate(Array.from(element.childNodes));
+      const children = convertNodesToSlate(Array.from(element.childNodes), false, context);
       const rawXml = serializeElement(element);
 
       return {
@@ -165,7 +196,7 @@ function convertNodeToSlate(node: Node): Descendant | Descendant[] | null {
 
     // XHTML elements
     if (tagName === 'p') {
-      const children = convertNodesToSlate(Array.from(element.childNodes));
+      const children = convertNodesToSlate(Array.from(element.childNodes), false, context);
       return {
         type: 'paragraph',
         children: children.length > 0 ? children : [{ text: '' }],
@@ -174,7 +205,7 @@ function convertNodeToSlate(node: Node): Descendant | Descendant[] | null {
     }
 
     if (tagName === 'div') {
-      const children = convertNodesToSlate(Array.from(element.childNodes));
+      const children = convertNodesToSlate(Array.from(element.childNodes), false, context);
       return {
         type: 'div',
         children: children.length > 0 ? children : [{ text: '' }],
@@ -183,7 +214,7 @@ function convertNodeToSlate(node: Node): Descendant | Descendant[] | null {
     }
 
     if (tagName === 'span') {
-      const children = convertNodesToSlate(Array.from(element.childNodes));
+      const children = convertNodesToSlate(Array.from(element.childNodes), false, context);
       return {
         type: 'span',
         children: children.length > 0 ? children : [{ text: '' }],
@@ -193,7 +224,7 @@ function convertNodeToSlate(node: Node): Descendant | Descendant[] | null {
 
     if (tagName.match(/^h[1-6]$/)) {
       const level = parseInt(tagName[1], 10) as 1 | 2 | 3 | 4 | 5 | 6;
-      const children = convertNodesToSlate(Array.from(element.childNodes));
+      const children = convertNodesToSlate(Array.from(element.childNodes), false, context);
       return {
         type: 'heading',
         level,
@@ -203,25 +234,25 @@ function convertNodeToSlate(node: Node): Descendant | Descendant[] | null {
     }
 
     if (tagName === 'strong' || tagName === 'b') {
-      const children = convertNodesToSlate(Array.from(element.childNodes));
+      const children = convertNodesToSlate(Array.from(element.childNodes), false, context);
       // Apply bold mark to text children
       return applyMarkToChildren(children, 'bold');
     }
 
     if (tagName === 'em' || tagName === 'i') {
-      const children = convertNodesToSlate(Array.from(element.childNodes));
+      const children = convertNodesToSlate(Array.from(element.childNodes), false, context);
       // Apply italic mark to text children
       return applyMarkToChildren(children, 'italic');
     }
 
     if (tagName === 'u') {
-      const children = convertNodesToSlate(Array.from(element.childNodes));
+      const children = convertNodesToSlate(Array.from(element.childNodes), false, context);
       // Apply underline mark to text children
       return applyMarkToChildren(children, 'underline');
     }
 
     if (tagName === 'code') {
-      const children = convertNodesToSlate(Array.from(element.childNodes));
+      const children = convertNodesToSlate(Array.from(element.childNodes), false, context);
       // Apply code mark to text children
       return applyMarkToChildren(children, 'code');
     }
@@ -249,7 +280,7 @@ function convertNodeToSlate(node: Node): Descendant | Descendant[] | null {
     }
 
     if (tagName === 'ul' || tagName === 'ol') {
-      const children = convertNodesToSlate(Array.from(element.childNodes));
+      const children = convertNodesToSlate(Array.from(element.childNodes), false, context);
       return {
         type: 'list',
         ordered: tagName === 'ol',
@@ -259,7 +290,7 @@ function convertNodeToSlate(node: Node): Descendant | Descendant[] | null {
     }
 
     if (tagName === 'li') {
-      const children = convertNodesToSlate(Array.from(element.childNodes));
+      const children = convertNodesToSlate(Array.from(element.childNodes), false, context);
       return {
         type: 'list-item',
         children: children.length > 0 ? children : [{ text: '' }],
@@ -268,7 +299,7 @@ function convertNodeToSlate(node: Node): Descendant | Descendant[] | null {
     }
 
     // Default: treat as div
-    const children = convertNodesToSlate(Array.from(element.childNodes));
+    const children = convertNodesToSlate(Array.from(element.childNodes), false, context);
     return {
       type: 'div',
       children: children.length > 0 ? children : [{ text: '' }],

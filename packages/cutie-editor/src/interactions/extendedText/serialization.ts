@@ -1,24 +1,33 @@
 import type { Descendant } from 'slate';
+import type { SerializationContext } from '../../serialization/slateToXml';
+import type { ParserContext } from '../../serialization/xmlToSlate';
 import { createXmlElement } from '../../serialization/xmlUtils';
-import type { SlateElement } from '../../types';
-
-/**
- * Type definitions for serialization
- */
-export interface SerializationContext {
-  doc: XMLDocument;
-  responseIdentifiers: string[];
-  errors: Array<{ type: string; message: string; responseIdentifier?: string }>;
-}
+import type { SlateElement, XmlNode } from '../../types';
 
 export type ConvertChildrenFn = (nodes: Node[]) => Descendant[];
+
+/**
+ * Create a default response declaration for an extended text interaction
+ */
+function createDefaultResponseDeclaration(responseIdentifier: string): XmlNode {
+  return {
+    tagName: 'qti-response-declaration',
+    attributes: {
+      identifier: responseIdentifier,
+      cardinality: 'single',
+      'base-type': 'string',
+    },
+    children: [],
+  };
+}
 
 /**
  * Parse QTI extended text interaction from XML
  */
 function parseExtendedTextInteraction(
   element: Element,
-  _convertChildren: ConvertChildrenFn
+  _convertChildren: ConvertChildrenFn,
+  context?: ParserContext
 ): SlateElement {
   const attributes: Record<string, string | undefined> = {};
   for (let i = 0; i < element.attributes.length; i++) {
@@ -26,16 +35,23 @@ function parseExtendedTextInteraction(
     attributes[attr.name] = attr.value;
   }
 
+  const responseId = attributes['response-identifier'] || '';
+
+  // Get existing response declaration or create a default one
+  const responseDeclaration = (responseId && context?.responseDeclarations.get(responseId))
+    || createDefaultResponseDeclaration(responseId);
+
   return {
     type: 'qti-extended-text-interaction',
     children: [{ text: '' }],
     attributes: {
-      'response-identifier': attributes['response-identifier'] || '',
+      'response-identifier': responseId,
       'expected-lines': attributes['expected-lines'],
       'expected-length': attributes['expected-length'],
       'placeholder-text': attributes['placeholder-text'],
       ...attributes,
     },
+    responseDeclaration,
   };
 }
 
@@ -53,6 +69,11 @@ function serializeExtendedTextInteraction(
   const responseId = element.attributes['response-identifier'];
   if (responseId) {
     context.responseIdentifiers.push(responseId);
+
+    // Add response declaration to context
+    if (element.responseDeclaration) {
+      context.responseDeclarations.set(responseId, element.responseDeclaration);
+    }
   } else {
     context.errors.push({
       type: 'missing-identifier',
@@ -83,7 +104,7 @@ function setAttributes(
 /**
  * Export parsers and serializers as objects that can be spread
  */
-export const extendedTextParsers: Record<string, (element: Element, convertChildren: ConvertChildrenFn) => SlateElement> = {
+export const extendedTextParsers: Record<string, (element: Element, convertChildren: ConvertChildrenFn, context?: ParserContext) => SlateElement> = {
   'qti-extended-text-interaction': parseExtendedTextInteraction,
 };
 
