@@ -28,6 +28,7 @@ export function PropertiesPanel({
   onUpdateAttributes,
 }: PropertiesPanelProps): React.JSX.Element {
   useStyle('properties-panel', PROPERTIES_PANEL_STYLES);
+  useStyle('properties-panel-forms', PROPERTIES_PANEL_FORM_STYLES);
 
   if (!selectedElement || !selectedPath) {
     return (
@@ -74,5 +75,133 @@ const PROPERTIES_PANEL_STYLES = `
     text-align: center;
     padding: 32px 16px;
     line-height: 1.5;
+  }
+`;
+
+/**
+ * Base form styles for all properties panels.
+ * These provide intelligent defaults for common form elements.
+ */
+const PROPERTIES_PANEL_FORM_STYLES = `
+  /* Property editor container */
+  .property-editor h3 {
+    margin-top: 0;
+    margin-bottom: 16px;
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  /* Toggleable form sections (correct answer, mapping, etc.) */
+  .toggleable-form-section {
+    margin-top: 24px;
+    border-top: 1px solid #e5e7eb;
+    padding-top: 16px;
+  }
+
+  .toggleable-content {
+    margin-top: 12px;
+  }
+
+  /* Radio/checkbox fieldset for option groups */
+  .radio-fieldset {
+    border: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .radio-fieldset-legend {
+    font-weight: 600;
+    font-size: 14px;
+    padding: 0;
+    margin-bottom: 12px;
+  }
+
+  .radio-option {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-size: 14px;
+    color: #333;
+    margin-bottom: 12px;
+  }
+
+  .radio-option:last-child {
+    margin-bottom: 0;
+  }
+
+  .radio-option input[type="radio"] {
+    margin-right: 8px;
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+  }
+
+  .radio-option span {
+    user-select: none;
+  }
+
+  .radio-option:hover span {
+    color: #2196f3;
+  }
+
+  /* Base input styles */
+  .property-input,
+  .property-select,
+  .property-textarea {
+    width: 100%;
+    padding: 8px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    box-sizing: border-box;
+  }
+
+  .property-input:focus,
+  .property-select:focus,
+  .property-textarea:focus {
+    outline: none;
+    border-color: #2196f3;
+    box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2);
+  }
+
+  .property-select {
+    background: white;
+    cursor: pointer;
+  }
+
+  .property-textarea {
+    resize: vertical;
+    min-height: 80px;
+  }
+
+  /* Field container */
+  .property-field {
+    margin-bottom: 16px;
+  }
+
+  .property-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 4px;
+  }
+
+  /* Tip box */
+  .property-tip {
+    margin-top: 16px;
+    padding: 12px;
+    background: #f0f9ff;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #0369a1;
+  }
+
+  /* Empty state text */
+  .property-empty-state {
+    font-size: 13px;
+    color: #999;
+    font-style: italic;
   }
 `;
