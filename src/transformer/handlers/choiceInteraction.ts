@@ -4,6 +4,7 @@ import {
 } from '../../errors/errorDisplay';
 import { registry } from '../registry';
 import type { ElementHandler, TransformContext } from '../types';
+import { getDefaultValue } from './responseUtils';
 
 /**
  * Handler for qti-choice-interaction elements
@@ -114,6 +115,17 @@ class ChoiceInteractionHandler implements ElementHandler {
 
     container.appendChild(choicesContainer);
 
+    // Initialize with default value(s) from response declaration if present
+    const defaultValue = getDefaultValue(element.ownerDocument, responseIdentifier);
+    if (defaultValue !== null) {
+      const defaultValues = Array.isArray(defaultValue) ? defaultValue : [defaultValue];
+      for (const input of inputElements) {
+        if (defaultValues.includes(input.value)) {
+          input.checked = true;
+        }
+      }
+    }
+
     // Enforce max-choices constraint for multi-select
     if (!isSingleSelect && maxChoices > 0) {
       const enforceMaxChoices = () => {
@@ -137,6 +149,9 @@ class ChoiceInteractionHandler implements ElementHandler {
       inputElements.forEach((input) => {
         input.addEventListener('change', enforceMaxChoices);
       });
+
+      // Apply initial constraint in case default values already hit max
+      enforceMaxChoices();
     }
 
     // Register response accessor with itemState

@@ -1,6 +1,7 @@
 import { createMissingAttributeError } from '../../errors/errorDisplay';
 import { registry } from '../registry';
 import type { ElementHandler, TransformContext } from '../types';
+import { getDefaultValue } from './responseUtils';
 
 /**
  * Handler for qti-text-entry-interaction elements.
@@ -73,6 +74,12 @@ class TextEntryInteractionHandler implements ElementHandler {
     } else {
       // Default width if no expected-length provided
       input.style.width = '10ch';
+    }
+
+    // Initialize with default value from response declaration if present
+    const defaultValue = getDefaultValue(element.ownerDocument, responseIdentifier);
+    if (defaultValue !== null && typeof defaultValue === 'string') {
+      input.value = defaultValue;
     }
 
     // Register response accessor with itemState if available
