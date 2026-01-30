@@ -55,6 +55,7 @@ export function insertChoiceInteraction(
   } = {}
 ): void {
   const responseId = config.responseIdentifier || generateResponseId(editor);
+  const maxChoices = config.maxChoices || '1';
   const choices = config.choices || [
     { identifier: 'choice-1', text: 'Choice 1' },
     { identifier: 'choice-2', text: 'Choice 2' },
@@ -64,7 +65,7 @@ export function insertChoiceInteraction(
     type: 'qti-choice-interaction',
     attributes: {
       'response-identifier': responseId,
-      'max-choices': config.maxChoices || '1',
+      'max-choices': maxChoices,
       'min-choices': config.minChoices,
       shuffle: config.shuffle ? 'true' : undefined,
     },
@@ -92,6 +93,15 @@ export function insertChoiceInteraction(
         },
       ],
     })),
+    responseDeclaration: {
+      tagName: 'qti-response-declaration',
+      attributes: {
+        identifier: responseId,
+        cardinality: maxChoices === '1' ? 'single' : 'multiple',
+        'base-type': 'identifier',
+      },
+      children: [],
+    },
   };
 
   Transforms.insertNodes(editor, choiceInteraction as any);

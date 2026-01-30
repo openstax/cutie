@@ -9,6 +9,12 @@ export { SlateEditor } from './editor/SlateEditor';
 // Export serialization utilities
 export { parseXmlToSlate } from './serialization/xmlToSlate';
 export { serializeSlateToXml, serializeSlateToQti } from './serialization/slateToXml';
+export {
+  domToXmlNode,
+  xmlNodeToDom,
+  findChild,
+  findChildren,
+} from './serialization/xmlNode';
 
 // Export plugins
 export {
@@ -48,6 +54,7 @@ export type {
   ChoiceInteractionConfig,
   ChoiceConfig,
   ElementAttributes,
+  XmlNode,
 } from './types';
 
 // Re-export Slate types for convenience

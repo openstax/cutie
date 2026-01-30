@@ -3,12 +3,12 @@ import { useStyle } from '../hooks/useStyle';
 import { choicePropertiesPanels } from '../interactions/choice';
 import { textEntryPropertiesPanels } from '../interactions/textEntry';
 import { extendedTextPropertiesPanels } from '../interactions/extendedText';
-import type { SlateElement, ElementAttributes } from '../types';
+import type { SlateElement, ElementAttributes, XmlNode } from '../types';
 
 interface PropertiesPanelProps {
   selectedElement: SlateElement | null;
   selectedPath: Path | null;
-  onUpdateAttributes: (path: Path, attributes: ElementAttributes) => void;
+  onUpdateAttributes: (path: Path, attributes: ElementAttributes, responseDeclaration?: XmlNode) => void;
 }
 
 // Single contact point per interaction: spread all properties panel objects

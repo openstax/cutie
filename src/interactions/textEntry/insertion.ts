@@ -64,6 +64,15 @@ export function insertTextEntryInteraction(
       'pattern-mask': config.patternMask,
       'placeholder-text': config.placeholderText,
     },
+    responseDeclaration: {
+      tagName: 'qti-response-declaration',
+      attributes: {
+        identifier: responseId,
+        cardinality: 'single',
+        'base-type': 'string',
+      },
+      children: [],
+    },
   };
 
   Transforms.insertNodes(editor, textEntry as any);

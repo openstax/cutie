@@ -475,9 +475,16 @@ describe('XML Round-trip Tests', () => {
       const choiceInteraction = slateNodes[0] as any;
       const choices = choiceInteraction.children;
 
-      // Each choice should have normalized text
-      expect(choices[0].children[0].text).toBe(' Option A ');
-      expect(choices[1].children[0].text).toBe(' Option B ');
+      // Each choice has choice-id-label and choice-content as children
+      // The text is in choice-content > paragraph > text
+      const getChoiceText = (choice: any) => {
+        const content = choice.children.find((c: any) => c.type === 'choice-content');
+        const paragraph = content.children[0];
+        return paragraph.children[0].text;
+      };
+
+      expect(getChoiceText(choices[0])).toBe(' Option A ');
+      expect(getChoiceText(choices[1])).toBe(' Option B ');
     });
 
     it('should preserve single spaces between words', () => {

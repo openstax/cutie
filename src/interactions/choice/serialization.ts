@@ -1,24 +1,36 @@
 import type { Descendant } from 'slate';
+import type { SerializationContext } from '../../serialization/slateToXml';
+import type { ParserContext } from '../../serialization/xmlToSlate';
 import { createXmlElement } from '../../serialization/xmlUtils';
-import type { SlateElement } from '../../types';
-
-/**
- * Type definitions for serialization
- */
-export interface SerializationContext {
-  doc: XMLDocument;
-  responseIdentifiers: string[];
-  errors: Array<{ type: string; message: string; responseIdentifier?: string }>;
-}
+import type { SlateElement, XmlNode } from '../../types';
 
 export type ConvertChildrenFn = (nodes: Node[]) => Descendant[];
+
+/**
+ * Create a default response declaration for a choice interaction
+ */
+function createDefaultResponseDeclaration(
+  responseIdentifier: string,
+  maxChoices: string
+): XmlNode {
+  return {
+    tagName: 'qti-response-declaration',
+    attributes: {
+      identifier: responseIdentifier,
+      cardinality: maxChoices === '1' ? 'single' : 'multiple',
+      'base-type': 'identifier',
+    },
+    children: [],
+  };
+}
 
 /**
  * Parse QTI choice interaction from XML
  */
 function parseChoiceInteraction(
   element: Element,
-  convertChildren: ConvertChildrenFn
+  convertChildren: ConvertChildrenFn,
+  context?: ParserContext
 ): SlateElement {
   const attributes: Record<string, string | undefined> = {};
   for (let i = 0; i < element.attributes.length; i++) {
@@ -26,17 +38,25 @@ function parseChoiceInteraction(
     attributes[attr.name] = attr.value;
   }
 
+  const responseId = attributes['response-identifier'] || '';
+  const maxChoices = attributes['max-choices'] || '1';
+
+  // Get existing response declaration or create a default one
+  const responseDeclaration = (responseId && context?.responseDeclarations.get(responseId))
+    || createDefaultResponseDeclaration(responseId, maxChoices);
+
   const children = convertChildren(Array.from(element.childNodes));
   return {
     type: 'qti-choice-interaction',
     children: children.length > 0 ? children : [{ type: 'qti-simple-choice', children: [{ text: '' }], attributes: { identifier: 'choice-1' } }],
     attributes: {
-      'response-identifier': attributes['response-identifier'] || '',
-      'max-choices': attributes['max-choices'] || '1',
+      'response-identifier': responseId,
+      'max-choices': maxChoices,
       'min-choices': attributes['min-choices'],
       shuffle: attributes['shuffle'],
       ...attributes,
     },
+    responseDeclaration,
   } as SlateElement;
 }
 
@@ -54,6 +74,11 @@ function serializeChoiceInteraction(
   const responseId = element.attributes['response-identifier'];
   if (responseId) {
     context.responseIdentifiers.push(responseId);
+
+    // Add response declaration to context if present
+    if (element.responseDeclaration) {
+      context.responseDeclarations.set(responseId, element.responseDeclaration);
+    }
   } else {
     context.errors.push({
       type: 'missing-identifier',
@@ -87,7 +112,7 @@ function setAttributes(
 /**
  * Export parsers and serializers as objects that can be spread
  */
-export const choiceParsers: Record<string, (element: Element, convertChildren: ConvertChildrenFn) => SlateElement> = {
+export const choiceParsers: Record<string, (element: Element, convertChildren: ConvertChildrenFn, context?: ParserContext) => SlateElement> = {
   'qti-choice-interaction': parseChoiceInteraction,
 };
 

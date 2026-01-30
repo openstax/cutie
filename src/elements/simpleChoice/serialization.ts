@@ -1,15 +1,8 @@
 import type { Descendant } from 'slate';
+import type { SerializationContext } from '../../serialization/slateToXml';
+import type { ParserContext } from '../../serialization/xmlToSlate';
 import { createXmlElement } from '../../serialization/xmlUtils';
 import type { SlateElement } from '../../types';
-
-/**
- * Type definitions for serialization
- */
-export interface SerializationContext {
-  doc: XMLDocument;
-  responseIdentifiers: string[];
-  errors: Array<{ type: string; message: string; responseIdentifier?: string }>;
-}
 
 export type ConvertChildrenFn = (nodes: Node[]) => Descendant[];
 
@@ -18,7 +11,8 @@ export type ConvertChildrenFn = (nodes: Node[]) => Descendant[];
  */
 function parseSimpleChoice(
   element: Element,
-  convertChildren: ConvertChildrenFn
+  convertChildren: ConvertChildrenFn,
+  _context?: ParserContext
 ): SlateElement {
   const attributes: Record<string, string | undefined> = {};
   for (let i = 0; i < element.attributes.length; i++) {
@@ -154,7 +148,7 @@ function setAttributes(
 /**
  * Export parsers and serializers as objects that can be spread
  */
-export const simpleChoiceParsers: Record<string, (element: Element, convertChildren: ConvertChildrenFn) => SlateElement> = {
+export const simpleChoiceParsers: Record<string, (element: Element, convertChildren: ConvertChildrenFn, context?: ParserContext) => SlateElement> = {
   'qti-simple-choice': parseSimpleChoice,
 };
 

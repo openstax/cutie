@@ -162,10 +162,14 @@ describe('parseXmlToSlate', () => {
 
       const choice = result[0] as SlateElement;
       expect(choice.children).toHaveLength(2);
+      // qti-simple-choice now has choice-id-label and choice-content children
       expect(choice.children[0]).toMatchObject({
         type: 'qti-simple-choice',
         attributes: { identifier: 'choice-1' },
-        children: [{ text: 'First choice' }],
+        children: [
+          { type: 'choice-id-label', children: [{ text: 'choice-1' }] },
+          { type: 'choice-content', children: [{ type: 'paragraph', children: [{ text: 'First choice' }] }] },
+        ],
       });
     });
 

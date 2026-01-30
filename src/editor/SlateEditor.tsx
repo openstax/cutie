@@ -3,7 +3,7 @@ import { createEditor, Descendant, Editor, Element as SlateElementType, Transfor
 import { Slate, Editable, withReact, RenderElementProps, RenderLeafProps } from 'slate-react';
 import { withHistory } from 'slate-history';
 import type { Path } from 'slate';
-import type { SlateEditorProps, SlateElement, ElementAttributes } from '../types';
+import type { SlateEditorProps, SlateElement, ElementAttributes, XmlNode } from '../types';
 import { withQtiInteractions, withXhtml, withUnknownElements } from '../plugins';
 import { Toolbar } from './Toolbar';
 import { parseXmlToSlate } from '../serialization/xmlToSlate';
@@ -120,8 +120,10 @@ export function SlateEditor({
 
   // Handle attribute updates from properties panel
   const handleUpdateAttributes = useCallback(
-    (path: Path, attributes: ElementAttributes) => {
-      Transforms.setNodes(editor, { attributes } as any, { at: path });
+    (path: Path, attributes: ElementAttributes, responseDeclaration?: XmlNode) => {
+      // Always include responseDeclaration in updates so it can be removed (set to undefined)
+      const updates: Record<string, unknown> = { attributes, responseDeclaration };
+      Transforms.setNodes(editor, updates as any, { at: path });
     },
     [editor]
   );

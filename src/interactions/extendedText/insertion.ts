@@ -64,6 +64,15 @@ export function insertExtendedTextInteraction(
       'expected-length': config.expectedLength,
       'placeholder-text': config.placeholderText,
     },
+    responseDeclaration: {
+      tagName: 'qti-response-declaration',
+      attributes: {
+        identifier: responseId,
+        cardinality: 'single',
+        'base-type': 'string',
+      },
+      children: [],
+    },
   };
 
   Transforms.insertNodes(editor, extendedText as any);
