@@ -23,7 +23,8 @@ export function withQtiInteractions(editor: CustomEditor): CustomEditor {
       if (config) return config.isVoid;
 
       const type = element.type as string;
-      if (type === 'image' || type === 'line-break') {
+      const voidTypes = ['image', 'line-break'];
+      if (voidTypes.includes(type)) {
         return true;
       }
 
@@ -43,7 +44,8 @@ export function withQtiInteractions(editor: CustomEditor): CustomEditor {
       if (config) return config.isInline;
 
       const type = element.type as string;
-      if (type === 'span' || type === 'strong' || type === 'em') {
+      const inlineTypes = ['span', 'strong', 'em', 'line-break'];
+      if (inlineTypes.includes(type)) {
         return true;
       }
     }
