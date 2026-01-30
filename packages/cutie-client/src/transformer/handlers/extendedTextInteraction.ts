@@ -1,6 +1,7 @@
 import { createMissingAttributeError } from '../../errors/errorDisplay';
 import { registry } from '../registry';
 import type { ElementHandler, TransformContext } from '../types';
+import { getDefaultValue } from './responseUtils';
 
 /**
  * Handler for qti-extended-text-interaction elements
@@ -70,6 +71,12 @@ class ExtendedTextInteractionHandler implements ElementHandler {
         // Approximate height based on line count (roughly 20px per line)
         textarea.style.minHeight = `${Math.max(lines * 20, 60)}px`;
       }
+    }
+
+    // Initialize with default value from response declaration if present
+    const defaultValue = getDefaultValue(element.ownerDocument, responseIdentifier);
+    if (defaultValue !== null && typeof defaultValue === 'string') {
+      textarea.value = defaultValue;
     }
 
     container.appendChild(textarea);

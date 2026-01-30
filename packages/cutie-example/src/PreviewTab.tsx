@@ -11,9 +11,10 @@ interface PreviewTabProps {
   setResponses: (responses: ResponseData | null) => void;
   itemXml?: string;
   onStateUpdate?: (state: AttemptState) => void;
+  onTemplateUpdate?: (template: string) => void;
 }
 
-export function PreviewTab({ attemptState, sanitizedTemplate, responses, setResponses, itemXml, onStateUpdate }: PreviewTabProps) {
+export function PreviewTab({ attemptState, sanitizedTemplate, responses, setResponses, itemXml, onStateUpdate, onTemplateUpdate }: PreviewTabProps) {
   const [interactionsEnabled, setInteractionsEnabled] = useState(true);
   const [localAttemptState, setLocalAttemptState] = useState<AttemptState | null>(attemptState);
   const previewRef = useRef<HTMLDivElement>(null);
@@ -70,9 +71,12 @@ export function PreviewTab({ attemptState, sanitizedTemplate, responses, setResp
         // Update local state
         setLocalAttemptState(result.state);
 
-        // Notify parent if callback provided
+        // Notify parent if callbacks provided
         if (onStateUpdate) {
           onStateUpdate(result.state);
+        }
+        if (onTemplateUpdate) {
+          onTemplateUpdate(result.template);
         }
       } catch (error) {
         console.error('Error processing response:', error);
