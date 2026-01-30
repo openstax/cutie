@@ -2,6 +2,8 @@ import type { Path } from 'slate';
 import { PropertyField } from '../../components/properties/PropertyField';
 import { PropertyCheckbox } from '../../components/properties/PropertyCheckbox';
 import { ToggleableFormSection } from '../../components/properties/ToggleableFormSection';
+import { MappingMetadataFields } from '../../components/properties/MappingMetadataFields';
+import { MapEntryList } from '../../components/properties/MapEntryList';
 import type { QtiChoiceInteraction, QtiSimpleChoice, ChoiceIdLabel, ElementAttributes, XmlNode } from '../../types';
 import {
   getCorrectValues,
@@ -12,6 +14,15 @@ import {
   updateIdentifier,
   updateCardinality,
 } from '../../utils/responseDeclaration';
+import {
+  hasMapping,
+  getMapping,
+  removeMapping,
+  addEmptyMapping,
+  updateMapping,
+  type MappingMetadata,
+  type MapEntry,
+} from '../../utils/mappingDeclaration';
 
 interface ChoicePropertiesPanelProps {
   element: QtiChoiceInteraction;
@@ -132,6 +143,45 @@ export function ChoicePropertiesPanel({
     onUpdate(path, attrs, newDecl);
   };
 
+  // Mapping data
+  const mappingEnabled = hasMapping(responseDecl);
+  const mappingData = getMapping(responseDecl);
+  const mappingEntries = mappingData?.entries ?? [];
+  const mappingMetadata: MappingMetadata = mappingData?.metadata ?? { defaultValue: 0 };
+
+  // Get choice identifiers that are not already mapped
+  const mappedKeys = new Set(mappingEntries.map(e => e.mapKey));
+  const unmappedChoices = choiceIdentifiers.filter(id => !mappedKeys.has(id));
+
+  const handleToggleMapping = (enabled: boolean) => {
+    if (enabled) {
+      const updatedDecl = addEmptyMapping(responseDecl, 0);
+      onUpdate(path, attrs, updatedDecl);
+    } else {
+      const updatedDecl = removeMapping(responseDecl);
+      onUpdate(path, attrs, updatedDecl);
+    }
+  };
+
+  const handleMappingMetadataChange = (metadata: MappingMetadata) => {
+    const updatedDecl = updateMapping(responseDecl, metadata, mappingEntries);
+    onUpdate(path, attrs, updatedDecl);
+  };
+
+  const handleMappingEntriesChange = (entries: MapEntry[]) => {
+    const updatedDecl = updateMapping(responseDecl, mappingMetadata, entries);
+    onUpdate(path, attrs, updatedDecl);
+  };
+
+  const handleAddMappingEntry = () => {
+    // Add a new entry with the first unmapped choice, or empty if none available
+    const newEntry: MapEntry = {
+      mapKey: unmappedChoices[0] || '',
+      mappedValue: 1,
+    };
+    handleMappingEntriesChange([...mappingEntries, newEntry]);
+  };
+
   return (
     <div className="property-editor">
       <h3>Choice Interaction</h3>
@@ -205,6 +255,38 @@ export function ChoicePropertiesPanel({
             <p className="property-empty-state">No choices available yet.</p>
           )}
         </fieldset>
+      </ToggleableFormSection>
+
+      <ToggleableFormSection
+        label="Response mapping"
+        enabled={mappingEnabled}
+        onToggle={handleToggleMapping}
+      >
+        <MappingMetadataFields
+          metadata={mappingMetadata}
+          onChange={handleMappingMetadataChange}
+        />
+        <MapEntryList
+          entries={mappingEntries}
+          onEntriesChange={handleMappingEntriesChange}
+          responseDisplay={(response, onChange) => (
+            <select
+              value={response}
+              onChange={(e) => onChange(e.target.value)}
+            >
+              <option value="">Select choice...</option>
+              {unmappedChoices.map(id => (
+                <option key={id} value={id}>{id}</option>
+              ))}
+              {/* Show current value if it's mapped (so it appears selected) */}
+              {response && !unmappedChoices.includes(response) && (
+                <option value={response}>{response}</option>
+              )}
+            </select>
+          )}
+          onAddEntry={handleAddMappingEntry}
+          addButtonLabel="Add choice mapping"
+        />
       </ToggleableFormSection>
 
       <div className="property-tip">
