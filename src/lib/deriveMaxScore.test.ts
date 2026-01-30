@@ -234,8 +234,8 @@ describe('deriveMaxScore', () => {
     });
   });
 
-  describe('Mapping with sum of map-entries (existing behavior)', () => {
-    test('should return sum of mapped values when no upper-bound', () => {
+  describe('Mapping with map-entries', () => {
+    test('should return max of mapped values for single cardinality', () => {
       const itemDoc = parseXML(`
         <qti-assessment-item>
           <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier">
@@ -255,10 +255,84 @@ describe('deriveMaxScore', () => {
       };
 
       const result = deriveMaxScore(itemDoc, variables);
-      expect(result).toBe(3); // sum: 1 + 2
+      expect(result).toBe(2); // max of 1, 2 for single cardinality
     });
 
-    test('should apply lower-bound when summing map-entries', () => {
+    test('should return max of mapped values for single cardinality text entry with partial credit', () => {
+      // This is the Richard III text entry example where "York" = 1, "york" = 0.5
+      // With single cardinality, only one answer can be given, so maxScore = 1 (not 1.5)
+      const itemDoc = parseXML(`
+        <qti-assessment-item>
+          <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="string">
+            <qti-correct-response>
+              <qti-value>York</qti-value>
+            </qti-correct-response>
+            <qti-mapping default-value="0">
+              <qti-map-entry map-key="York" mapped-value="1"/>
+              <qti-map-entry map-key="york" mapped-value="0.5"/>
+            </qti-mapping>
+          </qti-response-declaration>
+          <qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/map_response.xml"/>
+        </qti-assessment-item>
+      `);
+
+      const variables: Record<string, unknown> = {
+        SCORE: 0
+      };
+
+      const result = deriveMaxScore(itemDoc, variables);
+      expect(result).toBe(1); // max of 1, 0.5 for single cardinality (not sum of 1.5)
+    });
+
+    test('should return sum of mapped values for multiple cardinality', () => {
+      const itemDoc = parseXML(`
+        <qti-assessment-item>
+          <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="identifier">
+            <qti-correct-response>
+              <qti-value>A</qti-value>
+              <qti-value>B</qti-value>
+            </qti-correct-response>
+            <qti-mapping>
+              <qti-map-entry map-key="A" mapped-value="1"/>
+              <qti-map-entry map-key="B" mapped-value="2"/>
+            </qti-mapping>
+          </qti-response-declaration>
+        </qti-assessment-item>
+      `);
+
+      const variables: Record<string, unknown> = {
+        SCORE: 0
+      };
+
+      const result = deriveMaxScore(itemDoc, variables);
+      expect(result).toBe(3); // sum: 1 + 2 for multiple cardinality
+    });
+
+    test('should return sum of positive mapped values for multiple cardinality with lower-bound', () => {
+      const itemDoc = parseXML(`
+        <qti-assessment-item>
+          <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="identifier">
+            <qti-correct-response>
+              <qti-value>A</qti-value>
+            </qti-correct-response>
+            <qti-mapping lower-bound="0">
+              <qti-map-entry map-key="A" mapped-value="2"/>
+              <qti-map-entry map-key="B" mapped-value="-1"/>
+              <qti-map-entry map-key="C" mapped-value="1"/>
+            </qti-mapping>
+          </qti-response-declaration>
+        </qti-assessment-item>
+      `);
+
+      const variables: Record<string, unknown> = {
+        SCORE: 0
+      };
+
+      const result = deriveMaxScore(itemDoc, variables);
+      expect(result).toBe(3); // sum of positive values: 2 + 1 for multiple cardinality
+    });
+
+    test('should return max of positive mapped values for single cardinality with lower-bound', () => {
       const itemDoc = parseXML(`
         <qti-assessment-item>
           <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier">
@@ -278,7 +352,7 @@ describe('deriveMaxScore', () => {
       };
 
       const result = deriveMaxScore(itemDoc, variables);
-      expect(result).toBe(2); // max positive value, lower-bound prevents negative
+      expect(result).toBe(2); // max positive value for single cardinality
     });
   });
 

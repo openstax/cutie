@@ -1465,6 +1465,143 @@ describe('Response Processing Operators and Expressions', () => {
 
       expect(newState.variables.SCORE).toBe(1);
     });
+
+    test('matches integer values submitted as strings', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+                     identifier="match-integer-string">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="integer"/>
+
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value>
+      <qti-value>0</qti-value>
+    </qti-default-value>
+  </qti-outcome-declaration>
+
+  <qti-item-body>
+    <qti-text-entry-interaction response-identifier="RESPONSE"/>
+  </qti-item-body>
+
+  <qti-response-processing>
+    <qti-response-condition>
+      <qti-response-if>
+        <qti-match>
+          <qti-variable identifier="RESPONSE"/>
+          <qti-base-value base-type="integer">42</qti-base-value>
+        </qti-match>
+        <qti-set-outcome-value identifier="SCORE">
+          <qti-base-value base-type="float">1</qti-base-value>
+        </qti-set-outcome-value>
+      </qti-response-if>
+    </qti-response-condition>
+  </qti-response-processing>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const currentState = {
+        variables: { SCORE: 0 },
+        completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: null,
+      };
+      // Submit as string (as would come from a text input)
+      const submission = { RESPONSE: '42' };
+
+      const newState = processResponse(itemDoc, submission, currentState);
+
+      expect(newState.variables.SCORE).toBe(1);
+    });
+
+    test('matches float values submitted as numbers', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+                     identifier="match-float">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="float"/>
+
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value>
+      <qti-value>0</qti-value>
+    </qti-default-value>
+  </qti-outcome-declaration>
+
+  <qti-item-body>
+    <qti-text-entry-interaction response-identifier="RESPONSE"/>
+  </qti-item-body>
+
+  <qti-response-processing>
+    <qti-response-condition>
+      <qti-response-if>
+        <qti-match>
+          <qti-variable identifier="RESPONSE"/>
+          <qti-base-value base-type="float">3.14</qti-base-value>
+        </qti-match>
+        <qti-set-outcome-value identifier="SCORE">
+          <qti-base-value base-type="float">1</qti-base-value>
+        </qti-set-outcome-value>
+      </qti-response-if>
+    </qti-response-condition>
+  </qti-response-processing>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const currentState = {
+        variables: { SCORE: 0 },
+        completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: null,
+      };
+      const submission = { RESPONSE: 3.14 };
+
+      const newState = processResponse(itemDoc, submission, currentState);
+
+      expect(newState.variables.SCORE).toBe(1);
+    });
+
+    test('matches float values submitted as strings', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+                     identifier="match-float-string">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="float"/>
+
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value>
+      <qti-value>0</qti-value>
+    </qti-default-value>
+  </qti-outcome-declaration>
+
+  <qti-item-body>
+    <qti-text-entry-interaction response-identifier="RESPONSE"/>
+  </qti-item-body>
+
+  <qti-response-processing>
+    <qti-response-condition>
+      <qti-response-if>
+        <qti-match>
+          <qti-variable identifier="RESPONSE"/>
+          <qti-base-value base-type="float">3.14</qti-base-value>
+        </qti-match>
+        <qti-set-outcome-value identifier="SCORE">
+          <qti-base-value base-type="float">1</qti-base-value>
+        </qti-set-outcome-value>
+      </qti-response-if>
+    </qti-response-condition>
+  </qti-response-processing>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const currentState = {
+        variables: { SCORE: 0 },
+        completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: null,
+      };
+      // Submit as string (as would come from a text input)
+      const submission = { RESPONSE: '3.14' };
+
+      const newState = processResponse(itemDoc, submission, currentState);
+
+      expect(newState.variables.SCORE).toBe(1);
+    });
   });
 
   describe('qti-correct operator', () => {

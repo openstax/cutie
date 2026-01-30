@@ -229,8 +229,10 @@ function tryDeriveMappingUpperBound(itemDoc: Document): number | null {
 }
 
 /**
- * Try to derive maxScore from sum of map-entries.
- * Takes the maximum positive values, respecting lower-bound if present.
+ * Try to derive maxScore from map-entries.
+ * For single cardinality: returns the maximum mapped value (only one can be selected).
+ * For multiple/ordered cardinality: sums positive mapped values.
+ * Respects lower-bound if present.
  */
 function tryDeriveSumOfMapEntries(itemDoc: Document): number | null {
   const responseDeclarations = itemDoc.getElementsByTagName('qti-response-declaration');
@@ -264,20 +266,27 @@ function tryDeriveSumOfMapEntries(itemDoc: Document): number | null {
         continue;
       }
 
+      // Get cardinality from the response declaration
+      const cardinality = declaration.getAttribute('cardinality') || 'single';
+      const isSingleCardinality = cardinality === 'single';
+
       // Check for lower-bound
       const lowerBound = mappingElement.getAttribute('lower-bound');
       const hasLowerBound = lowerBound !== null;
-      const lowerBoundValue = hasLowerBound ? parseFloat(lowerBound) : -Infinity;
 
-      // If there's a lower-bound, only sum positive values (since negative values would be clamped)
-      // Otherwise, sum all values
+      // For single cardinality, only one value can be selected, so take the max
+      // For multiple/ordered cardinality, sum the values (respecting lower-bound)
       let maxScore: number;
-      if (hasLowerBound && !isNaN(lowerBoundValue)) {
-        // Take max of positive values only
+      if (isSingleCardinality) {
+        // Single cardinality: max of positive values (or all values if no lower-bound constraint)
         const positiveValues = values.filter(v => v > 0);
         maxScore = positiveValues.length > 0 ? Math.max(...positiveValues) : 0;
+      } else if (hasLowerBound) {
+        // Multiple/ordered with lower-bound: sum only positive values
+        const positiveValues = values.filter(v => v > 0);
+        maxScore = positiveValues.reduce((sum, v) => sum + v, 0);
       } else {
-        // Sum all values
+        // Multiple/ordered without lower-bound: sum all values
         maxScore = values.reduce((sum, v) => sum + v, 0);
       }
 
