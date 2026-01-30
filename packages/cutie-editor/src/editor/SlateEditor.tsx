@@ -111,12 +111,16 @@ export function SlateEditor({
       try {
         const newValue = parseXmlToSlate(qtiXml);
         setValue(newValue);
+        // Directly update the Slate editor instance since initialValue only works on mount
+        editor.children = newValue;
+        Transforms.deselect(editor);
+        editor.onChange();
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to parse QTI XML';
         onError?.(errorMessage);
       }
     }
-  }, [qtiXml, onError]);
+  }, [qtiXml, onError, editor]);
 
   // Handle attribute updates from properties panel
   const handleUpdateAttributes = useCallback(
