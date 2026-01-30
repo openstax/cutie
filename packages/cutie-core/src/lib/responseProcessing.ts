@@ -9,6 +9,48 @@ import {
 } from './expressionEvaluator/index';
 
 /**
+ * Coerce a submitted response value to match the expected type from the response declaration.
+ * This handles string values submitted from text inputs that need to be converted to numbers.
+ */
+function coerceResponseValue(itemDoc: Document, identifier: string, value: unknown): unknown {
+  // If value is null/undefined or already a number, no coercion needed for numeric types
+  if (value === null || value === undefined) {
+    return value;
+  }
+
+  // Find the response declaration to get the base-type
+  const declarations = itemDoc.getElementsByTagName('qti-response-declaration');
+  let baseType: string | null = null;
+
+  for (let i = 0; i < declarations.length; i++) {
+    const decl = declarations[i];
+    if (decl.getAttribute('identifier') === identifier) {
+      baseType = decl.getAttribute('base-type');
+      break;
+    }
+  }
+
+  // If no declaration found or no base-type, return value as-is
+  if (!baseType) {
+    return value;
+  }
+
+  // Coerce string values to numbers for numeric types
+  if (typeof value === 'string') {
+    if (baseType === 'integer') {
+      const parsed = parseInt(value, 10);
+      return isNaN(parsed) ? value : parsed;
+    }
+    if (baseType === 'float') {
+      const parsed = parseFloat(value);
+      return isNaN(parsed) ? value : parsed;
+    }
+  }
+
+  return value;
+}
+
+/**
  * Processes a response submission by executing response processing rules
  * from a QTI assessment item.
  *
@@ -35,8 +77,9 @@ export function processResponse(
   const variables: Record<string, unknown> = { ...currentState.variables };
 
   // Step 1: Update response variables from submission
+  // Coerce string values to appropriate types based on response declarations
   for (const [identifier, value] of Object.entries(submission)) {
-    variables[identifier] = value;
+    variables[identifier] = coerceResponseValue(itemDoc, identifier, value);
   }
 
   // Step 2: Execute response processing rules

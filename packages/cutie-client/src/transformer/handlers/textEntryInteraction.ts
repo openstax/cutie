@@ -42,9 +42,21 @@ class TextEntryInteractionHandler implements ElementHandler {
       return fragment;
     }
 
+    // Find the response declaration to get base-type
+    const responseDeclaration = element.ownerDocument?.querySelector(
+      `qti-response-declaration[identifier="${responseIdentifier}"]`
+    );
+    const baseType = responseDeclaration?.getAttribute('base-type');
+
     // Create inline text input element
     const input = document.createElement('input');
-    input.type = 'text';
+
+    if (baseType === 'integer' || baseType === 'float') {
+      input.type = 'number';
+      input.step = baseType === 'integer' ? '1' : 'any';
+    } else {
+      input.type = 'text';
+    }
     input.className = 'qti-text-entry-interaction';
 
     // Set data attribute for identification
@@ -68,6 +80,7 @@ class TextEntryInteractionHandler implements ElementHandler {
       const responseAccessor = () => {
         const value = input.value.trim();
         // Return empty string as null to match QTI convention for no response
+        // Server is responsible for parsing string values to appropriate types
         return value === '' ? null : value;
       };
 
