@@ -1,6 +1,8 @@
 import type { Path } from 'slate';
 import { PropertyField } from '../../components/properties/PropertyField';
 import { ToggleableFormSection } from '../../components/properties/ToggleableFormSection';
+import { MappingMetadataFields } from '../../components/properties/MappingMetadataFields';
+import { MapEntryList } from '../../components/properties/MapEntryList';
 import type { QtiExtendedTextInteraction, ElementAttributes, XmlNode } from '../../types';
 import {
   getCorrectValue,
@@ -10,6 +12,15 @@ import {
   addEmptyCorrectResponse,
   updateIdentifier,
 } from '../../utils/responseDeclaration';
+import {
+  hasMapping,
+  getMapping,
+  removeMapping,
+  addEmptyMapping,
+  updateMapping,
+  type MappingMetadata,
+  type MapEntry,
+} from '../../utils/mappingDeclaration';
 
 interface ExtendedTextPropertiesPanelProps {
   element: QtiExtendedTextInteraction;
@@ -64,6 +75,37 @@ export function ExtendedTextPropertiesPanel({
     onUpdate(path, attrs, updatedDecl);
   };
 
+  // Mapping data
+  const mappingEnabled = hasMapping(responseDecl);
+  const mappingData = getMapping(responseDecl);
+  const mappingEntries = mappingData?.entries ?? [];
+  const mappingMetadata: MappingMetadata = mappingData?.metadata ?? { defaultValue: 0 };
+
+  const handleToggleMapping = (enabled: boolean) => {
+    if (enabled) {
+      const updatedDecl = addEmptyMapping(responseDecl, 0);
+      onUpdate(path, attrs, updatedDecl);
+    } else {
+      const updatedDecl = removeMapping(responseDecl);
+      onUpdate(path, attrs, updatedDecl);
+    }
+  };
+
+  const handleMappingMetadataChange = (metadata: MappingMetadata) => {
+    const updatedDecl = updateMapping(responseDecl, metadata, mappingEntries);
+    onUpdate(path, attrs, updatedDecl);
+  };
+
+  const handleMappingEntriesChange = (entries: MapEntry[]) => {
+    const updatedDecl = updateMapping(responseDecl, mappingMetadata, entries);
+    onUpdate(path, attrs, updatedDecl);
+  };
+
+  const handleAddMappingEntry = () => {
+    const newEntry: MapEntry = { mapKey: '', mappedValue: 1 };
+    handleMappingEntriesChange([...mappingEntries, newEntry]);
+  };
+
   return (
     <div className="property-editor">
       <h3>Extended Text Interaction</h3>
@@ -115,6 +157,31 @@ export function ExtendedTextPropertiesPanel({
             rows={4}
           />
         </div>
+      </ToggleableFormSection>
+
+      <ToggleableFormSection
+        label="Response mapping"
+        enabled={mappingEnabled}
+        onToggle={handleToggleMapping}
+      >
+        <MappingMetadataFields
+          metadata={mappingMetadata}
+          onChange={handleMappingMetadataChange}
+        />
+        <MapEntryList
+          entries={mappingEntries}
+          onEntriesChange={handleMappingEntriesChange}
+          responseDisplay={(response, onChange) => (
+            <input
+              type="text"
+              value={response}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="Response value"
+            />
+          )}
+          onAddEntry={handleAddMappingEntry}
+          addButtonLabel="Add response mapping"
+        />
       </ToggleableFormSection>
     </div>
   );

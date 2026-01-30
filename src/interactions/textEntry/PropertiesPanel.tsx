@@ -1,6 +1,8 @@
 import type { Path } from 'slate';
 import { PropertyField } from '../../components/properties/PropertyField';
 import { ToggleableFormSection } from '../../components/properties/ToggleableFormSection';
+import { MappingMetadataFields } from '../../components/properties/MappingMetadataFields';
+import { MapEntryList } from '../../components/properties/MapEntryList';
 import type { QtiTextEntryInteraction, ElementAttributes, XmlNode } from '../../types';
 import {
   getCorrectValue,
@@ -12,6 +14,15 @@ import {
   updateBaseType,
   getBaseType,
 } from '../../utils/responseDeclaration';
+import {
+  hasMapping,
+  getMapping,
+  removeMapping,
+  addEmptyMapping,
+  updateMapping,
+  type MappingMetadata,
+  type MapEntry,
+} from '../../utils/mappingDeclaration';
 
 interface TextEntryPropertiesPanelProps {
   element: QtiTextEntryInteraction;
@@ -104,6 +115,37 @@ export function TextEntryPropertiesPanel({
     onUpdate(path, attrs, updatedDecl);
   };
 
+  // Mapping data
+  const mappingEnabled = hasMapping(responseDecl);
+  const mappingData = getMapping(responseDecl);
+  const mappingEntries = mappingData?.entries ?? [];
+  const mappingMetadata: MappingMetadata = mappingData?.metadata ?? { defaultValue: 0 };
+
+  const handleToggleMapping = (enabled: boolean) => {
+    if (enabled) {
+      const updatedDecl = addEmptyMapping(responseDecl, 0);
+      onUpdate(path, attrs, updatedDecl);
+    } else {
+      const updatedDecl = removeMapping(responseDecl);
+      onUpdate(path, attrs, updatedDecl);
+    }
+  };
+
+  const handleMappingMetadataChange = (metadata: MappingMetadata) => {
+    const updatedDecl = updateMapping(responseDecl, metadata, mappingEntries);
+    onUpdate(path, attrs, updatedDecl);
+  };
+
+  const handleMappingEntriesChange = (entries: MapEntry[]) => {
+    const updatedDecl = updateMapping(responseDecl, mappingMetadata, entries);
+    onUpdate(path, attrs, updatedDecl);
+  };
+
+  const handleAddMappingEntry = () => {
+    const newEntry: MapEntry = { mapKey: '', mappedValue: 1 };
+    handleMappingEntriesChange([...mappingEntries, newEntry]);
+  };
+
   return (
     <div className="property-editor">
       <h3>Text Entry Interaction</h3>
@@ -167,6 +209,32 @@ export function TextEntryPropertiesPanel({
             placeholder={baseType === 'string' ? 'Enter correct answer' : 'Enter number'}
           />
         </div>
+      </ToggleableFormSection>
+
+      <ToggleableFormSection
+        label="Response mapping"
+        enabled={mappingEnabled}
+        onToggle={handleToggleMapping}
+      >
+        <MappingMetadataFields
+          metadata={mappingMetadata}
+          onChange={handleMappingMetadataChange}
+        />
+        <MapEntryList
+          entries={mappingEntries}
+          onEntriesChange={handleMappingEntriesChange}
+          responseDisplay={(response, onChange) => (
+            <input
+              type={getInputType(baseType)}
+              step={getInputStep(baseType)}
+              value={response}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="Response value"
+            />
+          )}
+          onAddEntry={handleAddMappingEntry}
+          addButtonLabel="Add response mapping"
+        />
       </ToggleableFormSection>
     </div>
   );
