@@ -4,6 +4,7 @@ import {
   elementNeedsSpacers,
   getElementCategories,
   getElementForbiddenDescendants,
+  normalizeElement,
 } from './withQtiInteractions';
 
 /**
@@ -47,6 +48,13 @@ export function withXhtml(editor: CustomEditor): CustomEditor {
             }
           }
         }
+      }
+    }
+
+    // Run element-specific normalization hooks
+    if (Element.isElement(node)) {
+      if (normalizeElement(editor, node, path)) {
+        return; // Normalization was performed, will re-run
       }
     }
 
