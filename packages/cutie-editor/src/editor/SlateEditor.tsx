@@ -84,18 +84,25 @@ export function SlateEditor({
       setSelectedElement(null);
       setSelectedPath(null);
     } else {
-      // Find element with properties panel at selection
-      const [match] = Editor.nodes(editor, {
+      // Find the deepest element with a properties panel at selection
+      // We want the most specific element (e.g., image inside an interaction)
+      let deepestMatch: [SlateElement, Path] | null = null;
+
+      for (const [node, path] of Editor.nodes(editor, {
         at: selection,
         match: (n) =>
           SlateElementType.isElement(n) &&
           hasPropertiesPanel(n as SlateElement),
-      });
+      })) {
+        // Keep the match with the longest path (deepest in the tree)
+        if (!deepestMatch || path.length > deepestMatch[1].length) {
+          deepestMatch = [node as SlateElement, path];
+        }
+      }
 
-      if (match) {
-        const [node, path] = match;
-        setSelectedElement(node as SlateElement);
-        setSelectedPath(path);
+      if (deepestMatch) {
+        setSelectedElement(deepestMatch[0]);
+        setSelectedPath(deepestMatch[1]);
       } else {
         setSelectedElement(null);
         setSelectedPath(null);
