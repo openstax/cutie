@@ -65,7 +65,7 @@ export function withQtiInteractions(editor: CustomEditor): CustomEditor {
       if (config) return config.isVoid;
 
       const type = element.type as string;
-      const voidTypes = ['image', 'line-break', 'document-metadata'];
+      const voidTypes = ['image', 'line-break', 'document-metadata', 'horizontal-rule'];
       if (voidTypes.includes(type)) {
         return true;
       }

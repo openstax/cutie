@@ -405,6 +405,29 @@ function Element({ attributes, children, element }: RenderElementProps): React.J
     case 'em':
       return <em {...attributes}>{children}</em>;
 
+    case 'blockquote':
+      return (
+        <blockquote
+          {...attributes}
+          style={{
+            borderLeft: '3px solid #ccc',
+            paddingLeft: '12px',
+            margin: '8px 0',
+            color: '#666',
+          }}
+        >
+          {children}
+        </blockquote>
+      );
+
+    case 'horizontal-rule':
+      return (
+        <div {...attributes} contentEditable={false}>
+          <hr style={{ border: 'none', borderTop: '1px solid #ccc', margin: '16px 0' }} />
+          {children}
+        </div>
+      );
+
     default:
       return <div {...attributes}>{children}</div>;
   }
@@ -430,6 +453,10 @@ function Leaf({ attributes, children, leaf }: RenderLeafProps): React.JSX.Elemen
 
   if (leaf.code) {
     content = <code>{content}</code>;
+  }
+
+  if (leaf.strikethrough) {
+    content = <s>{content}</s>;
   }
 
   return <span {...attributes}>{content}</span>;
