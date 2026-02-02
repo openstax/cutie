@@ -31,7 +31,14 @@ function generateResponseId(editor: Editor): string {
   }
 
   // Generate unique ID
-  let counter = 1;
+  // First interaction gets "RESPONSE", subsequent get "RESPONSE_2", "RESPONSE_3", etc.
+  // This ensures compatibility with QTI standard templates (match_correct, map_response)
+  // which require the identifier to be exactly "RESPONSE"
+  if (!existingIds.has('RESPONSE')) {
+    return 'RESPONSE';
+  }
+
+  let counter = 2;
   let id = `RESPONSE_${counter}`;
   while (existingIds.has(id)) {
     counter++;

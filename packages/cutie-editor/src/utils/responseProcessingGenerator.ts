@@ -68,8 +68,9 @@ function generateCustomXml(config: ResponseProcessingConfig, doc: Document): Ele
 function generateAllCorrectXml(responseIdentifiers: string[], doc: Document): Element {
   const responseProcessing = doc.createElementNS(QTI_NAMESPACE, 'qti-response-processing');
 
-  // Single interaction: use template
-  if (responseIdentifiers.length === 1) {
+  // Single interaction with standard identifier: use template
+  // The match_correct template requires identifier to be exactly "RESPONSE"
+  if (responseIdentifiers.length === 1 && responseIdentifiers[0] === 'RESPONSE') {
     responseProcessing.setAttribute('template', TEMPLATES.matchCorrect);
     return responseProcessing;
   }
@@ -162,8 +163,9 @@ function generateSumScoresXml(
 ): Element {
   const responseProcessing = doc.createElementNS(QTI_NAMESPACE, 'qti-response-processing');
 
-  // Single interaction
-  if (responseIdentifiers.length === 1) {
+  // Single interaction with standard identifier: use template
+  // Both match_correct and map_response templates require identifier to be exactly "RESPONSE"
+  if (responseIdentifiers.length === 1 && responseIdentifiers[0] === 'RESPONSE') {
     const id = responseIdentifiers[0];
     const decl = responseDeclarations.get(id);
     const hasMappingDefined = decl && hasMapping(decl);
