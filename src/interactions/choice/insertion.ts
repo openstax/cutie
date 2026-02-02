@@ -84,8 +84,8 @@ export function insertChoiceInteraction(
       children: [
         {
           type: 'choice-id-label',
-          children: [{ text: choice.identifier }],
-          attributes: {},
+          children: [{ text: '' }],
+          attributes: { identifier: choice.identifier },
         },
         {
           type: 'choice-content',

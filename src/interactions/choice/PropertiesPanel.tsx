@@ -31,24 +31,20 @@ interface ChoicePropertiesPanelProps {
 }
 
 /**
- * Get choice identifiers from the element's children by reading from choice-id-label text
+ * Get choice identifiers from the element's children by reading from choice-id-label attributes
  */
 function getChoiceIdentifiers(element: QtiChoiceInteraction): string[] {
   return element.children
     .filter((child): child is QtiSimpleChoice => 'type' in child && child.type === 'qti-simple-choice')
     .map(choice => {
-      // Find the choice-id-label child and extract text from it
+      // Find the choice-id-label child and extract identifier from its attributes
       const idLabel = choice.children.find(
         (c): c is ChoiceIdLabel => 'type' in c && c.type === 'choice-id-label'
       );
-      if (idLabel) {
-        // Get text content from the label's children
-        return idLabel.children
-          .filter((c): c is { text: string } => 'text' in c)
-          .map(c => c.text)
-          .join('');
+      if (idLabel?.attributes?.identifier) {
+        return idLabel.attributes.identifier;
       }
-      // Fallback to attribute if no label found
+      // Fallback to parent attribute if no label found
       return choice.attributes.identifier;
     })
     .filter(Boolean);
@@ -288,10 +284,6 @@ export function ChoicePropertiesPanel({
           addButtonLabel="Add choice mapping"
         />
       </ToggleableFormSection>
-
-      <div className="property-tip">
-        Tip: Choice identifiers can be edited directly in the editor.
-      </div>
     </div>
   );
 }

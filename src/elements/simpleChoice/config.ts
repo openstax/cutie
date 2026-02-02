@@ -13,7 +13,7 @@ export const simpleChoiceConfig: ElementConfig = {
 
 export const choiceIdLabelConfig: ElementConfig = {
   type: 'choice-id-label',
-  isVoid: false,
+  isVoid: true,
   isInline: false,
   needsSpacers: false,
   categories: [],

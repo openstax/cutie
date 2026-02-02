@@ -23,11 +23,11 @@ function parseSimpleChoice(
   const children = convertChildren(Array.from(element.childNodes));
   const identifier = attributes['identifier'] || '';
 
-  // Create the editable ID label as first child
+  // Create the ID label as first child (void element with identifier in attributes)
   const idLabel: SlateElement = {
     type: 'choice-id-label',
-    children: [{ text: identifier }],
-    attributes: {},
+    children: [{ text: '' }],
+    attributes: { identifier },
   };
 
   // Wrap content in choice-content element (second child)
@@ -60,15 +60,13 @@ function serializeSimpleChoice(
 ): Element {
   const xmlElement = createXmlElement(context.doc, 'qti-simple-choice');
 
-  // Extract identifier from choice-id-label (first child)
+  // Extract identifier from choice-id-label attributes (first child)
   let identifier = '';
   const firstChild = element.children[0];
   if (firstChild && 'type' in firstChild && firstChild.type === 'choice-id-label') {
-    // Get text content from choice-id-label
-    identifier = firstChild.children
-      .filter((child): child is { text: string } => 'text' in child)
-      .map(child => child.text)
-      .join('');
+    // Get identifier from choice-id-label attributes
+    const labelAttrs = (firstChild as SlateElement & { attributes?: { identifier?: string } }).attributes;
+    identifier = labelAttrs?.identifier || '';
   }
 
   // Set attributes with identifier from label
