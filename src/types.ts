@@ -56,6 +56,11 @@ export interface DocumentMetadata {
 // ============================================================================
 
 /**
+ * Text alignment type for block elements
+ */
+export type TextAlign = 'left' | 'center' | 'right';
+
+/**
  * Base attributes interface for all elements with XML attributes
  */
 export interface ElementAttributes {
@@ -169,6 +174,7 @@ export interface UnknownQtiElement {
 export interface ParagraphElement {
   type: 'paragraph';
   children: Array<SlateElement | SlateText>;
+  align?: TextAlign;
   attributes?: ElementAttributes;
 }
 
@@ -197,6 +203,7 @@ export interface HeadingElement {
   type: 'heading';
   level: 1 | 2 | 3 | 4 | 5 | 6;
   children: Array<SlateElement | SlateText>;
+  align?: TextAlign;
   attributes?: ElementAttributes;
 }
 
@@ -266,6 +273,7 @@ export interface EmElement {
 export interface BlockquoteElement {
   type: 'blockquote';
   children: Array<SlateElement | SlateText>;
+  align?: TextAlign;
   attributes?: ElementAttributes;
 }
 

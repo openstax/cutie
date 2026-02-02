@@ -4,6 +4,22 @@ import { useSlate } from 'slate-react';
 import { insertChoiceInteraction } from '../interactions/choice';
 import { insertTextEntryInteraction } from '../interactions/textEntry';
 import { insertExtendedTextInteraction } from '../interactions/extendedText';
+import {
+  BoldIcon,
+  ItalicIcon,
+  UnderlineIcon,
+  StrikethroughIcon,
+  CodeIcon,
+  BulletedListIcon,
+  NumberedListIcon,
+  HorizontalRuleIcon,
+  AlignLeftIcon,
+  AlignCenterIcon,
+  AlignRightIcon,
+  AddBoxIcon,
+  ExpandMoreIcon,
+} from '../components/icons';
+import type { TextAlign } from '../types';
 
 /**
  * Toolbar component for the Slate editor
@@ -46,7 +62,7 @@ export function Toolbar(): React.JSX.Element {
         padding: '8px',
         borderBottom: '1px solid #ddd',
         display: 'flex',
-        gap: '8px',
+        gap: '12px',
         flexWrap: 'wrap',
         backgroundColor: '#f5f5f5',
         alignItems: 'center',
@@ -62,7 +78,10 @@ export function Toolbar(): React.JSX.Element {
           title="Block Type"
           style={{ minWidth: '120px', textAlign: 'left' }}
         >
-          {currentBlockType} ▾
+          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            {currentBlockType}
+            <ExpandMoreIcon size={16} />
+          </span>
         </ToolbarButton>
 
         {blockTypeOpen && (
@@ -129,90 +148,96 @@ export function Toolbar(): React.JSX.Element {
         )}
       </div>
 
-      <div style={{ width: '1px', backgroundColor: '#ddd', margin: '0 4px', alignSelf: 'stretch' }} />
 
       {/* Mark formatting buttons */}
-      <ToolbarButton
-        onMouseDown={(event) => {
-          event.preventDefault();
-          toggleMark(editor, 'bold');
-        }}
-        title="Bold"
-        active={isMarkActive(editor, 'bold')}
-      >
-        <strong>B</strong>
-      </ToolbarButton>
+      <ButtonGroup>
+        <ToolbarButton
+          onMouseDown={(event) => {
+            event.preventDefault();
+            toggleMark(editor, 'bold');
+          }}
+          title="Bold"
+          active={isMarkActive(editor, 'bold')}
+          position="first"
+        >
+          <BoldIcon />
+        </ToolbarButton>
 
-      <ToolbarButton
-        onMouseDown={(event) => {
-          event.preventDefault();
-          toggleMark(editor, 'italic');
-        }}
-        title="Italic"
-        active={isMarkActive(editor, 'italic')}
-      >
-        <em>I</em>
-      </ToolbarButton>
+        <ToolbarButton
+          onMouseDown={(event) => {
+            event.preventDefault();
+            toggleMark(editor, 'italic');
+          }}
+          title="Italic"
+          active={isMarkActive(editor, 'italic')}
+          position="middle"
+        >
+          <ItalicIcon />
+        </ToolbarButton>
 
-      <ToolbarButton
-        onMouseDown={(event) => {
-          event.preventDefault();
-          toggleMark(editor, 'underline');
-        }}
-        title="Underline"
-        active={isMarkActive(editor, 'underline')}
-      >
-        <u>U</u>
-      </ToolbarButton>
+        <ToolbarButton
+          onMouseDown={(event) => {
+            event.preventDefault();
+            toggleMark(editor, 'underline');
+          }}
+          title="Underline"
+          active={isMarkActive(editor, 'underline')}
+          position="middle"
+        >
+          <UnderlineIcon />
+        </ToolbarButton>
 
-      <ToolbarButton
-        onMouseDown={(event) => {
-          event.preventDefault();
-          toggleMark(editor, 'strikethrough');
-        }}
-        title="Strikethrough"
-        active={isMarkActive(editor, 'strikethrough')}
-      >
-        <s>S</s>
-      </ToolbarButton>
+        <ToolbarButton
+          onMouseDown={(event) => {
+            event.preventDefault();
+            toggleMark(editor, 'strikethrough');
+          }}
+          title="Strikethrough"
+          active={isMarkActive(editor, 'strikethrough')}
+          position="middle"
+        >
+          <StrikethroughIcon />
+        </ToolbarButton>
 
-      <ToolbarButton
-        onMouseDown={(event) => {
-          event.preventDefault();
-          toggleMark(editor, 'code');
-        }}
-        title="Code"
-        active={isMarkActive(editor, 'code')}
-      >
-        <code style={{ fontFamily: 'monospace', fontSize: '12px' }}>&lt;/&gt;</code>
-      </ToolbarButton>
-
-      <div style={{ width: '1px', backgroundColor: '#ddd', margin: '0 4px', alignSelf: 'stretch' }} />
+        <ToolbarButton
+          onMouseDown={(event) => {
+            event.preventDefault();
+            toggleMark(editor, 'code');
+          }}
+          title="Code"
+          active={isMarkActive(editor, 'code')}
+          position="last"
+        >
+          <CodeIcon />
+        </ToolbarButton>
+      </ButtonGroup>
 
       {/* List buttons */}
-      <ToolbarButton
-        onMouseDown={(event) => {
-          event.preventDefault();
-          toggleList(editor, false);
-        }}
-        title="Bulleted List"
-        active={isListActive(editor, false)}
-      >
-        •≡
-      </ToolbarButton>
+      <ButtonGroup>
+        <ToolbarButton
+          onMouseDown={(event) => {
+            event.preventDefault();
+            toggleList(editor, false);
+          }}
+          title="Bulleted List"
+          active={isListActive(editor, false)}
+          position="first"
+        >
+          <BulletedListIcon />
+        </ToolbarButton>
 
-      <ToolbarButton
-        onMouseDown={(event) => {
-          event.preventDefault();
-          toggleList(editor, true);
-        }}
-        title="Numbered List"
-        active={isListActive(editor, true)}
-      >
-        1.
-      </ToolbarButton>
-
-      <div style={{ width: '1px', backgroundColor: '#ddd', margin: '0 4px', alignSelf: 'stretch' }} />
+        <ToolbarButton
+          onMouseDown={(event) => {
+            event.preventDefault();
+            toggleList(editor, true);
+          }}
+          title="Numbered List"
+          active={isListActive(editor, true)}
+          position="last"
+        >
+          <NumberedListIcon />
+        </ToolbarButton>
+      </ButtonGroup>
 
       {/* Horizontal rule button */}
       <ToolbarButton
@@ -222,10 +247,50 @@ export function Toolbar(): React.JSX.Element {
         }}
         title="Horizontal Rule"
       >
-        ―
+        <HorizontalRuleIcon />
       </ToolbarButton>
 
-      <div style={{ width: '1px', backgroundColor: '#ddd', margin: '0 4px', alignSelf: 'stretch' }} />
+      {/* Alignment buttons */}
+      <ButtonGroup>
+        <ToolbarButton
+          onMouseDown={(event) => {
+            event.preventDefault();
+            toggleAlignment(editor, 'left');
+          }}
+          title="Align Left"
+          active={isAlignmentActive(editor, 'left')}
+          disabled={!isAlignmentAvailable(editor)}
+          position="first"
+        >
+          <AlignLeftIcon />
+        </ToolbarButton>
+
+        <ToolbarButton
+          onMouseDown={(event) => {
+            event.preventDefault();
+            toggleAlignment(editor, 'center');
+          }}
+          title="Align Center"
+          active={isAlignmentActive(editor, 'center')}
+          disabled={!isAlignmentAvailable(editor)}
+          position="middle"
+        >
+          <AlignCenterIcon />
+        </ToolbarButton>
+
+        <ToolbarButton
+          onMouseDown={(event) => {
+            event.preventDefault();
+            toggleAlignment(editor, 'right');
+          }}
+          title="Align Right"
+          active={isAlignmentActive(editor, 'right')}
+          disabled={!isAlignmentAvailable(editor)}
+          position="last"
+        >
+          <AlignRightIcon />
+        </ToolbarButton>
+      </ButtonGroup>
 
       {/* QTI Interactions dropdown */}
       <div ref={interactionsDropdownRef} style={{ position: 'relative' }}>
@@ -236,7 +301,11 @@ export function Toolbar(): React.JSX.Element {
           }}
           title="Insert Interaction"
         >
-          Interactions ▾
+          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <AddBoxIcon />
+            Interactions
+            <ExpandMoreIcon size={16} />
+          </span>
         </ToolbarButton>
 
         {interactionsOpen && (
@@ -286,6 +355,53 @@ export function Toolbar(): React.JSX.Element {
 }
 
 /**
+ * Button group component for grouping related toolbar buttons
+ */
+function ButtonGroup({ children }: { children: React.ReactNode }): React.JSX.Element {
+  return (
+    <div style={{ display: 'flex' }}>
+      {children}
+    </div>
+  );
+}
+
+type ButtonPosition = 'first' | 'middle' | 'last' | 'single';
+
+function getButtonRadius(position: ButtonPosition): string {
+  switch (position) {
+    case 'first':
+      return '4px 0 0 4px';
+    case 'middle':
+      return '0';
+    case 'last':
+      return '0 4px 4px 0';
+    case 'single':
+    default:
+      return '4px';
+  }
+}
+
+function getButtonBorder(position: ButtonPosition): string {
+  switch (position) {
+    case 'middle':
+    case 'last':
+      return '1px solid #ccc';
+    default:
+      return '1px solid #ccc';
+  }
+}
+
+function getButtonMarginLeft(position: ButtonPosition): string {
+  switch (position) {
+    case 'middle':
+    case 'last':
+      return '-1px';
+    default:
+      return '0';
+  }
+}
+
+/**
  * Toolbar button component with active state support
  */
 function ToolbarButton({
@@ -293,27 +409,39 @@ function ToolbarButton({
   onMouseDown,
   title,
   active = false,
+  disabled = false,
+  position = 'single',
   style = {},
 }: {
   children: React.ReactNode;
   onMouseDown: (event: React.MouseEvent) => void;
   title: string;
   active?: boolean;
+  disabled?: boolean;
+  position?: ButtonPosition;
   style?: React.CSSProperties;
 }): React.JSX.Element {
   return (
     <button
-      onMouseDown={onMouseDown}
+      onMouseDown={disabled ? undefined : onMouseDown}
       title={title}
+      disabled={disabled}
       style={{
-        padding: '6px 12px',
-        border: '1px solid #ccc',
-        borderRadius: '4px',
+        padding: '6px 10px',
+        border: getButtonBorder(position),
+        borderRadius: getButtonRadius(position),
+        marginLeft: getButtonMarginLeft(position),
         backgroundColor: active ? '#e0e0e0' : '#fff',
-        cursor: 'pointer',
+        cursor: disabled ? 'not-allowed' : 'pointer',
         fontSize: '14px',
         fontFamily: 'inherit',
         fontWeight: active ? 'bold' : 'normal',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+        zIndex: active ? 1 : 0,
+        opacity: disabled ? 0.5 : 1,
         ...style,
       }}
     >
@@ -508,6 +636,89 @@ function isListActive(editor: Editor, ordered: boolean): boolean {
       n.ordered === ordered,
   });
   return !!match;
+}
+
+/**
+ * Element types that support text alignment
+ */
+const ALIGNABLE_TYPES = ['paragraph', 'heading', 'blockquote'];
+
+/**
+ * Check if an element type supports alignment
+ */
+function isAlignable(element: SlateElement): boolean {
+  return 'type' in element && ALIGNABLE_TYPES.includes(element.type as string);
+}
+
+/**
+ * Find the closest alignable ancestor element at the current selection
+ * Returns the element and path, or null if none found
+ */
+function findAlignableAncestor(editor: Editor): { element: SlateElement; path: number[] } | null {
+  if (!editor.selection) return null;
+
+  // Use Editor.above to walk up from the selection point
+  const entry = Editor.above(editor, {
+    match: (n) => SlateElement.isElement(n) && isAlignable(n as SlateElement),
+  });
+
+  if (entry) {
+    const [element, path] = entry;
+    return { element: element as SlateElement, path };
+  }
+
+  return null;
+}
+
+/**
+ * Get the current alignment of the closest alignable ancestor
+ * Returns 'left' if no alignment set (default), or null if no alignable ancestor
+ */
+function getCurrentAlignment(editor: Editor): TextAlign | null {
+  const alignable = findAlignableAncestor(editor);
+  if (!alignable) return null;
+
+  const { element } = alignable;
+  if ('align' in element && element.align) {
+    return element.align as TextAlign;
+  }
+  return 'left'; // Default alignment
+}
+
+/**
+ * Toggle text alignment on the closest alignable ancestor
+ */
+function toggleAlignment(editor: Editor, align: TextAlign): void {
+  const alignable = findAlignableAncestor(editor);
+  if (!alignable) return; // No alignable ancestor, do nothing
+
+  const { path } = alignable;
+  const currentAlign = getCurrentAlignment(editor);
+
+  // If clicking the active alignment or clicking left, remove alignment (reset to default)
+  const newAlign = (currentAlign === align || align === 'left') ? undefined : align;
+
+  Transforms.setNodes(
+    editor,
+    { align: newAlign } as Partial<SlateElement>,
+    { at: path }
+  );
+}
+
+/**
+ * Check if a specific alignment is active
+ */
+function isAlignmentActive(editor: Editor, align: TextAlign): boolean {
+  const currentAlign = getCurrentAlignment(editor);
+  return currentAlign === align;
+}
+
+/**
+ * Check if alignment buttons should be enabled
+ * Returns true if there's an alignable ancestor at the selection
+ */
+function isAlignmentAvailable(editor: Editor): boolean {
+  return findAlignableAncestor(editor) !== null;
 }
 
 /**

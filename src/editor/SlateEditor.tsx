@@ -363,7 +363,7 @@ function Element({ attributes, children, element }: RenderElementProps): React.J
       );
 
     case 'paragraph':
-      return <p {...attributes}>{children}</p>;
+      return <p {...attributes} style={{ textAlign: el.align }}>{children}</p>;
 
     case 'div':
       return <div {...attributes}>{children}</div>;
@@ -372,21 +372,22 @@ function Element({ attributes, children, element }: RenderElementProps): React.J
       return <span {...attributes}>{children}</span>;
 
     case 'heading':
+      const headingStyle = { textAlign: el.align } as React.CSSProperties;
       switch (el.level) {
         case 1:
-          return <h1 {...attributes}>{children}</h1>;
+          return <h1 {...attributes} style={headingStyle}>{children}</h1>;
         case 2:
-          return <h2 {...attributes}>{children}</h2>;
+          return <h2 {...attributes} style={headingStyle}>{children}</h2>;
         case 3:
-          return <h3 {...attributes}>{children}</h3>;
+          return <h3 {...attributes} style={headingStyle}>{children}</h3>;
         case 4:
-          return <h4 {...attributes}>{children}</h4>;
+          return <h4 {...attributes} style={headingStyle}>{children}</h4>;
         case 5:
-          return <h5 {...attributes}>{children}</h5>;
+          return <h5 {...attributes} style={headingStyle}>{children}</h5>;
         case 6:
-          return <h6 {...attributes}>{children}</h6>;
+          return <h6 {...attributes} style={headingStyle}>{children}</h6>;
         default:
-          return <h2 {...attributes}>{children}</h2>;
+          return <h2 {...attributes} style={headingStyle}>{children}</h2>;
       }
 
     case 'line-break':
@@ -414,6 +415,7 @@ function Element({ attributes, children, element }: RenderElementProps): React.J
             paddingLeft: '12px',
             margin: '8px 0',
             color: '#666',
+            textAlign: el.align,
           }}
         >
           {children}
@@ -477,5 +479,9 @@ const EDITOR_LAYOUT_STYLES = `
     display: flex;
     flex-direction: column;
     min-width: 0;
+  }
+
+  .slate-editor > div[role="textbox"] {
+    outline: none;
   }
 `;
