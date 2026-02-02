@@ -57,34 +57,32 @@ export function EditorTab({ itemXml, setItemXml, setSanitizedTemplate, setAttemp
 
   return (
     <div className="tab-content-full">
-      <div className="panel editor-panel">
-        <div style={{
-          border: '1px solid #ddd',
-          borderRadius: '4px',
-          marginBottom: '12px',
-          overflow: 'hidden'
-        }}>
-          <SlateEditor
-            qtiXml={itemXml}
-            onQtiChange={setItemXml}
-            onError={setError}
-            placeholder="Load an example or paste QTI XML..."
-            assetHandlers={assetHandlers}
-          />
-        </div>
-        <button
-          className="process-button"
-          onClick={handleEditorPreview}
-          disabled={processing || !itemXml.trim()}
-        >
-          {processing ? 'Processing...' : 'Preview'}
-        </button>
-        {error && (
-          <div className="error-message" style={{ marginTop: '12px' }}>
-            {error}
-          </div>
-        )}
+      <div style={{
+        border: '1px solid #ddd',
+        borderRadius: '4px',
+        marginBottom: '12px',
+        overflow: 'hidden'
+      }}>
+        <SlateEditor
+          qtiXml={itemXml}
+          onQtiChange={setItemXml}
+          onError={setError}
+          placeholder="Load an example or paste QTI XML..."
+          assetHandlers={assetHandlers}
+        />
       </div>
+      <button
+        className="process-button"
+        onClick={handleEditorPreview}
+        disabled={processing || !itemXml.trim()}
+      >
+        {processing ? 'Processing...' : 'Preview'}
+      </button>
+      {error && (
+        <div className="error-message" style={{ marginTop: '12px' }}>
+          {error}
+        </div>
+      )}
     </div>
   );
 }
