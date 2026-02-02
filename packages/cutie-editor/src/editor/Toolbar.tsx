@@ -21,6 +21,7 @@ import {
   AddBoxIcon,
   ExpandMoreIcon,
   ImageIcon,
+  CheckBoxIcon,
 } from '../components/icons';
 import type { TextAlign } from '../types';
 
@@ -31,9 +32,11 @@ export function Toolbar(): React.JSX.Element {
   const editor = useSlate();
   const { uploadAsset } = useAssetHandlers();
   const [interactionsOpen, setInteractionsOpen] = React.useState(false);
+  const [elementsOpen, setElementsOpen] = React.useState(false);
   const [blockTypeOpen, setBlockTypeOpen] = React.useState(false);
   const [isUploading, setIsUploading] = React.useState(false);
   const interactionsDropdownRef = React.useRef<HTMLDivElement>(null);
+  const elementsDropdownRef = React.useRef<HTMLDivElement>(null);
   const blockTypeDropdownRef = React.useRef<HTMLDivElement>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -48,6 +51,13 @@ export function Toolbar(): React.JSX.Element {
         setInteractionsOpen(false);
       }
       if (
+        elementsOpen &&
+        elementsDropdownRef.current &&
+        !elementsDropdownRef.current.contains(event.target as Node)
+      ) {
+        setElementsOpen(false);
+      }
+      if (
         blockTypeOpen &&
         blockTypeDropdownRef.current &&
         !blockTypeDropdownRef.current.contains(event.target as Node)
@@ -57,7 +67,7 @@ export function Toolbar(): React.JSX.Element {
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [interactionsOpen, blockTypeOpen]);
+  }, [interactionsOpen, elementsOpen, blockTypeOpen]);
 
   // Get current block type for dropdown label
   const currentBlockType = getCurrentBlockType(editor);
@@ -245,57 +255,6 @@ export function Toolbar(): React.JSX.Element {
         </ToolbarButton>
       </ButtonGroup>
 
-      {/* Horizontal rule button */}
-      <ToolbarButton
-        onMouseDown={(event) => {
-          event.preventDefault();
-          insertHorizontalRule(editor);
-        }}
-        title="Horizontal Rule"
-      >
-        <HorizontalRuleIcon />
-      </ToolbarButton>
-
-      {/* Image insert button - only shown when uploadAsset handler is available */}
-      {uploadAsset && (
-        <>
-          <input
-            type="file"
-            accept="image/*"
-            ref={fileInputRef}
-            style={{ display: 'none' }}
-            onChange={async (event) => {
-              const file = event.target.files?.[0];
-              if (!file) return;
-
-              setIsUploading(true);
-              try {
-                const src = await uploadAsset(file);
-                insertImage(editor, src);
-              } catch (error) {
-                console.error('Failed to upload image:', error);
-              } finally {
-                setIsUploading(false);
-                // Reset input so the same file can be selected again
-                if (fileInputRef.current) {
-                  fileInputRef.current.value = '';
-                }
-              }
-            }}
-          />
-          <ToolbarButton
-            onMouseDown={(event) => {
-              event.preventDefault();
-              fileInputRef.current?.click();
-            }}
-            title="Insert Image"
-            disabled={isUploading}
-          >
-            <ImageIcon />
-          </ToolbarButton>
-        </>
-      )}
-
       {/* Alignment buttons */}
       <ButtonGroup>
         <ToolbarButton
@@ -338,6 +297,96 @@ export function Toolbar(): React.JSX.Element {
         </ToolbarButton>
       </ButtonGroup>
 
+      {/* Spacer to push dropdowns to the right */}
+      <div style={{ flex: 1 }} />
+
+      {/* Hidden file input for image upload */}
+      {uploadAsset && (
+        <input
+          type="file"
+          accept="image/*"
+          ref={fileInputRef}
+          style={{ display: 'none' }}
+          onChange={async (event) => {
+            const file = event.target.files?.[0];
+            if (!file) return;
+
+            setIsUploading(true);
+            try {
+              const src = await uploadAsset(file);
+              insertImage(editor, src);
+            } catch (error) {
+              console.error('Failed to upload image:', error);
+            } finally {
+              setIsUploading(false);
+              // Reset input so the same file can be selected again
+              if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+              }
+            }
+          }}
+        />
+      )}
+
+      {/* Elements dropdown */}
+      <div ref={elementsDropdownRef} style={{ position: 'relative' }}>
+        <ToolbarButton
+          onMouseDown={(event) => {
+            event.preventDefault();
+            setElementsOpen(!elementsOpen);
+          }}
+          title="Insert Element"
+        >
+          <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+            <AddBoxIcon />
+            <ExpandMoreIcon size={16} />
+          </span>
+        </ToolbarButton>
+
+        {elementsOpen && (
+          <div
+            style={{
+              position: 'absolute',
+              top: '100%',
+              right: 0,
+              marginTop: '4px',
+              backgroundColor: '#fff',
+              border: '1px solid #ccc',
+              borderRadius: '4px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+              zIndex: 1000,
+              minWidth: '160px',
+            }}
+          >
+            <DropdownItem
+              onClick={() => {
+                insertHorizontalRule(editor);
+                setElementsOpen(false);
+              }}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <HorizontalRuleIcon />
+                Divider
+              </span>
+            </DropdownItem>
+            {uploadAsset && (
+              <DropdownItem
+                onClick={() => {
+                  fileInputRef.current?.click();
+                  setElementsOpen(false);
+                }}
+                style={{ opacity: isUploading ? 0.5 : 1 }}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <ImageIcon />
+                  Image
+                </span>
+              </DropdownItem>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* QTI Interactions dropdown */}
       <div ref={interactionsDropdownRef} style={{ position: 'relative' }}>
         <ToolbarButton
@@ -347,9 +396,8 @@ export function Toolbar(): React.JSX.Element {
           }}
           title="Insert Interaction"
         >
-          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <AddBoxIcon />
-            Interactions
+          <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+            <CheckBoxIcon />
             <ExpandMoreIcon size={16} />
           </span>
         </ToolbarButton>
@@ -359,7 +407,7 @@ export function Toolbar(): React.JSX.Element {
             style={{
               position: 'absolute',
               top: '100%',
-              left: 0,
+              right: 0,
               marginTop: '4px',
               backgroundColor: '#fff',
               border: '1px solid #ccc',

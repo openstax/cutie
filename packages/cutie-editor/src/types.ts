@@ -134,15 +134,16 @@ export interface QtiSimpleChoice {
 }
 
 /**
- * Choice ID Label (block element, but styled inline, editable identifier label for simple choices)
- * This is an editor-only element. The text content gets serialized to parent's identifier attribute.
- * Note: It's a block element in Slate's schema to avoid spacer text nodes that would appear
- * if it were inline (Slate inserts spacers before/after inline elements at block boundaries)
+ * Choice ID Label (void element displaying the choice identifier)
+ * This is an editor-only element. The identifier is stored in attributes and edited via properties panel.
+ * Void elements are non-editable and have placeholder children.
  */
 export interface ChoiceIdLabel {
   type: 'choice-id-label';
-  children: Array<SlateElement | SlateText>;
-  attributes?: ElementAttributes;
+  children: [{ text: '' }];
+  attributes: {
+    identifier: string;
+  } & ElementAttributes;
 }
 
 /**

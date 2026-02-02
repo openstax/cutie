@@ -204,9 +204,9 @@ export function SlateEditor({
 
   return (
     <AssetContext.Provider value={assetHandlers ?? {}}>
-      <div className="slate-editor-container">
-        <div className={`slate-editor ${className}`}>
-          <Slate editor={editor} initialValue={value} onChange={handleChange}>
+      <Slate editor={editor} initialValue={value} onChange={handleChange}>
+        <div className="slate-editor-container">
+          <div className={`slate-editor ${className}`}>
             <Toolbar />
             <Editable
               renderElement={renderElement}
@@ -222,18 +222,18 @@ export function SlateEditor({
                 overflowY: 'auto',
               }}
             />
-          </Slate>
+          </div>
+          <PropertiesPanel
+            selectedElement={selectedElement}
+            selectedPath={selectedPath}
+            onUpdateAttributes={handleUpdateAttributes}
+            responseProcessingConfig={responseProcessingConfig}
+            interactionCount={interactionCount}
+            hasMappings={hasMappings}
+            onResponseProcessingModeChange={handleResponseProcessingModeChange}
+          />
         </div>
-        <PropertiesPanel
-          selectedElement={selectedElement}
-          selectedPath={selectedPath}
-          onUpdateAttributes={handleUpdateAttributes}
-          responseProcessingConfig={responseProcessingConfig}
-          interactionCount={interactionCount}
-          hasMappings={hasMappings}
-          onResponseProcessingModeChange={handleResponseProcessingModeChange}
-        />
-      </div>
+      </Slate>
     </AssetContext.Provider>
   );
 }
@@ -253,7 +253,7 @@ function isInteractionElement(element: SlateElement): boolean {
  * Helper function to check if an element has a properties panel
  */
 function hasPropertiesPanel(element: SlateElement): boolean {
-  return isInteractionElement(element) || element.type === 'image';
+  return isInteractionElement(element) || element.type === 'image' || element.type === 'qti-simple-choice';
 }
 
 /**

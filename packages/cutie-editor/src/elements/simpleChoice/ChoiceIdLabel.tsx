@@ -1,34 +1,35 @@
 import type { RenderElementProps } from 'slate-react';
+import type { ChoiceIdLabel as ChoiceIdLabelType } from '../../types';
 
 /**
- * Renders an editable choice identifier label
- * Note: This is a block element in Slate's schema (to avoid spacer text nodes)
- * but styled to display inline with the choice text
- * The brackets are non-editable, but the ID text inside is editable
+ * Renders a decorative (non-editable) choice identifier label
+ * This is a void element - the identifier is stored in attributes and edited via properties panel
  */
 export function ChoiceIdLabel({
   attributes,
   children,
+  element,
 }: RenderElementProps): React.JSX.Element {
+  const el = element as ChoiceIdLabelType;
+  const identifier = el.attributes?.identifier || '';
+
   return (
     <div
       {...attributes}
+      contentEditable={false}
       style={{
         display: 'inline-block',
         marginRight: '8px',
         color: '#689f38',
         fontWeight: 500,
-        userSelect: 'text',
+        userSelect: 'none',
         verticalAlign: 'baseline',
+        cursor: 'default',
       }}
     >
-      <span contentEditable={false} style={{ userSelect: 'none' }}>
-        [
-      </span>
-      {children}
-      <span contentEditable={false} style={{ userSelect: 'none' }}>
-        ]
-      </span>
+      [{identifier}]
+      {/* Hidden children for Slate's void element requirement */}
+      <span style={{ display: 'none' }}>{children}</span>
     </div>
   );
 }

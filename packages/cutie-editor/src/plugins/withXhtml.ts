@@ -165,13 +165,26 @@ export function withXhtml(editor: CustomEditor): CustomEditor {
         );
 
         if (!hasChoice) {
-          // Add a default choice
+          // Add a default choice with proper structure
           Transforms.insertNodes(
             editor,
             {
               type: 'qti-simple-choice',
               attributes: { identifier: 'choice-1' },
-              children: [{ text: 'Choice 1' }],
+              children: [
+                {
+                  type: 'choice-id-label',
+                  children: [{ text: '' }],
+                  attributes: { identifier: 'choice-1' },
+                },
+                {
+                  type: 'choice-content',
+                  children: [
+                    { type: 'paragraph', children: [{ text: 'Choice 1' }], attributes: {} },
+                  ],
+                  attributes: {},
+                },
+              ],
             } as any,
             { at: path.concat(0) }
           );
