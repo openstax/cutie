@@ -825,6 +825,8 @@ export function serializeSlateToQti(
 
   // Replace the old item-body with the new one
   const imported = doc.importNode(newItemBody, true);
+  // Remove xmlns attribute - it's inherited from the parent qti-assessment-item
+  imported.removeAttribute('xmlns');
   assessmentItem.replaceChild(imported, oldItemBody);
 
   // Serialize the complete document back to XML
