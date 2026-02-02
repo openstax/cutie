@@ -189,6 +189,12 @@ function convertSlateNodeToXml(
     case 'em':
       return convertEm(element, context);
 
+    case 'blockquote':
+      return convertBlockquote(element, context);
+
+    case 'horizontal-rule':
+      return convertHorizontalRule(element, context);
+
     default:
       // Unknown element type - treat as div
       return convertDiv(element as any, context);
@@ -227,6 +233,12 @@ function convertTextNodeToXml(
     const code = createXmlElement(context.doc, 'code');
     code.appendChild(textNode);
     textNode = code;
+  }
+
+  if (node.strikethrough) {
+    const s = createXmlElement(context.doc, 's');
+    s.appendChild(textNode);
+    textNode = s;
   }
 
   return textNode;
@@ -484,6 +496,44 @@ function convertEm(
     }
   }
 
+  return xmlElement;
+}
+
+/**
+ * Convert blockquote element
+ */
+function convertBlockquote(
+  element: SlateElement & { type: 'blockquote' },
+  context: SerializationContext
+): Element {
+  const xmlElement = createXmlElement(context.doc, 'blockquote');
+
+  if (element.attributes) {
+    setAttributes(xmlElement, element.attributes);
+  }
+
+  // Convert children
+  for (const child of element.children) {
+    const childNode = convertSlateNodeToXml(child, context);
+    if (childNode) {
+      xmlElement.appendChild(childNode);
+    }
+  }
+
+  return xmlElement;
+}
+
+/**
+ * Convert horizontal rule element
+ */
+function convertHorizontalRule(
+  element: SlateElement & { type: 'horizontal-rule' },
+  context: SerializationContext
+): Element {
+  const xmlElement = createXmlElement(context.doc, 'hr');
+  if (element.attributes) {
+    setAttributes(xmlElement, element.attributes);
+  }
   return xmlElement;
 }
 

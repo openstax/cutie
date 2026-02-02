@@ -261,6 +261,24 @@ export interface EmElement {
 }
 
 /**
+ * XHTML Blockquote
+ */
+export interface BlockquoteElement {
+  type: 'blockquote';
+  children: Array<SlateElement | SlateText>;
+  attributes?: ElementAttributes;
+}
+
+/**
+ * XHTML Horizontal Rule (void)
+ */
+export interface HorizontalRuleElement {
+  type: 'horizontal-rule';
+  children: [{ text: '' }];
+  attributes?: ElementAttributes;
+}
+
+/**
  * Union type of all possible Slate elements
  */
 export type SlateElement =
@@ -282,7 +300,9 @@ export type SlateElement =
   | ListElement
   | ListItemElement
   | StrongElement
-  | EmElement;
+  | EmElement
+  | BlockquoteElement
+  | HorizontalRuleElement;
 
 /**
  * Text leaf with formatting marks
@@ -293,6 +313,7 @@ export interface SlateText {
   italic?: boolean;
   underline?: boolean;
   code?: boolean;
+  strikethrough?: boolean;
 }
 
 // ============================================================================

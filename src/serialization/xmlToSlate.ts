@@ -292,6 +292,12 @@ function convertNodeToSlate(node: Node, context?: ParserContext): Descendant | D
       return applyMarkToChildren(children, 'code');
     }
 
+    if (tagName === 's' || tagName === 'del' || tagName === 'strike') {
+      const children = convertNodesToSlate(Array.from(element.childNodes), false, context);
+      // Apply strikethrough mark to text children
+      return applyMarkToChildren(children, 'strikethrough');
+    }
+
     if (tagName === 'img') {
       return {
         type: 'image',
@@ -310,6 +316,23 @@ function convertNodeToSlate(node: Node, context?: ParserContext): Descendant | D
       return {
         type: 'line-break',
         children: [{ text: '' }],
+        attributes,
+      };
+    }
+
+    if (tagName === 'hr') {
+      return {
+        type: 'horizontal-rule',
+        children: [{ text: '' }],
+        attributes,
+      };
+    }
+
+    if (tagName === 'blockquote') {
+      const children = convertNodesToSlate(Array.from(element.childNodes), false, context);
+      return {
+        type: 'blockquote',
+        children: children.length > 0 ? children : [{ text: '' }],
         attributes,
       };
     }
@@ -366,7 +389,7 @@ function extractAttributes(element: Element): ElementAttributes {
  */
 function applyMarkToChildren(
   children: Descendant[],
-  mark: 'bold' | 'italic' | 'underline' | 'code'
+  mark: 'bold' | 'italic' | 'underline' | 'code' | 'strikethrough'
 ): Descendant[] {
   return children.map(child => {
     if ('text' in child) {

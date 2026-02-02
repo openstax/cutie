@@ -13,7 +13,7 @@ import {
 function isTextEditableBlock(element: Element): boolean {
   if (!('type' in element)) return false;
   const type = element.type as string;
-  return ['paragraph', 'div', 'heading', 'list', 'list-item'].includes(type);
+  return ['paragraph', 'div', 'heading', 'list', 'list-item', 'blockquote'].includes(type);
 }
 
 /**
@@ -119,6 +119,7 @@ export function withXhtml(editor: CustomEditor): CustomEditor {
         'div',
         'heading',
         'list-item',
+        'blockquote',
         'qti-simple-choice',
         'qti-prompt',
       ];
