@@ -343,6 +343,8 @@ export interface SlateEditorProps {
   readOnly?: boolean;
   /** Placeholder text when editor is empty */
   placeholder?: string;
+  /** Asset handlers for resolving and uploading images/media */
+  assetHandlers?: EditorAssetHandlers;
 }
 
 // ============================================================================
@@ -418,4 +420,30 @@ export interface ElementConfig {
    * Return false to continue with default normalization.
    */
   normalize?: (editor: CustomEditor, node: Element, path: Path) => boolean;
+}
+
+// ============================================================================
+// Asset Handler Types
+// ============================================================================
+
+/**
+ * Resolves asset URL for display in the editor.
+ * Called asynchronously; result is cached by the component.
+ */
+export type EditorAssetResolver = (url: string) => Promise<string>;
+
+/**
+ * Handles asset upload from file input.
+ * Returns the src to store in QTI XML.
+ */
+export type EditorAssetUploader = (file: File) => Promise<string>;
+
+/**
+ * Asset-related callbacks for the editor.
+ */
+export interface EditorAssetHandlers {
+  /** Resolve asset URLs for display (async, results cached) */
+  resolveAsset?: EditorAssetResolver;
+  /** Handle file upload, return src to store in XML */
+  uploadAsset?: EditorAssetUploader;
 }

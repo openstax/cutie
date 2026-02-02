@@ -271,6 +271,7 @@ h2 {
 }
 
 .preview-card {
+  width: calc(100% - 4rem);
   padding: 2rem;
   border-radius: 8px;
   border: 1px solid #ddd;

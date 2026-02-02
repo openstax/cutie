@@ -23,6 +23,9 @@ export {
   withUnknownElements,
 } from './plugins';
 
+// Export asset context hook
+export { useAssetHandlers } from './contexts/AssetContext';
+
 // Export interaction insertion functions
 export { insertChoiceInteraction } from './interactions/choice';
 export { insertTextEntryInteraction } from './interactions/textEntry';
@@ -59,6 +62,10 @@ export type {
   ResponseProcessingMode,
   ResponseProcessingConfig,
   DocumentMetadata,
+  // Asset handler types
+  EditorAssetResolver,
+  EditorAssetUploader,
+  EditorAssetHandlers,
 } from './types';
 
 // Re-export Slate types for convenience
