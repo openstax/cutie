@@ -15,21 +15,50 @@ ${content}
 }
 
 /**
- * Normalize XML for comparison by removing whitespace between tags
+ * Parse XML string to Document
+ */
+function parseXml(xml: string): Document {
+  const parser = new DOMParser();
+  return parser.parseFromString(xml, 'application/xml');
+}
+
+/**
+ * Serialize element's inner content to string (excluding the element's own tags)
+ */
+function serializeInnerXml(element: Element): string {
+  const serializer = new XMLSerializer();
+  let result = '';
+  for (const child of element.childNodes) {
+    result += serializer.serializeToString(child);
+  }
+  return result;
+}
+
+/**
+ * Normalize XML for comparison by removing whitespace and namespace declarations
  */
 function normalizeXml(xml: string): string {
   return xml
+    .replace(/ xmlns="[^"]*"/g, '') // Strip namespace declarations
     .replace(/>\s+</g, '><')
     .replace(/\s+/g, ' ')
     .trim();
 }
 
 /**
- * Extract content from qti-item-body for comparison
+ * Extract content from qti-item-body for comparison using DOM parsing
  */
 function extractItemBodyContent(xml: string): string {
-  const match = xml.match(/<qti-item-body[^>]*>(.*?)<\/qti-item-body>/s);
-  return match ? match[1].trim() : xml;
+  const doc = parseXml(xml);
+  const itemBody = doc.querySelector('qti-item-body');
+  if (!itemBody) {
+    return xml;
+  }
+  // Return empty string if body has no children
+  if (itemBody.childNodes.length === 0) {
+    return '';
+  }
+  return serializeInnerXml(itemBody).trim();
 }
 
 describe('XML Round-trip Tests', () => {
@@ -328,6 +357,8 @@ describe('XML Round-trip Tests', () => {
 
   describe('edge cases', () => {
     it('should handle empty elements', () => {
+      // Trailing empty paragraphs are stripped during serialization
+      // (they exist in the editor for cursor positioning only)
       const content = '<p></p>';
       const input = wrapInQtiItem(content);
 
@@ -335,7 +366,8 @@ describe('XML Round-trip Tests', () => {
       const { xml } = serializeSlateToXml(slateNodes);
       const output = extractItemBodyContent(xml);
 
-      expect(normalizeXml(output)).toBe(normalizeXml(content));
+      // Empty paragraph at end should be stripped
+      expect(normalizeXml(output)).toBe('');
     });
 
     it('should handle self-closing tags', () => {
