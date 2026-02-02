@@ -1,11 +1,27 @@
 import { useState } from 'react';
 import { beginAttempt } from '@openstax/cutie-core';
-import type { AttemptState } from '@openstax/cutie-core';
+import type { AttemptState, ProcessingOptions } from '@openstax/cutie-core';
 import type { ResponseData } from '@openstax/cutie-client';
 import { examples } from './example-items';
 import { EditorTab } from './EditorTab';
 import { PreviewTab } from './PreviewTab';
 import './App.css';
+
+/**
+ * Asset resolver for the example app.
+ * In development, Vite serves files from public/ at the root.
+ * This resolver prepends '/' to relative paths to resolve them correctly.
+ */
+const resolveAssets: ProcessingOptions['resolveAssets'] = async (urls) => {
+  return urls.map((url) => {
+    // If already an absolute URL or starts with /, return as-is
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('/')) {
+      return url;
+    }
+    // Prepend / to make it resolve from public/
+    return `/${url}`;
+  });
+};
 
 type Tab = 'xml' | 'editor' | 'preview';
 
@@ -41,7 +57,7 @@ export function App() {
       setError('');
       setProcessing(true);
       try {
-        const result = await beginAttempt(example.item);
+        const result = await beginAttempt(example.item, { resolveAssets });
         setAttemptState(result.state);
         setSanitizedTemplate(result.template);
       } catch (err) {
@@ -60,7 +76,7 @@ export function App() {
     setProcessing(true);
 
     try {
-      const result = await beginAttempt(itemXml);
+      const result = await beginAttempt(itemXml, { resolveAssets });
       setAttemptState(result.state);
       setSanitizedTemplate(result.template);
     } catch (err) {
@@ -119,6 +135,7 @@ export function App() {
             itemXml={itemXml}
             onStateUpdate={setAttemptState}
             onTemplateUpdate={setSanitizedTemplate}
+            resolveAssets={resolveAssets}
           />
         );
     }

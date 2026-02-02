@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { AttemptState } from '@openstax/cutie-core';
+import type { AttemptState, ProcessingOptions } from '@openstax/cutie-core';
 import { submitResponse } from '@openstax/cutie-core';
 import { mountItem } from '@openstax/cutie-client';
 import type { MountedItem, ResponseData } from '@openstax/cutie-client';
@@ -12,9 +12,10 @@ interface PreviewTabProps {
   itemXml?: string;
   onStateUpdate?: (state: AttemptState) => void;
   onTemplateUpdate?: (template: string) => void;
+  resolveAssets?: ProcessingOptions['resolveAssets'];
 }
 
-export function PreviewTab({ attemptState, sanitizedTemplate, responses, setResponses, itemXml, onStateUpdate, onTemplateUpdate }: PreviewTabProps) {
+export function PreviewTab({ attemptState, sanitizedTemplate, responses, setResponses, itemXml, onStateUpdate, onTemplateUpdate, resolveAssets }: PreviewTabProps) {
   const [interactionsEnabled, setInteractionsEnabled] = useState(true);
   const [localAttemptState, setLocalAttemptState] = useState<AttemptState | null>(attemptState);
   const previewRef = useRef<HTMLDivElement>(null);
@@ -61,7 +62,7 @@ export function PreviewTab({ attemptState, sanitizedTemplate, responses, setResp
 
       try {
         // Process the response
-        const result = await submitResponse(collectedResponses, localAttemptState, itemXml);
+        const result = await submitResponse(collectedResponses, localAttemptState, itemXml, resolveAssets ? { resolveAssets } : undefined);
         console.log('Response processing result:', result);
         console.log('New state:', result.state);
         console.log('Score:', result.state.score);

@@ -50,3 +50,21 @@ export interface AttemptState {
  * Maps response identifiers to their values.
  */
 export type ResponseData = Record<string, unknown>;
+
+/**
+ * Async callback to resolve asset URLs.
+ * Receives an array of source URLs and returns resolved URLs in the same order.
+ */
+export type AssetResolver = (urls: string[]) => Promise<string[]>;
+
+/**
+ * Options for template processing operations.
+ */
+export interface ProcessingOptions {
+  /**
+   * Optional async callback to resolve asset URLs before returning sanitized XML.
+   * When provided, all `src` and `data` attributes are collected and passed to this
+   * resolver in batch. The resolved URLs replace the original attribute values.
+   */
+  resolveAssets?: AssetResolver;
+}

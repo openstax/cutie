@@ -1,6 +1,6 @@
 /* spell-checker: ignore inlines */
 import { XMLSerializer } from '@xmldom/xmldom';
-import { AttemptState } from '../types';
+import { AttemptState, ProcessingOptions } from '../types';
 
 /**
  * Renders a sanitized QTI template for client consumption.
@@ -17,19 +17,22 @@ import { AttemptState } from '../types';
  *    - Response declarations not used in the filtered body
  *    - Hidden feedback that shouldn't be visible yet
  * 5. Injects current response values as qti-default-value elements
- * 6. Serializes the sanitized document to XML string
+ * 6. Optionally resolves asset URLs via provided callback
+ * 7. Serializes the sanitized document to XML string
  *
  * This runs after both initializeState and processResponse to generate
  * the template that the client will render.
  *
  * @param itemDoc - Parsed QTI assessment item XML document
  * @param state - Current attempt state with variable values
- * @returns Sanitized QTI XML string safe for client rendering
+ * @param options - Optional processing options (e.g., asset resolver)
+ * @returns Promise resolving to sanitized QTI XML string safe for client rendering
  */
-export function renderTemplate(
+export async function renderTemplate(
   itemDoc: Document,
-  state: AttemptState
-): string {
+  state: AttemptState,
+  options?: ProcessingOptions
+): Promise<string> {
   // Clone the document to avoid mutating the original
   const clonedDoc = itemDoc.cloneNode(true) as Document;
   const root = clonedDoc.documentElement;
@@ -55,7 +58,12 @@ export function renderTemplate(
   // Step 7: Clean up empty text nodes and normalize whitespace
   normalizeWhitespace(root);
 
-  // Step 8: Serialize the sanitized document to XML string
+  // Step 8: Resolve asset URLs if resolver is provided
+  if (options?.resolveAssets) {
+    await resolveAssetUrls(root, options.resolveAssets);
+  }
+
+  // Step 9: Serialize the sanitized document to XML string
   return serializeToXml(clonedDoc);
 }
 
@@ -408,6 +416,68 @@ function normalizeWhitespace(root: Element): void {
       elementChildren[0]
     );
     root.appendChild(root.ownerDocument.createTextNode('\n\n  '));
+  }
+}
+
+/**
+ * Resolves asset URLs in the document using the provided resolver.
+ *
+ * Collects all unique URLs from `src` and `data` attributes,
+ * calls the resolver with the batch, and replaces the attribute
+ * values with the resolved URLs.
+ */
+async function resolveAssetUrls(
+  root: Element,
+  resolver: (urls: string[]) => Promise<string[]>
+): Promise<void> {
+  // Collect all elements with src or data attributes
+  const allElements = root.getElementsByTagName('*');
+  const elementsWithAssets: Array<{ element: Element; attr: string }> = [];
+  const urlSet = new Set<string>();
+
+  for (let i = 0; i < allElements.length; i++) {
+    const element = allElements[i];
+    if (!element) continue;
+
+    const src = element.getAttribute('src');
+    const data = element.getAttribute('data');
+
+    if (src) {
+      elementsWithAssets.push({ element, attr: 'src' });
+      urlSet.add(src);
+    }
+    if (data) {
+      elementsWithAssets.push({ element, attr: 'data' });
+      urlSet.add(data);
+    }
+  }
+
+  // If no assets found, nothing to resolve
+  if (urlSet.size === 0) {
+    return;
+  }
+
+  // Create ordered array of unique URLs
+  const uniqueUrls = Array.from(urlSet);
+
+  // Call resolver with all unique URLs
+  const resolvedUrls = await resolver(uniqueUrls);
+
+  // Create mapping from original URL to resolved URL
+  const urlMap = new Map<string, string>();
+  for (let i = 0; i < uniqueUrls.length; i++) {
+    urlMap.set(uniqueUrls[i], resolvedUrls[i]);
+  }
+
+  // Replace attribute values with resolved URLs
+  for (const { element, attr } of elementsWithAssets) {
+    const originalUrl = element.getAttribute(attr);
+    if (originalUrl) {
+      const resolvedUrl = urlMap.get(originalUrl);
+      if (resolvedUrl !== undefined) {
+        element.setAttribute(attr, resolvedUrl);
+      }
+    }
   }
 }
 

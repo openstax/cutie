@@ -2,7 +2,7 @@ import { DOMParser } from '@xmldom/xmldom';
 import { initializeState } from './lib/initializeState';
 import { renderTemplate } from './lib/renderTemplate';
 import { processResponse } from './lib/responseProcessing';
-import { AttemptState, ResponseData } from './types';
+import { AttemptState, ProcessingOptions, ResponseData } from './types';
 
 /**
  * Result of attempt operations containing updated state and template.
@@ -29,6 +29,7 @@ export interface AttemptResult {
  * the first template with any randomized template variables resolved.
  *
  * @param itemXml - Complete QTI v3 assessment item XML definition
+ * @param options - Optional processing options (e.g., asset resolver)
  * @returns Promise resolving to initial state and sanitized template XML
  *
  * @example
@@ -37,7 +38,10 @@ export interface AttemptResult {
  * // Persist state, send template to client for rendering
  * ```
  */
-export async function beginAttempt(itemXml: string): Promise<AttemptResult> {
+export async function beginAttempt(
+  itemXml: string,
+  options?: ProcessingOptions
+): Promise<AttemptResult> {
   // Parse the QTI XML document
   const parser = new DOMParser();
   const itemDoc = parser.parseFromString(itemXml, 'text/xml');
@@ -46,7 +50,7 @@ export async function beginAttempt(itemXml: string): Promise<AttemptResult> {
   const state = initializeState(itemDoc);
 
   // Render the sanitized template with resolved variables
-  const template = renderTemplate(itemDoc, state);
+  const template = await renderTemplate(itemDoc, state, options);
 
   return { state, template };
 }
@@ -61,6 +65,7 @@ export async function beginAttempt(itemXml: string): Promise<AttemptResult> {
  * @param submission - Learner's response data (response IDs mapped to values)
  * @param state - Current attempt state from previous operation
  * @param itemXml - Complete QTI v3 assessment item XML definition
+ * @param options - Optional processing options (e.g., asset resolver)
  * @returns Promise resolving to updated state and sanitized template XML
  *
  * @example
@@ -77,7 +82,8 @@ export async function beginAttempt(itemXml: string): Promise<AttemptResult> {
 export async function submitResponse(
   submission: ResponseData,
   state: AttemptState,
-  itemXml: string
+  itemXml: string,
+  options?: ProcessingOptions
 ): Promise<AttemptResult> {
   // Parse the QTI XML document
   const parser = new DOMParser();
@@ -87,10 +93,15 @@ export async function submitResponse(
   const updatedState = processResponse(itemDoc, submission, state);
 
   // Render the updated template with new state (feedback may now be visible)
-  const template = renderTemplate(itemDoc, updatedState);
+  const template = await renderTemplate(itemDoc, updatedState, options);
 
   return { state: updatedState, template };
 }
 
 // Re-export types for convenience
-export type { ResponseData, AttemptState } from './types';
+export type {
+  AssetResolver,
+  AttemptState,
+  ProcessingOptions,
+  ResponseData,
+} from './types';
