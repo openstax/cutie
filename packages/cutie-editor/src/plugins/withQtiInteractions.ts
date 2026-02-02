@@ -70,7 +70,7 @@ export function normalizeElement(editor: CustomEditor, element: Element, path: P
  * Inline element types that don't have configs but are known to be inline.
  * Used as a fallback when no config is found.
  */
-const FALLBACK_INLINE_TYPES = ['span', 'strong', 'em', 'line-break'];
+const FALLBACK_INLINE_TYPES = ['span', 'strong', 'em', 'line-break', 'qti-unknown'];
 
 /**
  * Check if an element is inline based on its config or known inline types.
