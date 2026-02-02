@@ -4,6 +4,8 @@ import { useSlate } from 'slate-react';
 import { insertChoiceInteraction } from '../interactions/choice';
 import { insertTextEntryInteraction } from '../interactions/textEntry';
 import { insertExtendedTextInteraction } from '../interactions/extendedText';
+import { insertImage } from '../elements/image';
+import { useAssetHandlers } from '../contexts/AssetContext';
 import {
   BoldIcon,
   ItalicIcon,
@@ -18,6 +20,7 @@ import {
   AlignRightIcon,
   AddBoxIcon,
   ExpandMoreIcon,
+  ImageIcon,
 } from '../components/icons';
 import type { TextAlign } from '../types';
 
@@ -26,10 +29,13 @@ import type { TextAlign } from '../types';
  */
 export function Toolbar(): React.JSX.Element {
   const editor = useSlate();
+  const { uploadAsset } = useAssetHandlers();
   const [interactionsOpen, setInteractionsOpen] = React.useState(false);
   const [blockTypeOpen, setBlockTypeOpen] = React.useState(false);
+  const [isUploading, setIsUploading] = React.useState(false);
   const interactionsDropdownRef = React.useRef<HTMLDivElement>(null);
   const blockTypeDropdownRef = React.useRef<HTMLDivElement>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Close dropdowns when clicking outside
   React.useEffect(() => {
@@ -249,6 +255,46 @@ export function Toolbar(): React.JSX.Element {
       >
         <HorizontalRuleIcon />
       </ToolbarButton>
+
+      {/* Image insert button - only shown when uploadAsset handler is available */}
+      {uploadAsset && (
+        <>
+          <input
+            type="file"
+            accept="image/*"
+            ref={fileInputRef}
+            style={{ display: 'none' }}
+            onChange={async (event) => {
+              const file = event.target.files?.[0];
+              if (!file) return;
+
+              setIsUploading(true);
+              try {
+                const src = await uploadAsset(file);
+                insertImage(editor, src);
+              } catch (error) {
+                console.error('Failed to upload image:', error);
+              } finally {
+                setIsUploading(false);
+                // Reset input so the same file can be selected again
+                if (fileInputRef.current) {
+                  fileInputRef.current.value = '';
+                }
+              }
+            }}
+          />
+          <ToolbarButton
+            onMouseDown={(event) => {
+              event.preventDefault();
+              fileInputRef.current?.click();
+            }}
+            title="Insert Image"
+            disabled={isUploading}
+          >
+            <ImageIcon />
+          </ToolbarButton>
+        </>
+      )}
 
       {/* Alignment buttons */}
       <ButtonGroup>
