@@ -4,7 +4,7 @@ import type { ElementConfig } from '../../types';
 export const imageConfig: ElementConfig = {
   type: 'image',
   isVoid: true,
-  isInline: false,
+  isInline: true,
   needsSpacers: false,
   categories: [],
   forbidDescendants: [],

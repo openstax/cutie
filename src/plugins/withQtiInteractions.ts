@@ -67,6 +67,27 @@ export function normalizeElement(editor: CustomEditor, element: Element, path: P
 }
 
 /**
+ * Inline element types that don't have configs but are known to be inline.
+ * Used as a fallback when no config is found.
+ */
+const FALLBACK_INLINE_TYPES = ['span', 'strong', 'em', 'line-break'];
+
+/**
+ * Check if an element is inline based on its config or known inline types.
+ * This is the source of truth for inline detection - use this instead of
+ * hardcoding inline type lists elsewhere.
+ */
+export function isElementInline(element: Element): boolean {
+  if (!('type' in element)) return false;
+
+  const config = elementConfigs.find(c => c.matches(element));
+  if (config) return config.isInline;
+
+  const type = element.type as string;
+  return FALLBACK_INLINE_TYPES.includes(type);
+}
+
+/**
  * Plugin to handle QTI interaction-specific behavior
  */
 export function withQtiInteractions(editor: CustomEditor): CustomEditor {
@@ -93,19 +114,11 @@ export function withQtiInteractions(editor: CustomEditor): CustomEditor {
     return isVoid(element);
   };
 
-  // Mark text-entry as inline (but NOT choice-id-label - it should be block to avoid spacers)
+  // Mark certain elements as inline
   editor.isInline = (element: Element) => {
-    if ('type' in element) {
-      const config = elementConfigs.find(c => c.matches(element));
-      if (config) return config.isInline;
-
-      const type = element.type as string;
-      const inlineTypes = ['span', 'strong', 'em', 'line-break'];
-      if (inlineTypes.includes(type)) {
-        return true;
-      }
+    if (isElementInline(element)) {
+      return true;
     }
-
     return isInline(element);
   };
 

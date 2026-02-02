@@ -1,9 +1,10 @@
-import type { Descendant } from 'slate';
+import type { Descendant, Element as SlateElementType } from 'slate';
 import { promptParsers } from '../elements/prompt';
 import { simpleChoiceParsers } from '../elements/simpleChoice';
 import { choiceParsers } from '../interactions/choice';
 import { extendedTextParsers } from '../interactions/extendedText';
 import { textEntryParsers } from '../interactions/textEntry';
+import { isElementInline } from '../plugins/withQtiInteractions';
 import type { DocumentMetadata, ElementAttributes, SlateElement, SlateText, TextAlign } from '../types';
 import { classifyResponseProcessing } from '../utils/responseProcessingClassifier';
 import { domToXmlNode, type XmlNode } from './xmlNode';
@@ -102,6 +103,53 @@ export function parseXmlToSlate(xml: string): Descendant[] {
 }
 
 /**
+ * Check if a Slate node is an inline element that needs to be wrapped in a paragraph
+ * when it appears at the root level of the document.
+ */
+function isInlineSlateNode(node: Descendant): boolean {
+  // Text nodes are inline
+  if ('text' in node) return true;
+
+  // Use the shared inline detection helper for elements
+  if ('type' in node) {
+    return isElementInline(node as SlateElementType);
+  }
+
+  return false;
+}
+
+/**
+ * Wrap consecutive inline nodes in paragraphs at the root level.
+ * This handles cases like standalone <img> tags in the XML.
+ */
+function wrapInlineNodesInParagraphs(nodes: Descendant[]): Descendant[] {
+  const result: Descendant[] = [];
+  let inlineBuffer: Descendant[] = [];
+
+  const flushBuffer = () => {
+    if (inlineBuffer.length > 0) {
+      result.push({
+        type: 'paragraph',
+        children: inlineBuffer,
+      } as SlateElement);
+      inlineBuffer = [];
+    }
+  };
+
+  for (const node of nodes) {
+    if (isInlineSlateNode(node)) {
+      inlineBuffer.push(node);
+    } else {
+      flushBuffer();
+      result.push(node);
+    }
+  }
+
+  flushBuffer();
+  return result;
+}
+
+/**
  * Convert a list of DOM nodes to Slate descendants
  * @param nodes - DOM nodes to convert
  * @param isRootLevel - Whether this is the document root level (requires at least one node)
@@ -121,15 +169,19 @@ function convertNodesToSlate(nodes: Node[], isRootLevel = false, context?: Parse
     }
   }
 
+  // At root level, wrap any inline nodes in paragraphs
+  // This handles cases like standalone <img> tags in the XML
+  const normalized = isRootLevel ? wrapInlineNodesInParagraphs(result) : result;
+
   // Ensure we have at least one node at root level (Slate requirement)
-  if (isRootLevel && result.length === 0) {
-    result.push({
+  if (isRootLevel && normalized.length === 0) {
+    normalized.push({
       type: 'paragraph',
       children: [{ text: '' }],
     });
   }
 
-  return result;
+  return normalized;
 }
 
 /**

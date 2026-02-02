@@ -154,18 +154,24 @@ describe('parseXmlToSlate', () => {
       });
     });
 
-    it('should parse image elements', () => {
+    it('should parse image elements (standalone images wrapped in paragraph)', () => {
       const xml = wrapInQtiItem('<img src="test.jpg" alt="Test image" width="100" />');
       const result = getContentNodes(parseXmlToSlate(xml));
 
+      // Standalone images are wrapped in paragraphs since images are inline
       expect(result[0]).toMatchObject({
-        type: 'image',
-        children: [{ text: '' }],
-        attributes: {
-          src: 'test.jpg',
-          alt: 'Test image',
-          width: '100',
-        },
+        type: 'paragraph',
+        children: [
+          {
+            type: 'image',
+            children: [{ text: '' }],
+            attributes: {
+              src: 'test.jpg',
+              alt: 'Test image',
+              width: '100',
+            },
+          },
+        ],
       });
     });
 
@@ -185,17 +191,23 @@ describe('parseXmlToSlate', () => {
   });
 
   describe('QTI interactions', () => {
-    it('should parse text entry interaction', () => {
+    it('should parse text entry interaction (standalone wrapped in paragraph)', () => {
       const xml = wrapInQtiItem('<qti-text-entry-interaction response-identifier="RESPONSE_1" expected-length="10" />');
       const result = getContentNodes(parseXmlToSlate(xml));
 
+      // Standalone inline interactions are wrapped in paragraphs
       expect(result[0]).toMatchObject({
-        type: 'qti-text-entry-interaction',
-        children: [{ text: '' }],
-        attributes: {
-          'response-identifier': 'RESPONSE_1',
-          'expected-length': '10',
-        },
+        type: 'paragraph',
+        children: [
+          {
+            type: 'qti-text-entry-interaction',
+            children: [{ text: '' }],
+            attributes: {
+              'response-identifier': 'RESPONSE_1',
+              'expected-length': '10',
+            },
+          },
+        ],
       });
     });
 
@@ -297,7 +309,11 @@ describe('parseXmlToSlate', () => {
       const xml = wrapInQtiItem('<qti-text-entry-interaction response-identifier="R1" pattern-mask="[0-9]+" />');
       const result = getContentNodes(parseXmlToSlate(xml));
 
-      expect((result[0] as SlateElement & { attributes: Record<string, string> }).attributes).toMatchObject({
+      // Standalone inline interaction is wrapped in paragraph
+      const para = result[0] as SlateElement;
+      expect(para.type).toBe('paragraph');
+      const interaction = para.children[0] as SlateElement & { attributes: Record<string, string> };
+      expect(interaction.attributes).toMatchObject({
         'response-identifier': 'R1',
         'pattern-mask': '[0-9]+',
       });
