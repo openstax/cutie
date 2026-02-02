@@ -55,6 +55,11 @@ export function SlateEditor({
   const [selectedElement, setSelectedElement] = useState<SlateElement | null>(null);
   const [selectedPath, setSelectedPath] = useState<Path | null>(null);
 
+  // Normalize on initial mount to ensure trailing paragraph exists
+  useEffect(() => {
+    Editor.normalize(editor, { force: true });
+  }, [editor]);
+
   // Handle Slate value changes
   const handleChange = useCallback((newValue: Descendant[]) => {
     setValue(newValue);
@@ -114,6 +119,8 @@ export function SlateEditor({
         // Directly update the Slate editor instance since initialValue only works on mount
         editor.children = newValue;
         Transforms.deselect(editor);
+        // Force normalization to ensure trailing paragraph exists
+        Editor.normalize(editor, { force: true });
         editor.onChange();
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to parse QTI XML';

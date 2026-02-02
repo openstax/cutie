@@ -16,6 +16,28 @@ interface InternalSerializationResult extends SerializationResult {
 }
 
 /**
+ * Check if a node is an empty paragraph (only contains empty text)
+ */
+function isEmptyParagraph(node: Descendant): boolean {
+  if (!('type' in node) || node.type !== 'paragraph') {
+    return false;
+  }
+  const element = node as SlateElement;
+  return element.children.every(
+    (child) => 'text' in child && child.text === ''
+  );
+}
+
+/**
+ * Strip empty spacer paragraphs from nodes array.
+ * These are added by the editor for cursor positioning but shouldn't be serialized.
+ * Empty paragraphs serve no purpose in QTI content.
+ */
+function stripEmptySpacerParagraphs(nodes: Descendant[]): Descendant[] {
+  return nodes.filter((node) => !isEmptyParagraph(node));
+}
+
+/**
  * Serialize Slate document to QTI XML
  *
  * @param nodes - Slate descendants
@@ -32,8 +54,11 @@ export function serializeSlateToXml(nodes: Descendant[]): InternalSerializationR
     responseDeclarations: new Map(),
   };
 
+  // Strip empty spacer paragraphs (added by editor for cursor positioning)
+  const nodesToSerialize = stripEmptySpacerParagraphs(nodes);
+
   // Convert Slate nodes to XML
-  for (const node of nodes) {
+  for (const node of nodesToSerialize) {
     const element = convertSlateNodeToXml(node, context);
     if (element) {
       itemBody.appendChild(element);

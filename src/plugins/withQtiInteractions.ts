@@ -11,6 +11,34 @@ const interactionConfigs = [
 ];
 
 /**
+ * Check if an element needs spacer paragraphs around it for cursor positioning.
+ * Block-level interactions that don't allow inline text editing need spacers.
+ */
+export function elementNeedsSpacers(element: Element): boolean {
+  if (!('type' in element)) return false;
+  const config = interactionConfigs.find(c => c.matches(element));
+  return config?.needsSpacers ?? false;
+}
+
+/**
+ * Get the categories for an element (e.g., ['interaction'])
+ */
+export function getElementCategories(element: Element): string[] {
+  if (!('type' in element)) return [];
+  const config = interactionConfigs.find(c => c.matches(element));
+  return config?.categories ?? [];
+}
+
+/**
+ * Get the forbidden descendant categories for an element
+ */
+export function getElementForbiddenDescendants(element: Element): string[] {
+  if (!('type' in element)) return [];
+  const config = interactionConfigs.find(c => c.matches(element));
+  return config?.forbidDescendants ?? [];
+}
+
+/**
  * Plugin to handle QTI interaction-specific behavior
  */
 export function withQtiInteractions(editor: CustomEditor): CustomEditor {
