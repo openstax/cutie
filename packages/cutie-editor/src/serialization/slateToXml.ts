@@ -9,6 +9,8 @@ import { generateResponseProcessingXml } from '../utils/responseProcessingGenera
 import { type XmlNode, xmlNodeToDom } from './xmlNode';
 import { createXmlDocument, createXmlElement } from './xmlUtils';
 
+const QTI_NAMESPACE = 'http://www.imsglobal.org/xsd/imsqtiasi_v3p0';
+
 /**
  * Internal result type that includes response declarations and processing config
  */
@@ -626,6 +628,37 @@ function updateResponseProcessing(
 }
 
 /**
+ * Check if a QTI XML string is empty or invalid
+ */
+function isEmptyDocument(xml: string): boolean {
+  if (!xml || !xml.trim()) return true;
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(xml, 'application/xml');
+  // cspell:ignore parsererror - standard DOM API element name
+  return !!doc.querySelector('parsererror');
+}
+
+/**
+ * Create a new minimal QTI assessment item document
+ */
+function createNewQtiDocument(): Document {
+  const xmlString = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="${QTI_NAMESPACE}"
+                     identifier="new-item"
+                     title="New Item"
+                     adaptive="false"
+                     time-dependent="false">
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value>
+      <qti-value>0</qti-value>
+    </qti-default-value>
+  </qti-outcome-declaration>
+  <qti-item-body></qti-item-body>
+</qti-assessment-item>`;
+  return new DOMParser().parseFromString(xmlString, 'application/xml');
+}
+
+/**
  * Serialize Slate document back to full QTI XML document
  *
  * This function takes the original QTI XML and Slate nodes (representing item-body content),
@@ -639,9 +672,11 @@ export function serializeSlateToQti(
   nodes: Descendant[],
   originalQtiXml: string
 ): SerializationResult {
-  // Parse the original QTI document
+  // Use new document if original is empty/invalid
   const parser = new DOMParser();
-  const doc = parser.parseFromString(originalQtiXml, 'application/xml');
+  const doc = isEmptyDocument(originalQtiXml)
+    ? createNewQtiDocument()
+    : parser.parseFromString(originalQtiXml, 'application/xml');
 
   // Find the assessment item element
   const assessmentItem = doc.querySelector('qti-assessment-item');

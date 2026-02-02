@@ -35,6 +35,21 @@ const interactionParsers: Record<string, ParserFn> = {
 };
 
 /**
+ * Create a default empty document structure for new items
+ */
+function createEmptyDocument(): Descendant[] {
+  const metadataNode: DocumentMetadata = {
+    type: 'document-metadata',
+    children: [{ text: '' }],
+    responseProcessing: { mode: 'allCorrect' },
+  };
+  return [
+    metadataNode,
+    { type: 'paragraph', children: [{ text: '' }] },
+  ];
+}
+
+/**
  * Parse QTI XML to Slate document structure
  *
  * @param xml - Full QTI XML document (qti-assessment-item)
@@ -42,6 +57,11 @@ const interactionParsers: Record<string, ParserFn> = {
  *          with a document-metadata node at position [0]
  */
 export function parseXmlToSlate(xml: string): Descendant[] {
+  // Handle empty input - return default empty document structure
+  if (!xml || !xml.trim()) {
+    return createEmptyDocument();
+  }
+
   const doc = parseXml(xml);
   if (!doc) {
     throw new Error('Failed to parse QTI XML');

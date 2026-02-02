@@ -37,6 +37,34 @@ function getMetadata(result: Descendant[]): DocumentMetadata | null {
 }
 
 describe('parseXmlToSlate', () => {
+  describe('empty document handling', () => {
+    it('should return default structure for empty string', () => {
+      const result = parseXmlToSlate('');
+      expect(result).toHaveLength(2);
+      expect(result[0]).toMatchObject({
+        type: 'document-metadata',
+        responseProcessing: { mode: 'allCorrect' },
+      });
+      expect(result[1]).toMatchObject({
+        type: 'paragraph',
+        children: [{ text: '' }],
+      });
+    });
+
+    it('should return default structure for whitespace-only string', () => {
+      const result = parseXmlToSlate('   \n\t  ');
+      expect(result).toHaveLength(2);
+      expect(result[0]).toMatchObject({
+        type: 'document-metadata',
+        responseProcessing: { mode: 'allCorrect' },
+      });
+      expect(result[1]).toMatchObject({
+        type: 'paragraph',
+        children: [{ text: '' }],
+      });
+    });
+  });
+
   describe('document metadata', () => {
     it('should include document-metadata node at position [0]', () => {
       const xml = wrapInQtiItem('<p>Hello world</p>');
