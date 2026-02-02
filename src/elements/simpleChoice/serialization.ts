@@ -30,32 +30,11 @@ function parseSimpleChoice(
     attributes: {},
   };
 
-  // If content doesn't have paragraph children, wrap in paragraph for proper editing
-  const hasParagraph = children.some(child => 'type' in child && child.type === 'paragraph');
-
-  let contentChildren: Descendant[];
-  if (!hasParagraph && children.length > 0) {
-    // Wrap text/inline content in paragraph
-    contentChildren = [{
-      type: 'paragraph',
-      children: children,
-      attributes: {},
-    }];
-  } else if (children.length > 0) {
-    contentChildren = children;
-  } else {
-    // Empty choice - add empty paragraph
-    contentChildren = [{
-      type: 'paragraph',
-      children: [{ text: '' }],
-      attributes: {},
-    }];
-  }
-
   // Wrap content in choice-content element (second child)
+  // Normalization will ensure proper paragraph children when loaded into editor
   const contentWrapper: SlateElement = {
     type: 'choice-content',
-    children: contentChildren,
+    children: children.length > 0 ? children : [{ text: '' }],
     attributes: {},
   };
 

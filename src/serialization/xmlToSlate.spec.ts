@@ -233,12 +233,13 @@ describe('parseXmlToSlate', () => {
       const choice = result[0] as SlateElement;
       expect(choice.children).toHaveLength(2);
       // qti-simple-choice now has choice-id-label and choice-content children
+      // Parser passes raw children; normalization wraps text in paragraphs when loaded into editor
       expect(choice.children[0]).toMatchObject({
         type: 'qti-simple-choice',
         attributes: { identifier: 'choice-1' },
         children: [
           { type: 'choice-id-label', children: [{ text: 'choice-1' }] },
-          { type: 'choice-content', children: [{ type: 'paragraph', children: [{ text: 'First choice' }] }] },
+          { type: 'choice-content', children: [{ text: 'First choice' }] },
         ],
       });
     });

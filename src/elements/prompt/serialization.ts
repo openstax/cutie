@@ -42,7 +42,17 @@ function serializePrompt(
     setAttributes(xmlElement, element.attributes);
   }
 
-  // Convert children
+  // If there's exactly one child and it's a paragraph, unwrap it for clean XML
+  if (element.children.length === 1) {
+    const onlyChild = element.children[0];
+    if ('type' in onlyChild && onlyChild.type === 'paragraph') {
+      // Unwrap paragraph - serialize its children directly
+      convertChildren(onlyChild.children, xmlElement);
+      return xmlElement;
+    }
+  }
+
+  // Otherwise convert children normally
   convertChildren(element.children, xmlElement);
 
   return xmlElement;

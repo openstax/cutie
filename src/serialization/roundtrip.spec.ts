@@ -520,11 +520,10 @@ describe('XML Round-trip Tests', () => {
       const choices = choiceInteraction.children;
 
       // Each choice has choice-id-label and choice-content as children
-      // The text is in choice-content > paragraph > text
+      // Parser passes raw text; normalization wraps in paragraphs when loaded into editor
       const getChoiceText = (choice: any) => {
         const choiceContent = choice.children.find((c: any) => c.type === 'choice-content');
-        const paragraph = choiceContent.children[0];
-        return paragraph.children[0].text;
+        return choiceContent.children[0].text;
       };
 
       expect(getChoiceText(choices[0])).toBe(' Option A ');
