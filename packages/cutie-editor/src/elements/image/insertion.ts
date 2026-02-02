@@ -1,6 +1,10 @@
-import { type Editor, Element as SlateElement, Transforms } from 'slate';
+import { type Editor, Transforms } from 'slate';
 import type { ImageElement } from '../../types';
 
+/**
+ * Insert an image at the current cursor position.
+ * Images are inline elements, so they will be inserted within the current paragraph.
+ */
 export function insertImage(editor: Editor, src: string, alt?: string): void {
   const image: ImageElement = {
     type: 'image',
@@ -8,6 +12,4 @@ export function insertImage(editor: Editor, src: string, alt?: string): void {
     attributes: { src, alt: alt || '' },
   };
   Transforms.insertNodes(editor, image);
-  // Insert paragraph after for cursor positioning
-  Transforms.insertNodes(editor, { type: 'paragraph', children: [{ text: '' }] } as SlateElement);
 }
