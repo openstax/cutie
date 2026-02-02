@@ -3,6 +3,7 @@ import { useStyle } from '../hooks/useStyle';
 import { choicePropertiesPanels } from '../interactions/choice';
 import { textEntryPropertiesPanels } from '../interactions/textEntry';
 import { extendedTextPropertiesPanels } from '../interactions/extendedText';
+import { imagePropertiesPanels } from '../elements/image';
 import { ResponseProcessingPanel } from './ResponseProcessingPanel';
 import type { SlateElement, ElementAttributes, XmlNode, ResponseProcessingConfig, ResponseProcessingMode } from '../types';
 
@@ -22,6 +23,7 @@ const propertiesPanels: Record<string, React.ComponentType<any>> = {
   ...choicePropertiesPanels,
   ...textEntryPropertiesPanels,
   ...extendedTextPropertiesPanels,
+  ...imagePropertiesPanels,
 };
 
 /**

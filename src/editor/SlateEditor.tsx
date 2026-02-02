@@ -14,8 +14,10 @@ import { textEntryRenderers } from '../interactions/textEntry';
 import { extendedTextRenderers } from '../interactions/extendedText';
 import { promptRenderers } from '../elements/prompt';
 import { simpleChoiceRenderers } from '../elements/simpleChoice';
+import { imageRenderers } from '../elements/image';
 import { useStyle } from '../hooks/useStyle';
 import { hasMapping } from '../utils/responseProcessingClassifier';
+import { AssetContext } from '../contexts/AssetContext';
 
 /**
  * Main Slate editor component for QTI editing
@@ -27,6 +29,7 @@ export function SlateEditor({
   className = '',
   readOnly = false,
   placeholder = 'Enter content...',
+  assetHandlers,
 }: SlateEditorProps): React.JSX.Element {
   // Create editor instance with plugins (stable across renders)
   const editor = useMemo(() => {
@@ -65,18 +68,18 @@ export function SlateEditor({
   const handleChange = useCallback((newValue: Descendant[]) => {
     setValue(newValue);
 
-    // Track selected interaction for properties panel
+    // Track selected element for properties panel
     const { selection } = editor;
     if (!selection) {
       setSelectedElement(null);
       setSelectedPath(null);
     } else {
-      // Find interaction element at selection
+      // Find element with properties panel at selection
       const [match] = Editor.nodes(editor, {
         at: selection,
         match: (n) =>
           SlateElementType.isElement(n) &&
-          isInteractionElement(n as SlateElement),
+          hasPropertiesPanel(n as SlateElement),
       });
 
       if (match) {
@@ -183,41 +186,43 @@ export function SlateEditor({
   useStyle('slate-editor-container', EDITOR_LAYOUT_STYLES);
 
   return (
-    <div className="slate-editor-container">
-      <div className={`slate-editor ${className}`}>
-        <Slate editor={editor} initialValue={value} onChange={handleChange}>
-          <Toolbar />
-          <Editable
-            renderElement={renderElement}
-            renderLeaf={renderLeaf}
-            placeholder={placeholder}
-            readOnly={readOnly}
-            spellCheck
-            autoFocus
-            style={{
-              padding: '16px',
-              minHeight: '300px',
-              maxHeight: '500px',
-              overflowY: 'auto',
-            }}
-          />
-        </Slate>
+    <AssetContext.Provider value={assetHandlers ?? {}}>
+      <div className="slate-editor-container">
+        <div className={`slate-editor ${className}`}>
+          <Slate editor={editor} initialValue={value} onChange={handleChange}>
+            <Toolbar />
+            <Editable
+              renderElement={renderElement}
+              renderLeaf={renderLeaf}
+              placeholder={placeholder}
+              readOnly={readOnly}
+              spellCheck
+              autoFocus
+              style={{
+                padding: '16px',
+                minHeight: '300px',
+                maxHeight: '500px',
+                overflowY: 'auto',
+              }}
+            />
+          </Slate>
+        </div>
+        <PropertiesPanel
+          selectedElement={selectedElement}
+          selectedPath={selectedPath}
+          onUpdateAttributes={handleUpdateAttributes}
+          responseProcessingConfig={responseProcessingConfig}
+          interactionCount={interactionCount}
+          hasMappings={hasMappings}
+          onResponseProcessingModeChange={handleResponseProcessingModeChange}
+        />
       </div>
-      <PropertiesPanel
-        selectedElement={selectedElement}
-        selectedPath={selectedPath}
-        onUpdateAttributes={handleUpdateAttributes}
-        responseProcessingConfig={responseProcessingConfig}
-        interactionCount={interactionCount}
-        hasMappings={hasMappings}
-        onResponseProcessingModeChange={handleResponseProcessingModeChange}
-      />
-    </div>
+    </AssetContext.Provider>
   );
 }
 
 /**
- * Helper function to check if an element is an interaction
+ * Helper function to check if an element is a QTI interaction
  */
 function isInteractionElement(element: SlateElement): boolean {
   return (
@@ -225,6 +230,13 @@ function isInteractionElement(element: SlateElement): boolean {
     element.type === 'qti-extended-text-interaction' ||
     element.type === 'qti-choice-interaction'
   );
+}
+
+/**
+ * Helper function to check if an element has a properties panel
+ */
+function hasPropertiesPanel(element: SlateElement): boolean {
+  return isInteractionElement(element) || element.type === 'image';
 }
 
 /**
@@ -278,6 +290,7 @@ const interactionRenderers: Record<string, React.ComponentType<RenderElementProp
   ...extendedTextRenderers,
   ...promptRenderers,
   ...simpleChoiceRenderers,
+  ...imageRenderers,
 };
 
 /**
@@ -365,16 +378,6 @@ function Element({ attributes, children, element }: RenderElementProps): React.J
         default:
           return <h2 {...attributes}>{children}</h2>;
       }
-
-    case 'image':
-      return (
-        <img
-          {...attributes}
-          src={el.attributes.src}
-          alt={el.attributes.alt}
-          style={{ maxWidth: '100%', display: 'block' }}
-        />
-      );
 
     case 'line-break':
       return <br {...attributes} />;
