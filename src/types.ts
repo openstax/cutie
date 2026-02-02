@@ -1,4 +1,4 @@
-import type { BaseEditor } from 'slate';
+import type { BaseEditor, Element, Path } from 'slate';
 import type { HistoryEditor } from 'slate-history';
 import type { ReactEditor } from 'slate-react';
 import type { XmlNode } from './serialization/xmlNode';
@@ -354,4 +354,36 @@ export interface ChoiceInteractionConfig {
   minChoices?: string;
   shuffle?: boolean;
   choices: ChoiceConfig[];
+}
+
+// ============================================================================
+// Element Configuration Types (for editor plugins)
+// ============================================================================
+
+/**
+ * Configuration for an element type in the editor.
+ * Used by plugins to define behavior for specific element types.
+ */
+export interface ElementConfig {
+  /** The element type identifier */
+  type: string;
+  /** Whether this element is void (has no editable children) */
+  isVoid: boolean;
+  /** Whether this element is inline */
+  isInline: boolean;
+  /** Whether this element needs spacer paragraphs for cursor positioning */
+  needsSpacers: boolean;
+  /** Categories this element belongs to (e.g., ['interaction']) */
+  categories: string[];
+  /** Categories of descendants that are forbidden inside this element */
+  forbidDescendants: string[];
+  /** Predicate to check if an element matches this config */
+  matches: (element: Element) => boolean;
+  /**
+   * Optional normalization hook for this element type.
+   * Called during editor normalization when this element is encountered.
+   * Return true if a normalization was performed (will re-run normalization).
+   * Return false to continue with default normalization.
+   */
+  normalize?: (editor: CustomEditor, node: Element, path: Path) => boolean;
 }

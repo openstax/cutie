@@ -1,6 +1,7 @@
 import type { Element } from 'slate';
+import type { ElementConfig } from '../../types';
 
-export const textEntryInteractionConfig = {
+export const textEntryInteractionConfig: ElementConfig = {
   type: 'qti-text-entry-interaction',
   isVoid: true,
   isInline: true,

@@ -1,10 +1,10 @@
-import { Element } from 'slate';
+import { Element, Path } from 'slate';
 import { choiceInteractionConfig } from '../interactions/choice/config';
 import { extendedTextInteractionConfig } from '../interactions/extendedText/config';
 import { textEntryInteractionConfig } from '../interactions/textEntry/config';
-import type { CustomEditor } from '../types';
+import type { CustomEditor, ElementConfig } from '../types';
 
-const interactionConfigs = [
+const interactionConfigs: ElementConfig[] = [
   choiceInteractionConfig,
   textEntryInteractionConfig,
   extendedTextInteractionConfig,
@@ -36,6 +36,20 @@ export function getElementForbiddenDescendants(element: Element): string[] {
   if (!('type' in element)) return [];
   const config = interactionConfigs.find(c => c.matches(element));
   return config?.forbidDescendants ?? [];
+}
+
+/**
+ * Run the element-specific normalize hook if one exists.
+ * Returns true if normalization was performed (caller should return early).
+ * Returns false if no normalization was needed.
+ */
+export function normalizeElement(editor: CustomEditor, element: Element, path: Path): boolean {
+  if (!('type' in element)) return false;
+  const config = interactionConfigs.find(c => c.matches(element));
+  if (config?.normalize) {
+    return config.normalize(editor, element, path);
+  }
+  return false;
 }
 
 /**
