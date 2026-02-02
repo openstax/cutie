@@ -1,6 +1,10 @@
+import { useMemo } from 'react';
 import { useSelected, useFocused } from 'slate-react';
 import type { RenderElementProps } from 'slate-react';
 import type { QtiChoiceInteraction } from '../../types';
+import { getCorrectValues, hasCorrectResponse } from '../../utils/responseDeclaration';
+import { getMapping, hasMapping } from '../../utils/mappingDeclaration';
+import { ChoiceScoringProvider, type ChoiceScoringInfo } from './ChoiceScoringContext';
 
 /**
  * Renders a choice interaction in the editor
@@ -13,6 +17,28 @@ export function ChoiceElement({
   const el = element as QtiChoiceInteraction;
   const selected = useSelected();
   const focused = useFocused();
+
+  // Build scoring info for children
+  const scoringInfo = useMemo((): ChoiceScoringInfo => {
+    const responseDecl = el.responseDeclaration;
+    const correctValues = getCorrectValues(responseDecl);
+    const mappingData = getMapping(responseDecl);
+
+    const mappingByKey = new Map<string, { mapKey: string; mappedValue: number }>();
+    if (mappingData) {
+      for (const entry of mappingData.entries) {
+        mappingByKey.set(entry.mapKey, entry);
+      }
+    }
+
+    return {
+      correctValues,
+      hasCorrectness: hasCorrectResponse(responseDecl),
+      mappingByKey,
+      hasMapping: hasMapping(responseDecl),
+      defaultMappedValue: mappingData?.metadata.defaultValue ?? 0,
+    };
+  }, [el.responseDeclaration]);
 
   return (
     <fieldset
@@ -33,9 +59,11 @@ export function ChoiceElement({
           userSelect: 'none',
         }}
       >
-        Choice Interaction: {el.attributes['response-identifier']}
+        Choice Interaction
       </legend>
-      {children}
+      <ChoiceScoringProvider value={scoringInfo}>
+        {children}
+      </ChoiceScoringProvider>
     </fieldset>
   );
 }

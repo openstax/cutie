@@ -4,7 +4,7 @@ import { simpleChoiceSerializers } from '../elements/simpleChoice';
 import { choiceSerializers } from '../interactions/choice';
 import { extendedTextSerializers } from '../interactions/extendedText';
 import { textEntrySerializers } from '../interactions/textEntry';
-import type { DocumentMetadata, ResponseProcessingConfig, SerializationResult, SlateElement, SlateText, ValidationError } from '../types';
+import type { DocumentMetadata, ResponseProcessingConfig, SerializationResult, SlateElement, SlateText, TextAlign, ValidationError } from '../types';
 import { generateResponseProcessingXml } from '../utils/responseProcessingGenerator';
 import { type XmlNode, xmlNodeToDom } from './xmlNode';
 import { createXmlDocument, createXmlElement } from './xmlUtils';
@@ -284,13 +284,19 @@ function convertUnknownQtiElement(
  * Convert paragraph element
  */
 function convertParagraph(
-  element: SlateElement & { type: 'paragraph' },
+  element: SlateElement & { type: 'paragraph'; align?: TextAlign },
   context: SerializationContext
 ): Element {
   const xmlElement = createXmlElement(context.doc, 'p');
 
   if (element.attributes) {
     setAttributes(xmlElement, element.attributes);
+  }
+
+  // Add alignment to style attribute
+  const style = buildStyleWithAlignment(element.attributes?.['style'], element.align);
+  if (style) {
+    xmlElement.setAttribute('style', style);
   }
 
   // Convert children
@@ -356,13 +362,19 @@ function convertSpan(
  * Convert heading element
  */
 function convertHeading(
-  element: SlateElement & { type: 'heading' },
+  element: SlateElement & { type: 'heading'; align?: TextAlign },
   context: SerializationContext
 ): Element {
   const xmlElement = createXmlElement(context.doc, `h${element.level}`);
 
   if (element.attributes) {
     setAttributes(xmlElement, element.attributes);
+  }
+
+  // Add alignment to style attribute
+  const style = buildStyleWithAlignment(element.attributes?.['style'], element.align);
+  if (style) {
+    xmlElement.setAttribute('style', style);
   }
 
   // Convert children
@@ -503,13 +515,19 @@ function convertEm(
  * Convert blockquote element
  */
 function convertBlockquote(
-  element: SlateElement & { type: 'blockquote' },
+  element: SlateElement & { type: 'blockquote'; align?: TextAlign },
   context: SerializationContext
 ): Element {
   const xmlElement = createXmlElement(context.doc, 'blockquote');
 
   if (element.attributes) {
     setAttributes(xmlElement, element.attributes);
+  }
+
+  // Add alignment to style attribute
+  const style = buildStyleWithAlignment(element.attributes?.['style'], element.align);
+  if (style) {
+    xmlElement.setAttribute('style', style);
   }
 
   // Convert children
@@ -549,6 +567,33 @@ function setAttributes(
       element.setAttribute(key, value);
     }
   }
+}
+
+/**
+ * Build style attribute with alignment included
+ * Returns the merged style string, or undefined if no styles
+ */
+function buildStyleWithAlignment(
+  existingStyle: string | undefined,
+  align: TextAlign | undefined
+): string | undefined {
+  // Don't add text-align for left (it's the default)
+  if (!align || align === 'left') return existingStyle;
+
+  const alignStyle = `text-align: ${align}`;
+
+  // If there's an existing style, remove any existing text-align and add the new one
+  if (existingStyle) {
+    // Remove existing text-align if present
+    const filteredStyle = existingStyle
+      .split(';')
+      .map(s => s.trim())
+      .filter(s => !s.toLowerCase().startsWith('text-align'))
+      .join('; ');
+    return filteredStyle ? `${filteredStyle}; ${alignStyle}` : alignStyle;
+  }
+
+  return alignStyle;
 }
 
 /**

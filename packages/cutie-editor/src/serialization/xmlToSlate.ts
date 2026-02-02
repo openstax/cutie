@@ -4,7 +4,7 @@ import { simpleChoiceParsers } from '../elements/simpleChoice';
 import { choiceParsers } from '../interactions/choice';
 import { extendedTextParsers } from '../interactions/extendedText';
 import { textEntryParsers } from '../interactions/textEntry';
-import type { DocumentMetadata, ElementAttributes, SlateElement, SlateText } from '../types';
+import type { DocumentMetadata, ElementAttributes, SlateElement, SlateText, TextAlign } from '../types';
 import { classifyResponseProcessing } from '../utils/responseProcessingClassifier';
 import { domToXmlNode, type XmlNode } from './xmlNode';
 import { isQtiElement, normalizeTagName, parseXml, serializeElement } from './xmlUtils';
@@ -232,9 +232,11 @@ function convertNodeToSlate(node: Node, context?: ParserContext): Descendant | D
     // XHTML elements
     if (tagName === 'p') {
       const children = convertNodesToSlate(Array.from(element.childNodes), false, context);
+      const align = extractAlignment(attributes);
       return {
         type: 'paragraph',
         children: children.length > 0 ? children : [{ text: '' }],
+        ...(align && { align }),
         attributes,
       };
     }
@@ -260,10 +262,12 @@ function convertNodeToSlate(node: Node, context?: ParserContext): Descendant | D
     if (tagName.match(/^h[1-6]$/)) {
       const level = parseInt(tagName[1], 10) as 1 | 2 | 3 | 4 | 5 | 6;
       const children = convertNodesToSlate(Array.from(element.childNodes), false, context);
+      const align = extractAlignment(attributes);
       return {
         type: 'heading',
         level,
         children: children.length > 0 ? children : [{ text: '' }],
+        ...(align && { align }),
         attributes,
       };
     }
@@ -330,9 +334,11 @@ function convertNodeToSlate(node: Node, context?: ParserContext): Descendant | D
 
     if (tagName === 'blockquote') {
       const children = convertNodesToSlate(Array.from(element.childNodes), false, context);
+      const align = extractAlignment(attributes);
       return {
         type: 'blockquote',
         children: children.length > 0 ? children : [{ text: '' }],
+        ...(align && { align }),
         attributes,
       };
     }
@@ -382,6 +388,16 @@ function extractAttributes(element: Element): ElementAttributes {
   }
 
   return attributes;
+}
+
+/**
+ * Extract text-align from style attribute
+ */
+function extractAlignment(attributes: ElementAttributes): TextAlign | undefined {
+  const style = attributes['style'];
+  if (!style) return undefined;
+  const match = style.match(/text-align:\s*(left|center|right)/i);
+  return match ? (match[1].toLowerCase() as TextAlign) : undefined;
 }
 
 /**

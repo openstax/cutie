@@ -52,12 +52,15 @@ export type {
   LineBreakElement,
   ListElement,
   ListItemElement,
+  BlockquoteElement,
   TextEntryConfig,
   ExtendedTextConfig,
   ChoiceInteractionConfig,
   ChoiceConfig,
   ElementAttributes,
   XmlNode,
+  // Text alignment type
+  TextAlign,
   // Response processing types
   ResponseProcessingMode,
   ResponseProcessingConfig,
