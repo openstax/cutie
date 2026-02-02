@@ -1,7 +1,9 @@
 import { parseQtiXml } from './parser/xmlParser';
 import { renderToContainer } from './renderer/domRenderer';
 import { ItemStateImpl } from './state/itemState';
+import { registerBaseStyles } from './styles';
 import { transformElement } from './transformer/elementTransformer';
+import { DefaultStyleManager } from './transformer/styleManager';
 import type { ResponseData } from './transformer/types';
 
 /**
@@ -43,11 +45,15 @@ export function mountItem(
   // Create item state manager
   const itemState = new ItemStateImpl();
 
+  // Create style manager and register base styles
+  const styleManager = new DefaultStyleManager();
+  registerBaseStyles(styleManager);
+
   // Parse QTI XML
   const parsed = parseQtiXml(itemTemplateXml);
 
-  // Transform to DocumentFragment with itemState in context
-  const fragment = transformElement(parsed.itemBody, { itemState });
+  // Transform to DocumentFragment with itemState and styleManager in context
+  const fragment = transformElement(parsed.itemBody, { itemState, styleManager });
 
   // Render to container
   const unmountDom = renderToContainer(container, fragment);
@@ -56,6 +62,7 @@ export function mountItem(
   return {
     unmount: () => {
       itemState.clear();
+      styleManager.cleanup();
       unmountDom();
     },
     collectResponses: () => itemState.collectAll(),
