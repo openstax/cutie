@@ -1,6 +1,11 @@
 export { SimpleChoiceElement } from './Element';
 export { ChoiceIdLabel } from './ChoiceIdLabel';
 export { ChoiceContent } from './ChoiceContent';
+export {
+  choiceContentConfig,
+  choiceIdLabelConfig,
+  simpleChoiceConfig,
+} from './config';
 export { simpleChoiceParsers, simpleChoiceSerializers } from './serialization';
 
 import { ChoiceContent } from './ChoiceContent';

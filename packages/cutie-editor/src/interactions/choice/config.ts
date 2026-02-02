@@ -24,7 +24,9 @@ export const choiceInteractionConfig: ElementConfig = {
         editor,
         {
           type: 'qti-prompt',
-          children: [{ text: '' }],
+          children: [
+            { type: 'paragraph', children: [{ text: '' }], attributes: {} },
+          ],
         } as Element,
         { at: path.concat(0) }
       );

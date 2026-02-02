@@ -1,13 +1,27 @@
 import { Element, Path } from 'slate';
+import { imageConfig } from '../elements/image/config';
+import { promptConfig } from '../elements/prompt/config';
+import {
+  choiceContentConfig,
+  choiceIdLabelConfig,
+  simpleChoiceConfig,
+} from '../elements/simpleChoice/config';
 import { choiceInteractionConfig } from '../interactions/choice/config';
 import { extendedTextInteractionConfig } from '../interactions/extendedText/config';
 import { textEntryInteractionConfig } from '../interactions/textEntry/config';
 import type { CustomEditor, ElementConfig } from '../types';
 
-const interactionConfigs: ElementConfig[] = [
+const elementConfigs: ElementConfig[] = [
+  // Interaction configs
   choiceInteractionConfig,
   textEntryInteractionConfig,
   extendedTextInteractionConfig,
+  // Element configs
+  promptConfig,
+  simpleChoiceConfig,
+  choiceIdLabelConfig,
+  choiceContentConfig,
+  imageConfig,
 ];
 
 /**
@@ -16,7 +30,7 @@ const interactionConfigs: ElementConfig[] = [
  */
 export function elementNeedsSpacers(element: Element): boolean {
   if (!('type' in element)) return false;
-  const config = interactionConfigs.find(c => c.matches(element));
+  const config = elementConfigs.find(c => c.matches(element));
   return config?.needsSpacers ?? false;
 }
 
@@ -25,7 +39,7 @@ export function elementNeedsSpacers(element: Element): boolean {
  */
 export function getElementCategories(element: Element): string[] {
   if (!('type' in element)) return [];
-  const config = interactionConfigs.find(c => c.matches(element));
+  const config = elementConfigs.find(c => c.matches(element));
   return config?.categories ?? [];
 }
 
@@ -34,7 +48,7 @@ export function getElementCategories(element: Element): string[] {
  */
 export function getElementForbiddenDescendants(element: Element): string[] {
   if (!('type' in element)) return [];
-  const config = interactionConfigs.find(c => c.matches(element));
+  const config = elementConfigs.find(c => c.matches(element));
   return config?.forbidDescendants ?? [];
 }
 
@@ -45,7 +59,7 @@ export function getElementForbiddenDescendants(element: Element): string[] {
  */
 export function normalizeElement(editor: CustomEditor, element: Element, path: Path): boolean {
   if (!('type' in element)) return false;
-  const config = interactionConfigs.find(c => c.matches(element));
+  const config = elementConfigs.find(c => c.matches(element));
   if (config?.normalize) {
     return config.normalize(editor, element, path);
   }
@@ -61,7 +75,7 @@ export function withQtiInteractions(editor: CustomEditor): CustomEditor {
   // Mark certain interactions as void
   editor.isVoid = (element: Element) => {
     if ('type' in element) {
-      const config = interactionConfigs.find(c => c.matches(element));
+      const config = elementConfigs.find(c => c.matches(element));
       if (config) return config.isVoid;
 
       const type = element.type as string;
@@ -82,7 +96,7 @@ export function withQtiInteractions(editor: CustomEditor): CustomEditor {
   // Mark text-entry as inline (but NOT choice-id-label - it should be block to avoid spacers)
   editor.isInline = (element: Element) => {
     if ('type' in element) {
-      const config = interactionConfigs.find(c => c.matches(element));
+      const config = elementConfigs.find(c => c.matches(element));
       if (config) return config.isInline;
 
       const type = element.type as string;
