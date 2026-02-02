@@ -4,7 +4,8 @@ import { simpleChoiceParsers } from '../elements/simpleChoice';
 import { choiceParsers } from '../interactions/choice';
 import { extendedTextParsers } from '../interactions/extendedText';
 import { textEntryParsers } from '../interactions/textEntry';
-import type { ElementAttributes, SlateElement, SlateText } from '../types';
+import type { DocumentMetadata, ElementAttributes, SlateElement, SlateText } from '../types';
+import { classifyResponseProcessing } from '../utils/responseProcessingClassifier';
 import { domToXmlNode, type XmlNode } from './xmlNode';
 import { isQtiElement, normalizeTagName, parseXml, serializeElement } from './xmlUtils';
 
@@ -38,6 +39,7 @@ const interactionParsers: Record<string, ParserFn> = {
  *
  * @param xml - Full QTI XML document (qti-assessment-item)
  * @returns Array of Slate descendants representing qti-item-body content
+ *          with a document-metadata node at position [0]
  */
 export function parseXmlToSlate(xml: string): Descendant[] {
   const doc = parseXml(xml);
@@ -62,8 +64,21 @@ export function parseXmlToSlate(xml: string): Descendant[] {
 
   const context: ParserContext = { responseDeclarations };
 
+  // Classify response processing to determine mode
+  const responseProcessing = classifyResponseProcessing(doc);
+
+  // Create document metadata node
+  const metadataNode: DocumentMetadata = {
+    type: 'document-metadata',
+    children: [{ text: '' }],
+    responseProcessing,
+  };
+
   // Convert children of qti-item-body to Slate nodes
-  return convertNodesToSlate(Array.from(itemBody.childNodes), true, context);
+  const contentNodes = convertNodesToSlate(Array.from(itemBody.childNodes), true, context);
+
+  // Return metadata node at [0] followed by content nodes
+  return [metadataNode, ...contentNodes];
 }
 
 /**

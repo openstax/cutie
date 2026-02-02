@@ -55,6 +55,10 @@ export type {
   ChoiceConfig,
   ElementAttributes,
   XmlNode,
+  // Response processing types
+  ResponseProcessingMode,
+  ResponseProcessingConfig,
+  DocumentMetadata,
 } from './types';
 
 // Re-export Slate types for convenience

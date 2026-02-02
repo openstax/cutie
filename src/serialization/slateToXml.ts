@@ -4,15 +4,25 @@ import { simpleChoiceSerializers } from '../elements/simpleChoice';
 import { choiceSerializers } from '../interactions/choice';
 import { extendedTextSerializers } from '../interactions/extendedText';
 import { textEntrySerializers } from '../interactions/textEntry';
-import type { SerializationResult, SlateElement, SlateText, ValidationError } from '../types';
+import type { DocumentMetadata, ResponseProcessingConfig, SerializationResult, SlateElement, SlateText, ValidationError } from '../types';
+import { generateResponseProcessingXml } from '../utils/responseProcessingGenerator';
 import { type XmlNode, xmlNodeToDom } from './xmlNode';
 import { createXmlDocument, createXmlElement } from './xmlUtils';
 
 /**
- * Internal result type that includes response declarations
+ * Internal result type that includes response declarations and processing config
  */
 interface InternalSerializationResult extends SerializationResult {
   responseDeclarations: Map<string, XmlNode>;
+  outcomeDeclarations: Map<string, XmlNode>;
+  responseProcessingConfig?: ResponseProcessingConfig;
+}
+
+/**
+ * Check if a node is a document metadata node
+ */
+function isDocumentMetadata(node: Descendant): node is DocumentMetadata {
+  return 'type' in node && node.type === 'document-metadata';
 }
 
 /**
@@ -52,10 +62,18 @@ export function serializeSlateToXml(nodes: Descendant[]): InternalSerializationR
     responseIdentifiers: [],
     errors: [],
     responseDeclarations: new Map(),
+    outcomeDeclarations: new Map(),
   };
 
-  // Strip empty spacer paragraphs (added by editor for cursor positioning)
-  const nodesToSerialize = stripEmptySpacerParagraphs(nodes);
+  // Extract document metadata if present (always at position [0])
+  let responseProcessingConfig: ResponseProcessingConfig | undefined;
+  if (nodes.length > 0 && isDocumentMetadata(nodes[0])) {
+    responseProcessingConfig = nodes[0].responseProcessing;
+  }
+
+  // Filter out metadata node and empty spacer paragraphs
+  const contentNodes = nodes.filter((node) => !isDocumentMetadata(node));
+  const nodesToSerialize = stripEmptySpacerParagraphs(contentNodes);
 
   // Convert Slate nodes to XML
   for (const node of nodesToSerialize) {
@@ -77,6 +95,8 @@ export function serializeSlateToXml(nodes: Descendant[]): InternalSerializationR
     responseIdentifiers: context.responseIdentifiers,
     errors: context.errors.length > 0 ? context.errors : undefined,
     responseDeclarations: context.responseDeclarations,
+    outcomeDeclarations: context.outcomeDeclarations,
+    responseProcessingConfig,
   };
 }
 
@@ -88,6 +108,7 @@ export interface SerializationContext {
   responseIdentifiers: string[];
   errors: ValidationError[];
   responseDeclarations: Map<string, XmlNode>;
+  outcomeDeclarations: Map<string, XmlNode>;
 }
 
 // Single contact point per interaction: spread all serializer objects
@@ -534,6 +555,77 @@ function updateResponseDeclarations(
 }
 
 /**
+ * Update outcome declarations in the assessment item
+ *
+ * Unlike response declarations which are fully managed, outcome declarations
+ * are selectively managed - we only add/remove the intermediate score variables
+ * (e.g., RESP1_SCORE) that are generated for sumScores mode with unmapped responses.
+ * Other outcome declarations (like SCORE) are left untouched.
+ *
+ * @param assessmentItem - The qti-assessment-item element
+ * @param declarations - Map of outcome identifier to XmlNode (intermediate scores only)
+ * @param doc - The XML document
+ */
+function updateOutcomeDeclarations(
+  assessmentItem: Element,
+  declarations: Map<string, XmlNode>,
+  doc: Document
+): void {
+  const itemBody = assessmentItem.querySelector('qti-item-body');
+
+  // Remove only the outcome declarations we're managing (intermediate scores)
+  // Keep existing SCORE declaration and other outcome declarations
+  for (const [identifier] of declarations) {
+    const existing = assessmentItem.querySelector(
+      `qti-outcome-declaration[identifier="${identifier}"]`
+    );
+    if (existing) {
+      existing.remove();
+    }
+  }
+
+  // Insert new outcome declarations before qti-item-body
+  for (const [, node] of declarations) {
+    const element = xmlNodeToDom(node, doc);
+    assessmentItem.insertBefore(element, itemBody);
+  }
+}
+
+/**
+ * Update or replace the response processing element in the assessment item
+ */
+function updateResponseProcessing(
+  assessmentItem: Element,
+  config: ResponseProcessingConfig | undefined,
+  responseIdentifiers: string[],
+  responseDeclarations: Map<string, XmlNode>,
+  outcomeDeclarations: Map<string, XmlNode>,
+  doc: Document
+): void {
+  // Remove existing response processing
+  const existingRP = assessmentItem.querySelector('qti-response-processing');
+  if (existingRP) {
+    existingRP.remove();
+  }
+
+  // Generate new response processing if we have a config
+  if (config) {
+    const newRP = generateResponseProcessingXml(
+      config,
+      responseIdentifiers,
+      responseDeclarations,
+      outcomeDeclarations,
+      doc
+    );
+
+    if (newRP) {
+      // Response processing should be appended at the end of the assessment item
+      assessmentItem.appendChild(newRP);
+    }
+  }
+}
+
+/**
  * Serialize Slate document back to full QTI XML document
  *
  * This function takes the original QTI XML and Slate nodes (representing item-body content),
@@ -582,6 +674,20 @@ export function serializeSlateToQti(
 
   // Update response declarations using collected data from serialization
   updateResponseDeclarations(assessmentItem, itemBodyResult.responseDeclarations, doc);
+
+  // Update response processing based on the mode
+  // This may populate outcomeDeclarations with intermediate score variables
+  updateResponseProcessing(
+    assessmentItem,
+    itemBodyResult.responseProcessingConfig,
+    itemBodyResult.responseIdentifiers,
+    itemBodyResult.responseDeclarations,
+    itemBodyResult.outcomeDeclarations,
+    doc
+  );
+
+  // Update outcome declarations (for intermediate score variables generated by sumScores mode)
+  updateOutcomeDeclarations(assessmentItem, itemBodyResult.outcomeDeclarations, doc);
 
   // Parse the new item-body
   const newItemBodyDoc = parser.parseFromString(itemBodyResult.xml, 'application/xml');

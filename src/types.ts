@@ -21,6 +21,37 @@ declare module 'slate' {
 }
 
 // ============================================================================
+// Response Processing Types
+// ============================================================================
+
+/**
+ * Response processing mode:
+ * - 'custom': Complex logic that cannot be classified; read-only, preserved as-is
+ * - 'sumScores': Partial credit; each interaction produces a score, totaled together
+ * - 'allCorrect': Binary 0/1; all responses must be correct for score of 1
+ */
+export type ResponseProcessingMode = 'custom' | 'sumScores' | 'allCorrect';
+
+/**
+ * Configuration for response processing
+ */
+export interface ResponseProcessingConfig {
+  mode: ResponseProcessingMode;
+  /** For 'custom' mode: preserve original XML for round-trip */
+  customXml?: XmlNode;
+}
+
+/**
+ * Document metadata node stored at position [0] in the Slate document.
+ * This is a void element that participates in Slate's undo/redo history.
+ */
+export interface DocumentMetadata {
+  type: 'document-metadata';
+  children: [{ text: '' }]; // Void element requires children
+  responseProcessing: ResponseProcessingConfig;
+}
+
+// ============================================================================
 // Slate Element Types
 // ============================================================================
 
@@ -233,6 +264,7 @@ export interface EmElement {
  * Union type of all possible Slate elements
  */
 export type SlateElement =
+  | DocumentMetadata
   | QtiTextEntryInteraction
   | QtiExtendedTextInteraction
   | QtiChoiceInteraction

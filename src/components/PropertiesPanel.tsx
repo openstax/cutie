@@ -3,12 +3,17 @@ import { useStyle } from '../hooks/useStyle';
 import { choicePropertiesPanels } from '../interactions/choice';
 import { textEntryPropertiesPanels } from '../interactions/textEntry';
 import { extendedTextPropertiesPanels } from '../interactions/extendedText';
-import type { SlateElement, ElementAttributes, XmlNode } from '../types';
+import { ResponseProcessingPanel } from './ResponseProcessingPanel';
+import type { SlateElement, ElementAttributes, XmlNode, ResponseProcessingConfig, ResponseProcessingMode } from '../types';
 
 interface PropertiesPanelProps {
   selectedElement: SlateElement | null;
   selectedPath: Path | null;
   onUpdateAttributes: (path: Path, attributes: ElementAttributes, responseDeclaration?: XmlNode) => void;
+  responseProcessingConfig?: ResponseProcessingConfig;
+  interactionCount?: number;
+  hasMappings?: boolean;
+  onResponseProcessingModeChange?: (mode: ResponseProcessingMode) => void;
 }
 
 // Single contact point per interaction: spread all properties panel objects
@@ -26,11 +31,29 @@ export function PropertiesPanel({
   selectedElement,
   selectedPath,
   onUpdateAttributes,
+  responseProcessingConfig,
+  interactionCount = 0,
+  hasMappings = false,
+  onResponseProcessingModeChange,
 }: PropertiesPanelProps): React.JSX.Element {
   useStyle('properties-panel', PROPERTIES_PANEL_STYLES);
   useStyle('properties-panel-forms', PROPERTIES_PANEL_FORM_STYLES);
 
   if (!selectedElement || !selectedPath) {
+    // Show response processing panel in empty state
+    if (responseProcessingConfig && onResponseProcessingModeChange) {
+      return (
+        <div className="properties-panel">
+          <ResponseProcessingPanel
+            config={responseProcessingConfig}
+            interactionCount={interactionCount}
+            hasMappings={hasMappings}
+            onModeChange={onResponseProcessingModeChange}
+          />
+        </div>
+      );
+    }
+
     return (
       <div className="properties-panel">
         <div className="properties-panel-empty">
@@ -45,6 +68,20 @@ export function PropertiesPanel({
     return (
       <div className="properties-panel">
         <Panel element={selectedElement} path={selectedPath} onUpdate={onUpdateAttributes} />
+      </div>
+    );
+  }
+
+  // No specific panel for this element, show response processing
+  if (responseProcessingConfig && onResponseProcessingModeChange) {
+    return (
+      <div className="properties-panel">
+        <ResponseProcessingPanel
+          config={responseProcessingConfig}
+          interactionCount={interactionCount}
+          hasMappings={hasMappings}
+          onModeChange={onResponseProcessingModeChange}
+        />
       </div>
     );
   }

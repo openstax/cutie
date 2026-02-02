@@ -1,5 +1,6 @@
+import type { Descendant } from 'slate';
 import { describe, expect, it } from 'vitest';
-import type { SlateElement } from '../types';
+import type { DocumentMetadata, SlateElement } from '../types';
 import { parseXmlToSlate } from './xmlToSlate';
 
 /**
@@ -14,11 +15,52 @@ ${content}
 </qti-assessment-item>`;
 }
 
+/**
+ * Helper to extract content nodes from parse result, excluding document-metadata.
+ * The document-metadata node is always at position [0], so this returns nodes from [1] onwards.
+ */
+function getContentNodes(result: Descendant[]): Descendant[] {
+  if (result.length > 0 && 'type' in result[0] && result[0].type === 'document-metadata') {
+    return result.slice(1);
+  }
+  return result;
+}
+
+/**
+ * Helper to get the document metadata from parse result
+ */
+function getMetadata(result: Descendant[]): DocumentMetadata | null {
+  if (result.length > 0 && 'type' in result[0] && result[0].type === 'document-metadata') {
+    return result[0] as DocumentMetadata;
+  }
+  return null;
+}
+
 describe('parseXmlToSlate', () => {
+  describe('document metadata', () => {
+    it('should include document-metadata node at position [0]', () => {
+      const xml = wrapInQtiItem('<p>Hello world</p>');
+      const result = parseXmlToSlate(xml);
+
+      const metadata = getMetadata(result);
+      expect(metadata).not.toBeNull();
+      expect(metadata?.type).toBe('document-metadata');
+      expect(metadata?.responseProcessing).toBeDefined();
+    });
+
+    it('should default to allCorrect mode when no response processing present', () => {
+      const xml = wrapInQtiItem('<p>Hello world</p>');
+      const result = parseXmlToSlate(xml);
+
+      const metadata = getMetadata(result);
+      expect(metadata?.responseProcessing.mode).toBe('allCorrect');
+    });
+  });
+
   describe('basic XHTML elements', () => {
     it('should parse simple paragraph', () => {
       const xml = wrapInQtiItem('<p>Hello world</p>');
-      const result = parseXmlToSlate(xml);
+      const result = getContentNodes(parseXmlToSlate(xml));
 
       expect(result).toHaveLength(1);
       expect(result[0]).toMatchObject({
@@ -29,7 +71,7 @@ describe('parseXmlToSlate', () => {
 
     it('should parse paragraph with bold text', () => {
       const xml = wrapInQtiItem('<p>Hello <strong>world</strong></p>');
-      const result = parseXmlToSlate(xml);
+      const result = getContentNodes(parseXmlToSlate(xml));
 
       expect(result).toHaveLength(1);
       const para = result[0] as SlateElement;
@@ -41,7 +83,7 @@ describe('parseXmlToSlate', () => {
 
     it('should parse paragraph with italic text', () => {
       const xml = wrapInQtiItem('<p>Hello <em>world</em></p>');
-      const result = parseXmlToSlate(xml);
+      const result = getContentNodes(parseXmlToSlate(xml));
 
       const para = result[0] as SlateElement;
       expect(para.children[1]).toEqual({ text: 'world', italic: true });
@@ -49,7 +91,7 @@ describe('parseXmlToSlate', () => {
 
     it('should parse multiple paragraphs', () => {
       const xml = wrapInQtiItem('<p>First</p><p>Second</p>');
-      const result = parseXmlToSlate(xml);
+      const result = getContentNodes(parseXmlToSlate(xml));
 
       expect(result).toHaveLength(2);
       expect((result[0] as SlateElement).type).toBe('paragraph');
@@ -58,7 +100,7 @@ describe('parseXmlToSlate', () => {
 
     it('should parse headings', () => {
       const xml = wrapInQtiItem('<h1>Title</h1><h2>Subtitle</h2>');
-      const result = parseXmlToSlate(xml);
+      const result = getContentNodes(parseXmlToSlate(xml));
 
       expect(result).toHaveLength(2);
       expect(result[0]).toMatchObject({
@@ -75,7 +117,7 @@ describe('parseXmlToSlate', () => {
 
     it('should parse div elements', () => {
       const xml = wrapInQtiItem('<div class="container">Content</div>');
-      const result = parseXmlToSlate(xml);
+      const result = getContentNodes(parseXmlToSlate(xml));
 
       expect(result[0]).toMatchObject({
         type: 'div',
@@ -86,7 +128,7 @@ describe('parseXmlToSlate', () => {
 
     it('should parse image elements', () => {
       const xml = wrapInQtiItem('<img src="test.jpg" alt="Test image" width="100" />');
-      const result = parseXmlToSlate(xml);
+      const result = getContentNodes(parseXmlToSlate(xml));
 
       expect(result[0]).toMatchObject({
         type: 'image',
@@ -101,7 +143,7 @@ describe('parseXmlToSlate', () => {
 
     it('should parse lists', () => {
       const xml = wrapInQtiItem('<ul><li>Item 1</li><li>Item 2</li></ul>');
-      const result = parseXmlToSlate(xml);
+      const result = getContentNodes(parseXmlToSlate(xml));
 
       expect(result[0]).toMatchObject({
         type: 'list',
@@ -117,7 +159,7 @@ describe('parseXmlToSlate', () => {
   describe('QTI interactions', () => {
     it('should parse text entry interaction', () => {
       const xml = wrapInQtiItem('<qti-text-entry-interaction response-identifier="RESPONSE_1" expected-length="10" />');
-      const result = parseXmlToSlate(xml);
+      const result = getContentNodes(parseXmlToSlate(xml));
 
       expect(result[0]).toMatchObject({
         type: 'qti-text-entry-interaction',
@@ -131,7 +173,7 @@ describe('parseXmlToSlate', () => {
 
     it('should parse extended text interaction', () => {
       const xml = wrapInQtiItem('<qti-extended-text-interaction response-identifier="RESPONSE_1" expected-lines="5" />');
-      const result = parseXmlToSlate(xml);
+      const result = getContentNodes(parseXmlToSlate(xml));
 
       expect(result[0]).toMatchObject({
         type: 'qti-extended-text-interaction',
@@ -150,7 +192,7 @@ describe('parseXmlToSlate', () => {
           <qti-simple-choice identifier="choice-2">Second choice</qti-simple-choice>
         </qti-choice-interaction>
       `);
-      const result = parseXmlToSlate(xml);
+      const result = getContentNodes(parseXmlToSlate(xml));
 
       expect(result[0]).toMatchObject({
         type: 'qti-choice-interaction',
@@ -180,7 +222,7 @@ describe('parseXmlToSlate', () => {
           <qti-simple-choice identifier="choice-1">Answer</qti-simple-choice>
         </qti-choice-interaction>
       `);
-      const result = parseXmlToSlate(xml);
+      const result = getContentNodes(parseXmlToSlate(xml));
 
       const choice = result[0] as SlateElement;
       expect(choice.children[0]).toMatchObject({
@@ -193,7 +235,7 @@ describe('parseXmlToSlate', () => {
   describe('unknown QTI elements', () => {
     it('should preserve unknown QTI elements with warning', () => {
       const xml = wrapInQtiItem('<qti-hotspot-interaction response-identifier="RESPONSE_1">Content</qti-hotspot-interaction>');
-      const result = parseXmlToSlate(xml);
+      const result = getContentNodes(parseXmlToSlate(xml));
 
       expect(result[0]).toMatchObject({
         type: 'qti-unknown',
@@ -213,9 +255,9 @@ describe('parseXmlToSlate', () => {
   describe('attribute preservation', () => {
     it('should preserve all XML attributes', () => {
       const xml = wrapInQtiItem('<div class="test" id="my-div" data-custom="value">Content</div>');
-      const result = parseXmlToSlate(xml);
+      const result = getContentNodes(parseXmlToSlate(xml));
 
-      expect((result[0] as SlateElement).attributes).toEqual({
+      expect((result[0] as SlateElement & { attributes: Record<string, string> }).attributes).toEqual({
         class: 'test',
         id: 'my-div',
         'data-custom': 'value',
@@ -224,9 +266,9 @@ describe('parseXmlToSlate', () => {
 
     it('should preserve kebab-case attribute names', () => {
       const xml = wrapInQtiItem('<qti-text-entry-interaction response-identifier="R1" pattern-mask="[0-9]+" />');
-      const result = parseXmlToSlate(xml);
+      const result = getContentNodes(parseXmlToSlate(xml));
 
-      expect((result[0] as SlateElement).attributes).toMatchObject({
+      expect((result[0] as SlateElement & { attributes: Record<string, string> }).attributes).toMatchObject({
         'response-identifier': 'R1',
         'pattern-mask': '[0-9]+',
       });
@@ -236,7 +278,7 @@ describe('parseXmlToSlate', () => {
   describe('nested structures', () => {
     it('should parse nested formatting', () => {
       const xml = wrapInQtiItem('<p>This is <strong>bold and <em>italic</em></strong> text</p>');
-      const result = parseXmlToSlate(xml);
+      const result = getContentNodes(parseXmlToSlate(xml));
 
       const para = result[0] as SlateElement;
       expect(para.children).toHaveLength(4);
@@ -248,7 +290,7 @@ describe('parseXmlToSlate', () => {
 
     it('should parse paragraph inside div', () => {
       const xml = wrapInQtiItem('<div><p>Nested paragraph</p></div>');
-      const result = parseXmlToSlate(xml);
+      const result = getContentNodes(parseXmlToSlate(xml));
 
       const div = result[0] as SlateElement;
       expect(div.type).toBe('div');
@@ -268,7 +310,7 @@ describe('parseXmlToSlate', () => {
           </qti-item-body>
         </qti-assessment-item>
       `;
-      const result = parseXmlToSlate(xml);
+      const result = getContentNodes(parseXmlToSlate(xml));
 
       expect(result).toHaveLength(1);
       expect(result[0]).toMatchObject({
@@ -281,7 +323,7 @@ describe('parseXmlToSlate', () => {
   describe('edge cases', () => {
     it('should handle empty content', () => {
       const xml = wrapInQtiItem('<p></p>');
-      const result = parseXmlToSlate(xml);
+      const result = getContentNodes(parseXmlToSlate(xml));
 
       expect(result[0]).toMatchObject({
         type: 'paragraph',
@@ -297,7 +339,7 @@ describe('parseXmlToSlate', () => {
 
     it('should handle mixed content with text nodes', () => {
       const xml = wrapInQtiItem('<p>Start <strong>bold</strong> end</p>');
-      const result = parseXmlToSlate(xml);
+      const result = getContentNodes(parseXmlToSlate(xml));
 
       const para = result[0] as SlateElement;
       expect(para.children).toHaveLength(3);
