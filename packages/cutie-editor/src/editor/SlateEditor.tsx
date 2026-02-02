@@ -3,7 +3,7 @@ import { createEditor, Descendant, Editor, Element as SlateElementType, Transfor
 import { Slate, Editable, withReact, RenderElementProps, RenderLeafProps } from 'slate-react';
 import { withHistory } from 'slate-history';
 import type { Path } from 'slate';
-import type { SlateEditorProps, SlateElement, ElementAttributes, XmlNode } from '../types';
+import type { SlateEditorProps, SlateElement, ElementAttributes, XmlNode, DocumentMetadata, ResponseProcessingMode } from '../types';
 import { withQtiInteractions, withXhtml, withUnknownElements } from '../plugins';
 import { Toolbar } from './Toolbar';
 import { parseXmlToSlate } from '../serialization/xmlToSlate';
@@ -15,6 +15,7 @@ import { extendedTextRenderers } from '../interactions/extendedText';
 import { promptRenderers } from '../elements/prompt';
 import { simpleChoiceRenderers } from '../elements/simpleChoice';
 import { useStyle } from '../hooks/useStyle';
+import { hasMapping } from '../utils/responseProcessingClassifier';
 
 /**
  * Main Slate editor component for QTI editing
@@ -139,6 +140,35 @@ export function SlateEditor({
     [editor]
   );
 
+  // Handle response processing mode change
+  const handleResponseProcessingModeChange = useCallback(
+    (mode: ResponseProcessingMode) => {
+      // Find the metadata node at [0]
+      const metadata = getDocumentMetadata(value);
+      if (!metadata) return;
+
+      // Don't allow switching away from custom mode
+      if (metadata.responseProcessing.mode === 'custom') {
+        return;
+      }
+
+      // Update the mode using Transforms.setNodes
+      Transforms.setNodes(
+        editor,
+        {
+          responseProcessing: { mode },
+        } as Partial<DocumentMetadata>,
+        { at: [0] }
+      );
+    },
+    [editor, value]
+  );
+
+  // Extract response processing config and interaction info
+  const metadata = getDocumentMetadata(value);
+  const responseProcessingConfig = metadata?.responseProcessing;
+  const { count: interactionCount, hasMappings } = analyzeInteractions(value);
+
   // Render element callback
   const renderElement = useCallback((props: RenderElementProps) => {
     return <Element {...props} />;
@@ -177,6 +207,10 @@ export function SlateEditor({
         selectedElement={selectedElement}
         selectedPath={selectedPath}
         onUpdateAttributes={handleUpdateAttributes}
+        responseProcessingConfig={responseProcessingConfig}
+        interactionCount={interactionCount}
+        hasMappings={hasMappings}
+        onResponseProcessingModeChange={handleResponseProcessingModeChange}
       />
     </div>
   );
@@ -191,6 +225,50 @@ function isInteractionElement(element: SlateElement): boolean {
     element.type === 'qti-extended-text-interaction' ||
     element.type === 'qti-choice-interaction'
   );
+}
+
+/**
+ * Extract document metadata from Slate value
+ */
+function getDocumentMetadata(nodes: Descendant[]): DocumentMetadata | null {
+  if (nodes.length > 0 && 'type' in nodes[0] && nodes[0].type === 'document-metadata') {
+    return nodes[0] as DocumentMetadata;
+  }
+  return null;
+}
+
+/**
+ * Count interactions and check for mappings in the document
+ */
+function analyzeInteractions(nodes: Descendant[]): { count: number; hasMappings: boolean } {
+  let count = 0;
+  let hasMappings = false;
+
+  function traverse(node: Descendant): void {
+    if ('type' in node) {
+      const element = node as SlateElement;
+      if (isInteractionElement(element)) {
+        count++;
+        // Check for mapping in response declaration
+        if ('responseDeclaration' in element && element.responseDeclaration) {
+          if (hasMapping(element.responseDeclaration)) {
+            hasMappings = true;
+          }
+        }
+      }
+      if ('children' in element) {
+        for (const child of element.children) {
+          traverse(child);
+        }
+      }
+    }
+  }
+
+  for (const node of nodes) {
+    traverse(node);
+  }
+
+  return { count, hasMappings };
 }
 
 // Single contact point per interaction: spread all renderer objects
@@ -216,6 +294,14 @@ function Element({ attributes, children, element }: RenderElementProps): React.J
 
   // Fall through to generic elements
   switch (el.type) {
+    // Document metadata is a void element that stores response processing config
+    // It should not be visible in the editor
+    case 'document-metadata':
+      return (
+        <span {...attributes} style={{ display: 'none' }}>
+          {children}
+        </span>
+      );
 
     case 'qti-unknown':
       return (

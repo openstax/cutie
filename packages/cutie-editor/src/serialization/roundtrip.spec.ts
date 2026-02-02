@@ -1,3 +1,4 @@
+import type { Descendant } from 'slate';
 import { describe, expect, it } from 'vitest';
 import { serializeSlateToXml } from './slateToXml';
 import { parseXmlToSlate } from './xmlToSlate';
@@ -12,6 +13,17 @@ function wrapInQtiItem(content: string): string {
 ${content}
   </qti-item-body>
 </qti-assessment-item>`;
+}
+
+/**
+ * Helper to extract content nodes from parse result, excluding document-metadata.
+ * The document-metadata node is always at position [0], so this returns nodes from [1] onwards.
+ */
+function getContentNodes(result: Descendant[]): Descendant[] {
+  if (result.length > 0 && 'type' in result[0] && result[0].type === 'document-metadata') {
+    return result.slice(1);
+  }
+  return result;
 }
 
 /**
@@ -401,7 +413,7 @@ describe('XML Round-trip Tests', () => {
     it('should collapse consecutive spaces in text', () => {
       const content = '<p>Hello    World</p>';
       const input = wrapInQtiItem(content);
-      const slateNodes = parseXmlToSlate(input);
+      const slateNodes = getContentNodes(parseXmlToSlate(input));
 
       // Check Slate representation has single space
       expect(slateNodes[0]).toHaveProperty('children');
@@ -412,7 +424,7 @@ describe('XML Round-trip Tests', () => {
     it('should collapse newlines to spaces', () => {
       const content = '<p>Hello\n\nWorld</p>';
       const input = wrapInQtiItem(content);
-      const slateNodes = parseXmlToSlate(input);
+      const slateNodes = getContentNodes(parseXmlToSlate(input));
 
       const children = (slateNodes[0] as any).children;
       expect(children[0].text).toBe('Hello World');
@@ -421,7 +433,7 @@ describe('XML Round-trip Tests', () => {
     it('should collapse tabs to spaces', () => {
       const content = '<p>Hello\t\tWorld</p>';
       const input = wrapInQtiItem(content);
-      const slateNodes = parseXmlToSlate(input);
+      const slateNodes = getContentNodes(parseXmlToSlate(input));
 
       const children = (slateNodes[0] as any).children;
       expect(children[0].text).toBe('Hello World');
@@ -430,7 +442,7 @@ describe('XML Round-trip Tests', () => {
     it('should collapse mixed whitespace (spaces, tabs, newlines)', () => {
       const content = '<p>Hello \t\n  \t World</p>';
       const input = wrapInQtiItem(content);
-      const slateNodes = parseXmlToSlate(input);
+      const slateNodes = getContentNodes(parseXmlToSlate(input));
 
       const children = (slateNodes[0] as any).children;
       expect(children[0].text).toBe('Hello World');
@@ -444,7 +456,7 @@ describe('XML Round-trip Tests', () => {
         </p>
       `;
       const input = wrapInQtiItem(content);
-      const slateNodes = parseXmlToSlate(input);
+      const slateNodes = getContentNodes(parseXmlToSlate(input));
 
       const children = (slateNodes[0] as any).children;
       // XML formatting (indentation, newlines) should collapse to single spaces
@@ -454,7 +466,7 @@ describe('XML Round-trip Tests', () => {
     it('should preserve space between inline elements', () => {
       const content = '<p><strong>Hello</strong> <em>World</em></p>';
       const input = wrapInQtiItem(content);
-      const slateNodes = parseXmlToSlate(input);
+      const slateNodes = getContentNodes(parseXmlToSlate(input));
 
       const children = (slateNodes[0] as any).children;
       // Should have three children: "Hello" (bold), " " (space), "World" (italic)
@@ -469,7 +481,7 @@ describe('XML Round-trip Tests', () => {
     it('should only create line breaks with br elements', () => {
       const content = '<p>Line 1<br/>Line 2</p>';
       const input = wrapInQtiItem(content);
-      const slateNodes = parseXmlToSlate(input);
+      const slateNodes = getContentNodes(parseXmlToSlate(input));
 
       const children = (slateNodes[0] as any).children;
       // Should have three children: text "Line 1", line-break element, text "Line 2"
@@ -482,7 +494,7 @@ describe('XML Round-trip Tests', () => {
     it('should not create line breaks from newlines in source', () => {
       const content = '<p>Line 1\nLine 2</p>';
       const input = wrapInQtiItem(content);
-      const slateNodes = parseXmlToSlate(input);
+      const slateNodes = getContentNodes(parseXmlToSlate(input));
 
       const children = (slateNodes[0] as any).children;
       // Should have single text node with space instead of newline
@@ -502,7 +514,7 @@ describe('XML Round-trip Tests', () => {
         </qti-choice-interaction>
       `;
       const input = wrapInQtiItem(content);
-      const slateNodes = parseXmlToSlate(input);
+      const slateNodes = getContentNodes(parseXmlToSlate(input));
 
       const choiceInteraction = slateNodes[0] as any;
       const choices = choiceInteraction.children;
@@ -510,8 +522,8 @@ describe('XML Round-trip Tests', () => {
       // Each choice has choice-id-label and choice-content as children
       // The text is in choice-content > paragraph > text
       const getChoiceText = (choice: any) => {
-        const content = choice.children.find((c: any) => c.type === 'choice-content');
-        const paragraph = content.children[0];
+        const choiceContent = choice.children.find((c: any) => c.type === 'choice-content');
+        const paragraph = choiceContent.children[0];
         return paragraph.children[0].text;
       };
 
@@ -522,7 +534,7 @@ describe('XML Round-trip Tests', () => {
     it('should preserve single spaces between words', () => {
       const content = '<p>This is a normal sentence with single spaces.</p>';
       const input = wrapInQtiItem(content);
-      const slateNodes = parseXmlToSlate(input);
+      const slateNodes = getContentNodes(parseXmlToSlate(input));
 
       const children = (slateNodes[0] as any).children;
       expect(children[0].text).toBe('This is a normal sentence with single spaces.');
@@ -531,7 +543,7 @@ describe('XML Round-trip Tests', () => {
     it('should handle whitespace around inline elements correctly', () => {
       const content = '<p>Start <strong>bold</strong> end</p>';
       const input = wrapInQtiItem(content);
-      const slateNodes = parseXmlToSlate(input);
+      const slateNodes = getContentNodes(parseXmlToSlate(input));
 
       const children = (slateNodes[0] as any).children;
       expect(children).toHaveLength(3);
@@ -554,7 +566,7 @@ describe('XML Round-trip Tests', () => {
         </div>
       `;
       const input = wrapInQtiItem(content);
-      const slateNodes = parseXmlToSlate(input);
+      const slateNodes = getContentNodes(parseXmlToSlate(input));
 
       const divElement = slateNodes[0] as any;
       const paragraphs = divElement.children;
