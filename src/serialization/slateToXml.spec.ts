@@ -1,6 +1,79 @@
 import type { Descendant } from 'slate';
 import { describe, expect, it } from 'vitest';
-import { serializeSlateToXml } from './slateToXml';
+import { serializeSlateToQti, serializeSlateToXml } from './slateToXml';
+
+describe('serializeSlateToQti', () => {
+  describe('new document creation', () => {
+    it('should create valid QTI when original is empty', () => {
+      const nodes: Descendant[] = [
+        {
+          type: 'document-metadata',
+          children: [{ text: '' }],
+          responseProcessing: { mode: 'allCorrect' },
+        } as any,
+        {
+          type: 'paragraph',
+          children: [{ text: 'Hello' }],
+        } as any,
+      ];
+      const result = serializeSlateToQti(nodes, '');
+      expect(result.xml).toContain('qti-assessment-item');
+      expect(result.xml).toContain('qti-item-body');
+      expect(result.xml).toContain('Hello');
+    });
+
+    it('should create valid QTI when original is whitespace-only', () => {
+      const nodes: Descendant[] = [
+        {
+          type: 'document-metadata',
+          children: [{ text: '' }],
+          responseProcessing: { mode: 'allCorrect' },
+        } as any,
+        {
+          type: 'paragraph',
+          children: [{ text: 'Content' }],
+        } as any,
+      ];
+      const result = serializeSlateToQti(nodes, '   \n\t  ');
+      expect(result.xml).toContain('qti-assessment-item');
+      expect(result.xml).toContain('Content');
+    });
+
+    it('should create valid QTI when original has parse error', () => {
+      const nodes: Descendant[] = [
+        {
+          type: 'document-metadata',
+          children: [{ text: '' }],
+          responseProcessing: { mode: 'allCorrect' },
+        } as any,
+        {
+          type: 'paragraph',
+          children: [{ text: 'Test' }],
+        } as any,
+      ];
+      const result = serializeSlateToQti(nodes, '<invalid>xml<');
+      expect(result.xml).toContain('qti-assessment-item');
+      expect(result.xml).toContain('Test');
+    });
+
+    it('should include SCORE outcome declaration in new document', () => {
+      const nodes: Descendant[] = [
+        {
+          type: 'document-metadata',
+          children: [{ text: '' }],
+          responseProcessing: { mode: 'allCorrect' },
+        } as any,
+        {
+          type: 'paragraph',
+          children: [{ text: '' }],
+        } as any,
+      ];
+      const result = serializeSlateToQti(nodes, '');
+      expect(result.xml).toContain('qti-outcome-declaration');
+      expect(result.xml).toContain('identifier="SCORE"');
+    });
+  });
+});
 
 describe('serializeSlateToXml', () => {
   describe('basic XHTML elements', () => {

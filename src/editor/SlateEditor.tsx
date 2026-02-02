@@ -41,16 +41,26 @@ export function SlateEditor({
   const qtiXmlRef = useRef(qtiXml);
 
   // Parse QTI XML to Slate format
-  const initialValue = useMemo(() => {
+  // Separate error from value to avoid calling onError during render
+  const parseResult = useMemo(() => {
     try {
-      return parseXmlToSlate(qtiXml);
+      return { value: parseXmlToSlate(qtiXml), error: null };
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to parse QTI XML';
-      onError?.(errorMessage);
-      // Return a default paragraph if parsing fails
-      return [{ type: 'paragraph', children: [{ text: '' }] }] as Descendant[];
+      return {
+        value: [{ type: 'paragraph', children: [{ text: '' }] }] as Descendant[],
+        error: err instanceof Error ? err.message : 'Failed to parse QTI XML',
+      };
     }
-  }, [qtiXml, onError]);
+  }, [qtiXml]);
+
+  // Defer error callback to useEffect to avoid setState during render
+  useEffect(() => {
+    if (parseResult.error) {
+      onError?.(parseResult.error);
+    }
+  }, [parseResult.error, onError]);
+
+  const initialValue = parseResult.value;
 
   // Internal Slate value state
   const [value, setValue] = useState<Descendant[]>(initialValue);
