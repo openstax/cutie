@@ -44,12 +44,13 @@ export function FeedbackInlineElement({
 
 const FEEDBACK_INLINE_STYLES = `
   .feedback-inline {
-    display: inline;
+    display: inline-block;
     padding: 3px 9px;
-    margin: 0 2px;
+    margin: 0 4px;
     background-color: #f8fafc;
     border: 1px solid #94a3b8;
     border-radius: 4px;
+    vertical-align: middle;
   }
 
   .feedback-inline--active {
