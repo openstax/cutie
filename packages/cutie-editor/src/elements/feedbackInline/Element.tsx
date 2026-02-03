@@ -22,7 +22,7 @@ export function FeedbackInlineElement({
 
   const identifier = el.attributes.identifier || '';
   const showHide = el.attributes['show-hide'] || 'show';
-  const isValid = !identifier || availableIdentifiers.has(identifier);
+  const isValid = identifier && availableIdentifiers.has(identifier);
   const isActive = selected && focused;
 
   const containerClass = [
@@ -35,7 +35,7 @@ export function FeedbackInlineElement({
     <span {...attributes} className={containerClass}>
       <span contentEditable={false} className="feedback-inline__label">
         {!isValid && <span title="Invalid feedback identifier">&#9888; </span>}
-        {showHide === 'hide' ? 'Hide' : 'Show'}: {identifier || '(none)'}
+        {showHide === 'hide' ? 'Hide' : 'Show'} when: {identifier || '(not set)'}
       </span>
       {children}
     </span>
