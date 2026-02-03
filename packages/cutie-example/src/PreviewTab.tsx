@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { AttemptState, ProcessingOptions } from '@openstax/cutie-core';
-import { submitResponse } from '@openstax/cutie-core';
+import type { AttemptState } from '@openstax/cutie-core';
 import { mountItem } from '@openstax/cutie-client';
 import type { MountedItem, ResponseData } from '@openstax/cutie-client';
 
@@ -8,35 +7,32 @@ interface PreviewTabProps {
   attemptState: AttemptState | null;
   sanitizedTemplate: string;
   responses: ResponseData | null;
-  setResponses: (responses: ResponseData | null) => void;
-  itemXml?: string;
-  onStateUpdate?: (state: AttemptState) => void;
-  onTemplateUpdate?: (template: string) => void;
-  resolveAssets?: ProcessingOptions['resolveAssets'];
+  onSubmitResponses: (responses: ResponseData) => void;
+  onResetAttempt: () => void;
 }
 
-export function PreviewTab({ attemptState, sanitizedTemplate, responses, setResponses, itemXml, onStateUpdate, onTemplateUpdate, resolveAssets }: PreviewTabProps) {
-  const [interactionsEnabled, setInteractionsEnabled] = useState(true);
-  const [localAttemptState, setLocalAttemptState] = useState<AttemptState | null>(attemptState);
+export function PreviewTab({ attemptState, sanitizedTemplate, responses, onSubmitResponses, onResetAttempt }: PreviewTabProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
   const mountedItemRef = useRef<MountedItem | null>(null);
 
-  // Sync with parent attempt state
-  useEffect(() => {
-    setLocalAttemptState(attemptState);
-  }, [attemptState]);
+  // Derived - no state needed
+  const interactionsEnabled = !isSubmitting && attemptState?.completionStatus !== 'completed';
 
   // Mount/unmount item when sanitizedTemplate changes
   useEffect(() => {
     if (previewRef.current && sanitizedTemplate) {
       const mountedItem = mountItem(previewRef.current, sanitizedTemplate);
       mountedItemRef.current = mountedItem;
+      // Apply current interaction state to newly mounted item
+      mountedItem.setInteractionsEnabled(interactionsEnabled);
 
       return () => {
         mountedItem.unmount();
         mountedItemRef.current = null;
       };
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sanitizedTemplate]);
 
   useEffect(() => {
@@ -45,49 +41,17 @@ export function PreviewTab({ attemptState, sanitizedTemplate, responses, setResp
     }
   }, [interactionsEnabled]);
 
-  const handleSubmit = async () => {
-    if (mountedItemRef.current && itemXml && localAttemptState) {
-      // Disable interactions during submission
-      setInteractionsEnabled(false);
+  const handleSubmit = () => {
+    if (!mountedItemRef.current) return;
 
-      // Collect responses
-      const collectedResponses = mountedItemRef.current.collectResponses();
-      setResponses(collectedResponses);
+    setIsSubmitting(true);
+    const collectedResponses = mountedItemRef.current.collectResponses();
 
-      // Log for debugging
-      console.log('=== SUBMISSION START ===');
-      console.log('Current attempt state:', localAttemptState);
-      console.log('Collected responses:', collectedResponses);
-      console.log('Response identifiers:', mountedItemRef.current.getResponseIdentifiers());
-
-      try {
-        // Process the response
-        const result = await submitResponse(collectedResponses, localAttemptState, itemXml, resolveAssets ? { resolveAssets } : undefined);
-        console.log('Response processing result:', result);
-        console.log('New state:', result.state);
-        console.log('Score:', result.state.score);
-        console.log('Max score:', result.state.maxScore);
-        console.log('=== SUBMISSION END ===');
-
-        // Update local state
-        setLocalAttemptState(result.state);
-
-        // Notify parent if callbacks provided
-        if (onStateUpdate) {
-          onStateUpdate(result.state);
-        }
-        if (onTemplateUpdate) {
-          onTemplateUpdate(result.template);
-        }
-      } catch (error) {
-        console.error('Error processing response:', error);
-      } finally {
-        // Re-enable interactions after a brief delay
-        setTimeout(() => {
-          setInteractionsEnabled(true);
-        }, 1000);
-      }
-    }
+    // Brief delay to show submitting state, then submit
+    setTimeout(() => {
+      setIsSubmitting(false);
+      onSubmitResponses(collectedResponses);
+    }, 1000);
   };
 
   return (
@@ -100,7 +64,7 @@ export function PreviewTab({ attemptState, sanitizedTemplate, responses, setResp
             <h2>Attempt State</h2>
           </summary>
           <pre className="output-display">
-            {localAttemptState ? JSON.stringify(localAttemptState, null, 2) : 'No state yet'}
+            {attemptState ? JSON.stringify(attemptState, null, 2) : 'No state yet'}
           </pre>
         </details>
 
@@ -131,7 +95,14 @@ export function PreviewTab({ attemptState, sanitizedTemplate, responses, setResp
             onClick={handleSubmit}
             disabled={!sanitizedTemplate || !interactionsEnabled}
           >
-            {interactionsEnabled ? 'Submit' : 'Submitting...'}
+            {isSubmitting ? 'Submitting...' : 'Submit'}
+          </button>
+          <button
+            className="process-button"
+            onClick={onResetAttempt}
+            disabled={!attemptState}
+          >
+            Reset
           </button>
         </div>
       </div>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { beginAttempt } from '@openstax/cutie-core';
+import { beginAttempt, submitResponse } from '@openstax/cutie-core';
 import type { AttemptState, ProcessingOptions } from '@openstax/cutie-core';
 import type { ResponseData } from '@openstax/cutie-client';
 import { examples } from './example-items';
@@ -79,6 +79,7 @@ export function App() {
       const result = await beginAttempt(itemXml, { resolveAssets });
       setAttemptState(result.state);
       setSanitizedTemplate(result.template);
+      setResponses(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error occurred');
     } finally {
@@ -86,6 +87,31 @@ export function App() {
     }
   };
 
+  const handleSubmitResponses = async (newResponses: ResponseData) => {
+    if (!attemptState || !itemXml) return;
+
+    setResponses(newResponses);
+    try {
+      const result = await submitResponse(newResponses, attemptState, itemXml, { resolveAssets });
+      setAttemptState(result.state);
+      setSanitizedTemplate(result.template);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error processing response');
+    }
+  };
+
+  const handleResetAttempt = async () => {
+    if (!itemXml) return;
+    setError('');
+    try {
+      const result = await beginAttempt(itemXml, { resolveAssets });
+      setAttemptState(result.state);
+      setSanitizedTemplate(result.template);
+      setResponses(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error resetting attempt');
+    }
+  };
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -131,11 +157,8 @@ export function App() {
             attemptState={attemptState}
             sanitizedTemplate={sanitizedTemplate}
             responses={responses}
-            setResponses={setResponses}
-            itemXml={itemXml}
-            onStateUpdate={setAttemptState}
-            onTemplateUpdate={setSanitizedTemplate}
-            resolveAssets={resolveAssets}
+            onSubmitResponses={handleSubmitResponses}
+            onResetAttempt={handleResetAttempt}
           />
         );
     }

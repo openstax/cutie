@@ -32,6 +32,7 @@ The architecture separates response and template processing from the presentatio
 
 ```bash
 # Run all CI checks (build + lint + typecheck + spelling)
+# AVOID doing this, PREFER running checks for the individual package you're working in.
 yarn ci
 
 # Individual package CI checks
