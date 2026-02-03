@@ -7,7 +7,10 @@
 import './choiceInteraction'; // priority 50
 import './extendedTextInteraction'; // priority 50
 import './textEntryInteraction'; // priority 50
-// Future: import './feedbackBlock';          // priority ~50
+
+// Feedback handlers (priority 50)
+import './feedbackInline'; // priority 50
+import './feedbackBlock'; // priority 50
 
 // Unsupported qti-* catch-all (priority 500)
 import './unsupported';
