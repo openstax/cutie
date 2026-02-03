@@ -737,8 +737,10 @@ function updateFeedbackOutcomeDeclaration(
       } else {
         assessmentItem.appendChild(feedbackDecl);
       }
+    } else {
+      // Ensure cardinality is "multiple" for the accumulation pattern we use
+      existingFeedback.setAttribute('cardinality', 'multiple');
     }
-    // If it already exists, leave it as-is (preserve any custom configuration)
   } else {
     // No feedback elements - remove FEEDBACK declaration if it exists
     // We only remove it if it has no default value (indicating it was auto-generated)
