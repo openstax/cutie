@@ -379,7 +379,7 @@ function createScoreConditionForUnmapped(identifier: string, doc: Document): Ele
  */
 function generateFeedbackProcessingXml(
   responseIdentifiers: string[],
-  _responseDeclarations: Map<string, XmlNode>,
+  responseDeclarations: Map<string, XmlNode>,
   feedbackIdentifiersUsed: Set<string>,
   doc: Document
 ): Element[] {
@@ -401,6 +401,10 @@ function generateFeedbackProcessingXml(
   for (const responseId of responseIdentifiers) {
     const feedbackIds = feedbackByResponse.get(responseId);
     if (!feedbackIds || feedbackIds.size === 0) continue;
+
+    // Get response declaration to check cardinality
+    const responseDecl = responseDeclarations.get(responseId);
+    const cardinality = responseDecl?.attributes?.cardinality || 'single';
 
     // Check for correct/incorrect feedback
     const correctId = `${responseId}_correct`;
@@ -427,6 +431,7 @@ function generateFeedbackProcessingXml(
           responseId,
           parsed.choiceId,
           feedbackId,
+          cardinality,
           doc
         );
         conditions.push(condition);
@@ -494,18 +499,25 @@ function createFeedbackCorrectIncorrectCondition(
 /**
  * Create a feedback condition for a specific choice selection.
  *
+ * For multiple cardinality (uses qti-member):
  * <qti-response-condition>
  *   <qti-response-if>
  *     <qti-member>
  *       <qti-base-value base-type="identifier">choice_A</qti-base-value>
  *       <qti-variable identifier="RESPONSE"/>
  *     </qti-member>
- *     <qti-set-outcome-value identifier="FEEDBACK">
- *       <qti-multiple>
- *         <qti-variable identifier="FEEDBACK"/>
- *         <qti-base-value base-type="identifier">RESPONSE_choice_A</qti-base-value>
- *       </qti-multiple>
- *     </qti-set-outcome-value>
+ *     <qti-set-outcome-value identifier="FEEDBACK">...</qti-set-outcome-value>
+ *   </qti-response-if>
+ * </qti-response-condition>
+ *
+ * For single cardinality (uses qti-match):
+ * <qti-response-condition>
+ *   <qti-response-if>
+ *     <qti-match>
+ *       <qti-variable identifier="RESPONSE"/>
+ *       <qti-base-value base-type="identifier">choice_A</qti-base-value>
+ *     </qti-match>
+ *     <qti-set-outcome-value identifier="FEEDBACK">...</qti-set-outcome-value>
  *   </qti-response-if>
  * </qti-response-condition>
  */
@@ -513,6 +525,7 @@ function createFeedbackChoiceCondition(
   responseId: string,
   choiceId: string,
   feedbackId: string,
+  cardinality: string,
   doc: Document
 ): Element {
   const condition = doc.createElementNS(QTI_NAMESPACE, 'qti-response-condition');
@@ -520,19 +533,36 @@ function createFeedbackChoiceCondition(
   // Response if - when choice is selected
   const responseIf = doc.createElementNS(QTI_NAMESPACE, 'qti-response-if');
 
-  // qti-member checks if a value is in a container
-  const member = doc.createElementNS(QTI_NAMESPACE, 'qti-member');
+  if (cardinality === 'multiple' || cardinality === 'ordered') {
+    // qti-member checks if a value is in a container (for multiple cardinality)
+    const member = doc.createElementNS(QTI_NAMESPACE, 'qti-member');
 
-  const baseValue = doc.createElementNS(QTI_NAMESPACE, 'qti-base-value');
-  baseValue.setAttribute('base-type', 'identifier');
-  baseValue.textContent = choiceId;
-  member.appendChild(baseValue);
+    const baseValue = doc.createElementNS(QTI_NAMESPACE, 'qti-base-value');
+    baseValue.setAttribute('base-type', 'identifier');
+    baseValue.textContent = choiceId;
+    member.appendChild(baseValue);
 
-  const variable = doc.createElementNS(QTI_NAMESPACE, 'qti-variable');
-  variable.setAttribute('identifier', responseId);
-  member.appendChild(variable);
+    const variable = doc.createElementNS(QTI_NAMESPACE, 'qti-variable');
+    variable.setAttribute('identifier', responseId);
+    member.appendChild(variable);
 
-  responseIf.appendChild(member);
+    responseIf.appendChild(member);
+  } else {
+    // qti-match checks if two single values are equal (for single cardinality)
+    const match = doc.createElementNS(QTI_NAMESPACE, 'qti-match');
+
+    const variable = doc.createElementNS(QTI_NAMESPACE, 'qti-variable');
+    variable.setAttribute('identifier', responseId);
+    match.appendChild(variable);
+
+    const baseValue = doc.createElementNS(QTI_NAMESPACE, 'qti-base-value');
+    baseValue.setAttribute('base-type', 'identifier');
+    baseValue.textContent = choiceId;
+    match.appendChild(baseValue);
+
+    responseIf.appendChild(match);
+  }
+
   responseIf.appendChild(createSetFeedbackElement(feedbackId, doc));
 
   condition.appendChild(responseIf);
