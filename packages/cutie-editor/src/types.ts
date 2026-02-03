@@ -83,11 +83,11 @@ export interface QtiTextEntryInteraction {
 }
 
 /**
- * QTI Extended Text Interaction (block, void)
+ * QTI Extended Text Interaction (block with prompt child)
  */
 export interface QtiExtendedTextInteraction {
   type: 'qti-extended-text-interaction';
-  children: [{ text: '' }];
+  children: Array<QtiPrompt>;
   attributes: {
     'response-identifier': string;
     'expected-lines'?: string;

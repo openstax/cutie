@@ -2079,6 +2079,64 @@ describe('Response Processing Operators and Expressions', () => {
 
       expect(newState.variables.SCORE).toBe(1);
     });
+
+    test('qti-multiple flattens array values when appending to multiple-cardinality variable', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+                     identifier="multiple-flatten">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier">
+    <qti-correct-response>
+      <qti-value>A</qti-value>
+    </qti-correct-response>
+  </qti-response-declaration>
+
+  <qti-outcome-declaration identifier="FEEDBACK" cardinality="multiple" base-type="identifier"/>
+
+  <qti-item-body>
+    <qti-choice-interaction response-identifier="RESPONSE" max-choices="1">
+      <qti-simple-choice identifier="A">A</qti-simple-choice>
+      <qti-simple-choice identifier="B">B</qti-simple-choice>
+    </qti-choice-interaction>
+  </qti-item-body>
+
+  <qti-response-processing>
+    <!-- First: set FEEDBACK to ["First"] -->
+    <qti-set-outcome-value identifier="FEEDBACK">
+      <qti-multiple>
+        <qti-base-value base-type="identifier">First</qti-base-value>
+      </qti-multiple>
+    </qti-set-outcome-value>
+    <!-- Second: append "Second" - should result in ["First", "Second"], not [["First"], "Second"] -->
+    <qti-set-outcome-value identifier="FEEDBACK">
+      <qti-multiple>
+        <qti-variable identifier="FEEDBACK"/>
+        <qti-base-value base-type="identifier">Second</qti-base-value>
+      </qti-multiple>
+    </qti-set-outcome-value>
+    <!-- Third: append "Third" - should result in ["First", "Second", "Third"] -->
+    <qti-set-outcome-value identifier="FEEDBACK">
+      <qti-multiple>
+        <qti-variable identifier="FEEDBACK"/>
+        <qti-base-value base-type="identifier">Third</qti-base-value>
+      </qti-multiple>
+    </qti-set-outcome-value>
+  </qti-response-processing>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const currentState = {
+        variables: {},
+        completionStatus: 'not_attempted' as const,
+        score: 0,
+        maxScore: null,
+      };
+      const submission = { RESPONSE: 'A' };
+
+      const newState = processResponse(itemDoc, submission, currentState);
+
+      // Should be flat array, not nested
+      expect(newState.variables.FEEDBACK).toEqual(['First', 'Second', 'Third']);
+    });
   });
 });
 

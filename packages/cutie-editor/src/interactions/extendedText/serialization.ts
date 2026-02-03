@@ -26,7 +26,7 @@ function createDefaultResponseDeclaration(responseIdentifier: string): XmlNode {
  */
 function parseExtendedTextInteraction(
   element: Element,
-  _convertChildren: ConvertChildrenFn,
+  convertChildren: ConvertChildrenFn,
   context?: ParserContext
 ): SlateElement {
   const attributes: Record<string, string | undefined> = {};
@@ -41,9 +41,12 @@ function parseExtendedTextInteraction(
   const responseDeclaration = (responseId && context?.responseDeclarations.get(responseId))
     || createDefaultResponseDeclaration(responseId);
 
+  // Parse children (should include qti-prompt)
+  const children = convertChildren(Array.from(element.childNodes));
+
   return {
     type: 'qti-extended-text-interaction',
-    children: [{ text: '' }],
+    children: children.length > 0 ? children : [{ text: '' }],
     attributes: {
       'response-identifier': responseId,
       'expected-lines': attributes['expected-lines'],
@@ -52,7 +55,7 @@ function parseExtendedTextInteraction(
       ...attributes,
     },
     responseDeclaration,
-  };
+  } as SlateElement;
 }
 
 /**
@@ -61,7 +64,7 @@ function parseExtendedTextInteraction(
 function serializeExtendedTextInteraction(
   element: SlateElement & { type: 'qti-extended-text-interaction' },
   context: SerializationContext,
-  _convertChildren: (children: Descendant[], parent: Element | DocumentFragment) => void
+  convertChildren: (children: Descendant[], parent: Element | DocumentFragment) => void
 ): Element {
   const xmlElement = createXmlElement(context.doc, 'qti-extended-text-interaction');
 
@@ -83,6 +86,9 @@ function serializeExtendedTextInteraction(
 
   // Set attributes
   setAttributes(xmlElement, element.attributes);
+
+  // Serialize children (qti-prompt)
+  convertChildren(element.children, xmlElement);
 
   return xmlElement;
 }

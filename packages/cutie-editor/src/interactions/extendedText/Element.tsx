@@ -1,6 +1,5 @@
 import { useSelected, useFocused } from 'slate-react';
 import type { RenderElementProps } from 'slate-react';
-import type { QtiExtendedTextInteraction } from '../../types';
 
 /**
  * Renders an extended text interaction in the editor
@@ -8,31 +7,32 @@ import type { QtiExtendedTextInteraction } from '../../types';
 export function ExtendedTextElement({
   attributes,
   children,
-  element,
 }: RenderElementProps): React.JSX.Element {
-  const el = element as QtiExtendedTextInteraction;
   const selected = useSelected();
   const focused = useFocused();
 
   return (
-    <div {...attributes}>
-      <div
+    <fieldset
+      {...attributes}
+      style={{
+        margin: '16px 0',
+        padding: selected && focused ? '12px' : '13px',
+        border: selected && focused ? '2px solid #3b82f6' : '1px solid #94a3b8',
+        borderRadius: '8px',
+      }}
+    >
+      <legend
         contentEditable={false}
         style={{
-          padding: selected && focused ? '8px' : '9px',
-          margin: '8px 0',
-          backgroundColor: selected && focused ? '#eff6ff' : '#f8fafc',
-          border: selected && focused ? '2px solid #3b82f6' : '1px solid #94a3b8',
-          borderRadius: '4px',
+          padding: '0 8px',
+          fontWeight: 'bold',
           color: selected && focused ? '#1e40af' : '#64748b',
           userSelect: 'none',
         }}
       >
-        <div style={{ fontWeight: 'bold' }}>
-          [Extended Text: {el.attributes['response-identifier']}]
-        </div>
-      </div>
+        Extended Text Interaction
+      </legend>
       {children}
-    </div>
+    </fieldset>
   );
 }

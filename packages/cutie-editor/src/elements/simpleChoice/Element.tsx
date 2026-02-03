@@ -1,3 +1,4 @@
+import { useSelected, useFocused } from 'slate-react';
 import type { RenderElementProps } from 'slate-react';
 import type { QtiSimpleChoice } from '../../types';
 import { useChoiceScoring } from '../../interactions/choice/ChoiceScoringContext';
@@ -14,6 +15,8 @@ export function SimpleChoiceElement({
   const el = element as QtiSimpleChoice;
   const identifier = el.attributes.identifier;
   const scoringInfo = useChoiceScoring();
+  const selected = useSelected();
+  const focused = useFocused();
 
   // Determine correctness indicator
   let correctnessIcon: React.JSX.Element | null = null;
@@ -81,10 +84,10 @@ export function SimpleChoiceElement({
       style={{
         display: 'flex',
         alignItems: 'flex-start',
-        padding: '8px',
+        padding: selected && focused ? '7px' : '8px',
         margin: '4px 0',
-        backgroundColor: '#f1f8e9',
-        border: '1px solid #c5e1a5',
+        backgroundColor: '#f8fafc',
+        border: selected && focused ? '2px solid #3b82f6' : '1px solid #e2e8f0',
         borderRadius: '4px',
       }}
     >

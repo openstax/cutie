@@ -20,14 +20,15 @@ export function ChoiceIdLabel({
       style={{
         display: 'inline-block',
         marginRight: '8px',
-        color: '#689f38',
-        fontWeight: 500,
+        color: '#475569',
+        fontWeight: 'bold',
+        fontSize: '1.1em',
         userSelect: 'none',
         verticalAlign: 'baseline',
         cursor: 'default',
       }}
     >
-      [{identifier}]
+      {identifier}
       {/* Hidden children for Slate's void element requirement */}
       <span style={{ display: 'none' }}>{children}</span>
     </div>
