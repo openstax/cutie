@@ -5,6 +5,7 @@ interface ResponseProcessingPanelProps {
   config: ResponseProcessingConfig;
   interactionCount: number;
   hasMappings: boolean;
+  hasFeedbackElements: boolean;
   onModeChange: (mode: ResponseProcessingMode) => void;
 }
 
@@ -15,6 +16,7 @@ export function ResponseProcessingPanel({
   config,
   interactionCount,
   hasMappings,
+  hasFeedbackElements,
   onModeChange,
 }: ResponseProcessingPanelProps): React.JSX.Element {
   useStyle('response-processing-panel', RESPONSE_PROCESSING_PANEL_STYLES);
@@ -31,47 +33,68 @@ export function ResponseProcessingPanel({
     <div className="response-processing-panel">
       <h3>Scoring Mode</h3>
 
-      {isCustom ? (
+      <fieldset className="radio-fieldset">
+        <legend className="radio-fieldset-legend">How should responses be scored?</legend>
+
+        <label className="radio-option">
+          <input
+            type="radio"
+            name="scoring-mode"
+            value="allCorrect"
+            checked={config.mode === 'allCorrect'}
+            onChange={() => onModeChange('allCorrect')}
+          />
+          <span>All or nothing</span>
+        </label>
+        <p className="radio-option-description">
+          Score 1 if all responses are correct, 0 otherwise
+        </p>
+
+        <label className="radio-option">
+          <input
+            type="radio"
+            name="scoring-mode"
+            value="sumScores"
+            checked={config.mode === 'sumScores'}
+            onChange={() => onModeChange('sumScores')}
+          />
+          <span>Partial credit</span>
+        </label>
+        <p className="radio-option-description">
+          Each response contributes to the total score
+        </p>
+
+        <label className="radio-option">
+          <input
+            type="radio"
+            name="scoring-mode"
+            value="custom"
+            checked={config.mode === 'custom'}
+            onChange={() => onModeChange('custom')}
+          />
+          <span>Custom</span>
+        </label>
+        <p className="radio-option-description">
+          Preserve existing response processing rules
+        </p>
+      </fieldset>
+
+      {isCustom && (
         <div className="custom-mode-notice">
           <p>
-            This item uses custom scoring logic that cannot be edited through this interface.
+            This item uses custom response processing that will be preserved when you save.
           </p>
           <p className="custom-mode-hint">
-            The custom response processing will be preserved when you save.
+            To use managed scoring, select a different mode above. This will replace the existing rules.
           </p>
         </div>
-      ) : (
-        <fieldset className="radio-fieldset">
-          <legend className="radio-fieldset-legend">How should responses be scored?</legend>
+      )}
 
-          <label className="radio-option">
-            <input
-              type="radio"
-              name="scoring-mode"
-              value="allCorrect"
-              checked={config.mode === 'allCorrect'}
-              onChange={() => onModeChange('allCorrect')}
-            />
-            <span>All or nothing</span>
-          </label>
-          <p className="radio-option-description">
-            Score 1 if all responses are correct, 0 otherwise
-          </p>
-
-          <label className="radio-option">
-            <input
-              type="radio"
-              name="scoring-mode"
-              value="sumScores"
-              checked={config.mode === 'sumScores'}
-              onChange={() => onModeChange('sumScores')}
-            />
-            <span>Partial credit</span>
-          </label>
-          <p className="radio-option-description">
-            Each response contributes to the total score
-          </p>
-        </fieldset>
+      {!isCustom && config.customXml && (
+        <div className="scoring-warning">
+          <strong>Warning:</strong> Switching from custom mode will replace existing response
+          processing rules{hasFeedbackElements ? ', including feedback rules. Feedback elements may show invalid identifiers.' : '.'}
+        </div>
       )}
 
       {warnings.length > 0 && (

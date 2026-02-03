@@ -8,7 +8,7 @@ import { getMapping } from '../../utils/mappingDeclaration';
  * Get the display value for a text entry interaction.
  * Priority: highest mapped value → correct value → fallback
  */
-function getDisplayValue(element: QtiTextEntryInteraction): string {
+function getDisplayValue(element: QtiTextEntryInteraction) {
   const responseDecl = element.responseDeclaration;
 
   // Check for mapping first - find the entry with highest mapped value
@@ -28,8 +28,7 @@ function getDisplayValue(element: QtiTextEntryInteraction): string {
     return correctValue;
   }
 
-  // Final fallback
-  return '-text entry-';
+  return null;
 }
 
 /**
@@ -61,9 +60,7 @@ export function TextEntryElement({
           userSelect: 'none',
         }}
       >
-        <span style={{ fontWeight: 'bold' }}>
-          [{displayValue}]
-        </span>
+        <span style={{ fontWeight: 'bold' }}>{displayValue ? `Text: ${displayValue}` : `Text Input`}</span>
       </span>
       {children}
     </span>

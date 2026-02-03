@@ -158,6 +158,32 @@ export interface ChoiceContent {
 }
 
 /**
+ * QTI Feedback Inline - inline feedback element shown based on outcome variable
+ */
+export interface QtiFeedbackInline {
+  type: 'qti-feedback-inline';
+  children: Array<SlateElement | SlateText>;
+  attributes: {
+    'outcome-identifier': string;  // Usually "FEEDBACK"
+    identifier: string;            // e.g., "RESPONSE_correct"
+    'show-hide': 'show' | 'hide';
+  } & ElementAttributes;
+}
+
+/**
+ * QTI Feedback Block - block feedback element shown based on outcome variable
+ */
+export interface QtiFeedbackBlock {
+  type: 'qti-feedback-block';
+  children: Array<SlateElement | SlateText>;
+  attributes: {
+    'outcome-identifier': string;  // Usually "FEEDBACK"
+    identifier: string;            // e.g., "RESPONSE_correct"
+    'show-hide': 'show' | 'hide';
+  } & ElementAttributes;
+}
+
+/**
  * Unknown QTI Element (preserve with warnings)
  */
 export interface UnknownQtiElement {
@@ -299,6 +325,8 @@ export type SlateElement =
   | QtiSimpleChoice
   | ChoiceIdLabel
   | ChoiceContent
+  | QtiFeedbackInline
+  | QtiFeedbackBlock
   | UnknownQtiElement
   | ParagraphElement
   | DivElement

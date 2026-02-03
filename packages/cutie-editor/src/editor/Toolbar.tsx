@@ -5,6 +5,8 @@ import { insertChoiceInteraction } from '../interactions/choice';
 import { insertTextEntryInteraction } from '../interactions/textEntry';
 import { insertExtendedTextInteraction } from '../interactions/extendedText';
 import { insertImage } from '../elements/image';
+import { insertFeedbackInline } from '../elements/feedbackInline';
+import { insertFeedbackBlock } from '../elements/feedbackBlock';
 import { useAssetHandlers } from '../contexts/AssetContext';
 import {
   BoldIcon,
@@ -22,6 +24,7 @@ import {
   ExpandMoreIcon,
   ImageIcon,
   CheckBoxIcon,
+  FeedbackIcon,
 } from '../components/icons';
 import type { TextAlign } from '../types';
 
@@ -33,10 +36,12 @@ export function Toolbar(): React.JSX.Element {
   const { uploadAsset } = useAssetHandlers();
   const [interactionsOpen, setInteractionsOpen] = React.useState(false);
   const [elementsOpen, setElementsOpen] = React.useState(false);
+  const [feedbackOpen, setFeedbackOpen] = React.useState(false);
   const [blockTypeOpen, setBlockTypeOpen] = React.useState(false);
   const [isUploading, setIsUploading] = React.useState(false);
   const interactionsDropdownRef = React.useRef<HTMLDivElement>(null);
   const elementsDropdownRef = React.useRef<HTMLDivElement>(null);
+  const feedbackDropdownRef = React.useRef<HTMLDivElement>(null);
   const blockTypeDropdownRef = React.useRef<HTMLDivElement>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -58,6 +63,13 @@ export function Toolbar(): React.JSX.Element {
         setElementsOpen(false);
       }
       if (
+        feedbackOpen &&
+        feedbackDropdownRef.current &&
+        !feedbackDropdownRef.current.contains(event.target as Node)
+      ) {
+        setFeedbackOpen(false);
+      }
+      if (
         blockTypeOpen &&
         blockTypeDropdownRef.current &&
         !blockTypeDropdownRef.current.contains(event.target as Node)
@@ -67,7 +79,7 @@ export function Toolbar(): React.JSX.Element {
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [interactionsOpen, elementsOpen, blockTypeOpen]);
+  }, [interactionsOpen, elementsOpen, feedbackOpen, blockTypeOpen]);
 
   // Get current block type for dropdown label
   const currentBlockType = getCurrentBlockType(editor);
@@ -440,6 +452,56 @@ export function Toolbar(): React.JSX.Element {
               }}
             >
               Choice
+            </DropdownItem>
+          </div>
+        )}
+      </div>
+
+      {/* Feedback dropdown */}
+      <div ref={feedbackDropdownRef} style={{ position: 'relative' }}>
+        <ToolbarButton
+          onMouseDown={(event) => {
+            event.preventDefault();
+            setFeedbackOpen(!feedbackOpen);
+          }}
+          title="Insert Feedback"
+        >
+          <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+            <FeedbackIcon />
+            <ExpandMoreIcon size={16} />
+          </span>
+        </ToolbarButton>
+
+        {feedbackOpen && (
+          <div
+            style={{
+              position: 'absolute',
+              top: '100%',
+              right: 0,
+              marginTop: '4px',
+              backgroundColor: '#fff',
+              border: '1px solid #ccc',
+              borderRadius: '4px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+              zIndex: 1000,
+              minWidth: '160px',
+            }}
+          >
+            <DropdownItem
+              onClick={() => {
+                insertFeedbackInline(editor, '');
+                setFeedbackOpen(false);
+              }}
+            >
+              Inline Feedback
+            </DropdownItem>
+            <DropdownItem
+              onClick={() => {
+                insertFeedbackBlock(editor, '');
+                setFeedbackOpen(false);
+              }}
+            >
+              Block Feedback
             </DropdownItem>
           </div>
         )}

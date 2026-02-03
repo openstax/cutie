@@ -15,9 +15,13 @@ import { extendedTextRenderers } from '../interactions/extendedText';
 import { promptRenderers } from '../elements/prompt';
 import { simpleChoiceRenderers } from '../elements/simpleChoice';
 import { imageRenderers } from '../elements/image';
+import { feedbackInlineRenderers } from '../elements/feedbackInline';
+import { feedbackBlockRenderers } from '../elements/feedbackBlock';
 import { useStyle } from '../hooks/useStyle';
 import { hasMapping } from '../utils/responseProcessingClassifier';
 import { AssetContext } from '../contexts/AssetContext';
+import { FeedbackIdentifiersContext } from '../contexts/FeedbackIdentifiersContext';
+import { getAllFeedbackIdentifierIds } from '../utils/feedbackIdentifiers';
 
 /**
  * Main Slate editor component for QTI editing
@@ -167,16 +171,18 @@ export function SlateEditor({
       const metadata = getDocumentMetadata(value);
       if (!metadata) return;
 
-      // Don't allow switching away from custom mode
-      if (metadata.responseProcessing.mode === 'custom') {
-        return;
-      }
+      // If switching to 'custom' mode, preserve the existing customXml if any
+      // If switching to a managed mode, clear customXml (we'll regenerate response processing)
+      const newConfig =
+        mode === 'custom'
+          ? { mode, customXml: metadata.responseProcessing.customXml }
+          : { mode };
 
       // Update the mode using Transforms.setNodes
       Transforms.setNodes(
         editor,
         {
-          responseProcessing: { mode },
+          responseProcessing: newConfig,
         } as Partial<DocumentMetadata>,
         { at: [0] }
       );
@@ -187,7 +193,19 @@ export function SlateEditor({
   // Extract response processing config and interaction info
   const metadata = getDocumentMetadata(value);
   const responseProcessingConfig = metadata?.responseProcessing;
-  const { count: interactionCount, hasMappings } = analyzeInteractions(value);
+  const { count: interactionCount, hasMappings, hasFeedbackElements } = analyzeInteractions(value);
+
+  // Compute available feedback identifiers from interactions
+  const availableFeedbackIdentifiers = useMemo(
+    () => getAllFeedbackIdentifierIds(value),
+    [value]
+  );
+
+  // Context value for feedback identifiers
+  const feedbackIdentifiersContextValue = useMemo(
+    () => ({ availableIdentifiers: availableFeedbackIdentifiers }),
+    [availableFeedbackIdentifiers]
+  );
 
   // Render element callback
   const renderElement = useCallback((props: RenderElementProps) => {
@@ -204,36 +222,39 @@ export function SlateEditor({
 
   return (
     <AssetContext.Provider value={assetHandlers ?? {}}>
-      <Slate editor={editor} initialValue={value} onChange={handleChange}>
-        <div className="slate-editor-container">
-          <div className={`slate-editor ${className}`}>
-            <Toolbar />
-            <Editable
-              renderElement={renderElement}
-              renderLeaf={renderLeaf}
-              placeholder={placeholder}
-              readOnly={readOnly}
-              spellCheck
-              autoFocus
-              style={{
-                padding: '16px',
-                minHeight: '300px',
-                maxHeight: '500px',
-                overflowY: 'auto',
-              }}
+      <FeedbackIdentifiersContext.Provider value={feedbackIdentifiersContextValue}>
+        <Slate editor={editor} initialValue={value} onChange={handleChange}>
+          <div className="slate-editor-container">
+            <div className={`slate-editor ${className}`}>
+              <Toolbar />
+              <Editable
+                renderElement={renderElement}
+                renderLeaf={renderLeaf}
+                placeholder={placeholder}
+                readOnly={readOnly}
+                spellCheck
+                autoFocus
+                style={{
+                  padding: '16px',
+                  minHeight: '300px',
+                  maxHeight: '500px',
+                  overflowY: 'auto',
+                }}
+              />
+            </div>
+            <PropertiesPanel
+              selectedElement={selectedElement}
+              selectedPath={selectedPath}
+              onUpdateAttributes={handleUpdateAttributes}
+              responseProcessingConfig={responseProcessingConfig}
+              interactionCount={interactionCount}
+              hasMappings={hasMappings}
+              hasFeedbackElements={hasFeedbackElements}
+              onResponseProcessingModeChange={handleResponseProcessingModeChange}
             />
           </div>
-          <PropertiesPanel
-            selectedElement={selectedElement}
-            selectedPath={selectedPath}
-            onUpdateAttributes={handleUpdateAttributes}
-            responseProcessingConfig={responseProcessingConfig}
-            interactionCount={interactionCount}
-            hasMappings={hasMappings}
-            onResponseProcessingModeChange={handleResponseProcessingModeChange}
-          />
-        </div>
-      </Slate>
+        </Slate>
+      </FeedbackIdentifiersContext.Provider>
     </AssetContext.Provider>
   );
 }
@@ -253,7 +274,13 @@ function isInteractionElement(element: SlateElement): boolean {
  * Helper function to check if an element has a properties panel
  */
 function hasPropertiesPanel(element: SlateElement): boolean {
-  return isInteractionElement(element) || element.type === 'image' || element.type === 'qti-simple-choice';
+  return (
+    isInteractionElement(element) ||
+    element.type === 'image' ||
+    element.type === 'qti-simple-choice' ||
+    element.type === 'qti-feedback-inline' ||
+    element.type === 'qti-feedback-block'
+  );
 }
 
 /**
@@ -267,11 +294,12 @@ function getDocumentMetadata(nodes: Descendant[]): DocumentMetadata | null {
 }
 
 /**
- * Count interactions and check for mappings in the document
+ * Count interactions and check for mappings and feedback elements in the document
  */
-function analyzeInteractions(nodes: Descendant[]): { count: number; hasMappings: boolean } {
+function analyzeInteractions(nodes: Descendant[]): { count: number; hasMappings: boolean; hasFeedbackElements: boolean } {
   let count = 0;
   let hasMappings = false;
+  let hasFeedbackElements = false;
 
   function traverse(node: Descendant): void {
     if ('type' in node) {
@@ -285,6 +313,10 @@ function analyzeInteractions(nodes: Descendant[]): { count: number; hasMappings:
           }
         }
       }
+      // Check for feedback elements
+      if (element.type === 'qti-feedback-inline' || element.type === 'qti-feedback-block') {
+        hasFeedbackElements = true;
+      }
       if ('children' in element) {
         for (const child of element.children) {
           traverse(child);
@@ -297,7 +329,7 @@ function analyzeInteractions(nodes: Descendant[]): { count: number; hasMappings:
     traverse(node);
   }
 
-  return { count, hasMappings };
+  return { count, hasMappings, hasFeedbackElements };
 }
 
 // Single contact point per interaction: spread all renderer objects
@@ -308,6 +340,8 @@ const interactionRenderers: Record<string, React.ComponentType<RenderElementProp
   ...promptRenderers,
   ...simpleChoiceRenderers,
   ...imageRenderers,
+  ...feedbackInlineRenderers,
+  ...feedbackBlockRenderers,
 };
 
 /**

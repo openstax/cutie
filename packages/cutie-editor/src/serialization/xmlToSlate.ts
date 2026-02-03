@@ -1,4 +1,6 @@
 import type { Descendant, Element as SlateElementType } from 'slate';
+import { feedbackBlockParsers } from '../elements/feedbackBlock';
+import { feedbackInlineParsers } from '../elements/feedbackInline';
 import { promptParsers } from '../elements/prompt';
 import { simpleChoiceParsers } from '../elements/simpleChoice';
 import { choiceParsers } from '../interactions/choice';
@@ -33,6 +35,8 @@ const interactionParsers: Record<string, ParserFn> = {
   ...extendedTextParsers,
   ...promptParsers,
   ...simpleChoiceParsers,
+  ...feedbackInlineParsers,
+  ...feedbackBlockParsers,
 };
 
 /**
