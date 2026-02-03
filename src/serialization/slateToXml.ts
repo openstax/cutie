@@ -1,4 +1,6 @@
 import type { Descendant } from 'slate';
+import { feedbackBlockSerializers } from '../elements/feedbackBlock';
+import { feedbackInlineSerializers } from '../elements/feedbackInline';
 import { promptSerializers } from '../elements/prompt';
 import { simpleChoiceSerializers } from '../elements/simpleChoice';
 import { choiceSerializers } from '../interactions/choice';
@@ -18,6 +20,7 @@ interface InternalSerializationResult extends SerializationResult {
   responseDeclarations: Map<string, XmlNode>;
   outcomeDeclarations: Map<string, XmlNode>;
   responseProcessingConfig?: ResponseProcessingConfig;
+  feedbackIdentifiersUsed: Set<string>;
 }
 
 /**
@@ -65,6 +68,7 @@ export function serializeSlateToXml(nodes: Descendant[]): InternalSerializationR
     errors: [],
     responseDeclarations: new Map(),
     outcomeDeclarations: new Map(),
+    feedbackIdentifiersUsed: new Set(),
   };
 
   // Extract document metadata if present (always at position [0])
@@ -99,6 +103,7 @@ export function serializeSlateToXml(nodes: Descendant[]): InternalSerializationR
     responseDeclarations: context.responseDeclarations,
     outcomeDeclarations: context.outcomeDeclarations,
     responseProcessingConfig,
+    feedbackIdentifiersUsed: context.feedbackIdentifiersUsed,
   };
 }
 
@@ -111,6 +116,7 @@ export interface SerializationContext {
   errors: ValidationError[];
   responseDeclarations: Map<string, XmlNode>;
   outcomeDeclarations: Map<string, XmlNode>;
+  feedbackIdentifiersUsed: Set<string>;
 }
 
 // Single contact point per interaction: spread all serializer objects
@@ -120,6 +126,8 @@ const interactionSerializers: Record<string, (el: SlateElement, ctx: Serializati
   ...extendedTextSerializers,
   ...promptSerializers,
   ...simpleChoiceSerializers,
+  ...feedbackInlineSerializers,
+  ...feedbackBlockSerializers,
 };
 
 /**
@@ -689,6 +697,61 @@ function updateOutcomeDeclarations(
 }
 
 /**
+ * Update the FEEDBACK outcome declaration based on feedback element usage.
+ *
+ * If feedback elements are used and we're managing response processing:
+ * - Add/update FEEDBACK outcome declaration with cardinality="multiple" and base-type="identifier"
+ *
+ * If no feedback elements are used and we're managing response processing:
+ * - Remove FEEDBACK outcome declaration (if it exists and was auto-generated)
+ *
+ * @param assessmentItem - The qti-assessment-item element
+ * @param feedbackIdentifiersUsed - Set of feedback identifiers used by feedback elements
+ * @param doc - The XML document
+ */
+function updateFeedbackOutcomeDeclaration(
+  assessmentItem: Element,
+  feedbackIdentifiersUsed: Set<string>,
+  doc: Document
+): void {
+  const itemBody = assessmentItem.querySelector('qti-item-body');
+  const existingFeedback = assessmentItem.querySelector(
+    'qti-outcome-declaration[identifier="FEEDBACK"]'
+  );
+
+  if (feedbackIdentifiersUsed.size > 0) {
+    // Need FEEDBACK outcome declaration
+    if (!existingFeedback) {
+      // Create new FEEDBACK outcome declaration
+      const feedbackDecl = doc.createElementNS(
+        'http://www.imsglobal.org/xsd/imsqtiasi_v3p0',
+        'qti-outcome-declaration'
+      );
+      feedbackDecl.setAttribute('identifier', 'FEEDBACK');
+      feedbackDecl.setAttribute('cardinality', 'multiple');
+      feedbackDecl.setAttribute('base-type', 'identifier');
+
+      // Insert before qti-item-body
+      if (itemBody) {
+        assessmentItem.insertBefore(feedbackDecl, itemBody);
+      } else {
+        assessmentItem.appendChild(feedbackDecl);
+      }
+    }
+    // If it already exists, leave it as-is (preserve any custom configuration)
+  } else {
+    // No feedback elements - remove FEEDBACK declaration if it exists
+    // We only remove it if it has no default value (indicating it was auto-generated)
+    if (existingFeedback) {
+      const hasDefaultValue = existingFeedback.querySelector('qti-default-value');
+      if (!hasDefaultValue) {
+        existingFeedback.remove();
+      }
+    }
+  }
+}
+
+/**
  * Update or replace the response processing element in the assessment item
  */
 function updateResponseProcessing(
@@ -697,6 +760,7 @@ function updateResponseProcessing(
   responseIdentifiers: string[],
   responseDeclarations: Map<string, XmlNode>,
   outcomeDeclarations: Map<string, XmlNode>,
+  feedbackIdentifiersUsed: Set<string>,
   doc: Document
 ): void {
   // Remove existing response processing
@@ -712,7 +776,8 @@ function updateResponseProcessing(
       responseIdentifiers,
       responseDeclarations,
       outcomeDeclarations,
-      doc
+      doc,
+      feedbackIdentifiersUsed
     );
 
     if (newRP) {
@@ -813,8 +878,19 @@ export function serializeSlateToQti(
     itemBodyResult.responseIdentifiers,
     itemBodyResult.responseDeclarations,
     itemBodyResult.outcomeDeclarations,
+    itemBodyResult.feedbackIdentifiersUsed,
     doc
   );
+
+  // Manage FEEDBACK outcome declaration based on whether feedback elements are used
+  // Only in non-custom mode - custom mode preserves everything
+  if (itemBodyResult.responseProcessingConfig?.mode !== 'custom') {
+    updateFeedbackOutcomeDeclaration(
+      assessmentItem,
+      itemBodyResult.feedbackIdentifiersUsed,
+      doc
+    );
+  }
 
   // Update outcome declarations (for intermediate score variables generated by sumScores mode)
   updateOutcomeDeclarations(assessmentItem, itemBodyResult.outcomeDeclarations, doc);

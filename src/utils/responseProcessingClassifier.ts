@@ -1,5 +1,6 @@
 import { domToXmlNode } from '../serialization/xmlNode';
 import type { ResponseProcessingConfig, ResponseProcessingMode, XmlNode } from '../types';
+import { isStandardFeedbackIdentifier } from './feedbackIdentifiers';
 
 /**
  * Known response processing template URLs
@@ -60,15 +61,24 @@ export function classifyResponseProcessing(doc: Document): ResponseProcessingCon
 
   // Try to classify inline patterns
   const inlineMode = classifyInlinePattern(responseProcessing);
-  if (inlineMode !== 'custom') {
-    return { mode: inlineMode };
+  if (inlineMode === 'custom') {
+    // Unrecognized scoring pattern -> preserve as custom
+    return {
+      mode: 'custom',
+      customXml: domToXmlNode(responseProcessing),
+    };
   }
 
-  // Unrecognized inline pattern -> preserve as custom
-  return {
-    mode: 'custom',
-    customXml: domToXmlNode(responseProcessing),
-  };
+  // Check if feedback patterns are standard (we can manage them)
+  if (!areFeedbackPatternsStandard(responseProcessing)) {
+    // Unrecognized feedback pattern -> preserve entire response processing as custom
+    return {
+      mode: 'custom',
+      customXml: domToXmlNode(responseProcessing),
+    };
+  }
+
+  return { mode: inlineMode };
 }
 
 /**
@@ -231,4 +241,85 @@ export function hasMapping(responseDeclaration: XmlNode): boolean {
     (child): child is XmlNode =>
       typeof child !== 'string' && child.tagName === 'qti-mapping'
   );
+}
+
+/**
+ * Check if all feedback patterns in the response processing are standard
+ * (i.e., patterns we can recognize and regenerate).
+ *
+ * Standard feedback pattern:
+ * - Sets FEEDBACK outcome variable
+ * - Uses accumulation pattern with qti-multiple
+ * - Identifier values match {responseId}_{type} pattern
+ *
+ * If there are no feedback patterns, returns true (no feedback is valid).
+ */
+function areFeedbackPatternsStandard(responseProcessing: Element): boolean {
+  // Find all qti-set-outcome-value elements that set FEEDBACK
+  const feedbackSetters = responseProcessing.querySelectorAll(
+    'qti-set-outcome-value[identifier="FEEDBACK"]'
+  );
+
+  // No feedback setters -> no feedback patterns -> standard (nothing to manage)
+  if (feedbackSetters.length === 0) {
+    return true;
+  }
+
+  // Check each feedback setter
+  for (const setter of feedbackSetters) {
+    if (!isStandardFeedbackSetter(setter)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Check if a qti-set-outcome-value for FEEDBACK follows the standard pattern:
+ *
+ * <qti-set-outcome-value identifier="FEEDBACK">
+ *   <qti-multiple>
+ *     <qti-variable identifier="FEEDBACK"/>
+ *     <qti-base-value base-type="identifier">{responseId}_{type}</qti-base-value>
+ *   </qti-multiple>
+ * </qti-set-outcome-value>
+ */
+function isStandardFeedbackSetter(setter: Element): boolean {
+  // Must have qti-multiple child
+  const multiple = setter.querySelector(':scope > qti-multiple');
+  if (!multiple) {
+    return false;
+  }
+
+  // Must have exactly 2 children: qti-variable and qti-base-value
+  const children = Array.from(multiple.children);
+  if (children.length !== 2) {
+    return false;
+  }
+
+  // First child should be qti-variable referencing FEEDBACK (accumulation pattern)
+  const variable = multiple.querySelector(':scope > qti-variable');
+  if (!variable || variable.getAttribute('identifier') !== 'FEEDBACK') {
+    return false;
+  }
+
+  // Second child should be qti-base-value with identifier base-type
+  const baseValue = multiple.querySelector(':scope > qti-base-value');
+  if (!baseValue) {
+    return false;
+  }
+
+  const baseType = baseValue.getAttribute('base-type');
+  if (baseType !== 'identifier') {
+    return false;
+  }
+
+  // The identifier value should match our standard pattern
+  const identifierValue = baseValue.textContent?.trim() || '';
+  if (!isStandardFeedbackIdentifier(identifierValue)) {
+    return false;
+  }
+
+  return true;
 }

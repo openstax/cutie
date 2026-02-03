@@ -5,6 +5,8 @@ import { textEntryPropertiesPanels } from '../interactions/textEntry';
 import { extendedTextPropertiesPanels } from '../interactions/extendedText';
 import { imagePropertiesPanels } from '../elements/image';
 import { simpleChoicePropertiesPanels } from '../elements/simpleChoice';
+import { feedbackInlinePropertiesPanels } from '../elements/feedbackInline';
+import { feedbackBlockPropertiesPanels } from '../elements/feedbackBlock';
 import { ResponseProcessingPanel } from './ResponseProcessingPanel';
 import type { SlateElement, ElementAttributes, XmlNode, ResponseProcessingConfig, ResponseProcessingMode } from '../types';
 
@@ -15,6 +17,7 @@ interface PropertiesPanelProps {
   responseProcessingConfig?: ResponseProcessingConfig;
   interactionCount?: number;
   hasMappings?: boolean;
+  hasFeedbackElements?: boolean;
   onResponseProcessingModeChange?: (mode: ResponseProcessingMode) => void;
 }
 
@@ -26,6 +29,8 @@ const propertiesPanels: Record<string, React.ComponentType<any>> = {
   ...extendedTextPropertiesPanels,
   ...imagePropertiesPanels,
   ...simpleChoicePropertiesPanels,
+  ...feedbackInlinePropertiesPanels,
+  ...feedbackBlockPropertiesPanels,
 };
 
 /**
@@ -38,6 +43,7 @@ export function PropertiesPanel({
   responseProcessingConfig,
   interactionCount = 0,
   hasMappings = false,
+  hasFeedbackElements = false,
   onResponseProcessingModeChange,
 }: PropertiesPanelProps): React.JSX.Element {
   useStyle('properties-panel', PROPERTIES_PANEL_STYLES);
@@ -52,6 +58,7 @@ export function PropertiesPanel({
             config={responseProcessingConfig}
             interactionCount={interactionCount}
             hasMappings={hasMappings}
+            hasFeedbackElements={hasFeedbackElements}
             onModeChange={onResponseProcessingModeChange}
           />
         </div>
@@ -69,9 +76,19 @@ export function PropertiesPanel({
 
   const Panel = propertiesPanels[selectedElement.type];
   if (Panel) {
+    // Pass responseProcessingConfig to feedback elements
+    const isFeedbackElement =
+      selectedElement.type === 'qti-feedback-inline' ||
+      selectedElement.type === 'qti-feedback-block';
+
     return (
       <div className="properties-panel">
-        <Panel element={selectedElement} path={selectedPath} onUpdate={onUpdateAttributes} />
+        <Panel
+          element={selectedElement}
+          path={selectedPath}
+          onUpdate={onUpdateAttributes}
+          {...(isFeedbackElement && { responseProcessingConfig })}
+        />
       </div>
     );
   }
@@ -84,6 +101,7 @@ export function PropertiesPanel({
           config={responseProcessingConfig}
           interactionCount={interactionCount}
           hasMappings={hasMappings}
+          hasFeedbackElements={hasFeedbackElements}
           onModeChange={onResponseProcessingModeChange}
         />
       </div>

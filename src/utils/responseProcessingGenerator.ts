@@ -1,5 +1,6 @@
 import { xmlNodeToDom } from '../serialization/xmlNode';
 import type { ResponseProcessingConfig, XmlNode } from '../types';
+import { parseFeedbackIdentifier } from './feedbackIdentifiers';
 import { hasMapping } from './responseProcessingClassifier';
 
 /**
@@ -23,6 +24,7 @@ const TEMPLATES = {
  * @param responseDeclarations - Map of response identifier to XmlNode declarations
  * @param outcomeDeclarations - Map to populate with intermediate score outcome declarations
  * @param doc - The XML document to create elements in
+ * @param feedbackIdentifiersUsed - Set of feedback identifiers used by feedback elements
  * @returns The generated qti-response-processing element, or null if none needed
  */
 export function generateResponseProcessingXml(
@@ -30,10 +32,11 @@ export function generateResponseProcessingXml(
   responseIdentifiers: string[],
   responseDeclarations: Map<string, XmlNode>,
   outcomeDeclarations: Map<string, XmlNode>,
-  doc: Document
+  doc: Document,
+  feedbackIdentifiersUsed?: Set<string>
 ): Element | null {
-  // No interactions -> no response processing
-  if (responseIdentifiers.length === 0) {
+  // No interactions -> no response processing needed (unless we have feedback)
+  if (responseIdentifiers.length === 0 && (!feedbackIdentifiersUsed || feedbackIdentifiersUsed.size === 0)) {
     return null;
   }
 
@@ -41,9 +44,9 @@ export function generateResponseProcessingXml(
     case 'custom':
       return generateCustomXml(config, doc);
     case 'allCorrect':
-      return generateAllCorrectXml(responseIdentifiers, doc);
+      return generateAllCorrectXml(responseIdentifiers, responseDeclarations, doc, feedbackIdentifiersUsed);
     case 'sumScores':
-      return generateSumScoresXml(responseIdentifiers, responseDeclarations, outcomeDeclarations, doc);
+      return generateSumScoresXml(responseIdentifiers, responseDeclarations, outcomeDeclarations, doc, feedbackIdentifiersUsed);
     default:
       return null;
   }
@@ -62,60 +65,86 @@ function generateCustomXml(config: ResponseProcessingConfig, doc: Document): Ele
 /**
  * Generate allCorrect response processing.
  *
- * For single interaction: use template
+ * For single interaction: use template (unless feedback is used)
  * For multiple interactions: generate inline qti-and pattern
  */
-function generateAllCorrectXml(responseIdentifiers: string[], doc: Document): Element {
+function generateAllCorrectXml(
+  responseIdentifiers: string[],
+  responseDeclarations: Map<string, XmlNode>,
+  doc: Document,
+  feedbackIdentifiersUsed?: Set<string>
+): Element {
   const responseProcessing = doc.createElementNS(QTI_NAMESPACE, 'qti-response-processing');
+  const hasFeedback = feedbackIdentifiersUsed && feedbackIdentifiersUsed.size > 0;
 
-  // Single interaction with standard identifier: use template
+  // Single interaction with standard identifier and no feedback: use template
   // The match_correct template requires identifier to be exactly "RESPONSE"
-  if (responseIdentifiers.length === 1 && responseIdentifiers[0] === 'RESPONSE') {
+  if (responseIdentifiers.length === 1 && responseIdentifiers[0] === 'RESPONSE' && !hasFeedback) {
     responseProcessing.setAttribute('template', TEMPLATES.matchCorrect);
     return responseProcessing;
   }
 
-  // Multiple interactions: generate inline pattern
-  // <qti-response-condition>
-  //   <qti-response-if>
-  //     <qti-and>
-  //       <qti-match><qti-variable identifier="RESP1"/><qti-correct identifier="RESP1"/></qti-match>
-  //       ...
-  //     </qti-and>
-  //     <qti-set-outcome-value identifier="SCORE">
-  //       <qti-base-value base-type="float">1</qti-base-value>
-  //     </qti-set-outcome-value>
-  //   </qti-response-if>
-  //   <qti-response-else>
-  //     <qti-set-outcome-value identifier="SCORE">
-  //       <qti-base-value base-type="float">0</qti-base-value>
-  //     </qti-set-outcome-value>
-  //   </qti-response-else>
-  // </qti-response-condition>
+  // Generate inline pattern when we have multiple interactions or feedback
+  if (responseIdentifiers.length > 0) {
+    // <qti-response-condition>
+    //   <qti-response-if>
+    //     <qti-and>
+    //       <qti-match><qti-variable identifier="RESP1"/><qti-correct identifier="RESP1"/></qti-match>
+    //       ...
+    //     </qti-and>
+    //     <qti-set-outcome-value identifier="SCORE">
+    //       <qti-base-value base-type="float">1</qti-base-value>
+    //     </qti-set-outcome-value>
+    //   </qti-response-if>
+    //   <qti-response-else>
+    //     <qti-set-outcome-value identifier="SCORE">
+    //       <qti-base-value base-type="float">0</qti-base-value>
+    //     </qti-set-outcome-value>
+    //   </qti-response-else>
+    // </qti-response-condition>
 
-  const condition = doc.createElementNS(QTI_NAMESPACE, 'qti-response-condition');
+    const condition = doc.createElementNS(QTI_NAMESPACE, 'qti-response-condition');
 
-  // Response if
-  const responseIf = doc.createElementNS(QTI_NAMESPACE, 'qti-response-if');
+    // Response if
+    const responseIf = doc.createElementNS(QTI_NAMESPACE, 'qti-response-if');
 
-  // And element with matches
-  const and = doc.createElementNS(QTI_NAMESPACE, 'qti-and');
-  for (const id of responseIdentifiers) {
-    and.appendChild(createMatchElement(id, doc));
+    if (responseIdentifiers.length === 1) {
+      // Single interaction: use qti-match directly
+      responseIf.appendChild(createMatchElement(responseIdentifiers[0], doc));
+    } else {
+      // Multiple interactions: use qti-and
+      const and = doc.createElementNS(QTI_NAMESPACE, 'qti-and');
+      for (const id of responseIdentifiers) {
+        and.appendChild(createMatchElement(id, doc));
+      }
+      responseIf.appendChild(and);
+    }
+
+    // Set score to 1
+    responseIf.appendChild(createSetScoreElement('1', doc));
+
+    condition.appendChild(responseIf);
+
+    // Response else - set score to 0
+    const responseElse = doc.createElementNS(QTI_NAMESPACE, 'qti-response-else');
+    responseElse.appendChild(createSetScoreElement('0', doc));
+    condition.appendChild(responseElse);
+
+    responseProcessing.appendChild(condition);
   }
-  responseIf.appendChild(and);
 
-  // Set score to 1
-  responseIf.appendChild(createSetScoreElement('1', doc));
-
-  condition.appendChild(responseIf);
-
-  // Response else - set score to 0
-  const responseElse = doc.createElementNS(QTI_NAMESPACE, 'qti-response-else');
-  responseElse.appendChild(createSetScoreElement('0', doc));
-  condition.appendChild(responseElse);
-
-  responseProcessing.appendChild(condition);
+  // Generate feedback processing rules if feedback elements are used
+  if (hasFeedback) {
+    const feedbackConditions = generateFeedbackProcessingXml(
+      responseIdentifiers,
+      responseDeclarations,
+      feedbackIdentifiersUsed,
+      doc
+    );
+    for (const fc of feedbackConditions) {
+      responseProcessing.appendChild(fc);
+    }
+  }
 
   return responseProcessing;
 }
@@ -151,7 +180,7 @@ function createOutcomeDeclaration(identifier: string): XmlNode {
 /**
  * Generate sumScores response processing.
  *
- * For single interaction with mapping: use map_response template
+ * For single interaction with mapping: use map_response template (unless feedback is used)
  * For single interaction without mapping: use match_correct template (1 if correct, 0 otherwise)
  * For multiple interactions: generate inline qti-sum pattern
  */
@@ -159,13 +188,15 @@ function generateSumScoresXml(
   responseIdentifiers: string[],
   responseDeclarations: Map<string, XmlNode>,
   outcomeDeclarations: Map<string, XmlNode>,
-  doc: Document
+  doc: Document,
+  feedbackIdentifiersUsed?: Set<string>
 ): Element {
   const responseProcessing = doc.createElementNS(QTI_NAMESPACE, 'qti-response-processing');
+  const hasFeedback = feedbackIdentifiersUsed && feedbackIdentifiersUsed.size > 0;
 
-  // Single interaction with standard identifier: use template
+  // Single interaction with standard identifier and no feedback: use template
   // Both match_correct and map_response templates require identifier to be exactly "RESPONSE"
-  if (responseIdentifiers.length === 1 && responseIdentifiers[0] === 'RESPONSE') {
+  if (responseIdentifiers.length === 1 && responseIdentifiers[0] === 'RESPONSE' && !hasFeedback) {
     const id = responseIdentifiers[0];
     const decl = responseDeclarations.get(id);
     const hasMappingDefined = decl && hasMapping(decl);
@@ -179,7 +210,7 @@ function generateSumScoresXml(
     return responseProcessing;
   }
 
-  // Multiple interactions: generate inline pattern
+  // Multiple interactions or has feedback: generate inline pattern
   // First, determine which responses have mappings and which don't
   const withMapping: string[] = [];
   const withoutMapping: string[] = [];
@@ -232,6 +263,19 @@ function generateSumScoresXml(
 
   setScore.appendChild(sum);
   responseProcessing.appendChild(setScore);
+
+  // Generate feedback processing rules if feedback elements are used
+  if (hasFeedback) {
+    const feedbackConditions = generateFeedbackProcessingXml(
+      responseIdentifiers,
+      responseDeclarations,
+      feedbackIdentifiersUsed,
+      doc
+    );
+    for (const fc of feedbackConditions) {
+      responseProcessing.appendChild(fc);
+    }
+  }
 
   return responseProcessing;
 }
@@ -318,4 +362,212 @@ function createScoreConditionForUnmapped(identifier: string, doc: Document): Ele
   condition.appendChild(responseElse);
 
   return condition;
+}
+
+/**
+ * Generate feedback processing rules for the FEEDBACK outcome variable.
+ *
+ * Creates condition blocks for each response identifier that has feedback identifiers used:
+ * - {responseId}_correct / {responseId}_incorrect for correct/incorrect feedback
+ * - {responseId}_choice_{choiceId} for per-choice feedback
+ *
+ * @param responseIdentifiers - List of response identifiers in the item
+ * @param responseDeclarations - Map of response identifier to XmlNode declarations
+ * @param feedbackIdentifiersUsed - Set of feedback identifiers used by feedback elements
+ * @param doc - The XML document to create elements in
+ * @returns Array of qti-response-condition elements for feedback processing
+ */
+function generateFeedbackProcessingXml(
+  responseIdentifiers: string[],
+  _responseDeclarations: Map<string, XmlNode>,
+  feedbackIdentifiersUsed: Set<string>,
+  doc: Document
+): Element[] {
+  const conditions: Element[] = [];
+
+  // Group feedback identifiers by response identifier
+  const feedbackByResponse = new Map<string, Set<string>>();
+  for (const feedbackId of feedbackIdentifiersUsed) {
+    const parsed = parseFeedbackIdentifier(feedbackId);
+    if (parsed) {
+      if (!feedbackByResponse.has(parsed.responseIdentifier)) {
+        feedbackByResponse.set(parsed.responseIdentifier, new Set());
+      }
+      feedbackByResponse.get(parsed.responseIdentifier)!.add(feedbackId);
+    }
+  }
+
+  // Generate conditions for each response that has feedback
+  for (const responseId of responseIdentifiers) {
+    const feedbackIds = feedbackByResponse.get(responseId);
+    if (!feedbackIds || feedbackIds.size === 0) continue;
+
+    // Check for correct/incorrect feedback
+    const correctId = `${responseId}_correct`;
+    const incorrectId = `${responseId}_incorrect`;
+    const hasCorrect = feedbackIds.has(correctId);
+    const hasIncorrect = feedbackIds.has(incorrectId);
+
+    if (hasCorrect || hasIncorrect) {
+      // Generate correct/incorrect condition
+      const condition = createFeedbackCorrectIncorrectCondition(
+        responseId,
+        hasCorrect ? correctId : null,
+        hasIncorrect ? incorrectId : null,
+        doc
+      );
+      conditions.push(condition);
+    }
+
+    // Check for per-choice feedback
+    for (const feedbackId of feedbackIds) {
+      const parsed = parseFeedbackIdentifier(feedbackId);
+      if (parsed?.type === 'choice' && parsed.choiceId) {
+        const condition = createFeedbackChoiceCondition(
+          responseId,
+          parsed.choiceId,
+          feedbackId,
+          doc
+        );
+        conditions.push(condition);
+      }
+    }
+  }
+
+  return conditions;
+}
+
+/**
+ * Create a feedback condition for correct/incorrect responses.
+ *
+ * <qti-response-condition>
+ *   <qti-response-if>
+ *     <qti-match>
+ *       <qti-variable identifier="RESPONSE"/>
+ *       <qti-correct identifier="RESPONSE"/>
+ *     </qti-match>
+ *     <qti-set-outcome-value identifier="FEEDBACK">
+ *       <qti-multiple>
+ *         <qti-variable identifier="FEEDBACK"/>
+ *         <qti-base-value base-type="identifier">RESPONSE_correct</qti-base-value>
+ *       </qti-multiple>
+ *     </qti-set-outcome-value>
+ *   </qti-response-if>
+ *   <qti-response-else>
+ *     <qti-set-outcome-value identifier="FEEDBACK">
+ *       <qti-multiple>
+ *         <qti-variable identifier="FEEDBACK"/>
+ *         <qti-base-value base-type="identifier">RESPONSE_incorrect</qti-base-value>
+ *       </qti-multiple>
+ *     </qti-set-outcome-value>
+ *   </qti-response-else>
+ * </qti-response-condition>
+ */
+function createFeedbackCorrectIncorrectCondition(
+  responseId: string,
+  correctFeedbackId: string | null,
+  incorrectFeedbackId: string | null,
+  doc: Document
+): Element {
+  const condition = doc.createElementNS(QTI_NAMESPACE, 'qti-response-condition');
+
+  // Response if - when correct
+  const responseIf = doc.createElementNS(QTI_NAMESPACE, 'qti-response-if');
+  responseIf.appendChild(createMatchElement(responseId, doc));
+
+  if (correctFeedbackId) {
+    responseIf.appendChild(createSetFeedbackElement(correctFeedbackId, doc));
+  }
+
+  condition.appendChild(responseIf);
+
+  // Response else - when incorrect
+  if (incorrectFeedbackId) {
+    const responseElse = doc.createElementNS(QTI_NAMESPACE, 'qti-response-else');
+    responseElse.appendChild(createSetFeedbackElement(incorrectFeedbackId, doc));
+    condition.appendChild(responseElse);
+  }
+
+  return condition;
+}
+
+/**
+ * Create a feedback condition for a specific choice selection.
+ *
+ * <qti-response-condition>
+ *   <qti-response-if>
+ *     <qti-member>
+ *       <qti-base-value base-type="identifier">choice_A</qti-base-value>
+ *       <qti-variable identifier="RESPONSE"/>
+ *     </qti-member>
+ *     <qti-set-outcome-value identifier="FEEDBACK">
+ *       <qti-multiple>
+ *         <qti-variable identifier="FEEDBACK"/>
+ *         <qti-base-value base-type="identifier">RESPONSE_choice_A</qti-base-value>
+ *       </qti-multiple>
+ *     </qti-set-outcome-value>
+ *   </qti-response-if>
+ * </qti-response-condition>
+ */
+function createFeedbackChoiceCondition(
+  responseId: string,
+  choiceId: string,
+  feedbackId: string,
+  doc: Document
+): Element {
+  const condition = doc.createElementNS(QTI_NAMESPACE, 'qti-response-condition');
+
+  // Response if - when choice is selected
+  const responseIf = doc.createElementNS(QTI_NAMESPACE, 'qti-response-if');
+
+  // qti-member checks if a value is in a container
+  const member = doc.createElementNS(QTI_NAMESPACE, 'qti-member');
+
+  const baseValue = doc.createElementNS(QTI_NAMESPACE, 'qti-base-value');
+  baseValue.setAttribute('base-type', 'identifier');
+  baseValue.textContent = choiceId;
+  member.appendChild(baseValue);
+
+  const variable = doc.createElementNS(QTI_NAMESPACE, 'qti-variable');
+  variable.setAttribute('identifier', responseId);
+  member.appendChild(variable);
+
+  responseIf.appendChild(member);
+  responseIf.appendChild(createSetFeedbackElement(feedbackId, doc));
+
+  condition.appendChild(responseIf);
+
+  return condition;
+}
+
+/**
+ * Create a qti-set-outcome-value element for FEEDBACK using accumulation pattern.
+ *
+ * <qti-set-outcome-value identifier="FEEDBACK">
+ *   <qti-multiple>
+ *     <qti-variable identifier="FEEDBACK"/>
+ *     <qti-base-value base-type="identifier">{feedbackId}</qti-base-value>
+ *   </qti-multiple>
+ * </qti-set-outcome-value>
+ */
+function createSetFeedbackElement(feedbackId: string, doc: Document): Element {
+  const setOutcome = doc.createElementNS(QTI_NAMESPACE, 'qti-set-outcome-value');
+  setOutcome.setAttribute('identifier', 'FEEDBACK');
+
+  const multiple = doc.createElementNS(QTI_NAMESPACE, 'qti-multiple');
+
+  // Accumulation: include existing FEEDBACK values
+  const varRef = doc.createElementNS(QTI_NAMESPACE, 'qti-variable');
+  varRef.setAttribute('identifier', 'FEEDBACK');
+  multiple.appendChild(varRef);
+
+  // Add the new feedback identifier
+  const baseValue = doc.createElementNS(QTI_NAMESPACE, 'qti-base-value');
+  baseValue.setAttribute('base-type', 'identifier');
+  baseValue.textContent = feedbackId;
+  multiple.appendChild(baseValue);
+
+  setOutcome.appendChild(multiple);
+
+  return setOutcome;
 }

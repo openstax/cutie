@@ -1,4 +1,6 @@
 import { Element, Path } from 'slate';
+import { feedbackBlockConfig } from '../elements/feedbackBlock/config';
+import { feedbackInlineConfig } from '../elements/feedbackInline/config';
 import { imageConfig } from '../elements/image/config';
 import { promptConfig } from '../elements/prompt/config';
 import {
@@ -22,6 +24,9 @@ const elementConfigs: ElementConfig[] = [
   choiceIdLabelConfig,
   choiceContentConfig,
   imageConfig,
+  // Feedback element configs
+  feedbackInlineConfig,
+  feedbackBlockConfig,
 ];
 
 /**
