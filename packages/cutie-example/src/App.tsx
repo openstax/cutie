@@ -61,6 +61,7 @@ export function App() {
         setAttemptState(result.state);
         setSanitizedTemplate(result.template);
       } catch (err) {
+        console.error(err);
         setError(err instanceof Error ? err.message : 'Unknown error occurred');
       } finally {
         setProcessing(false);
@@ -81,6 +82,7 @@ export function App() {
       setSanitizedTemplate(result.template);
       setResponses(null);
     } catch (err) {
+      console.error(err);
       setError(err instanceof Error ? err.message : 'Unknown error occurred');
     } finally {
       setProcessing(false);
@@ -96,6 +98,7 @@ export function App() {
       setAttemptState(result.state);
       setSanitizedTemplate(result.template);
     } catch (err) {
+      console.error(err);
       setError(err instanceof Error ? err.message : 'Error processing response');
     }
   };
