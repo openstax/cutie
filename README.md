@@ -1,19 +1,19 @@
-<!-- spell-checker: ignore typecheck hotspot Hotspot -->
+<!-- spell-checker: ignore typecheck -->
 # @openstax/cutie-editor
 
 React-based WYSIWYG editor for QTI v3 assessment items. Built with Slate.js for robust XML attribute preservation and format-agnostic editing.
 
 ## Features
 
-- ✅ **React-first** - Built with React and Slate.js for modern React applications
-- ✅ **XML attribute preservation** - Pure JSON document model prevents HTML/XHTML conversion issues
-- ✅ **Rich text editing** - Bold, italic, underline, headings, lists
-- ✅ **QTI interactions** - Text entry, extended text, choice interactions
-- ✅ **XML round-trip** - Parse QTI XML ↔ Edit ↔ Serialize back to QTI XML with perfect fidelity
-- ✅ **Unknown element preservation** - Displays unsupported QTI elements as warnings, preserves structure on save
-- ✅ **Unique ID validation** - Auto-generates and validates response identifiers
-- ✅ **TypeScript-first** - Full type safety with strict mode
-- ✅ **Extensible** - Plugin system for custom QTI element support
+- **React-first** - Built with React and Slate.js for modern React applications
+- **XML attribute preservation** - Pure JSON document model prevents HTML/XHTML conversion issues
+- **Rich text editing** - Bold, italic, underline, headings, lists
+- **QTI interactions** - Text entry, extended text, choice interactions
+- **Feedback elements** - Inline and block feedback with automatic response processing generation
+- **XML round-trip** - Parse QTI XML, edit, serialize back with fidelity
+- **Unknown element preservation** - Unsupported QTI elements display as warnings, structure preserved on save
+- **Response processing management** - Automatic scoring and feedback rule generation for supported patterns
+- **TypeScript-first** - Full type safety with strict mode
 
 ## Installation
 
@@ -27,434 +27,246 @@ yarn add @openstax/cutie-editor
 
 ## Usage
 
-### Basic Example
+```tsx
+import { SlateEditor } from '@openstax/cutie-editor';
 
-```typescript
-import React, { useState } from 'react';
-import { SlateEditor, Toolbar, parseXmlToSlate, serializeSlateToXml } from '@openstax/cutie-editor';
-import type { Descendant } from '@openstax/cutie-editor';
-import { Slate } from 'slate-react';
-import { createEditor } from 'slate';
-import { withReact } from 'slate-react';
-import { withHistory } from 'slate-history';
-
-function QtiEditor({ initialXml }: { initialXml?: string }) {
-  // Parse initial XML to Slate format
-  const initialValue = initialXml
-    ? parseXmlToSlate(initialXml)
-    : [{ type: 'paragraph', children: [{ text: '' }] }];
-
-  const [value, setValue] = useState<Descendant[]>(initialValue);
-  const [editor] = useState(() => withReact(withHistory(createEditor())));
-
-  const handleChange = (newValue: Descendant[]) => {
-    setValue(newValue);
-  };
-
-  const handleSave = () => {
-    const { xml, responseIdentifiers, errors } = serializeSlateToXml(value);
-
-    if (errors) {
-      console.error('Validation errors:', errors);
-      return;
-    }
-
-    console.log('QTI XML:', xml);
-    console.log('Response IDs:', responseIdentifiers);
-  };
+function QtiEditor() {
+  const [qtiXml, setQtiXml] = useState('<qti-assessment-item>...</qti-assessment-item>');
 
   return (
-    <div>
-      <Slate editor={editor} initialValue={value} onChange={handleChange}>
-        <Toolbar />
-        <SlateEditor
-          value={value}
-          onChange={handleChange}
-          placeholder="Enter content..."
-        />
-      </Slate>
-      <button onClick={handleSave}>Save</button>
-    </div>
+    <SlateEditor
+      qtiXml={qtiXml}
+      onQtiChange={(xml) => setQtiXml(xml)}
+      onError={(error) => console.error(error)}
+    />
   );
 }
 ```
 
 ## API
 
-### Components
-
-#### `<SlateEditor>`
+### `<SlateEditor>`
 
 Main editor component.
 
 **Props:**
 ```typescript
 interface SlateEditorProps {
-  value: Descendant[];              // Controlled Slate document state
-  onChange: (value: Descendant[]) => void;  // Change handler
-  onSerialize?: (result: SerializationResult) => void;  // Optional auto-serialize
-  className?: string;               // Optional CSS class
-  readOnly?: boolean;               // Read-only mode
-  placeholder?: string;             // Placeholder text
-}
-```
-
-#### `<Toolbar>`
-
-Toolbar component with formatting and interaction buttons. Must be used inside a `<Slate>` provider.
-
-### Utilities
-
-#### `parseXmlToSlate(xml: string): Descendant[]`
-
-Parse QTI XML (or qti-item-body content) to Slate document format.
-
-**Parameters:**
-- `xml: string` - QTI XML string
-
-**Returns:** `Descendant[]` - Slate document nodes
-
-**Example:**
-```typescript
-const slateNodes = parseXmlToSlate('<p>Hello <strong>world</strong></p>');
-```
-
-#### `serializeSlateToXml(nodes: Descendant[]): SerializationResult`
-
-Serialize Slate document to QTI XML.
-
-**Parameters:**
-- `nodes: Descendant[]` - Slate document nodes
-
-**Returns:** `SerializationResult` - Serialization result with XML, identifiers, and errors
-
-**Example:**
-```typescript
-const { xml, responseIdentifiers, errors } = serializeSlateToXml(nodes);
-```
-
-### Plugins
-
-#### `withQtiInteractions(editor): Editor`
-
-Slate plugin that handles QTI interaction-specific behavior (void elements, inline elements, normalization).
-
-#### `withXhtml(editor): Editor`
-
-Slate plugin for XHTML normalization rules.
-
-#### `withUnknownElements(editor): Editor`
-
-Slate plugin for handling unknown QTI elements.
-
-### Insertion Commands
-
-#### `insertTextEntryInteraction(editor, config?)`
-
-Insert a text entry interaction at the current selection.
-
-**Config:**
-```typescript
-{
-  responseIdentifier?: string;  // Auto-generated if not provided
-  expectedLength?: string;
-  patternMask?: string;
-  placeholderText?: string;
-}
-```
-
-#### `insertExtendedTextInteraction(editor, config?)`
-
-Insert an extended text interaction.
-
-**Config:**
-```typescript
-{
-  responseIdentifier?: string;
-  expectedLines?: string;
-  expectedLength?: string;
-  placeholderText?: string;
-}
-```
-
-#### `insertChoiceInteraction(editor, config?)`
-
-Insert a choice interaction.
-
-**Config:**
-```typescript
-{
-  responseIdentifier?: string;
-  maxChoices?: string;
-  minChoices?: string;
-  shuffle?: boolean;
-  choices?: Array<{ identifier: string; text?: string }>;
-}
-```
-
-### Types
-
-```typescript
-interface SerializationResult {
-  xml: string;                      // Generated QTI XML
-  responseIdentifiers: string[];    // List of response IDs
-  errors?: ValidationError[];       // Validation errors
-}
-
-interface ValidationError {
-  type: 'duplicate-identifier' | 'missing-identifier' | 'invalid-xml' | 'unknown';
-  message: string;
-  responseIdentifier?: string;
+  qtiXml: string;                           // QTI XML string to edit
+  onQtiChange?: (xml: string, result: SerializationResult) => void;
+  onError?: (error: string) => void;
+  className?: string;
+  readOnly?: boolean;
+  placeholder?: string;
+  assetHandlers?: AssetHandlers;            // Handlers for image upload/browse
 }
 ```
 
 ## Supported QTI Elements
 
 ### Interactions
-- ✅ `<qti-text-entry-interaction>` - Inline text entry
-- ✅ `<qti-extended-text-interaction>` - Essay/long text
-- ✅ `<qti-choice-interaction>` - Multiple choice with `<qti-simple-choice>` children
-- ✅ `<qti-prompt>` - Optional prompt within choice interactions
+- `<qti-text-entry-interaction>` - Inline text entry
+- `<qti-extended-text-interaction>` - Essay/long text
+- `<qti-choice-interaction>` - Multiple choice with `<qti-simple-choice>` children
+- `<qti-prompt>` - Optional prompt within choice interactions
+
+### Feedback Elements
+- `<qti-feedback-inline>` - Inline conditional feedback
+- `<qti-feedback-block>` - Block-level conditional feedback
 
 ### XHTML Content
-- ✅ `<p>` - Paragraphs
-- ✅ `<div>`, `<span>` - Containers
-- ✅ `<h1>`-`<h6>` - Headings
-- ✅ `<strong>`, `<b>` - Bold
-- ✅ `<em>`, `<i>` - Italic
-- ✅ `<u>` - Underline
-- ✅ `<code>` - Code
-- ✅ `<br>` - Line breaks
-- ✅ `<img>` - Images
-- ✅ `<ul>`, `<ol>`, `<li>` - Lists
+- `<p>`, `<div>`, `<span>` - Text containers
+- `<h1>`-`<h6>` - Headings
+- `<strong>`, `<b>`, `<em>`, `<i>`, `<u>` - Text formatting
+- `<code>` - Code
+- `<br>` - Line breaks
+- `<img>` - Images
+- `<ul>`, `<ol>`, `<li>` - Lists
 
 ### Unknown Elements
-- ✅ Unsupported QTI elements display as yellow warning blocks
-- ✅ Original XML and attributes preserved for round-trip fidelity
-- ✅ Content remains editable within unknown elements
+- Unsupported QTI elements display as yellow warning blocks
+- Original XML and attributes preserved for round-trip fidelity
+
+## Editor-Supported Patterns
+
+The editor can automatically manage response processing (scoring and feedback) for certain patterns. When a QTI item uses patterns outside what the editor supports, it preserves the original response processing as "custom" and doesn't attempt to modify it.
+
+### Scoring Modes
+
+The editor recognizes three scoring modes:
+
+#### `allCorrect` Mode
+
+All interactions must be answered correctly to receive a score of 1 (otherwise 0).
+
+**Recognized patterns:**
+- Template: `match_correct.xml`
+- Inline: Single `qti-response-condition` with `qti-match` (single interaction) or `qti-and` containing multiple `qti-match` elements (multiple interactions)
+
+```xml
+<!-- Single interaction -->
+<qti-response-processing template="https://www.imsglobal.org/.../match_correct.xml"/>
+
+<!-- Multiple interactions (generated inline) -->
+<qti-response-processing>
+  <qti-response-condition>
+    <qti-response-if>
+      <qti-and>
+        <qti-match>
+          <qti-variable identifier="RESPONSE1"/>
+          <qti-correct identifier="RESPONSE1"/>
+        </qti-match>
+        <qti-match>
+          <qti-variable identifier="RESPONSE2"/>
+          <qti-correct identifier="RESPONSE2"/>
+        </qti-match>
+      </qti-and>
+      <qti-set-outcome-value identifier="SCORE">
+        <qti-base-value base-type="float">1</qti-base-value>
+      </qti-set-outcome-value>
+    </qti-response-if>
+    <qti-response-else>
+      <qti-set-outcome-value identifier="SCORE">
+        <qti-base-value base-type="float">0</qti-base-value>
+      </qti-set-outcome-value>
+    </qti-response-else>
+  </qti-response-condition>
+</qti-response-processing>
+```
+
+#### `sumScores` Mode
+
+Scores from each interaction are summed. Interactions with mappings use `qti-map-response`; those without use 1 if correct, 0 if incorrect.
+
+**Recognized patterns:**
+- Template: `map_response.xml`
+- Inline: `qti-set-outcome-value` for SCORE containing `qti-sum` with `qti-map-response` and/or `qti-variable` references
+
+```xml
+<!-- Single mapped interaction -->
+<qti-response-processing template="https://www.imsglobal.org/.../map_response.xml"/>
+
+<!-- Multiple interactions (generated inline) -->
+<qti-response-processing>
+  <!-- Condition for unmapped response (sets intermediate RESPONSE1_SCORE) -->
+  <qti-response-condition>...</qti-response-condition>
+
+  <!-- Sum all scores -->
+  <qti-set-outcome-value identifier="SCORE">
+    <qti-sum>
+      <qti-map-response identifier="RESPONSE_MAPPED"/>
+      <qti-variable identifier="RESPONSE1_SCORE"/>
+    </qti-sum>
+  </qti-set-outcome-value>
+</qti-response-processing>
+```
+
+#### `custom` Mode
+
+Any pattern not matching the above is preserved verbatim. The editor will not modify response processing in custom mode.
+
+**Triggers custom mode:**
+- Unknown template URL
+- Multiple root-level `qti-response-condition` elements (except feedback conditions)
+- Scoring logic that doesn't match allCorrect or sumScores patterns
+- Non-standard feedback patterns (see below)
+
+### Feedback Patterns
+
+The editor generates feedback identifiers based on interaction configurations and creates corresponding response processing rules.
+
+#### Standard Feedback Identifier Naming
+
+The editor uses this naming convention for feedback identifiers:
+
+| Pattern | Description | Example |
+|---------|-------------|---------|
+| `{responseId}_correct` | Correct answer | `RESPONSE_correct` |
+| `{responseId}_incorrect` | Incorrect answer | `RESPONSE_incorrect` |
+| `{responseId}_choice_{choiceId}` | Specific choice selected | `RESPONSE_choice_A` |
+
+#### Conditional Generation
+
+Feedback identifiers are only generated when they make sense:
+- `_correct` / `_incorrect` only appear if the interaction has a correct response configured (via `qti-correct-response` in the response declaration)
+- `_choice_{id}` identifiers only appear for choice interactions
+
+#### Standard Feedback Processing Pattern
+
+The editor recognizes and generates this feedback accumulation pattern:
+
+```xml
+<qti-set-outcome-value identifier="FEEDBACK">
+  <qti-multiple>
+    <qti-variable identifier="FEEDBACK"/>
+    <qti-base-value base-type="identifier">RESPONSE_correct</qti-base-value>
+  </qti-multiple>
+</qti-set-outcome-value>
+```
+
+The `qti-multiple` with `qti-variable identifier="FEEDBACK"` is the accumulation pattern - it preserves existing feedback values while adding new ones. This allows multiple feedback identifiers to be active simultaneously.
+
+#### What Triggers Custom Mode for Feedback
+
+Any of these cause the entire response processing to be preserved as custom:
+- Feedback using an outcome variable other than "FEEDBACK"
+- Identifier values not matching the `{responseId}_{type}` pattern
+- Feedback rules not using the accumulation pattern
+- Direct assignment instead of accumulation
+
+### Response Declaration Requirements
+
+For scoring to work, interactions need response declarations with correct responses:
+
+```xml
+<qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier">
+  <qti-correct-response>
+    <qti-value>choice_A</qti-value>
+  </qti-correct-response>
+</qti-response-declaration>
+```
+
+For mapped scoring (sumScores with partial credit):
+
+```xml
+<qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="identifier">
+  <qti-mapping default-value="0">
+    <qti-map-entry map-key="choice_A" mapped-value="1"/>
+    <qti-map-entry map-key="choice_B" mapped-value="0.5"/>
+  </qti-mapping>
+</qti-response-declaration>
+```
 
 ## Architecture
 
 ### Slate Document Model
 
-All QTI and XHTML elements are represented as Slate nodes with:
-- **`type`** field for element discrimination
-- **`attributes`** sub-object storing all XML attributes in kebab-case
-- **`children`** array for nested content
+QTI and XHTML elements are represented as Slate nodes with:
+- `type` - Element type (e.g., `qti-choice-interaction`, `paragraph`)
+- `attributes` - XML attributes in kebab-case
+- `children` - Nested content
 
-**Example:**
-```typescript
-{
-  type: 'qti-text-entry-interaction',
-  children: [{ text: '' }],  // Void elements have single empty child
-  attributes: {
-    'response-identifier': 'RESPONSE_1',
-    'expected-length': '10',
-    'placeholder-text': 'Enter answer'
-  }
-}
-```
+### Folder Structure
+
+- `editor/` - Main SlateEditor component and Toolbar
+- `elements/` - Element renderers (feedbackInline, feedbackBlock, image, prompt, simpleChoice)
+- `interactions/` - Interaction types (choice, textEntry, extendedText)
+- `components/` - Shared UI components (PropertiesPanel)
+- `contexts/` - React contexts (AssetContext, FeedbackIdentifiersContext)
+- `plugins/` - Slate plugins (withQtiInteractions, withXhtml, withUnknownElements)
+- `serialization/` - XML parsing and serialization
+- `utils/` - Utilities (responseProcessingClassifier, responseProcessingGenerator, feedbackIdentifiers)
 
 ### Plugin Composition
 
-The editor composes multiple Slate plugins:
+The editor composes Slate plugins for different behaviors:
 
 ```typescript
 withUnknownElements(
   withQtiInteractions(
     withXhtml(
-      withHistory(
-        withReact(editor)
-      )
+      withHistory(withReact(editor))
     )
   )
 )
 ```
-
-Each plugin adds specific behaviors:
-- **withQtiInteractions**: Marks interactions as void/inline, provides insertion commands
-- **withXhtml**: Enforces XHTML structure rules (e.g., lists must contain list-items)
-- **withUnknownElements**: Handles void status for unknown QTI elements
-
-### XML Round-Trip
-
-```
-QTI XML → parseXmlToSlate → Slate Document → Editor → serializeSlateToXml → QTI XML
-```
-
-**Benefits:**
-1. **No HTML conversion** - Pure JSON model prevents attribute loss
-2. **Perfect preservation** - All XML attributes stored in `attributes` sub-object
-3. **Custom nodes** - QTI elements are first-class node types
-4. **Extensible** - Easy to add new QTI element support
-
-## Project Structure
-
-```
-src/
-├── index.ts                          # Public API exports
-├── types.ts                          # Type definitions and Slate extensions
-├── editor/
-│   ├── SlateEditor.tsx               # Main editor component
-│   └── Toolbar.tsx                   # Toolbar component
-├── plugins/
-│   ├── withQtiInteractions.ts        # QTI interaction behaviors
-│   ├── withXhtml.ts                  # XHTML normalization
-│   ├── withUnknownElements.ts        # Unknown element handling
-│   └── index.ts                      # Plugin exports
-└── serialization/
-    ├── xmlUtils.ts                   # XML utility functions
-    ├── xmlToSlate.ts                 # XML → Slate parser
-    └── slateToXml.ts                 # Slate → XML serializer
-```
-
-## Development
-
-```bash
-# Build (ESM + CJS)
-yarn build
-
-# Type check
-yarn ci:typecheck
-
-# Lint
-yarn ci:lint
-
-# Run all CI checks
-yarn ci
-```
-
-## Adding New Interactions
-
-To add support for a new QTI interaction:
-
-### 1. Add Type Definition
-
-Update `src/types.ts`:
-
-```typescript
-export interface QtiHotspotInteraction {
-  type: 'qti-hotspot-interaction';
-  children: Array<SlateElement | SlateText>;
-  attributes: {
-    'response-identifier': string;
-    'max-choices': string;
-    // ... other attributes
-  } & ElementAttributes;
-}
-
-// Add to SlateElement union
-export type SlateElement =
-  | QtiHotspotInteraction
-  | ...
-```
-
-### 2. Update Parser
-
-In `src/serialization/xmlToSlate.ts`, add case for new element:
-
-```typescript
-if (tagName === 'qti-hotspot-interaction') {
-  const children = convertNodesToSlate(Array.from(element.childNodes));
-  return {
-    type: 'qti-hotspot-interaction',
-    children: children.length > 0 ? children : [{ text: '' }],
-    attributes: {
-      'response-identifier': attributes['response-identifier'] || '',
-      'max-choices': attributes['max-choices'] || '1',
-      ...attributes,
-    },
-  } as SlateElement;
-}
-```
-
-### 3. Update Serializer
-
-In `src/serialization/slateToXml.ts`, add conversion function:
-
-```typescript
-function convertHotspotInteraction(
-  element: SlateElement & { type: 'qti-hotspot-interaction' },
-  context: SerializationContext
-): Element {
-  const xmlElement = createXmlElement(context.doc, 'qti-hotspot-interaction');
-
-  const responseId = element.attributes['response-identifier'];
-  if (responseId) {
-    context.responseIdentifiers.push(responseId);
-  }
-
-  setAttributes(xmlElement, element.attributes);
-
-  for (const child of element.children) {
-    const childNode = convertSlateNodeToXml(child, context);
-    if (childNode) xmlElement.appendChild(childNode);
-  }
-
-  return xmlElement;
-}
-```
-
-### 4. Add Renderer
-
-In `src/editor/SlateEditor.tsx`, add case to `Element` component:
-
-```typescript
-case 'qti-hotspot-interaction':
-  return (
-    <div {...attributes} style={{ /* styling */ }}>
-      {children}
-      [Hotspot Interaction: {el.attributes['response-identifier']}]
-    </div>
-  );
-```
-
-### 5. Add Insertion Command (Optional)
-
-In `src/plugins/withQtiInteractions.ts`:
-
-```typescript
-export function insertHotspotInteraction(editor: Editor, config: {...}): void {
-  const responseId = config.responseIdentifier || generateResponseId(editor);
-
-  const hotspot = {
-    type: 'qti-hotspot-interaction',
-    children: [{ text: '' }],
-    attributes: {
-      'response-identifier': responseId,
-      ...config
-    },
-  };
-
-  Transforms.insertNodes(editor, hotspot as any);
-}
-```
-
-## Migration from TinyMCE Version
-
-The previous TinyMCE-based version used an imperative `mountEditor()` API. The new Slate version uses React components:
-
-**Before:**
-```typescript
-const editor = await mountEditor(container, { initialXml, onChange });
-editor.serialize();
-editor.destroy();
-```
-
-**After:**
-```typescript
-const [value, setValue] = useState(parseXmlToSlate(initialXml));
-const [editor] = useState(() => withReact(withHistory(createEditor())));
-
-<Slate editor={editor} initialValue={value} onChange={setValue}>
-  <Toolbar />
-  <SlateEditor value={value} onChange={setValue} />
-</Slate>
-
-// Serialize when needed
-const { xml } = serializeSlateToXml(value);
-```
-
-## License
-
-MIT
