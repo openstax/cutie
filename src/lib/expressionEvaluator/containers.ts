@@ -18,7 +18,12 @@ export function evaluateMultiple(
   const values: unknown[] = [];
 
   for (const child of getChildElements(element)) {
-    values.push(subEvaluate(child, itemDoc, variables));
+    const value = subEvaluate(child, itemDoc, variables);
+    if (Array.isArray(value)) {
+      values.push(...value);
+    } else {
+      values.push(value);
+    }
   }
 
   return values;
