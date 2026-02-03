@@ -278,7 +278,12 @@ describe('parseXmlToSlate', () => {
       const xml = wrapInQtiItem('<qti-hotspot-interaction response-identifier="RESPONSE_1">Content</qti-hotspot-interaction>');
       const result = getContentNodes(parseXmlToSlate(xml));
 
-      expect(result[0]).toMatchObject({
+      // qti-unknown elements are inline, so they get wrapped in a paragraph
+      const para = result[0] as SlateElement;
+      expect(para.type).toBe('paragraph');
+
+      const unknown = para.children[0] as SlateElement;
+      expect(unknown).toMatchObject({
         type: 'qti-unknown',
         originalTagName: 'qti-hotspot-interaction',
         children: [{ text: 'Content' }],
@@ -287,7 +292,6 @@ describe('parseXmlToSlate', () => {
         },
       });
 
-      const unknown = result[0] as SlateElement;
       expect(unknown).toHaveProperty('rawXml');
       expect((unknown as any).rawXml).toContain('qti-hotspot-interaction');
     });
