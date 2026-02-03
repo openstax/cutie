@@ -22,7 +22,7 @@ export function FeedbackBlockElement({
 
   const identifier = el.attributes.identifier || '';
   const showHide = el.attributes['show-hide'] || 'show';
-  const isValid = !identifier || availableIdentifiers.has(identifier);
+  const isValid = identifier && availableIdentifiers.has(identifier);
   const isActive = selected && focused;
 
   const containerClass = [
