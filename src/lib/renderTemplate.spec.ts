@@ -444,6 +444,64 @@ describe('renderTemplate', () => {
       expect(template).toContain('Task completed');
       expect(template).not.toContain('Task pending');
     });
+
+    test('shows modal-feedback when outcome variable matches (show-hide="show")', async () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
+  <qti-outcome-declaration identifier="FEEDBACK" cardinality="single" base-type="identifier"/>
+  <qti-item-body>
+    <p>Question text here</p>
+  </qti-item-body>
+  <qti-modal-feedback identifier="correct" outcome-identifier="FEEDBACK" show-hide="show">
+    <p>Great job!</p>
+  </qti-modal-feedback>
+  <qti-modal-feedback identifier="incorrect" outcome-identifier="FEEDBACK" show-hide="show">
+    <p>Try again.</p>
+  </qti-modal-feedback>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = await renderTemplate(itemDoc, {
+        variables: {
+          FEEDBACK: 'correct',
+        },
+        completionStatus: 'completed',
+        score: null,
+        maxScore: null,
+      });
+
+      expect(template).toContain('Great job!');
+      expect(template).not.toContain('Try again.');
+    });
+
+    test('hides modal-feedback when outcome variable matches (show-hide="hide")', async () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
+  <qti-outcome-declaration identifier="FEEDBACK" cardinality="multiple" base-type="identifier"/>
+  <qti-item-body>
+    <p>Question text here</p>
+  </qti-item-body>
+  <qti-modal-feedback identifier="hint1" outcome-identifier="FEEDBACK" show-hide="hide">
+    <p>This modal hint should be hidden</p>
+  </qti-modal-feedback>
+  <qti-modal-feedback identifier="hint2" outcome-identifier="FEEDBACK" show-hide="show">
+    <p>This modal hint should be shown</p>
+  </qti-modal-feedback>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = await renderTemplate(itemDoc, {
+        variables: {
+          FEEDBACK: ['hint1', 'hint2'],
+        },
+        completionStatus: 'completed',
+        score: null,
+        maxScore: null,
+      });
+
+      expect(template).not.toContain('This modal hint should be hidden');
+      expect(template).toContain('This modal hint should be shown');
+    });
   });
 
   describe('5. Sensitive content removal', () => {
