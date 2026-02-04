@@ -49,5 +49,8 @@ const FEEDBACK_INLINE_STYLES = `
     padding: 0.15em 0.5em;
     border-left: 2px solid #8a9aaa;
     border-radius: 0 3px 3px 0;
+    line-height: 1.6;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
   }
 `;
