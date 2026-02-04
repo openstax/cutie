@@ -1,6 +1,8 @@
 import type { Descendant, Element as SlateElementType } from 'slate';
+import { contentBodyParsers } from '../elements/contentBody';
 import { feedbackBlockParsers } from '../elements/feedbackBlock';
 import { feedbackInlineParsers } from '../elements/feedbackInline';
+import { modalFeedbackParsers } from '../elements/modalFeedback';
 import { promptParsers } from '../elements/prompt';
 import { simpleChoiceParsers } from '../elements/simpleChoice';
 import { choiceParsers } from '../interactions/choice';
@@ -37,6 +39,8 @@ const interactionParsers: Record<string, ParserFn> = {
   ...simpleChoiceParsers,
   ...feedbackInlineParsers,
   ...feedbackBlockParsers,
+  ...modalFeedbackParsers,
+  ...contentBodyParsers,
 };
 
 /**
@@ -102,8 +106,26 @@ export function parseXmlToSlate(xml: string): Descendant[] {
   // Convert children of qti-item-body to Slate nodes
   const contentNodes = convertNodesToSlate(Array.from(itemBody.childNodes), true, context);
 
-  // Return metadata node at [0] followed by content nodes
-  return [metadataNode, ...contentNodes];
+  // Parse modal feedback from outside qti-item-body (direct children of qti-assessment-item)
+  const assessmentItem = doc.querySelector('qti-assessment-item');
+  const modalFeedbackNodes: Descendant[] = [];
+  if (assessmentItem) {
+    const modalFeedbackElements = assessmentItem.querySelectorAll(':scope > qti-modal-feedback');
+    for (const el of modalFeedbackElements) {
+      const parser = interactionParsers['qti-modal-feedback'];
+      if (parser) {
+        const parsed = parser(el, (nodes) => convertNodesToSlate(nodes, false, context), context);
+        if (Array.isArray(parsed)) {
+          modalFeedbackNodes.push(...parsed);
+        } else {
+          modalFeedbackNodes.push(parsed);
+        }
+      }
+    }
+  }
+
+  // Return metadata node at [0] followed by content nodes and modal feedback
+  return [metadataNode, ...contentNodes, ...modalFeedbackNodes];
 }
 
 /**
@@ -197,6 +219,7 @@ function isBlockElement(element: Element): boolean {
     'ul', 'ol', 'li', 'blockquote', 'pre',
     'qti-item-body', 'qti-prompt', 'qti-choice-interaction',
     'qti-simple-choice', 'qti-text-entry-interaction', 'qti-extended-text-interaction',
+    'qti-content-body', 'qti-modal-feedback', 'qti-feedback-block', 'qti-feedback-inline',
   ];
   return blockTags.includes(element.tagName.toLowerCase());
 }
