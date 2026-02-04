@@ -5,6 +5,7 @@ import type { ResponseData } from '@openstax/cutie-client';
 import { examples } from './example-items';
 import { EditorTab } from './EditorTab';
 import { PreviewTab } from './PreviewTab';
+import { GenerateDialog } from './GenerateDialog';
 import './App.css';
 
 /**
@@ -34,6 +35,7 @@ export function App() {
   const [processing, setProcessing] = useState(false);
   const [responses, setResponses] = useState<ResponseData | null>(null);
   const [selectedExample, setSelectedExample] = useState('');
+  const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
 
   const handleExampleSelect = async (event: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedName = event.target.value;
@@ -70,6 +72,25 @@ export function App() {
 
     // Reset select back to placeholder
     setSelectedExample('');
+  };
+
+  const handleAIGenerate = async (xml: string) => {
+    setItemXml(xml);
+    setGenerateDialogOpen(false);
+
+    // Auto-process the generated item
+    setError('');
+    setProcessing(true);
+    try {
+      const result = await beginAttempt(xml, { resolveAssets });
+      setAttemptState(result.state);
+      setSanitizedTemplate(result.template);
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : 'Unknown error occurred');
+    } finally {
+      setProcessing(false);
+    }
   };
 
   const handleProcess = async () => {
@@ -191,6 +212,12 @@ export function App() {
           </button>
         </div>
         <div className="tabs-right">
+          <button
+            className="generate-button"
+            onClick={() => setGenerateDialogOpen(true)}
+            disabled={processing}
+            title="Generate with AI"
+          >✨</button>
           <select
             className="example-select-nav"
             onChange={handleExampleSelect}
@@ -207,6 +234,11 @@ export function App() {
         </div>
       </div>
       {renderTabContent()}
+      <GenerateDialog
+        isOpen={generateDialogOpen}
+        onClose={() => setGenerateDialogOpen(false)}
+        onGenerate={handleAIGenerate}
+      />
     </>
   );
 }
