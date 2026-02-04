@@ -7,6 +7,7 @@ import { promptParsers } from '../elements/prompt';
 import { simpleChoiceParsers } from '../elements/simpleChoice';
 import { choiceParsers } from '../interactions/choice';
 import { extendedTextParsers } from '../interactions/extendedText';
+import { inlineChoiceParsers } from '../interactions/inlineChoice';
 import { textEntryParsers } from '../interactions/textEntry';
 import { isElementInline } from '../plugins/withQtiInteractions';
 import type { DocumentMetadata, ElementAttributes, SlateElement, SlateText, TextAlign } from '../types';
@@ -43,6 +44,7 @@ type ParserFn = (
 const interactionParsers: Record<string, ParserFn> = {
   ...choiceParsers,
   ...textEntryParsers,
+  ...inlineChoiceParsers,
   ...extendedTextParsers,
   ...promptParsers,
   ...simpleChoiceParsers,

@@ -11,6 +11,7 @@ import { serializeSlateToQti } from '../serialization/slateToXml';
 import { PropertiesPanel } from '../components/PropertiesPanel';
 import { choiceRenderers } from '../interactions/choice';
 import { textEntryRenderers } from '../interactions/textEntry';
+import { inlineChoiceRenderers } from '../interactions/inlineChoice';
 import { extendedTextRenderers } from '../interactions/extendedText';
 import { promptRenderers } from '../elements/prompt';
 import { simpleChoiceRenderers } from '../elements/simpleChoice';
@@ -158,9 +159,9 @@ export function SlateEditor({
 
   // Handle attribute updates from properties panel
   const handleUpdateAttributes = useCallback(
-    (path: Path, attributes: ElementAttributes, responseDeclaration?: XmlNode) => {
+    (path: Path, attributes: ElementAttributes, responseDeclaration?: XmlNode, additionalProps?: Record<string, unknown>) => {
       // Always include responseDeclaration in updates so it can be removed (set to undefined)
-      const updates: Record<string, unknown> = { attributes, responseDeclaration };
+      const updates: Record<string, unknown> = { attributes, responseDeclaration, ...additionalProps };
       Transforms.setNodes(editor, updates as any, { at: path });
     },
     [editor]
@@ -271,6 +272,7 @@ export function SlateEditor({
 function isInteractionElement(element: SlateElement): boolean {
   return (
     element.type === 'qti-text-entry-interaction' ||
+    element.type === 'qti-inline-choice-interaction' ||
     element.type === 'qti-extended-text-interaction' ||
     element.type === 'qti-choice-interaction'
   );
@@ -343,6 +345,7 @@ function analyzeInteractions(nodes: Descendant[]): { count: number; hasMappings:
 const interactionRenderers: Record<string, React.ComponentType<RenderElementProps>> = {
   ...choiceRenderers,
   ...textEntryRenderers,
+  ...inlineChoiceRenderers,
   ...extendedTextRenderers,
   ...promptRenderers,
   ...simpleChoiceRenderers,

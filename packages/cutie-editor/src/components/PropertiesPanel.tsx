@@ -2,6 +2,7 @@ import type { Path } from 'slate';
 import { useStyle } from '../hooks/useStyle';
 import { choicePropertiesPanels } from '../interactions/choice';
 import { textEntryPropertiesPanels } from '../interactions/textEntry';
+import { inlineChoicePropertiesPanels } from '../interactions/inlineChoice';
 import { extendedTextPropertiesPanels } from '../interactions/extendedText';
 import { imagePropertiesPanels } from '../elements/image';
 import { simpleChoicePropertiesPanels } from '../elements/simpleChoice';
@@ -14,7 +15,7 @@ import type { SlateElement, ElementAttributes, XmlNode, ResponseProcessingConfig
 interface PropertiesPanelProps {
   selectedElement: SlateElement | null;
   selectedPath: Path | null;
-  onUpdateAttributes: (path: Path, attributes: ElementAttributes, responseDeclaration?: XmlNode) => void;
+  onUpdateAttributes: (path: Path, attributes: ElementAttributes, responseDeclaration?: XmlNode, additionalProps?: Record<string, unknown>) => void;
   responseProcessingConfig?: ResponseProcessingConfig;
   interactionCount?: number;
   hasMappings?: boolean;
@@ -27,6 +28,7 @@ interface PropertiesPanelProps {
 const propertiesPanels: Record<string, React.ComponentType<any>> = {
   ...choicePropertiesPanels,
   ...textEntryPropertiesPanels,
+  ...inlineChoicePropertiesPanels,
   ...extendedTextPropertiesPanels,
   ...imagePropertiesPanels,
   ...simpleChoicePropertiesPanels,

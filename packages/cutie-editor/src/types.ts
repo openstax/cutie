@@ -83,6 +83,30 @@ export interface QtiTextEntryInteraction {
 }
 
 /**
+ * Inline choice option data stored on the interaction element
+ */
+export interface InlineChoiceOption {
+  identifier: string;
+  text: string;
+  fixed?: boolean;
+}
+
+/**
+ * QTI Inline Choice Interaction (inline, void)
+ * Renders as a dropdown/select within text flow
+ */
+export interface QtiInlineChoiceInteraction {
+  type: 'qti-inline-choice-interaction';
+  children: [{ text: '' }];
+  attributes: {
+    'response-identifier': string;
+    shuffle?: string;
+  } & ElementAttributes;
+  choices: InlineChoiceOption[];
+  responseDeclaration: XmlNode;
+}
+
+/**
  * QTI Extended Text Interaction (block with prompt child)
  */
 export interface QtiExtendedTextInteraction {
@@ -343,6 +367,7 @@ export interface HorizontalRuleElement {
 export type SlateElement =
   | DocumentMetadata
   | QtiTextEntryInteraction
+  | QtiInlineChoiceInteraction
   | QtiExtendedTextInteraction
   | QtiChoiceInteraction
   | QtiPrompt
