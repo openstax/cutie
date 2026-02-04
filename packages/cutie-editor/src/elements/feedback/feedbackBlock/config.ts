@@ -1,5 +1,5 @@
 import { Element, Transforms } from 'slate';
-import type { CustomEditor, ElementConfig } from '../../types';
+import type { CustomEditor, ElementConfig } from '../../../types';
 
 export const feedbackBlockConfig: ElementConfig = {
   type: 'qti-feedback-block',

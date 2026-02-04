@@ -1,8 +1,8 @@
 import type { Descendant } from 'slate';
 import { contentBodySerializers } from '../elements/contentBody';
-import { feedbackBlockSerializers } from '../elements/feedbackBlock';
-import { feedbackInlineSerializers } from '../elements/feedbackInline';
-import { modalFeedbackSerializers } from '../elements/modalFeedback';
+import { feedbackBlockSerializers } from '../elements/feedback/feedbackBlock';
+import { feedbackInlineSerializers } from '../elements/feedback/feedbackInline';
+import { modalFeedbackSerializers } from '../elements/feedback/modalFeedback';
 import { promptSerializers } from '../elements/prompt';
 import { simpleChoiceSerializers } from '../elements/simpleChoice';
 import { choiceSerializers } from '../interactions/choice';

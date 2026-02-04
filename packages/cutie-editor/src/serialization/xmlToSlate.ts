@@ -1,8 +1,8 @@
 import type { Descendant, Element as SlateElementType } from 'slate';
 import { contentBodyParsers } from '../elements/contentBody';
-import { feedbackBlockParsers } from '../elements/feedbackBlock';
-import { feedbackInlineParsers } from '../elements/feedbackInline';
-import { modalFeedbackParsers } from '../elements/modalFeedback';
+import { feedbackBlockParsers } from '../elements/feedback/feedbackBlock';
+import { feedbackInlineParsers } from '../elements/feedback/feedbackInline';
+import { modalFeedbackParsers } from '../elements/feedback/modalFeedback';
 import { promptParsers } from '../elements/prompt';
 import { simpleChoiceParsers } from '../elements/simpleChoice';
 import { choiceParsers } from '../interactions/choice';
