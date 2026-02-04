@@ -184,10 +184,11 @@ function processFeedbackVisibility(
   root: Element,
   variables: Record<string, unknown>
 ): void {
-  // Process both feedback-block and feedback-inline elements
+  // Process feedback-block, feedback-inline, and modal-feedback elements
   const feedbackElements = [
     ...Array.from(root.getElementsByTagName('qti-feedback-block')),
     ...Array.from(root.getElementsByTagName('qti-feedback-inline')),
+    ...Array.from(root.getElementsByTagName('qti-modal-feedback')),
   ];
 
   for (const element of feedbackElements) {
