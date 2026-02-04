@@ -22,6 +22,13 @@ import * as multiInput from './multi-input';
 import * as modalFeedback from './modal-feedback';
 import * as inlineFeedback from './inline-feedback';
 import * as blockFeedback from './block-feedback';
+import * as choiceFeedback from './choice-feedback';
+import * as choiceMultipleFeedback from './choice-multiple-feedback';
+import * as textEntryFeedback from './text-entry-feedback';
+import * as inlineChoiceFeedback from './inline-choice-feedback';
+import * as matchFeedback from './match-feedback';
+import * as gapMatchFeedback from './gap-match-feedback';
+import * as multiInteractionFeedback from './multi-interaction-feedback';
 
 export const examples: ExampleItem[] = [
   choice,
@@ -42,4 +49,11 @@ export const examples: ExampleItem[] = [
   modalFeedback,
   inlineFeedback,
   blockFeedback,
+  choiceFeedback,
+  choiceMultipleFeedback,
+  textEntryFeedback,
+  inlineChoiceFeedback,
+  matchFeedback,
+  gapMatchFeedback,
+  multiInteractionFeedback,
 ];
