@@ -23,7 +23,7 @@ import { useStyle } from '../hooks/useStyle';
 import { hasMapping } from '../utils/responseProcessingClassifier';
 import { AssetContext } from '../contexts/AssetContext';
 import { FeedbackIdentifiersContext } from '../contexts/FeedbackIdentifiersContext';
-import { getAllFeedbackIdentifierIds } from '../utils/feedbackIdentifiers';
+import { getAllFeedbackIdentifierOptions } from '../utils/feedbackIdentifiers';
 
 /**
  * Main Slate editor component for QTI editing
@@ -198,15 +198,19 @@ export function SlateEditor({
   const { count: interactionCount, hasMappings, hasFeedbackElements } = analyzeInteractions(value);
 
   // Compute available feedback identifiers from interactions
-  const availableFeedbackIdentifiers = useMemo(
-    () => getAllFeedbackIdentifierIds(value),
+  const feedbackOptions = useMemo(
+    () => getAllFeedbackIdentifierOptions(value),
     [value]
   );
 
   // Context value for feedback identifiers
   const feedbackIdentifiersContextValue = useMemo(
-    () => ({ availableIdentifiers: availableFeedbackIdentifiers }),
-    [availableFeedbackIdentifiers]
+    () => ({
+      availableIdentifiers: new Set(feedbackOptions.map(o => o.id)),
+      identifierLabels: new Map(feedbackOptions.map(o => [o.id, o.label])),
+      isCustomMode: responseProcessingConfig?.mode === 'custom',
+    }),
+    [feedbackOptions, responseProcessingConfig?.mode]
   );
 
   // Render element callback

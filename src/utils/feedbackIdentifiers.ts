@@ -39,13 +39,13 @@ function getFeedbackIdentifiersForChoiceInteraction(
   if (element.responseDeclaration && hasCorrectResponse(element.responseDeclaration)) {
     identifiers.push({
       id: `${responseId}_correct`,
-      label: `${responseId}: Correct`,
+      label: `${responseId} is correct`,
       description: 'Shown when all selected choices are correct',
     });
 
     identifiers.push({
       id: `${responseId}_incorrect`,
-      label: `${responseId}: Incorrect`,
+      label: `${responseId} is incorrect`,
       description: 'Shown when at least one choice is wrong',
     });
   }
@@ -58,7 +58,7 @@ function getFeedbackIdentifiersForChoiceInteraction(
       if (choiceId) {
         identifiers.push({
           id: `${responseId}_choice_${choiceId}`,
-          label: `${responseId}: "${choiceId}" selected`,
+          label: `${responseId} is "${choiceId}"`,
           description: `Shown when choice "${choiceId}" is selected`,
         });
       }
@@ -85,13 +85,13 @@ function getFeedbackIdentifiersForTextEntryInteraction(
   if (element.responseDeclaration && hasCorrectResponse(element.responseDeclaration as any)) {
     identifiers.push({
       id: `${responseId}_correct`,
-      label: `${responseId}: Correct`,
+      label: `${responseId} is correct`,
       description: 'Shown when response matches correct value',
     });
 
     identifiers.push({
       id: `${responseId}_incorrect`,
-      label: `${responseId}: Incorrect`,
+      label: `${responseId} is incorrect`,
       description: 'Shown when response doesn\'t match correct value',
     });
   }
@@ -116,13 +116,13 @@ function getFeedbackIdentifiersForExtendedTextInteraction(
   if (element.responseDeclaration && hasCorrectResponse(element.responseDeclaration as any)) {
     identifiers.push({
       id: `${responseId}_correct`,
-      label: `${responseId}: Correct`,
+      label: `${responseId} is correct`,
       description: 'Shown when response matches correct value',
     });
 
     identifiers.push({
       id: `${responseId}_incorrect`,
-      label: `${responseId}: Incorrect`,
+      label: `${responseId} is incorrect`,
       description: 'Shown when response doesn\'t match correct value',
     });
   }

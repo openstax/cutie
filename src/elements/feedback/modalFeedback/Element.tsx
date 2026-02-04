@@ -15,14 +15,18 @@ export function ModalFeedbackElement({
   const el = element as QtiModalFeedback;
   const selected = useSelected();
   const focused = useFocused();
-  const { availableIdentifiers } = useFeedbackIdentifiers();
+  const { availableIdentifiers, identifierLabels, isCustomMode } = useFeedbackIdentifiers();
 
   useStyle('modal-feedback', MODAL_FEEDBACK_STYLES);
 
   const identifier = el.attributes.identifier || '';
   const showHide = el.attributes['show-hide'] || 'show';
-  const isValid = identifier && availableIdentifiers.has(identifier);
+  // In custom mode, any non-empty identifier is valid (custom response processing can use arbitrary identifiers)
+  const isValid = isCustomMode
+    ? Boolean(identifier)
+    : identifier && availableIdentifiers.has(identifier);
   const isActive = selected && focused;
+  const displayLabel = identifier ? identifierLabels.get(identifier) || identifier : '(none)';
 
   const containerClass = [
     'modal-feedback',
@@ -34,7 +38,7 @@ export function ModalFeedbackElement({
     <fieldset {...attributes} className={containerClass}>
       <legend contentEditable={false} className="modal-feedback__legend">
         {!isValid && <span title="Invalid feedback identifier">&#9888; </span>}
-        Modal Feedback: {showHide === 'hide' ? 'Hide' : 'Show'} when: {identifier || '(none)'}
+        Modal Feedback: {showHide === 'hide' ? 'Hide' : 'Show'} when {displayLabel}
       </legend>
       <div>{children}</div>
     </fieldset>
