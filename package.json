@@ -41,7 +41,7 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
-  "sideEffects": false,
+  "sideEffects": true,
   "type": "module",
   "types": "index.d.ts",
   "typesVersions": {
