@@ -4,6 +4,7 @@ import { choicePropertiesPanels } from '../interactions/choice';
 import { textEntryPropertiesPanels } from '../interactions/textEntry';
 import { inlineChoicePropertiesPanels } from '../interactions/inlineChoice';
 import { extendedTextPropertiesPanels } from '../interactions/extendedText';
+import { gapMatchPropertiesPanels } from '../interactions/gapMatch';
 import { imagePropertiesPanels } from '../elements/image';
 import { simpleChoicePropertiesPanels } from '../elements/simpleChoice';
 import { feedbackInlinePropertiesPanels } from '../elements/feedback/feedbackInline';
@@ -30,6 +31,7 @@ const propertiesPanels: Record<string, React.ComponentType<any>> = {
   ...textEntryPropertiesPanels,
   ...inlineChoicePropertiesPanels,
   ...extendedTextPropertiesPanels,
+  ...gapMatchPropertiesPanels,
   ...imagePropertiesPanels,
   ...simpleChoicePropertiesPanels,
   ...feedbackInlinePropertiesPanels,

@@ -5,6 +5,7 @@ import { insertChoiceInteraction } from '../interactions/choice';
 import { insertTextEntryInteraction } from '../interactions/textEntry';
 import { insertInlineChoiceInteraction } from '../interactions/inlineChoice';
 import { insertExtendedTextInteraction } from '../interactions/extendedText';
+import { insertGapMatchInteraction } from '../interactions/gapMatch';
 import { insertImage } from '../elements/image';
 import { insertFeedbackInline } from '../elements/feedback/feedbackInline';
 import { insertFeedbackBlock } from '../elements/feedback/feedbackBlock';
@@ -462,6 +463,14 @@ export function Toolbar(): React.JSX.Element {
               }}
             >
               Choice
+            </DropdownItem>
+            <DropdownItem
+              onClick={() => {
+                insertGapMatchInteraction(editor);
+                setInteractionsOpen(false);
+              }}
+            >
+              Gap Match
             </DropdownItem>
           </div>
         )}

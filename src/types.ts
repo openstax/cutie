@@ -182,6 +182,78 @@ export interface ChoiceContent {
 }
 
 /**
+ * QTI Gap Match Interaction (block with children)
+ */
+export interface QtiGapMatchInteraction {
+  type: 'qti-gap-match-interaction';
+  children: Array<GapMatchChoices | GapMatchContent>;
+  attributes: {
+    'response-identifier': string;
+    shuffle?: string;
+  } & ElementAttributes;
+  responseDeclaration: XmlNode;
+}
+
+/**
+ * Editor-only wrapper for gap-match choices
+ */
+export interface GapMatchChoices {
+  type: 'gap-match-choices';
+  children: Array<QtiGapText | QtiGapImg>;
+  attributes?: ElementAttributes;
+}
+
+/**
+ * Editor-only wrapper for gap-match content (where gaps appear)
+ */
+export interface GapMatchContent {
+  type: 'gap-match-content';
+  children: Array<SlateElement | SlateText>;
+  attributes?: ElementAttributes;
+}
+
+/**
+ * QTI Gap Text (choice element within gap-match-interaction)
+ */
+export interface QtiGapText {
+  type: 'qti-gap-text';
+  children: Array<SlateElement | SlateText>;
+  attributes: {
+    identifier: string;
+    'match-max'?: string;
+    'match-group'?: string;
+    fixed?: string;
+  } & ElementAttributes;
+}
+
+/**
+ * QTI Gap Img (image choice element within gap-match-interaction)
+ * This is a wrapper containing an image child, not void
+ */
+export interface QtiGapImg {
+  type: 'qti-gap-img';
+  children: Array<ImageElement>;
+  attributes: {
+    identifier: string;
+    'match-max'?: string;
+    'match-group'?: string;
+    fixed?: string;
+  } & ElementAttributes;
+}
+
+/**
+ * QTI Gap (inline void placeholder for answers within gap-match content)
+ */
+export interface QtiGap {
+  type: 'qti-gap';
+  children: [{ text: '' }];
+  attributes: {
+    identifier: string;
+    'match-group'?: string;
+  } & ElementAttributes;
+}
+
+/**
  * QTI Feedback Inline - inline feedback element shown based on outcome variable
  */
 export interface QtiFeedbackInline {
@@ -370,10 +442,16 @@ export type SlateElement =
   | QtiInlineChoiceInteraction
   | QtiExtendedTextInteraction
   | QtiChoiceInteraction
+  | QtiGapMatchInteraction
   | QtiPrompt
   | QtiSimpleChoice
   | ChoiceIdLabel
   | ChoiceContent
+  | GapMatchChoices
+  | GapMatchContent
+  | QtiGapText
+  | QtiGapImg
+  | QtiGap
   | QtiFeedbackInline
   | QtiFeedbackBlock
   | QtiModalFeedback

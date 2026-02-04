@@ -7,6 +7,7 @@ import { promptParsers } from '../elements/prompt';
 import { simpleChoiceParsers } from '../elements/simpleChoice';
 import { choiceParsers } from '../interactions/choice';
 import { extendedTextParsers } from '../interactions/extendedText';
+import { gapMatchParsers } from '../interactions/gapMatch';
 import { inlineChoiceParsers } from '../interactions/inlineChoice';
 import { textEntryParsers } from '../interactions/textEntry';
 import { isElementInline } from '../plugins/withQtiInteractions';
@@ -46,6 +47,7 @@ const interactionParsers: Record<string, ParserFn> = {
   ...textEntryParsers,
   ...inlineChoiceParsers,
   ...extendedTextParsers,
+  ...gapMatchParsers,
   ...promptParsers,
   ...simpleChoiceParsers,
   ...feedbackInlineParsers,
