@@ -1,9 +1,9 @@
 import { Element, Path } from 'slate';
 import { contentBodyConfig } from '../elements/contentBody/config';
-import { feedbackBlockConfig } from '../elements/feedbackBlock/config';
-import { feedbackInlineConfig } from '../elements/feedbackInline/config';
+import { feedbackBlockConfig } from '../elements/feedback/feedbackBlock/config';
+import { feedbackInlineConfig } from '../elements/feedback/feedbackInline/config';
+import { modalFeedbackConfig } from '../elements/feedback/modalFeedback/config';
 import { imageConfig } from '../elements/image/config';
-import { modalFeedbackConfig } from '../elements/modalFeedback/config';
 import { promptConfig } from '../elements/prompt/config';
 import {
   choiceContentConfig,

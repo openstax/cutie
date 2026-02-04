@@ -5,9 +5,9 @@ import { textEntryPropertiesPanels } from '../interactions/textEntry';
 import { extendedTextPropertiesPanels } from '../interactions/extendedText';
 import { imagePropertiesPanels } from '../elements/image';
 import { simpleChoicePropertiesPanels } from '../elements/simpleChoice';
-import { feedbackInlinePropertiesPanels } from '../elements/feedbackInline';
-import { feedbackBlockPropertiesPanels } from '../elements/feedbackBlock';
-import { modalFeedbackPropertiesPanels } from '../elements/modalFeedback';
+import { feedbackInlinePropertiesPanels } from '../elements/feedback/feedbackInline';
+import { feedbackBlockPropertiesPanels } from '../elements/feedback/feedbackBlock';
+import { modalFeedbackPropertiesPanels } from '../elements/feedback/modalFeedback';
 import { ResponseProcessingPanel } from './ResponseProcessingPanel';
 import type { SlateElement, ElementAttributes, XmlNode, ResponseProcessingConfig, ResponseProcessingMode } from '../types';
 

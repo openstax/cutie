@@ -1,20 +1,20 @@
 import { Editor, Element as SlateElement, Transforms } from 'slate';
-import type { CustomEditor, QtiModalFeedback } from '../../types';
+import type { CustomEditor, QtiFeedbackBlock } from '../../../types';
 
 /**
- * Insert a modal feedback element at the current selection
+ * Insert a feedback block element at the current selection
  *
  * @param editor - The Slate editor instance
  * @param identifier - The feedback identifier (e.g., "RESPONSE_correct")
  * @param showHide - Whether to show or hide when matched (default: 'show')
  */
-export function insertModalFeedback(
+export function insertFeedbackBlock(
   editor: CustomEditor,
   identifier: string,
   showHide: 'show' | 'hide' = 'show'
 ): void {
-  const feedbackNode: QtiModalFeedback = {
-    type: 'qti-modal-feedback',
+  const feedbackNode: QtiFeedbackBlock = {
+    type: 'qti-feedback-block',
     attributes: {
       'outcome-identifier': 'FEEDBACK',
       identifier,
@@ -26,14 +26,14 @@ export function insertModalFeedback(
         children: [
           {
             type: 'paragraph',
-            children: [{ text: 'Modal feedback content goes here.' }],
+            children: [{ text: 'Feedback content goes here.' }],
           },
         ],
       },
     ],
   };
 
-  // Insert the modal feedback
+  // Insert the feedback block
   Transforms.insertNodes(editor, feedbackNode as SlateElement);
 
   // Insert a trailing paragraph for cursor positioning
@@ -44,11 +44,11 @@ export function insertModalFeedback(
 }
 
 /**
- * Check if the current selection is inside a modal feedback element
+ * Check if the current selection is inside a feedback block element
  */
-export function isInModalFeedback(editor: CustomEditor): boolean {
+export function isInFeedbackBlock(editor: CustomEditor): boolean {
   const [match] = Editor.nodes(editor, {
-    match: (n) => 'type' in n && n.type === 'qti-modal-feedback',
+    match: (n) => 'type' in n && n.type === 'qti-feedback-block',
   });
   return !!match;
 }

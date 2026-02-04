@@ -5,9 +5,9 @@ import { insertChoiceInteraction } from '../interactions/choice';
 import { insertTextEntryInteraction } from '../interactions/textEntry';
 import { insertExtendedTextInteraction } from '../interactions/extendedText';
 import { insertImage } from '../elements/image';
-import { insertFeedbackInline } from '../elements/feedbackInline';
-import { insertFeedbackBlock } from '../elements/feedbackBlock';
-import { insertModalFeedback } from '../elements/modalFeedback';
+import { insertFeedbackInline } from '../elements/feedback/feedbackInline';
+import { insertFeedbackBlock } from '../elements/feedback/feedbackBlock';
+import { insertModalFeedback } from '../elements/feedback/modalFeedback';
 import { useAssetHandlers } from '../contexts/AssetContext';
 import {
   BoldIcon,

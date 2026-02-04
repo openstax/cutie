@@ -1,15 +1,15 @@
 import type { Descendant } from 'slate';
-import type { SerializationContext } from '../../serialization/slateToXml';
-import type { ParserContext } from '../../serialization/xmlToSlate';
-import { createXmlElement } from '../../serialization/xmlUtils';
-import type { QtiModalFeedback, SlateElement } from '../../types';
+import type { SerializationContext } from '../../../serialization/slateToXml';
+import type { ParserContext } from '../../../serialization/xmlToSlate';
+import { createXmlElement } from '../../../serialization/xmlUtils';
+import type { QtiFeedbackBlock, SlateElement } from '../../../types';
 
 export type ConvertChildrenFn = (nodes: Node[]) => Descendant[];
 
 /**
- * Parse QTI modal feedback from XML
+ * Parse QTI feedback block from XML
  */
-function parseModalFeedback(
+function parseFeedbackBlock(
   element: Element,
   convertChildren: ConvertChildrenFn,
   _context?: ParserContext
@@ -23,7 +23,7 @@ function parseModalFeedback(
   const children = convertChildren(Array.from(element.childNodes));
 
   return {
-    type: 'qti-modal-feedback',
+    type: 'qti-feedback-block',
     children: children.length > 0 ? children : [{ type: 'paragraph', children: [{ text: '' }] }],
     attributes: {
       'outcome-identifier': attributes['outcome-identifier'] || 'FEEDBACK',
@@ -31,19 +31,18 @@ function parseModalFeedback(
       'show-hide': (attributes['show-hide'] as 'show' | 'hide') || 'show',
       ...attributes,
     },
-  } as QtiModalFeedback;
+  } as QtiFeedbackBlock;
 }
 
 /**
- * Serialize modal feedback to XML
- * Returns null because modal feedback is collected separately (outside qti-item-body)
+ * Serialize feedback block to XML
  */
-function serializeModalFeedback(
-  element: SlateElement & { type: 'qti-modal-feedback' },
+function serializeFeedbackBlock(
+  element: SlateElement & { type: 'qti-feedback-block' },
   context: SerializationContext,
   convertChildren: (children: Descendant[], parent: Element | DocumentFragment) => void
-): null {
-  const xmlElement = createXmlElement(context.doc, 'qti-modal-feedback');
+): Element {
+  const xmlElement = createXmlElement(context.doc, 'qti-feedback-block');
 
   // Set attributes
   setAttributes(xmlElement, element.attributes);
@@ -57,11 +56,7 @@ function serializeModalFeedback(
   // Convert children
   convertChildren(element.children, xmlElement);
 
-  // Push to context container (will be added outside item-body)
-  context.modalFeedbackElements.push(xmlElement);
-
-  // Return null - nothing goes into item-body
-  return null;
+  return xmlElement;
 }
 
 /**
@@ -81,14 +76,14 @@ function setAttributes(
 /**
  * Export parsers and serializers as objects that can be spread
  */
-export const modalFeedbackParsers: Record<
+export const feedbackBlockParsers: Record<
   string,
   (element: Element, convertChildren: ConvertChildrenFn, context?: ParserContext) => SlateElement
 > = {
-  'qti-modal-feedback': parseModalFeedback,
+  'qti-feedback-block': parseFeedbackBlock,
 };
 
-export const modalFeedbackSerializers: Record<
+export const feedbackBlockSerializers: Record<
   string,
   (
     el: SlateElement,
@@ -96,5 +91,5 @@ export const modalFeedbackSerializers: Record<
     convertChildren: (children: Descendant[], parent: Element | DocumentFragment) => void
   ) => Element | DocumentFragment | null
 > = {
-  'qti-modal-feedback': serializeModalFeedback as any,
+  'qti-feedback-block': serializeFeedbackBlock as any,
 };

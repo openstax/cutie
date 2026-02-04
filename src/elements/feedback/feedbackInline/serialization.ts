@@ -1,8 +1,8 @@
 import type { Descendant } from 'slate';
-import type { SerializationContext } from '../../serialization/slateToXml';
-import type { ParserContext } from '../../serialization/xmlToSlate';
-import { createXmlElement } from '../../serialization/xmlUtils';
-import type { QtiFeedbackInline, SlateElement } from '../../types';
+import type { SerializationContext } from '../../../serialization/slateToXml';
+import type { ParserContext } from '../../../serialization/xmlToSlate';
+import { createXmlElement } from '../../../serialization/xmlUtils';
+import type { QtiFeedbackInline, SlateElement } from '../../../types';
 
 export type ConvertChildrenFn = (nodes: Node[]) => Descendant[];
 
