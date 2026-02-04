@@ -6,6 +6,7 @@
 // Specific qti-* interaction handlers (priority 10-100)
 import './choiceInteraction'; // priority 50
 import './extendedTextInteraction'; // priority 50
+import './inlineChoiceInteraction'; // priority 50
 import './textEntryInteraction'; // priority 50
 
 // Feedback handlers (priority 50)

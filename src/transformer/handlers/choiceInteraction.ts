@@ -85,32 +85,31 @@ class ChoiceInteractionHandler implements ElementHandler {
         continue;
       }
 
-      // Create choice container
-      const choiceDiv = document.createElement('div');
-      choiceDiv.className = 'qti-simple-choice';
+      // Create choice container as a label (makes entire row clickable)
+      const choiceLabel = document.createElement('label');
+      choiceLabel.className = 'qti-simple-choice';
 
       // Create input element
       const input = document.createElement('input');
       input.type = inputType;
       input.name = inputName;
       input.value = choiceIdentifier;
-      input.id = `${inputName}-${choiceIdentifier}`;
       inputElements.push(input);
 
-      // Create label
-      const label = document.createElement('label');
-      label.htmlFor = input.id;
+      // Create span for choice content
+      const contentSpan = document.createElement('span');
+      contentSpan.className = 'qti-simple-choice-content';
 
       // Transform choice content
       if (context.transformChildren) {
         const choiceContent = context.transformChildren(choiceElement);
-        label.appendChild(choiceContent);
+        contentSpan.appendChild(choiceContent);
       }
 
-      // Assemble choice
-      choiceDiv.appendChild(input);
-      choiceDiv.appendChild(label);
-      choicesContainer.appendChild(choiceDiv);
+      // Assemble choice (input inside label for full clickability)
+      choiceLabel.appendChild(input);
+      choiceLabel.appendChild(contentSpan);
+      choicesContainer.appendChild(choiceLabel);
     }
 
     container.appendChild(choicesContainer);
@@ -280,20 +279,32 @@ const CHOICE_INTERACTION_STYLES = `
 
   .qti-choice-interaction .qti-simple-choice input {
     margin-top: 0.25em;
+    flex-shrink: 0;
     cursor: pointer;
+  }
+
+  /* Hide default focus ring on input since label handles focus styling */
+  .qti-choice-interaction .qti-simple-choice input:focus {
+    outline: none;
   }
 
   .qti-choice-interaction .qti-simple-choice:has(input:disabled) input {
     cursor: not-allowed;
   }
 
-  .qti-choice-interaction .qti-simple-choice label {
+  /* Focus-within styling for keyboard navigation */
+  .qti-choice-interaction .qti-simple-choice:focus-within {
+    outline: 2px solid #2196f3;
+    outline-offset: 2px;
+  }
+
+  .qti-choice-interaction .qti-simple-choice-content {
     flex: 1;
     cursor: pointer;
     line-height: 1.5;
   }
 
-  .qti-choice-interaction .qti-simple-choice:has(input:disabled) label {
+  .qti-choice-interaction .qti-simple-choice:has(input:disabled) .qti-simple-choice-content {
     cursor: not-allowed;
   }
 `;
