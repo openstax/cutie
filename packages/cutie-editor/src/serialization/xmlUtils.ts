@@ -59,7 +59,7 @@ export function serializeElement(element: Element): string {
  */
 export function parseXml(xml: string): Document | null {
   const parser = new DOMParser();
-  const doc = parser.parseFromString(xml, 'application/xml');
+  const doc = parser.parseFromString(xml.trim(), 'application/xml');
 
   // Check for parsing errors
   // spell-checker: disable-next-line
