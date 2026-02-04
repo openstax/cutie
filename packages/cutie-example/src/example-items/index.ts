@@ -19,6 +19,9 @@ import * as hottext from './hottext';
 import * as math from './math';
 import * as selectPoint from './select-point';
 import * as multiInput from './multi-input';
+import * as modalFeedback from './modal-feedback';
+import * as inlineFeedback from './inline-feedback';
+import * as blockFeedback from './block-feedback';
 
 export const examples: ExampleItem[] = [
   choice,
@@ -36,4 +39,7 @@ export const examples: ExampleItem[] = [
   math,
   selectPoint,
   multiInput,
+  modalFeedback,
+  inlineFeedback,
+  blockFeedback,
 ];
