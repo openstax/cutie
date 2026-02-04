@@ -2,7 +2,7 @@
 
 # Project Cutie
 
-![cute logo](./cutie-image.png)
+![cute logo](./cute-image.png)
 
 Project Cutie is an implementation of the QTIv3 standard for displaying and scoring QTI Assessment Items.
 
