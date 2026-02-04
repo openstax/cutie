@@ -1,30 +1,24 @@
 {
   "name": "@openstax/cutie-editor",
-  "version": "1.0.0",
   "description": "Framework-agnostic WYSIWYG editor for QTI v3 assessment items",
-  "type": "module",
-  "sideEffects": false,
+  "version": "1.0.0",
   "dependencies": {
     "slate": "^0.123.0",
     "slate-dom": "^0.123.0",
-    "slate-react": "^0.123.0",
-    "slate-history": "^0.115.0"
-  },
-  "peerDependencies": {
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "slate-history": "^0.115.0",
+    "slate-react": "^0.123.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.3",
     "cspell": "^5.18.5",
     "eslint": "^9.39.1",
     "eslint-plugin-import": "^2.32.0",
-    "jsdom": "^24.0.0",
+    "jsdom": "^27.4.0",
     "npm-run-all": "^4.1.5",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
     "vitest": "^1.2.0"
@@ -42,18 +36,12 @@
   "files": [
     "dist"
   ],
-  "types": "index.d.ts",
-  "typesVersions": {
-    "*": {
-      "*": [
-        "dist/esm/*",
-        "dist/esm/*.d.ts",
-        "dist/esm/*/index.d.ts"
-      ]
-    }
-  },
   "license": "MIT",
   "main": "index.js",
+  "peerDependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
   "scripts": {
     "build": "./script/build.bash",
     "build:clean": "yarn clean && yarn build",
@@ -65,5 +53,17 @@
     "clean": "rm -rf dist",
     "test": "vitest run",
     "test:watch": "vitest"
+  },
+  "sideEffects": false,
+  "type": "module",
+  "types": "index.d.ts",
+  "typesVersions": {
+    "*": {
+      "*": [
+        "dist/esm/*",
+        "dist/esm/*.d.ts",
+        "dist/esm/*/index.d.ts"
+      ]
+    }
   }
 }

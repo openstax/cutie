@@ -1,24 +1,11 @@
 {
   "name": "@openstax/cutie-example",
-  "private": true,
-  "version": "1.0.0",
   "description": "Example application demonstrating QTI v3 assessment items",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "build:clean": "yarn clean && yarn build",
-    "ci": "CI=true npm-run-all ci:*",
-    "ci:lint": "eslint --max-warnings=0 .",
-    "ci:spelling": "git ls-files | yarn cspell -c ../../cspell.json --file-list stdin",
-    "ci:typecheck": "tsc -b --noEmit",
-    "clean": "rm -rf dist",
-    "preview": "vite preview"
-  },
+  "version": "1.0.0",
   "dependencies": {
-    "@openstax/cutie-client": "^1.0.0",
-    "@openstax/cutie-core": "^1.0.0",
-    "@openstax/cutie-editor": "^1.0.0",
+    "@openstax/cutie-client": "1.0.0",
+    "@openstax/cutie-core": "1.0.0",
+    "@openstax/cutie-editor": "1.0.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
@@ -38,5 +25,18 @@
     "typescript-eslint": "^8.46.4",
     "vite": "^7.2.4"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "build": "tsc -b && vite build",
+    "build:clean": "yarn clean && yarn build",
+    "ci": "CI=true npm-run-all ci:*",
+    "ci:lint": "eslint --max-warnings=0 .",
+    "ci:spelling": "git ls-files | yarn cspell -c ../../cspell.json --file-list stdin",
+    "ci:typecheck": "tsc -b --noEmit",
+    "clean": "rm -rf dist",
+    "dev": "vite",
+    "preview": "vite preview"
+  },
+  "type": "module"
 }
