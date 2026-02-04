@@ -37,6 +37,19 @@ export function insertModalFeedback(
   const endPath = [editor.children.length];
   Transforms.insertNodes(editor, feedbackNode as SlateElement, { at: endPath });
 
+  // Find the inserted modal feedback and position cursor inside it
+  const [feedbackEntry] = Editor.nodes(editor, {
+    at: endPath,
+    match: (n) => SlateElement.isElement(n) && 'type' in n && n.type === 'qti-modal-feedback',
+  });
+
+  if (feedbackEntry) {
+    const [, feedbackPath] = feedbackEntry;
+    // Select the start of the content paragraph: modal-feedback -> content-body -> paragraph
+    const contentParagraphPath = [...feedbackPath, 0, 0];
+    Transforms.select(editor, Editor.start(editor, contentParagraphPath));
+  }
+
   // Insert a trailing paragraph for cursor positioning
   Transforms.insertNodes(editor, {
     type: 'paragraph',
