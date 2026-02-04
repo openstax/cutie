@@ -106,7 +106,7 @@ class ChoiceInteractionHandler implements ElementHandler {
         contentSpan.appendChild(choiceContent);
       }
 
-      // Assemble choice (input inside label for full clickability)
+      // Assemble choice (input inside label makes entire area clickable)
       choiceLabel.appendChild(input);
       choiceLabel.appendChild(contentSpan);
       choicesContainer.appendChild(choiceLabel);
