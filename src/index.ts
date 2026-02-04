@@ -44,7 +44,7 @@ export async function beginAttempt(
 ): Promise<AttemptResult> {
   // Parse the QTI XML document
   const parser = new DOMParser();
-  const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+  const itemDoc = parser.parseFromString(itemXml.trim(), 'text/xml');
 
   // Initialize state by processing template declarations and template processing
   const state = initializeState(itemDoc);
@@ -87,7 +87,7 @@ export async function submitResponse(
 ): Promise<AttemptResult> {
   // Parse the QTI XML document
   const parser = new DOMParser();
-  const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+  const itemDoc = parser.parseFromString(itemXml.trim(), 'text/xml');
 
   // Process the response submission to update state
   const updatedState = processResponse(itemDoc, submission, state);
