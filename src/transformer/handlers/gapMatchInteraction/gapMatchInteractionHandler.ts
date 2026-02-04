@@ -1,9 +1,9 @@
 import { createMissingAttributeError } from '../../../errors/errorDisplay';
+import { shuffleWithFixed } from '../../../utils';
 import type { ElementHandler, TransformContext } from '../../types';
 import { getDefaultValue } from '../responseUtils';
 import { GapMatchController } from './controller';
 import { GAP_MATCH_INTERACTION_STYLES } from './styles';
-import { shuffleWithFixed } from './utils';
 
 interface ChoiceData {
   identifier: string;

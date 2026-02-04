@@ -8,6 +8,7 @@ import './choiceInteraction'; // priority 50
 import './extendedTextInteraction'; // priority 50
 import './gapMatchInteraction'; // priority 45 (gap), 50 (gap-match-interaction)
 import './inlineChoiceInteraction'; // priority 50
+import './matchInteraction'; // priority 50
 import './textEntryInteraction'; // priority 50
 
 // Feedback handlers (priority 50)
