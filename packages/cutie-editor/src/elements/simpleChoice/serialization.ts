@@ -1,17 +1,16 @@
 import type { Descendant } from 'slate';
 import type { SerializationContext } from '../../serialization/slateToXml';
-import type { ParserContext } from '../../serialization/xmlToSlate';
+import type { ConvertChildrenFn, ParserContext } from '../../serialization/xmlToSlate';
 import { createXmlElement } from '../../serialization/xmlUtils';
 import type { SlateElement } from '../../types';
-
-export type ConvertChildrenFn = (nodes: Node[]) => Descendant[];
 
 /**
  * Parse QTI simple choice from XML
  */
 function parseSimpleChoice(
   element: Element,
-  convertChildren: ConvertChildrenFn,
+  _convertChildren: ConvertChildrenFn,
+  convertChildrenStructural: ConvertChildrenFn,
   _context?: ParserContext
 ): SlateElement {
   const attributes: Record<string, string | undefined> = {};
@@ -20,7 +19,8 @@ function parseSimpleChoice(
     attributes[attr.name] = attr.value;
   }
 
-  const children = convertChildren(Array.from(element.childNodes));
+  // Use structural conversion - children are structural content
+  const children = convertChildrenStructural(Array.from(element.childNodes));
   const identifier = attributes['identifier'] || '';
 
   // Create the ID label as first child (void element with identifier in attributes)
@@ -125,7 +125,7 @@ function setAttributes(
 /**
  * Export parsers and serializers as objects that can be spread
  */
-export const simpleChoiceParsers: Record<string, (element: Element, convertChildren: ConvertChildrenFn, context?: ParserContext) => SlateElement> = {
+export const simpleChoiceParsers: Record<string, (element: Element, convertChildren: ConvertChildrenFn, convertChildrenStructural: ConvertChildrenFn, context?: ParserContext) => SlateElement> = {
   'qti-simple-choice': parseSimpleChoice,
 };
 

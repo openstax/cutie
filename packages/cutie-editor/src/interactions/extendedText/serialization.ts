@@ -1,10 +1,8 @@
 import type { Descendant } from 'slate';
 import type { SerializationContext } from '../../serialization/slateToXml';
-import type { ParserContext } from '../../serialization/xmlToSlate';
+import type { ConvertChildrenFn, ParserContext } from '../../serialization/xmlToSlate';
 import { createXmlElement } from '../../serialization/xmlUtils';
 import type { SlateElement, XmlNode } from '../../types';
-
-export type ConvertChildrenFn = (nodes: Node[]) => Descendant[];
 
 /**
  * Create a default response declaration for an extended text interaction
@@ -26,7 +24,8 @@ function createDefaultResponseDeclaration(responseIdentifier: string): XmlNode {
  */
 function parseExtendedTextInteraction(
   element: Element,
-  convertChildren: ConvertChildrenFn,
+  _convertChildren: ConvertChildrenFn,
+  convertChildrenStructural: ConvertChildrenFn,
   context?: ParserContext
 ): SlateElement {
   const attributes: Record<string, string | undefined> = {};
@@ -41,8 +40,8 @@ function parseExtendedTextInteraction(
   const responseDeclaration = (responseId && context?.responseDeclarations.get(responseId))
     || createDefaultResponseDeclaration(responseId);
 
-  // Parse children (should include qti-prompt)
-  const children = convertChildren(Array.from(element.childNodes));
+  // Parse children (should include qti-prompt) - use structural conversion
+  const children = convertChildrenStructural(Array.from(element.childNodes));
 
   return {
     type: 'qti-extended-text-interaction',
@@ -110,7 +109,7 @@ function setAttributes(
 /**
  * Export parsers and serializers as objects that can be spread
  */
-export const extendedTextParsers: Record<string, (element: Element, convertChildren: ConvertChildrenFn, context?: ParserContext) => SlateElement> = {
+export const extendedTextParsers: Record<string, (element: Element, convertChildren: ConvertChildrenFn, convertChildrenStructural: ConvertChildrenFn, context?: ParserContext) => SlateElement> = {
   'qti-extended-text-interaction': parseExtendedTextInteraction,
 };
 

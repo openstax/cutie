@@ -1,10 +1,8 @@
 import type { Descendant } from 'slate';
 import type { SerializationContext } from '../../serialization/slateToXml';
-import type { ParserContext } from '../../serialization/xmlToSlate';
+import type { ConvertChildrenFn, ParserContext } from '../../serialization/xmlToSlate';
 import { createXmlElement } from '../../serialization/xmlUtils';
 import type { SlateElement, XmlNode } from '../../types';
-
-export type ConvertChildrenFn = (nodes: Node[]) => Descendant[];
 
 /**
  * Create a default response declaration for a choice interaction
@@ -29,7 +27,8 @@ function createDefaultResponseDeclaration(
  */
 function parseChoiceInteraction(
   element: Element,
-  convertChildren: ConvertChildrenFn,
+  _convertChildren: ConvertChildrenFn,
+  convertChildrenStructural: ConvertChildrenFn,
   context?: ParserContext
 ): SlateElement {
   const attributes: Record<string, string | undefined> = {};
@@ -45,7 +44,8 @@ function parseChoiceInteraction(
   const responseDeclaration = (responseId && context?.responseDeclarations.get(responseId))
     || createDefaultResponseDeclaration(responseId, maxChoices);
 
-  const children = convertChildren(Array.from(element.childNodes));
+  // Use structural conversion - children are qti-prompt and qti-simple-choice elements
+  const children = convertChildrenStructural(Array.from(element.childNodes));
   return {
     type: 'qti-choice-interaction',
     children: children.length > 0 ? children : [{ type: 'qti-simple-choice', children: [{ text: '' }], attributes: { identifier: 'choice-1' } }],
@@ -112,7 +112,7 @@ function setAttributes(
 /**
  * Export parsers and serializers as objects that can be spread
  */
-export const choiceParsers: Record<string, (element: Element, convertChildren: ConvertChildrenFn, context?: ParserContext) => SlateElement> = {
+export const choiceParsers: Record<string, (element: Element, convertChildren: ConvertChildrenFn, convertChildrenStructural: ConvertChildrenFn, context?: ParserContext) => SlateElement> = {
   'qti-choice-interaction': parseChoiceInteraction,
 };
 

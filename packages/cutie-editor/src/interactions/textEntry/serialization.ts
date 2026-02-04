@@ -1,10 +1,8 @@
 import type { Descendant } from 'slate';
 import type { SerializationContext } from '../../serialization/slateToXml';
-import type { ParserContext } from '../../serialization/xmlToSlate';
+import type { ConvertChildrenFn, ParserContext } from '../../serialization/xmlToSlate';
 import { createXmlElement } from '../../serialization/xmlUtils';
 import type { SlateElement, XmlNode } from '../../types';
-
-export type ConvertChildrenFn = (nodes: Node[]) => Descendant[];
 
 /**
  * Create a default response declaration for a text entry interaction
@@ -27,6 +25,7 @@ function createDefaultResponseDeclaration(responseIdentifier: string): XmlNode {
 function parseTextEntryInteraction(
   element: Element,
   _convertChildren: ConvertChildrenFn,
+  _convertChildrenStructural: ConvertChildrenFn,
   context?: ParserContext
 ): SlateElement {
   const attributes: Record<string, string | undefined> = {};
@@ -104,7 +103,7 @@ function setAttributes(
 /**
  * Export parsers and serializers as objects that can be spread
  */
-export const textEntryParsers: Record<string, (element: Element, convertChildren: ConvertChildrenFn, context?: ParserContext) => SlateElement> = {
+export const textEntryParsers: Record<string, (element: Element, convertChildren: ConvertChildrenFn, convertChildrenStructural: ConvertChildrenFn, context?: ParserContext) => SlateElement> = {
   'qti-text-entry-interaction': parseTextEntryInteraction,
 };
 

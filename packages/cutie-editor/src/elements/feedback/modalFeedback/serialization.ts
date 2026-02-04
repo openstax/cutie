@@ -1,17 +1,16 @@
 import type { Descendant } from 'slate';
 import type { SerializationContext } from '../../../serialization/slateToXml';
-import type { ParserContext } from '../../../serialization/xmlToSlate';
+import type { ConvertChildrenFn, ParserContext } from '../../../serialization/xmlToSlate';
 import { createXmlElement } from '../../../serialization/xmlUtils';
 import type { QtiModalFeedback, SlateElement } from '../../../types';
-
-export type ConvertChildrenFn = (nodes: Node[]) => Descendant[];
 
 /**
  * Parse QTI modal feedback from XML
  */
 function parseModalFeedback(
   element: Element,
-  convertChildren: ConvertChildrenFn,
+  _convertChildren: ConvertChildrenFn,
+  convertChildrenStructural: ConvertChildrenFn,
   _context?: ParserContext
 ): SlateElement {
   const attributes: Record<string, string | undefined> = {};
@@ -20,7 +19,8 @@ function parseModalFeedback(
     attributes[attr.name] = attr.value;
   }
 
-  const children = convertChildren(Array.from(element.childNodes));
+  // Use structural conversion - children are block-level elements
+  const children = convertChildrenStructural(Array.from(element.childNodes));
 
   return {
     type: 'qti-modal-feedback',
@@ -83,7 +83,7 @@ function setAttributes(
  */
 export const modalFeedbackParsers: Record<
   string,
-  (element: Element, convertChildren: ConvertChildrenFn, context?: ParserContext) => SlateElement
+  (element: Element, convertChildren: ConvertChildrenFn, convertChildrenStructural: ConvertChildrenFn, context?: ParserContext) => SlateElement
 > = {
   'qti-modal-feedback': parseModalFeedback,
 };
