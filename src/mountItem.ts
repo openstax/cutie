@@ -2,7 +2,7 @@ import { parseQtiXml } from './parser/xmlParser';
 import { renderToContainer } from './renderer/domRenderer';
 import { ItemStateImpl } from './state/itemState';
 import { registerBaseStyles } from './styles';
-import { transformElement } from './transformer/elementTransformer';
+import { createTransformContext, transformChildren, transformNode } from './transformer/elementTransformer';
 import { DefaultStyleManager } from './transformer/styleManager';
 import type { ResponseData } from './transformer/types';
 
@@ -52,8 +52,16 @@ export function mountItem(
   // Parse QTI XML
   const parsed = parseQtiXml(itemTemplateXml);
 
-  // Transform to DocumentFragment with itemState and styleManager in context
-  const fragment = transformElement(parsed.itemBody, { itemState, styleManager });
+  // Create transform context once for all transformations
+  const context = createTransformContext({ itemState, styleManager });
+
+  // Transform item body children
+  const fragment = transformChildren(parsed.itemBody, context);
+
+  // Transform modal feedback elements (the elements themselves, not just children)
+  for (const modalFeedback of parsed.modalFeedbacks) {
+    fragment.appendChild(transformNode(modalFeedback, context));
+  }
 
   // Render to container
   const unmountDom = renderToContainer(container, fragment);
