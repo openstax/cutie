@@ -3,6 +3,7 @@ import { Editor, Transforms, Element as SlateElement } from 'slate';
 import { useSlate } from 'slate-react';
 import { insertChoiceInteraction } from '../interactions/choice';
 import { insertTextEntryInteraction } from '../interactions/textEntry';
+import { insertInlineChoiceInteraction } from '../interactions/inlineChoice';
 import { insertExtendedTextInteraction } from '../interactions/extendedText';
 import { insertImage } from '../elements/image';
 import { insertFeedbackInline } from '../elements/feedback/feedbackInline';
@@ -437,6 +438,14 @@ export function Toolbar(): React.JSX.Element {
               }}
             >
               Text Entry
+            </DropdownItem>
+            <DropdownItem
+              onClick={() => {
+                insertInlineChoiceInteraction(editor);
+                setInteractionsOpen(false);
+              }}
+            >
+              Inline Choice
             </DropdownItem>
             <DropdownItem
               onClick={() => {

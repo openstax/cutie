@@ -7,6 +7,7 @@ import { promptSerializers } from '../elements/prompt';
 import { simpleChoiceSerializers } from '../elements/simpleChoice';
 import { choiceSerializers } from '../interactions/choice';
 import { extendedTextSerializers } from '../interactions/extendedText';
+import { inlineChoiceSerializers } from '../interactions/inlineChoice';
 import { textEntrySerializers } from '../interactions/textEntry';
 import type { DocumentMetadata, ResponseProcessingConfig, SerializationResult, SlateElement, SlateText, TextAlign, ValidationError } from '../types';
 import { generateResponseProcessingXml } from '../utils/responseProcessingGenerator';
@@ -131,6 +132,7 @@ export interface SerializationContext {
 const interactionSerializers: Record<string, (el: SlateElement, ctx: SerializationContext, convertChildren: (children: Descendant[], parent: Element | DocumentFragment) => void) => Element | DocumentFragment | null> = {
   ...choiceSerializers,
   ...textEntrySerializers,
+  ...inlineChoiceSerializers,
   ...extendedTextSerializers,
   ...promptSerializers,
   ...simpleChoiceSerializers,

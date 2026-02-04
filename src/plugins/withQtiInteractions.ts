@@ -12,6 +12,7 @@ import {
 } from '../elements/simpleChoice/config';
 import { choiceInteractionConfig } from '../interactions/choice/config';
 import { extendedTextInteractionConfig } from '../interactions/extendedText/config';
+import { inlineChoiceInteractionConfig } from '../interactions/inlineChoice/config';
 import { textEntryInteractionConfig } from '../interactions/textEntry/config';
 import type { CustomEditor, ElementConfig } from '../types';
 
@@ -19,6 +20,7 @@ const elementConfigs: ElementConfig[] = [
   // Interaction configs
   choiceInteractionConfig,
   textEntryInteractionConfig,
+  inlineChoiceInteractionConfig,
   extendedTextInteractionConfig,
   // Element configs
   promptConfig,
