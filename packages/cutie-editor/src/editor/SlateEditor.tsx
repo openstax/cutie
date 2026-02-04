@@ -13,6 +13,7 @@ import { choiceRenderers } from '../interactions/choice';
 import { textEntryRenderers } from '../interactions/textEntry';
 import { inlineChoiceRenderers } from '../interactions/inlineChoice';
 import { extendedTextRenderers } from '../interactions/extendedText';
+import { gapMatchRenderers } from '../interactions/gapMatch';
 import { promptRenderers } from '../elements/prompt';
 import { simpleChoiceRenderers } from '../elements/simpleChoice';
 import { imageRenderers } from '../elements/image';
@@ -274,7 +275,8 @@ function isInteractionElement(element: SlateElement): boolean {
     element.type === 'qti-text-entry-interaction' ||
     element.type === 'qti-inline-choice-interaction' ||
     element.type === 'qti-extended-text-interaction' ||
-    element.type === 'qti-choice-interaction'
+    element.type === 'qti-choice-interaction' ||
+    element.type === 'qti-gap-match-interaction'
   );
 }
 
@@ -286,6 +288,9 @@ function hasPropertiesPanel(element: SlateElement): boolean {
     isInteractionElement(element) ||
     element.type === 'image' ||
     element.type === 'qti-simple-choice' ||
+    element.type === 'qti-gap-text' ||
+    element.type === 'qti-gap-img' ||
+    element.type === 'qti-gap' ||
     element.type === 'qti-feedback-inline' ||
     element.type === 'qti-feedback-block' ||
     element.type === 'qti-modal-feedback'
@@ -347,6 +352,7 @@ const interactionRenderers: Record<string, React.ComponentType<RenderElementProp
   ...textEntryRenderers,
   ...inlineChoiceRenderers,
   ...extendedTextRenderers,
+  ...gapMatchRenderers,
   ...promptRenderers,
   ...simpleChoiceRenderers,
   ...imageRenderers,

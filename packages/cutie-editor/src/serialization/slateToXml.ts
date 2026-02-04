@@ -7,6 +7,7 @@ import { promptSerializers } from '../elements/prompt';
 import { simpleChoiceSerializers } from '../elements/simpleChoice';
 import { choiceSerializers } from '../interactions/choice';
 import { extendedTextSerializers } from '../interactions/extendedText';
+import { gapMatchSerializers } from '../interactions/gapMatch';
 import { inlineChoiceSerializers } from '../interactions/inlineChoice';
 import { textEntrySerializers } from '../interactions/textEntry';
 import type { DocumentMetadata, ResponseProcessingConfig, SerializationResult, SlateElement, SlateText, TextAlign, ValidationError } from '../types';
@@ -134,6 +135,7 @@ const interactionSerializers: Record<string, (el: SlateElement, ctx: Serializati
   ...textEntrySerializers,
   ...inlineChoiceSerializers,
   ...extendedTextSerializers,
+  ...gapMatchSerializers,
   ...promptSerializers,
   ...simpleChoiceSerializers,
   ...feedbackInlineSerializers,

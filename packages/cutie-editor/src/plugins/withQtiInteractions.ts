@@ -12,6 +12,14 @@ import {
 } from '../elements/simpleChoice/config';
 import { choiceInteractionConfig } from '../interactions/choice/config';
 import { extendedTextInteractionConfig } from '../interactions/extendedText/config';
+import {
+  gapConfig,
+  gapImgConfig,
+  gapMatchChoicesConfig,
+  gapMatchContentConfig,
+  gapMatchInteractionConfig,
+  gapTextConfig,
+} from '../interactions/gapMatch/config';
 import { inlineChoiceInteractionConfig } from '../interactions/inlineChoice/config';
 import { textEntryInteractionConfig } from '../interactions/textEntry/config';
 import type { CustomEditor, ElementConfig } from '../types';
@@ -22,11 +30,17 @@ const elementConfigs: ElementConfig[] = [
   textEntryInteractionConfig,
   inlineChoiceInteractionConfig,
   extendedTextInteractionConfig,
+  gapMatchInteractionConfig,
   // Element configs
   promptConfig,
   simpleChoiceConfig,
   choiceIdLabelConfig,
   choiceContentConfig,
+  gapMatchChoicesConfig,
+  gapMatchContentConfig,
+  gapTextConfig,
+  gapImgConfig,
+  gapConfig,
   imageConfig,
   contentBodyConfig,
   // Feedback element configs
