@@ -44,6 +44,6 @@ const FEEDBACK_INLINE_STYLES = `
   .qti-feedback-inline {
     display: inline;
     font-style: italic;
-    color: #1a5f2a;
+    color: #4a5a6a;
   }
 `;

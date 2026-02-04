@@ -25,8 +25,12 @@ export function parseQtiXml(xmlString: string): ParsedQtiItem {
     );
   }
 
+  // Extract modal feedback elements (siblings of item-body)
+  const modalFeedbacks = Array.from(doc.querySelectorAll('qti-modal-feedback'));
+
   return {
     itemBody,
+    modalFeedbacks,
     rawDocument: doc,
   };
 }

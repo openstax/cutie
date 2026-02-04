@@ -7,13 +7,32 @@ import type { StyleManager, TransformContext } from './types';
 import './handlers';
 
 /**
- * Transform a single element using the appropriate handler
+ * Create a transform context with styleManager and transformChildren wired up.
+ * Call this once at the start of transformation, then pass the context to
+ * transformChildren and transformNode.
  */
-function transformSingleElement(
+export function createTransformContext(
+  baseContext: Omit<TransformContext, 'transformChildren'> = {}
+): TransformContext {
+  const styleManager = baseContext.styleManager ?? new DefaultStyleManager();
+
+  const context: TransformContext = {
+    ...baseContext,
+    styleManager,
+    transformChildren: (el: Element) => transformChildren(el, context),
+  };
+
+  return context;
+}
+
+/**
+ * Transform a single element using the appropriate handler.
+ * Use this when you want to transform the element itself (e.g., a modal feedback element).
+ */
+export function transformNode(
   element: Element,
   context: TransformContext
 ): DocumentFragment {
-  // Find handler for this element
   const handler = registry.findHandler(element);
 
   if (handler) {
@@ -28,25 +47,16 @@ function transformSingleElement(
 }
 
 /**
- * Recursively transform an element and its children
+ * Transform the children of an element (not the element itself).
+ * Use this when you want to extract and transform the contents of a container
+ * (e.g., the contents of qti-item-body).
  */
-export function transformElement(
+export function transformChildren(
   element: Element,
-  context: TransformContext = {}
+  context: TransformContext
 ): DocumentFragment {
   const fragment = document.createDocumentFragment();
 
-  // Create or use existing StyleManager
-  const styleManager = context.styleManager ?? new DefaultStyleManager();
-
-  // Add transformChildren function and styleManager to context for recursive transformation
-  const contextWithTransform: TransformContext = {
-    ...context,
-    styleManager,
-    transformChildren: (el: Element) => transformElement(el, { ...context, styleManager }),
-  };
-
-  // Process all child nodes
   for (let i = 0; i < element.childNodes.length; i++) {
     const node = element.childNodes[i];
     if (!node) continue;
@@ -56,16 +66,25 @@ export function transformElement(
       fragment.appendChild(node.cloneNode(true));
     } else if (node.nodeType === Node.ELEMENT_NODE) {
       // Transform element nodes
-      const childFragment = transformSingleElement(
-        node as Element,
-        contextWithTransform
-      );
+      const childFragment = transformNode(node as Element, context);
       fragment.appendChild(childFragment);
     }
     // Ignore other node types (comments, processing instructions, etc.)
   }
 
   return fragment;
+}
+
+/**
+ * Legacy API: Transform an element's children with automatic context setup.
+ * @deprecated Use createTransformContext + transformChildren instead for more control.
+ */
+export function transformElement(
+  element: Element,
+  baseContext: Omit<TransformContext, 'transformChildren'> = {}
+): DocumentFragment {
+  const context = createTransformContext(baseContext);
+  return transformChildren(element, context);
 }
 
 /**
