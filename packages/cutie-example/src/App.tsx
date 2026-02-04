@@ -14,8 +14,8 @@ import './App.css';
  */
 const resolveAssets: ProcessingOptions['resolveAssets'] = async (urls) => {
   return urls.map((url) => {
-    // If already an absolute URL or starts with /, return as-is
-    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('/')) {
+    // If already an absolute URL, data URL, or starts with /, return as-is
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('/') || url.startsWith('data:')) {
       return url;
     }
     // Prepend / to make it resolve from public/

@@ -6,6 +6,10 @@ import { createContext, useContext } from 'react';
 export interface FeedbackIdentifiersContextValue {
   /** Set of available feedback identifier IDs */
   availableIdentifiers: Set<string>;
+  /** Map from identifier id to display label for use in feedback element UI */
+  identifierLabels: Map<string, string>;
+  /** Whether custom scoring mode is enabled (skips identifier validation) */
+  isCustomMode: boolean;
 }
 
 /**
@@ -14,6 +18,8 @@ export interface FeedbackIdentifiersContextValue {
  */
 export const FeedbackIdentifiersContext = createContext<FeedbackIdentifiersContextValue>({
   availableIdentifiers: new Set(),
+  identifierLabels: new Map(),
+  isCustomMode: false,
 });
 
 /**

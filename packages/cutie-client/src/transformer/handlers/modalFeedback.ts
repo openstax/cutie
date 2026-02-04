@@ -41,10 +41,10 @@ class ModalFeedbackHandler implements ElementHandler {
 
     const form = document.createElement('form');
     form.method = 'dialog';
-    form.classList.add('qti-modal-feedback__form');
+    form.className = 'qti-modal-feedback__form';
 
     const closeButton = document.createElement('button');
-    closeButton.classList.add('qti-modal-feedback__close-button');
+    closeButton.className = 'qti-modal-feedback__close-button';
     closeButton.innerText = 'OK';
     
     form.appendChild(closeButton);
@@ -62,6 +62,13 @@ const MODAL_FEEDBACK_STYLES = `
 
   .qti-modal-feedback {
     min-width 15rem;
+    max-width: calc(100vw - 4rem);
+    max-height: calc(100vh - 4rem);
+    position: fixed;
+    margin: 0;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
   }
 
   .qti-modal-feedback__form {

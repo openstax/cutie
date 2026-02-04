@@ -16,14 +16,18 @@ export function FeedbackInlineElement({
   const el = element as QtiFeedbackInline;
   const selected = useSelected();
   const focused = useFocused();
-  const { availableIdentifiers } = useFeedbackIdentifiers();
+  const { availableIdentifiers, identifierLabels, isCustomMode } = useFeedbackIdentifiers();
 
   useStyle('feedback-inline', FEEDBACK_INLINE_STYLES);
 
   const identifier = el.attributes.identifier || '';
   const showHide = el.attributes['show-hide'] || 'show';
-  const isValid = identifier && availableIdentifiers.has(identifier);
+  // In custom mode, any non-empty identifier is valid (custom response processing can use arbitrary identifiers)
+  const isValid = isCustomMode
+    ? Boolean(identifier)
+    : identifier && availableIdentifiers.has(identifier);
   const isActive = selected && focused;
+  const displayLabel = identifier ? identifierLabels.get(identifier) || identifier : '(not set)';
 
   const containerClass = [
     'feedback-inline',
@@ -35,7 +39,7 @@ export function FeedbackInlineElement({
     <span {...attributes} className={containerClass}>
       <span contentEditable={false} className="feedback-inline__label">
         {!isValid && <span title="Invalid feedback identifier">&#9888; </span>}
-        {showHide === 'hide' ? 'Hide' : 'Show'} when: {identifier || '(not set)'}
+        {showHide === 'hide' ? 'Hide' : 'Show'} when {displayLabel}
       </span>
       {children}
     </span>

@@ -16,14 +16,18 @@ export function FeedbackBlockElement({
   const el = element as QtiFeedbackBlock;
   const selected = useSelected();
   const focused = useFocused();
-  const { availableIdentifiers } = useFeedbackIdentifiers();
+  const { availableIdentifiers, identifierLabels, isCustomMode } = useFeedbackIdentifiers();
 
   useStyle('feedback-block', FEEDBACK_BLOCK_STYLES);
 
   const identifier = el.attributes.identifier || '';
   const showHide = el.attributes['show-hide'] || 'show';
-  const isValid = identifier && availableIdentifiers.has(identifier);
+  // In custom mode, any non-empty identifier is valid (custom response processing can use arbitrary identifiers)
+  const isValid = isCustomMode
+    ? Boolean(identifier)
+    : identifier && availableIdentifiers.has(identifier);
   const isActive = selected && focused;
+  const displayLabel = identifier ? identifierLabels.get(identifier) || identifier : '(none)';
 
   const containerClass = [
     'feedback-block',
@@ -35,7 +39,7 @@ export function FeedbackBlockElement({
     <fieldset {...attributes} className={containerClass}>
       <legend contentEditable={false} className="feedback-block__legend">
         {!isValid && <span title="Invalid feedback identifier">&#9888; </span>}
-        {showHide === 'hide' ? 'Hide' : 'Show'} when: {identifier || '(none)'}
+        {showHide === 'hide' ? 'Hide' : 'Show'} when {displayLabel}
       </legend>
       <div>{children}</div>
     </fieldset>

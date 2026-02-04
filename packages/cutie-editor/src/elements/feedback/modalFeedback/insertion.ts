@@ -2,7 +2,7 @@ import { Editor, Element as SlateElement, Transforms } from 'slate';
 import type { CustomEditor, QtiModalFeedback } from '../../../types';
 
 /**
- * Insert a modal feedback element at the current selection
+ * Insert a modal feedback element at the bottom of the editor
  *
  * @param editor - The Slate editor instance
  * @param identifier - The feedback identifier (e.g., "RESPONSE_correct")
@@ -33,14 +33,15 @@ export function insertModalFeedback(
     ],
   };
 
-  // Insert the modal feedback
-  Transforms.insertNodes(editor, feedbackNode as SlateElement);
+  // Insert the modal feedback at the bottom of the editor
+  const endPath = [editor.children.length];
+  Transforms.insertNodes(editor, feedbackNode as SlateElement, { at: endPath });
 
   // Insert a trailing paragraph for cursor positioning
   Transforms.insertNodes(editor, {
     type: 'paragraph',
     children: [{ text: '' }],
-  } as SlateElement);
+  } as SlateElement, { at: [editor.children.length] });
 }
 
 /**

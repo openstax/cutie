@@ -45,5 +45,9 @@ const FEEDBACK_INLINE_STYLES = `
     display: inline;
     font-style: italic;
     color: #4a5a6a;
+    background-color: #f5f7f9;
+    padding: 0.15em 0.5em;
+    border-left: 2px solid #8a9aaa;
+    border-radius: 0 3px 3px 0;
   }
 `;
