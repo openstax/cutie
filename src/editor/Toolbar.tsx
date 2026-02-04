@@ -7,6 +7,7 @@ import { insertExtendedTextInteraction } from '../interactions/extendedText';
 import { insertImage } from '../elements/image';
 import { insertFeedbackInline } from '../elements/feedbackInline';
 import { insertFeedbackBlock } from '../elements/feedbackBlock';
+import { insertModalFeedback } from '../elements/modalFeedback';
 import { useAssetHandlers } from '../contexts/AssetContext';
 import {
   BoldIcon,
@@ -502,6 +503,14 @@ export function Toolbar(): React.JSX.Element {
               }}
             >
               Block Feedback
+            </DropdownItem>
+            <DropdownItem
+              onClick={() => {
+                insertModalFeedback(editor, '');
+                setFeedbackOpen(false);
+              }}
+            >
+              Modal Feedback
             </DropdownItem>
           </div>
         )}

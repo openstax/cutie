@@ -1,7 +1,9 @@
 import { Element, Path } from 'slate';
+import { contentBodyConfig } from '../elements/contentBody/config';
 import { feedbackBlockConfig } from '../elements/feedbackBlock/config';
 import { feedbackInlineConfig } from '../elements/feedbackInline/config';
 import { imageConfig } from '../elements/image/config';
+import { modalFeedbackConfig } from '../elements/modalFeedback/config';
 import { promptConfig } from '../elements/prompt/config';
 import {
   choiceContentConfig,
@@ -24,9 +26,11 @@ const elementConfigs: ElementConfig[] = [
   choiceIdLabelConfig,
   choiceContentConfig,
   imageConfig,
+  contentBodyConfig,
   // Feedback element configs
   feedbackInlineConfig,
   feedbackBlockConfig,
+  modalFeedbackConfig,
 ];
 
 /**

@@ -7,6 +7,7 @@ import { imagePropertiesPanels } from '../elements/image';
 import { simpleChoicePropertiesPanels } from '../elements/simpleChoice';
 import { feedbackInlinePropertiesPanels } from '../elements/feedbackInline';
 import { feedbackBlockPropertiesPanels } from '../elements/feedbackBlock';
+import { modalFeedbackPropertiesPanels } from '../elements/modalFeedback';
 import { ResponseProcessingPanel } from './ResponseProcessingPanel';
 import type { SlateElement, ElementAttributes, XmlNode, ResponseProcessingConfig, ResponseProcessingMode } from '../types';
 
@@ -31,6 +32,7 @@ const propertiesPanels: Record<string, React.ComponentType<any>> = {
   ...simpleChoicePropertiesPanels,
   ...feedbackInlinePropertiesPanels,
   ...feedbackBlockPropertiesPanels,
+  ...modalFeedbackPropertiesPanels,
 };
 
 /**
@@ -79,7 +81,8 @@ export function PropertiesPanel({
     // Pass responseProcessingConfig to feedback elements
     const isFeedbackElement =
       selectedElement.type === 'qti-feedback-inline' ||
-      selectedElement.type === 'qti-feedback-block';
+      selectedElement.type === 'qti-feedback-block' ||
+      selectedElement.type === 'qti-modal-feedback';
 
     return (
       <div className="properties-panel">

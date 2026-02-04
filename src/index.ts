@@ -43,6 +43,7 @@ export type {
   QtiChoiceInteraction,
   QtiPrompt,
   QtiSimpleChoice,
+  QtiModalFeedback,
   UnknownQtiElement,
   ParagraphElement,
   DivElement,

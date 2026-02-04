@@ -175,12 +175,36 @@ export interface QtiFeedbackInline {
  */
 export interface QtiFeedbackBlock {
   type: 'qti-feedback-block';
-  children: Array<SlateElement | SlateText>;
+  children: Array<QtiContentBody>;
   attributes: {
     'outcome-identifier': string;  // Usually "FEEDBACK"
     identifier: string;            // e.g., "RESPONSE_correct"
     'show-hide': 'show' | 'hide';
   } & ElementAttributes;
+}
+
+/**
+ * QTI Modal Feedback - modal dialog feedback shown based on outcome variable
+ * Rendered at end of editor, serialized outside qti-item-body in QTI XML
+ */
+export interface QtiModalFeedback {
+  type: 'qti-modal-feedback';
+  children: Array<QtiContentBody>;
+  attributes: {
+    'outcome-identifier': string;  // Usually "FEEDBACK"
+    identifier: string;            // e.g., "RESPONSE_correct"
+    'show-hide': 'show' | 'hide';
+  } & ElementAttributes;
+}
+
+/**
+ * QTI Content Body - container for flow content inside qti-modal-feedback
+ * Required wrapper per QTI 3.0 specification
+ */
+export interface QtiContentBody {
+  type: 'qti-content-body';
+  children: Array<SlateElement | SlateText>;
+  attributes?: ElementAttributes;
 }
 
 /**
@@ -327,6 +351,8 @@ export type SlateElement =
   | ChoiceContent
   | QtiFeedbackInline
   | QtiFeedbackBlock
+  | QtiModalFeedback
+  | QtiContentBody
   | UnknownQtiElement
   | ParagraphElement
   | DivElement

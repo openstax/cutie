@@ -1,14 +1,14 @@
 import { Element, Transforms } from 'slate';
 import type { CustomEditor, ElementConfig } from '../../types';
 
-export const feedbackBlockConfig: ElementConfig = {
-  type: 'qti-feedback-block',
+export const modalFeedbackConfig: ElementConfig = {
+  type: 'qti-modal-feedback',
   isVoid: false,
   isInline: false,
-  needsSpacers: true,
-  categories: ['feedback'],
-  forbidDescendants: ['interaction', 'feedback'],
-  matches: (element: Element) => 'type' in element && element.type === 'qti-feedback-block',
+  needsSpacers: false,
+  categories: ['feedback', 'modal-feedback'],
+  forbidDescendants: ['interaction', 'feedback', 'modal-feedback'],
+  matches: (element: Element) => 'type' in element && element.type === 'qti-modal-feedback',
 
   normalize: (editor: CustomEditor, node: Element, path) => {
     // QTI 3.0 requires flow content to be wrapped in qti-content-body

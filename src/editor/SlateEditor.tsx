@@ -17,6 +17,8 @@ import { simpleChoiceRenderers } from '../elements/simpleChoice';
 import { imageRenderers } from '../elements/image';
 import { feedbackInlineRenderers } from '../elements/feedbackInline';
 import { feedbackBlockRenderers } from '../elements/feedbackBlock';
+import { modalFeedbackRenderers } from '../elements/modalFeedback';
+import { contentBodyRenderers } from '../elements/contentBody';
 import { useStyle } from '../hooks/useStyle';
 import { hasMapping } from '../utils/responseProcessingClassifier';
 import { AssetContext } from '../contexts/AssetContext';
@@ -279,7 +281,8 @@ function hasPropertiesPanel(element: SlateElement): boolean {
     element.type === 'image' ||
     element.type === 'qti-simple-choice' ||
     element.type === 'qti-feedback-inline' ||
-    element.type === 'qti-feedback-block'
+    element.type === 'qti-feedback-block' ||
+    element.type === 'qti-modal-feedback'
   );
 }
 
@@ -314,7 +317,7 @@ function analyzeInteractions(nodes: Descendant[]): { count: number; hasMappings:
         }
       }
       // Check for feedback elements
-      if (element.type === 'qti-feedback-inline' || element.type === 'qti-feedback-block') {
+      if (element.type === 'qti-feedback-inline' || element.type === 'qti-feedback-block' || element.type === 'qti-modal-feedback') {
         hasFeedbackElements = true;
       }
       if ('children' in element) {
@@ -342,6 +345,8 @@ const interactionRenderers: Record<string, React.ComponentType<RenderElementProp
   ...imageRenderers,
   ...feedbackInlineRenderers,
   ...feedbackBlockRenderers,
+  ...modalFeedbackRenderers,
+  ...contentBodyRenderers,
 };
 
 /**
