@@ -1,10 +1,8 @@
 import type { Descendant } from 'slate';
 import type { SerializationContext } from '../../../serialization/slateToXml';
-import type { ParserContext } from '../../../serialization/xmlToSlate';
+import type { ConvertChildrenFn, ParserContext } from '../../../serialization/xmlToSlate';
 import { createXmlElement } from '../../../serialization/xmlUtils';
 import type { QtiFeedbackInline, SlateElement } from '../../../types';
-
-export type ConvertChildrenFn = (nodes: Node[]) => Descendant[];
 
 /**
  * Parse QTI feedback inline from XML
@@ -12,6 +10,7 @@ export type ConvertChildrenFn = (nodes: Node[]) => Descendant[];
 function parseFeedbackInline(
   element: Element,
   convertChildren: ConvertChildrenFn,
+  _convertChildrenStructural: ConvertChildrenFn,
   _context?: ParserContext
 ): SlateElement {
   const attributes: Record<string, string | undefined> = {};
@@ -20,6 +19,7 @@ function parseFeedbackInline(
     attributes[attr.name] = attr.value;
   }
 
+  // Use flow content converter - inline feedback contains inline text
   const children = convertChildren(Array.from(element.childNodes));
 
   return {
@@ -78,7 +78,7 @@ function setAttributes(
  */
 export const feedbackInlineParsers: Record<
   string,
-  (element: Element, convertChildren: ConvertChildrenFn, context?: ParserContext) => SlateElement
+  (element: Element, convertChildren: ConvertChildrenFn, convertChildrenStructural: ConvertChildrenFn, context?: ParserContext) => SlateElement
 > = {
   'qti-feedback-inline': parseFeedbackInline,
 };

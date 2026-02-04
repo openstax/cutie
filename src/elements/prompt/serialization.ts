@@ -1,10 +1,8 @@
 import type { Descendant } from 'slate';
 import type { SerializationContext } from '../../serialization/slateToXml';
-import type { ParserContext } from '../../serialization/xmlToSlate';
+import type { ConvertChildrenFn, ParserContext } from '../../serialization/xmlToSlate';
 import { createXmlElement } from '../../serialization/xmlUtils';
 import type { SlateElement } from '../../types';
-
-export type ConvertChildrenFn = (nodes: Node[]) => Descendant[];
 
 /**
  * Parse QTI prompt from XML
@@ -12,6 +10,7 @@ export type ConvertChildrenFn = (nodes: Node[]) => Descendant[];
 function parsePrompt(
   element: Element,
   convertChildren: ConvertChildrenFn,
+  _convertChildrenStructural: ConvertChildrenFn,
   _context?: ParserContext
 ): SlateElement {
   const attributes: Record<string, string | undefined> = {};
@@ -20,6 +19,7 @@ function parsePrompt(
     attributes[attr.name] = attr.value;
   }
 
+  // Use flow content converter - prompt can contain inline text
   const children = convertChildren(Array.from(element.childNodes));
   return {
     type: 'qti-prompt',
@@ -75,7 +75,7 @@ function setAttributes(
 /**
  * Export parsers and serializers as objects that can be spread
  */
-export const promptParsers: Record<string, (element: Element, convertChildren: ConvertChildrenFn, context?: ParserContext) => SlateElement> = {
+export const promptParsers: Record<string, (element: Element, convertChildren: ConvertChildrenFn, convertChildrenStructural: ConvertChildrenFn, context?: ParserContext) => SlateElement> = {
   'qti-prompt': parsePrompt,
 };
 
