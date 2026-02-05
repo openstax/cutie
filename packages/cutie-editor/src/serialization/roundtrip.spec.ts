@@ -235,6 +235,21 @@ describe('XML Round-trip Tests', () => {
       expect(output).toContain('identifier="a"');
       expect(output).toContain('Answer A');
     });
+
+    it('should preserve simple-choice with inline feedback in same paragraph', () => {
+      const content = `
+        <qti-choice-interaction response-identifier="R1" max-choices="1">
+          <qti-simple-choice identifier="a">Correct<qti-feedback-inline outcome-identifier="FEEDBACK" show-hide="show" identifier="correct">Good job!</qti-feedback-inline></qti-simple-choice>
+        </qti-choice-interaction>
+      `;
+      const input = wrapInQtiItem(content);
+      const slateNodes = parseXmlToSlate(input);
+      const { xml } = serializeSlateToXml(slateNodes);
+      const output = extractItemBodyContent(xml);
+
+      // Text and feedback should stay together, not be split into separate elements
+      expect(output).toContain('Correct<qti-feedback-inline');
+    });
   });
 
   describe('complex structures', () => {
