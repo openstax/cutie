@@ -662,6 +662,11 @@ export function App() {
         onStartQuiz={handleStartQuiz}
       />
       {error && <Toast message={error} onClose={() => setError('')} />}
+      <footer className="app-footer">
+        <a href="https://github.com/openstax/cutie" target="_blank" rel="noopener noreferrer">Project Cutie</a>
+        {' '}is an experiment from{' '}
+        <a href="https://openstax.org" target="_blank" rel="noopener noreferrer">OpenStax</a>
+      </footer>
     </>
   );
 }
