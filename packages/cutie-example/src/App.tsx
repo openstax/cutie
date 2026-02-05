@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { beginAttempt, submitResponse } from '@openstax/cutie-core';
 import type { AttemptState, ProcessingOptions } from '@openstax/cutie-core';
 import type { ResponseData } from '@openstax/cutie-client';
@@ -47,6 +47,8 @@ interface QuizState {
     questions: { description: string; result: 'correct' | 'incorrect' | 'partial-credit' }[];
   }[];
   isActive: boolean;
+  modelId: number;
+  fastModelId: number;
 }
 
 const initialQuizState: QuizState = {
@@ -55,7 +57,17 @@ const initialQuizState: QuizState = {
   currentQuestionIndex: 0,
   history: [],
   isActive: false,
+  modelId: 0,
+  fastModelId: 0,
 };
+
+interface PrefetchedContent {
+  nextQuestionXml?: string;
+  nextQuiz?: {
+    quiz: QuizResponse;
+    firstQuestionXml: string;
+  };
+}
 
 const determineResult = (state: AttemptState): 'correct' | 'incorrect' | 'partial-credit' => {
   if (state.score === null || state.maxScore === null) return 'incorrect';
@@ -76,6 +88,11 @@ export function App() {
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
   const [quizState, setQuizState] = useState<QuizState>(initialQuizState);
   const [isLoadingNextQuestion, setIsLoadingNextQuestion] = useState(false);
+  const [prefetched, setPrefetched] = useState<PrefetchedContent>({});
+  const prefetchingRef = useRef<{
+    nextQuestion: Promise<string> | null;
+    nextQuiz: Promise<{ quiz: QuizResponse; firstQuestionXml: string }> | null;
+  }>({ nextQuestion: null, nextQuiz: null });
 
   const handleExampleSelect = async (event: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedName = event.target.value;
@@ -177,7 +194,7 @@ export function App() {
     }
   };
 
-  const loadQuizQuestion = async (quiz: QuizResponse, questionIndex: number) => {
+  const loadQuizQuestion = async (quiz: QuizResponse, questionIndex: number, modelId?: number) => {
     const question = quiz.questions[questionIndex];
     if (!question) return;
 
@@ -185,7 +202,7 @@ export function App() {
     let xml = (question as QuizQuestion).xml;
     if (!xml) {
       const prompt = `${quiz.topic}: ${question.description}`;
-      xml = await generateQtiItem(prompt, question.interactions);
+      xml = await generateQtiItem(prompt, question.interactions, modelId);
     }
 
     // Process the item
@@ -198,17 +215,89 @@ export function App() {
     return xml;
   };
 
-  const handleStartQuiz = async (topic: string) => {
+  const triggerEagerGeneration = useCallback((
+    quiz: QuizResponse,
+    currentIndex: number,
+    userTopic: string,
+    history: QuizState['history'],
+    modelId: number,
+    fastModelId: number
+  ) => {
+    const isLastQuestion = currentIndex === quiz.questions.length - 1;
+    const hasNextQuestion = currentIndex + 1 < quiz.questions.length;
+
+    // Eagerly generate next question if not last
+    if (hasNextQuestion && !prefetchingRef.current.nextQuestion) {
+      const nextQuestion = quiz.questions[currentIndex + 1];
+      const prompt = `${quiz.topic}: ${nextQuestion.description}`;
+
+      const promise = generateQtiItem(prompt, nextQuestion.interactions, modelId)
+        .then(xml => {
+          setPrefetched(prev => ({ ...prev, nextQuestionXml: xml }));
+          console.log('Prefetched next question XML');
+          return xml;
+        })
+        .catch(err => {
+          console.error('Failed to prefetch next question:', err);
+          throw err;
+        })
+        .finally(() => { prefetchingRef.current.nextQuestion = null; });
+
+      prefetchingRef.current.nextQuestion = promise;
+    }
+
+    // Eagerly generate next quiz + first question when on last or second-to-last question
+    if ((isLastQuestion || currentIndex === quiz.questions.length - 2) && !prefetchingRef.current.nextQuiz) {
+      // Build the history that will exist when we move to next quiz
+      const projectedHistory = isLastQuestion ? [
+        ...history,
+        {
+          topic: quiz.topic,
+          questions: quiz.questions.map(q => ({
+            description: q.description,
+            result: ('result' in q ? q.result : 'incorrect') as 'correct' | 'incorrect' | 'partial-credit',
+          })),
+        }
+      ] : history;
+
+      const promise = continueQuiz(userTopic, projectedHistory, fastModelId)
+        .then(async (nextQuizResponse) => {
+          const firstQuestion = nextQuizResponse.questions[0];
+          const prompt = `${nextQuizResponse.topic}: ${firstQuestion.description}`;
+          const firstQuestionXml = await generateQtiItem(prompt, firstQuestion.interactions, modelId);
+
+          const result = { quiz: nextQuizResponse, firstQuestionXml };
+          setPrefetched(prev => ({
+            ...prev,
+            nextQuiz: result
+          }));
+          console.log('Prefetched next quiz and first question');
+          return result;
+        })
+        .catch(err => {
+          console.error('Failed to prefetch next quiz:', err);
+          throw err;
+        })
+        .finally(() => { prefetchingRef.current.nextQuiz = null; });
+
+      prefetchingRef.current.nextQuiz = promise;
+    }
+  }, []);
+
+  const handleStartQuiz = async (topic: string, modelId: number, fastModelId: number) => {
     setGenerateDialogOpen(false);
     setActiveTab('preview');
     setError('');
     setProcessing(true);
-    // Clear previous content while loading
+    // Clear previous content and prefetched data while loading
     setSanitizedTemplate('');
     setAttemptState(null);
+    setPrefetched({});
+    prefetchingRef.current = { nextQuestion: null, nextQuiz: null };
 
     try {
-      const quizResponse = await beginQuiz(topic);
+      // Use fast model for initial quiz structure
+      const quizResponse = await beginQuiz(topic, fastModelId);
       console.log('Quiz structure:', quizResponse);
 
       const newQuizState: QuizState = {
@@ -223,18 +312,23 @@ export function App() {
         currentQuestionIndex: 0,
         history: quizState.history,
         isActive: true,
+        modelId,
+        fastModelId,
       };
 
       setQuizState(newQuizState);
 
-      // Generate and load first question
-      const xml = await loadQuizQuestion(quizResponse, 0);
+      // Generate and load first question with fast model for initial speed
+      const xml = await loadQuizQuestion(quizResponse, 0, fastModelId);
       if (xml && newQuizState.currentQuiz) {
         newQuizState.currentQuiz.questions[0].xml = xml;
         setQuizState({ ...newQuizState });
       }
 
       setActiveTab('preview');
+
+      // Trigger eager generation of next question (uses main model for quality)
+      triggerEagerGeneration(quizResponse, 0, topic, newQuizState.history, modelId, fastModelId);
     } catch (err) {
       console.error('Quiz start error:', err);
       setError(err instanceof Error ? err.message : 'Failed to start quiz');
@@ -246,32 +340,87 @@ export function App() {
   const handleNextQuestion = async () => {
     if (!quizState.currentQuiz || !attemptState) return;
 
-    setIsLoadingNextQuestion(true);
     setError('');
 
+    // Record result of current question
+    const result = determineResult(attemptState);
+    const currentQuestion = quizState.currentQuiz.questions[quizState.currentQuestionIndex];
+    currentQuestion.result = result;
+
+    const nextIndex = quizState.currentQuestionIndex + 1;
+
     try {
-      // Record result of current question
-      const result = determineResult(attemptState);
-      const currentQuestion = quizState.currentQuiz.questions[quizState.currentQuestionIndex];
-      currentQuestion.result = result;
-
-      const nextIndex = quizState.currentQuestionIndex + 1;
-
       if (nextIndex < quizState.currentQuiz.questions.length) {
-        // Load next question from current quiz
-        const xml = await loadQuizQuestion(
-          { topic: quizState.currentQuiz.topic, questions: quizState.currentQuiz.questions },
-          nextIndex
-        );
-        if (xml) {
-          quizState.currentQuiz.questions[nextIndex].xml = xml;
+        // Moving to next question in current quiz
+        let xml = prefetched.nextQuestionXml;
+
+        if (!xml && prefetchingRef.current.nextQuestion) {
+          // Prefetch is in progress, wait for it
+          console.log('Waiting for in-progress prefetch...');
+          setIsLoadingNextQuestion(true);
+          try {
+            xml = await prefetchingRef.current.nextQuestion;
+          } catch {
+            // Prefetch failed, will fall through to generate on-demand
+            xml = undefined;
+          }
         }
-        setQuizState({
-          ...quizState,
-          currentQuestionIndex: nextIndex,
-        });
+
+        if (xml) {
+          // Use prefetched content - instant transition (or after awaiting in-progress)
+          console.log('Using prefetched next question');
+          const xmlResult = await beginAttempt(xml, { resolveAssets });
+          setItemXml(xml);
+          setAttemptState(xmlResult.state);
+          setSanitizedTemplate(xmlResult.template);
+          setResponses(null);
+
+          quizState.currentQuiz.questions[nextIndex].xml = xml;
+          const updatedQuizState = {
+            ...quizState,
+            currentQuestionIndex: nextIndex,
+          };
+          setQuizState(updatedQuizState);
+
+          // Clear used prefetch and trigger next eager generation
+          setPrefetched(prev => ({ ...prev, nextQuestionXml: undefined }));
+          triggerEagerGeneration(
+            { topic: quizState.currentQuiz.topic, questions: quizState.currentQuiz.questions },
+            nextIndex,
+            quizState.userTopic,
+            quizState.history,
+            quizState.modelId,
+            quizState.fastModelId
+          );
+        } else {
+          // No prefetch available or it failed, generate on-demand with loading state
+          setIsLoadingNextQuestion(true);
+          const generatedXml = await loadQuizQuestion(
+            { topic: quizState.currentQuiz.topic, questions: quizState.currentQuiz.questions },
+            nextIndex,
+            quizState.modelId
+          );
+          if (generatedXml) {
+            quizState.currentQuiz.questions[nextIndex].xml = generatedXml;
+          }
+          const updatedQuizState = {
+            ...quizState,
+            currentQuestionIndex: nextIndex,
+          };
+          setQuizState(updatedQuizState);
+
+          // Trigger eager generation for subsequent questions
+          triggerEagerGeneration(
+            { topic: quizState.currentQuiz.topic, questions: quizState.currentQuiz.questions },
+            nextIndex,
+            quizState.userTopic,
+            quizState.history,
+            quizState.modelId,
+            quizState.fastModelId
+          );
+        }
       } else {
-        // Quiz complete, add to history and continue with new questions
+        // Quiz complete, moving to next quiz
         const completedQuiz = {
           topic: quizState.currentQuiz.topic,
           questions: quizState.currentQuiz.questions.map(q => ({
@@ -279,33 +428,84 @@ export function App() {
             result: q.result || 'incorrect',
           })),
         };
-
         const newHistory = [...quizState.history, completedQuiz];
 
-        // Get more questions
-        const quizResponse = await continueQuiz(quizState.userTopic, newHistory);
-        console.log('Continue quiz response:', quizResponse);
+        let nextQuizData = prefetched.nextQuiz;
 
-        const newQuizState: QuizState = {
-          ...quizState,
-          currentQuiz: {
-            topic: quizResponse.topic,
-            questions: quizResponse.questions.map(q => ({
-              description: q.description,
-              interactions: q.interactions,
-            })),
-          },
-          currentQuestionIndex: 0,
-          history: newHistory,
-        };
+        if (!nextQuizData && prefetchingRef.current.nextQuiz) {
+          // Prefetch is in progress, wait for it
+          console.log('Waiting for in-progress next quiz prefetch...');
+          setIsLoadingNextQuestion(true);
+          try {
+            nextQuizData = await prefetchingRef.current.nextQuiz;
+          } catch {
+            // Prefetch failed, will fall through to generate on-demand
+            nextQuizData = undefined;
+          }
+        }
 
-        setQuizState(newQuizState);
+        if (nextQuizData) {
+          // Use prefetched next quiz - instant transition (or after awaiting in-progress)
+          console.log('Using prefetched next quiz');
+          const { quiz: nextQuizResponse, firstQuestionXml } = nextQuizData;
 
-        // Load first question of new quiz
-        const xml = await loadQuizQuestion(quizResponse, 0);
-        if (xml && newQuizState.currentQuiz) {
-          newQuizState.currentQuiz.questions[0].xml = xml;
-          setQuizState({ ...newQuizState });
+          const xmlResult = await beginAttempt(firstQuestionXml, { resolveAssets });
+          setItemXml(firstQuestionXml);
+          setAttemptState(xmlResult.state);
+          setSanitizedTemplate(xmlResult.template);
+          setResponses(null);
+
+          const newQuizState: QuizState = {
+            ...quizState,
+            currentQuiz: {
+              topic: nextQuizResponse.topic,
+              questions: nextQuizResponse.questions.map((q, i) => ({
+                description: q.description,
+                interactions: q.interactions,
+                xml: i === 0 ? firstQuestionXml : undefined,
+              })),
+            },
+            currentQuestionIndex: 0,
+            history: newHistory,
+          };
+          setQuizState(newQuizState);
+
+          // Clear used prefetch and trigger eager generation for new quiz
+          setPrefetched({});
+          prefetchingRef.current = { nextQuestion: null, nextQuiz: null };
+          triggerEagerGeneration(nextQuizResponse, 0, quizState.userTopic, newHistory, quizState.modelId, quizState.fastModelId);
+        } else {
+          // No prefetch available or it failed, generate on-demand
+          setIsLoadingNextQuestion(true);
+          const quizResponse = await continueQuiz(quizState.userTopic, newHistory, quizState.fastModelId);
+          console.log('Continue quiz response:', quizResponse);
+
+          const newQuizState: QuizState = {
+            ...quizState,
+            currentQuiz: {
+              topic: quizResponse.topic,
+              questions: quizResponse.questions.map(q => ({
+                description: q.description,
+                interactions: q.interactions,
+              })),
+            },
+            currentQuestionIndex: 0,
+            history: newHistory,
+          };
+
+          setQuizState(newQuizState);
+
+          // Load first question of new quiz
+          const xml = await loadQuizQuestion(quizResponse, 0, quizState.modelId);
+          if (xml && newQuizState.currentQuiz) {
+            newQuizState.currentQuiz.questions[0].xml = xml;
+            setQuizState({ ...newQuizState });
+          }
+
+          // Clear prefetch state and trigger eager generation
+          setPrefetched({});
+          prefetchingRef.current = { nextQuestion: null, nextQuiz: null };
+          triggerEagerGeneration(quizResponse, 0, quizState.userTopic, newHistory, quizState.modelId, quizState.fastModelId);
         }
       }
     } catch (err) {
@@ -317,6 +517,10 @@ export function App() {
   };
 
   const handleEndQuiz = () => {
+    // Clear prefetched content
+    setPrefetched({});
+    prefetchingRef.current = { nextQuestion: null, nextQuiz: null };
+
     // Record final result if there's a current attempt
     if (quizState.currentQuiz && attemptState) {
       const result = determineResult(attemptState);

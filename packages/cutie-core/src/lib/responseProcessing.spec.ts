@@ -1012,6 +1012,195 @@ describe('Standard Response Processing Templates', () => {
       // CC2_map_response should work the same as map_response
       expect(newState.variables.SCORE).toBe(0.5);
     });
+
+    test('map_response uses case-insensitive matching by default', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+                     identifier="case-insensitive-default">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="string">
+    <qti-mapping default-value="0">
+      <qti-map-entry map-key="york" mapped-value="1.0"/>
+    </qti-mapping>
+  </qti-response-declaration>
+
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value>
+      <qti-value>0</qti-value>
+    </qti-default-value>
+  </qti-outcome-declaration>
+
+  <qti-item-body>
+    <qti-text-entry-interaction response-identifier="RESPONSE"/>
+  </qti-item-body>
+
+  <qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/map_response.xml"/>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const currentState: AttemptState = {
+        variables: { SCORE: 0 },
+        completionStatus: 'not_attempted',
+        score: 0,
+        maxScore: null,
+      };
+
+      // "York" should match "york" (case-insensitive by default)
+      const newState = processResponse(itemDoc, { RESPONSE: 'York' }, currentState);
+      expect(newState.variables.SCORE).toBe(1.0);
+    });
+
+    test('map_response case-insensitive matching works with all uppercase', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+                     identifier="case-insensitive-uppercase">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="string">
+    <qti-mapping default-value="0">
+      <qti-map-entry map-key="York" mapped-value="1.0"/>
+    </qti-mapping>
+  </qti-response-declaration>
+
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value>
+      <qti-value>0</qti-value>
+    </qti-default-value>
+  </qti-outcome-declaration>
+
+  <qti-item-body>
+    <qti-text-entry-interaction response-identifier="RESPONSE"/>
+  </qti-item-body>
+
+  <qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/map_response.xml"/>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const currentState: AttemptState = {
+        variables: { SCORE: 0 },
+        completionStatus: 'not_attempted',
+        score: 0,
+        maxScore: null,
+      };
+
+      // "YORK" should match "York" (case-insensitive by default)
+      const newState = processResponse(itemDoc, { RESPONSE: 'YORK' }, currentState);
+      expect(newState.variables.SCORE).toBe(1.0);
+    });
+
+    test('map_response respects case-sensitive="true" on map-entry', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+                     identifier="case-sensitive-explicit">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="string">
+    <qti-mapping default-value="0">
+      <qti-map-entry map-key="York" mapped-value="1.0" case-sensitive="true"/>
+    </qti-mapping>
+  </qti-response-declaration>
+
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value>
+      <qti-value>0</qti-value>
+    </qti-default-value>
+  </qti-outcome-declaration>
+
+  <qti-item-body>
+    <qti-text-entry-interaction response-identifier="RESPONSE"/>
+  </qti-item-body>
+
+  <qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/map_response.xml"/>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const currentState: AttemptState = {
+        variables: { SCORE: 0 },
+        completionStatus: 'not_attempted',
+        score: 0,
+        maxScore: null,
+      };
+
+      // "york" should NOT match "York" when case-sensitive="true"
+      const newState = processResponse(itemDoc, { RESPONSE: 'york' }, currentState);
+      expect(newState.variables.SCORE).toBe(0);
+    });
+
+    test('map_response case-sensitive="true" matches exact case', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+                     identifier="case-sensitive-exact">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="string">
+    <qti-mapping default-value="0">
+      <qti-map-entry map-key="York" mapped-value="1.0" case-sensitive="true"/>
+    </qti-mapping>
+  </qti-response-declaration>
+
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value>
+      <qti-value>0</qti-value>
+    </qti-default-value>
+  </qti-outcome-declaration>
+
+  <qti-item-body>
+    <qti-text-entry-interaction response-identifier="RESPONSE"/>
+  </qti-item-body>
+
+  <qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/map_response.xml"/>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const currentState: AttemptState = {
+        variables: { SCORE: 0 },
+        completionStatus: 'not_attempted',
+        score: 0,
+        maxScore: null,
+      };
+
+      // "York" should match "York" exactly when case-sensitive="true"
+      const newState = processResponse(itemDoc, { RESPONSE: 'York' }, currentState);
+      expect(newState.variables.SCORE).toBe(1.0);
+    });
+
+    test('map_response with mixed case-sensitive and case-insensitive entries', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+                     identifier="mixed-case-sensitivity">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="string">
+    <qti-mapping default-value="0">
+      <qti-map-entry map-key="York" mapped-value="1.0" case-sensitive="true"/>
+      <qti-map-entry map-key="london" mapped-value="0.5"/>
+    </qti-mapping>
+  </qti-response-declaration>
+
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value>
+      <qti-value>0</qti-value>
+    </qti-default-value>
+  </qti-outcome-declaration>
+
+  <qti-item-body>
+    <qti-text-entry-interaction response-identifier="RESPONSE"/>
+  </qti-item-body>
+
+  <qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/map_response.xml"/>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const currentState: AttemptState = {
+        variables: { SCORE: 0 },
+        completionStatus: 'not_attempted',
+        score: 0,
+        maxScore: null,
+      };
+
+      // "york" should not match "York" (case-sensitive entry)
+      let newState = processResponse(itemDoc, { RESPONSE: 'york' }, currentState);
+      expect(newState.variables.SCORE).toBe(0);
+
+      // "LONDON" should match "london" (case-insensitive entry)
+      newState = processResponse(itemDoc, { RESPONSE: 'LONDON' }, currentState);
+      expect(newState.variables.SCORE).toBe(0.5);
+
+      // "York" should match exactly (case-sensitive entry)
+      newState = processResponse(itemDoc, { RESPONSE: 'York' }, currentState);
+      expect(newState.variables.SCORE).toBe(1.0);
+    });
   });
 
   describe('MAP RESPONSE POINT Template', () => {

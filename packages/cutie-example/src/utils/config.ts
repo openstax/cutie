@@ -14,7 +14,13 @@ export const MODELS: Record<string, number> = {
   'gemini-2.5-pro': 8,
   'gemini-3-pro': 17,
   'gemini-3-flash': 18,
+  'nova-premier': 16,
+  'nova-pro': 15,
+  'nova-lite': 14,
 };
 
 export const DEFAULT_MODEL_ID = MODELS['gemini-3-pro'];
 export const DEFAULT_FAST_MODEL_ID = MODELS['gemini-3-flash'];
+
+// Array of [name, id] pairs for building <select> options
+export const MODEL_ENTRIES = Object.entries(MODELS) as [string, number][];

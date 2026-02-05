@@ -38,14 +38,20 @@ yarn ci
 # Individual package CI checks
 yarn workspace @openstax/cutie-core ci
 yarn workspace @openstax/cutie-client ci
+yarn workspace @openstax/cutie-editor ci
+yarn workspace @openstax/cutie-example ci
 
 # Linting
 yarn workspace @openstax/cutie-core ci:lint
 yarn workspace @openstax/cutie-client ci:lint
+yarn workspace @openstax/cutie-editor ci:lint
+yarn workspace @openstax/cutie-example ci:lint
 
 # Type checking
 yarn workspace @openstax/cutie-core ci:typecheck
 yarn workspace @openstax/cutie-client ci:typecheck
+yarn workspace @openstax/cutie-editor ci:typecheck
+yarn workspace @openstax/cutie-example ci:typecheck
 
 # Spell checking (root level)
 yarn ci:spelling

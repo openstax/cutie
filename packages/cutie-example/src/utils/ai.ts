@@ -1,4 +1,4 @@
-import { API_URL, PROMPT_IDS, API_KEY, DEFAULT_MODEL_ID } from './config';
+import { API_URL, PROMPT_IDS, API_KEY, DEFAULT_MODEL_ID, DEFAULT_FAST_MODEL_ID } from './config';
 import { token } from './auth';
 import z from 'zod';
 import * as choiceFeedback from '../example-items/choice-feedback';
@@ -139,9 +139,13 @@ function extractXmlFromResponse(text: string): string {
   return text.trim();
 }
 
-export const generateQtiItem = async (topic: string, interactionTypes?: string[]): Promise<string> => {
+export const generateQtiItem = async (
+  topic: string,
+  interactionTypes?: string[],
+  modelId: number = DEFAULT_MODEL_ID
+): Promise<string> => {
   const systemPrompt = buildSystemPrompt(interactionTypes);
-  const response = await generateText(DEFAULT_MODEL_ID, `${systemPrompt}\n\nTopic: ${topic}`);
+  const response = await generateText(modelId, `${systemPrompt}\n\nTopic: ${topic}`);
   return extractXmlFromResponse(response);
 };
 
@@ -158,19 +162,22 @@ const quizResponse = z.object({
 
 export type QuizResponse = z.infer<typeof quizResponse>;
 
-export const beginQuiz = (topic: string) => {
-
-  return generateJson(DEFAULT_MODEL_ID, `Sketch out the structure of a quiz for the user. The user's specified interest is:
+export const beginQuiz = (topic: string, modelId: number = DEFAULT_MODEL_ID) => {
+  return generateJson(modelId, `Sketch out the structure of a quiz for the user. The user's specified interest is:
 ${topic}
 `, quizResponse);
 };
 
-export const continueQuiz = (topic: string, history: {topic: string; questions: {description: string; result: 'correct' | 'incorrect' | 'partial-credit'}[]}[]) => {
+export const continueQuiz = (
+  topic: string,
+  history: {topic: string; questions: {description: string; result: 'correct' | 'incorrect' | 'partial-credit'}[]}[],
+  modelId: number = DEFAULT_MODEL_ID
+) => {
   const formattedHistory = history.slice(-3).map(quiz => `## ${quiz.topic}
 ${quiz.questions.map(q => `- ${q.result}: ${q.description}`)}
 `);
 
-  return generateJson(DEFAULT_MODEL_ID, `The user's specified interest is:
+  return generateJson(modelId, `The user's specified interest is:
 ${topic}
 
 the user has completed these questions:
@@ -178,5 +185,6 @@ ${formattedHistory}
 
 Sketch out the structure of a quiz that will meet the user on their level based on their previous responses.
 `, quizResponse);
-
 };
+
+export { DEFAULT_FAST_MODEL_ID };

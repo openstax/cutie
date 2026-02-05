@@ -23,7 +23,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
     <qti-correct-response>
       <qti-value>Philadelphia</qti-value>
     </qti-correct-response>
-    <qti-mapping default-value="0" case-sensitive="false">
+    <qti-mapping default-value="0">
       <qti-map-entry map-key="Philadelphia" mapped-value="1"/>
       <qti-map-entry map-key="Philly" mapped-value="0.5"/>
     </qti-mapping>
@@ -33,7 +33,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
     <qti-correct-response>
       <qti-value>thirteen</qti-value>
     </qti-correct-response>
-    <qti-mapping default-value="0" case-sensitive="false">
+    <qti-mapping default-value="0">
       <qti-map-entry map-key="thirteen" mapped-value="1"/>
       <qti-map-entry map-key="13" mapped-value="1"/>
     </qti-mapping>

@@ -45,8 +45,9 @@ const FEEDBACK_BLOCK_STYLES = `
     display: block;
     margin: 0.75em 0;
     padding: 0.75em 1em;
-    border-left: 3px solid #5a6a7a;
-    background-color: #f5f7f9;
+    border-left: 3px solid #6b7280;
+    background-color: #f3f4f6;
+    color: #374151;
     font-style: italic;
   }
 `;
