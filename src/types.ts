@@ -578,6 +578,34 @@ export interface ChoiceInteractionConfig {
 }
 
 // ============================================================================
+// Feedback Identifier Types
+// ============================================================================
+
+/**
+ * Describes a single feedback identifier available from an interaction
+ */
+export interface FeedbackIdentifier {
+  /** The feedback identifier value, e.g., "RESPONSE_correct" */
+  id: string;
+  /** Human-readable label, e.g., "RESPONSE: Correct" */
+  label: string;
+  /** Description of when this feedback triggers */
+  description: string;
+}
+
+/**
+ * Collection of feedback identifiers from a single interaction
+ */
+export interface FeedbackIdentifierSource {
+  /** The response identifier of the interaction */
+  responseIdentifier: string;
+  /** The type of interaction (for display purposes) */
+  interactionType: string;
+  /** Available feedback identifiers */
+  identifiers: FeedbackIdentifier[];
+}
+
+// ============================================================================
 // Element Configuration Types (for editor plugins)
 // ============================================================================
 
@@ -607,6 +635,11 @@ export interface ElementConfig {
    * Return false to continue with default normalization.
    */
   normalize?: (editor: CustomEditor, node: Element, path: Path) => boolean;
+  /**
+   * Optional hook to generate feedback identifiers for this interaction.
+   * Return null if this element doesn't provide feedback identifiers.
+   */
+  getFeedbackIdentifiers?: (element: Element) => FeedbackIdentifierSource | null;
 }
 
 // ============================================================================

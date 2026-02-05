@@ -70,6 +70,9 @@ export type {
   EditorAssetResolver,
   EditorAssetUploader,
   EditorAssetHandlers,
+  // Feedback identifier types
+  FeedbackIdentifier,
+  FeedbackIdentifierSource,
 } from './types';
 
 // Re-export Slate types for convenience

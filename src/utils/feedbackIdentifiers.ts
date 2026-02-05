@@ -1,161 +1,18 @@
-import type { Descendant } from 'slate';
-import type { QtiChoiceInteraction, QtiSimpleChoice, SlateElement } from '../types';
-import { hasCorrectResponse } from './responseDeclaration';
+import type { Descendant, Element } from 'slate';
+import { getElementFeedbackIdentifiers } from '../plugins/withQtiInteractions';
+import type { FeedbackIdentifier, FeedbackIdentifierSource, SlateElement } from '../types';
+
+// Re-export types for convenience
+export type { FeedbackIdentifier, FeedbackIdentifierSource };
 
 /**
- * Describes a single feedback identifier available from an interaction
- */
-export interface FeedbackIdentifier {
-  /** The feedback identifier value, e.g., "RESPONSE_correct" */
-  id: string;
-  /** Human-readable label, e.g., "RESPONSE: Correct" */
-  label: string;
-  /** Description of when this feedback triggers */
-  description: string;
-}
-
-/**
- * Collection of feedback identifiers from a single interaction
- */
-export interface FeedbackIdentifierSource {
-  /** The response identifier of the interaction */
-  responseIdentifier: string;
-  /** The type of interaction (for display purposes) */
-  interactionType: string;
-  /** Available feedback identifiers */
-  identifiers: FeedbackIdentifier[];
-}
-
-/**
- * Get available feedback identifiers for a choice interaction
- */
-function getFeedbackIdentifiersForChoiceInteraction(
-  element: QtiChoiceInteraction
-): FeedbackIdentifierSource {
-  const responseId = element.attributes['response-identifier'] || 'RESPONSE';
-  const identifiers: FeedbackIdentifier[] = [];
-
-  // Only add correct/incorrect if the interaction has a correct response configured
-  if (element.responseDeclaration && hasCorrectResponse(element.responseDeclaration)) {
-    identifiers.push({
-      id: `${responseId}_correct`,
-      label: `${responseId} is correct`,
-      description: 'Shown when all selected choices are correct',
-    });
-
-    identifiers.push({
-      id: `${responseId}_incorrect`,
-      label: `${responseId} is incorrect`,
-      description: 'Shown when at least one choice is wrong',
-    });
-  }
-
-  // Add per-choice identifiers
-  for (const child of element.children) {
-    if ('type' in child && child.type === 'qti-simple-choice') {
-      const choice = child as QtiSimpleChoice;
-      const choiceId = choice.attributes.identifier;
-      if (choiceId) {
-        identifiers.push({
-          id: `${responseId}_choice_${choiceId}`,
-          label: `${responseId} is "${choiceId}"`,
-          description: `Shown when choice "${choiceId}" is selected`,
-        });
-      }
-    }
-  }
-
-  return {
-    responseIdentifier: responseId,
-    interactionType: 'Choice Interaction',
-    identifiers,
-  };
-}
-
-/**
- * Get available feedback identifiers for a text entry interaction
- */
-function getFeedbackIdentifiersForTextEntryInteraction(
-  element: SlateElement & { type: 'qti-text-entry-interaction'; responseDeclaration?: unknown }
-): FeedbackIdentifierSource {
-  const responseId = element.attributes['response-identifier'] || 'RESPONSE';
-  const identifiers: FeedbackIdentifier[] = [];
-
-  // Only add correct/incorrect if the interaction has a correct response configured
-  if (element.responseDeclaration && hasCorrectResponse(element.responseDeclaration as any)) {
-    identifiers.push({
-      id: `${responseId}_correct`,
-      label: `${responseId} is correct`,
-      description: 'Shown when response matches correct value',
-    });
-
-    identifiers.push({
-      id: `${responseId}_incorrect`,
-      label: `${responseId} is incorrect`,
-      description: 'Shown when response doesn\'t match correct value',
-    });
-  }
-
-  return {
-    responseIdentifier: responseId,
-    interactionType: 'Text Entry Interaction',
-    identifiers,
-  };
-}
-
-/**
- * Get available feedback identifiers for an extended text interaction
- */
-function getFeedbackIdentifiersForExtendedTextInteraction(
-  element: SlateElement & { type: 'qti-extended-text-interaction'; responseDeclaration?: unknown }
-): FeedbackIdentifierSource {
-  const responseId = element.attributes['response-identifier'] || 'RESPONSE';
-  const identifiers: FeedbackIdentifier[] = [];
-
-  // Only add correct/incorrect if the interaction has a correct response configured
-  if (element.responseDeclaration && hasCorrectResponse(element.responseDeclaration as any)) {
-    identifiers.push({
-      id: `${responseId}_correct`,
-      label: `${responseId} is correct`,
-      description: 'Shown when response matches correct value',
-    });
-
-    identifiers.push({
-      id: `${responseId}_incorrect`,
-      label: `${responseId} is incorrect`,
-      description: 'Shown when response doesn\'t match correct value',
-    });
-  }
-
-  return {
-    responseIdentifier: responseId,
-    interactionType: 'Extended Text Interaction',
-    identifiers,
-  };
-}
-
-/**
- * Get available feedback identifiers for a single interaction element
+ * Get available feedback identifiers for a single interaction element.
+ * Uses the registry-based approach via element configs.
  */
 export function getFeedbackIdentifiersForInteraction(
   element: SlateElement
 ): FeedbackIdentifierSource | null {
-  if (!('type' in element)) return null;
-
-  switch (element.type) {
-    case 'qti-choice-interaction':
-      return getFeedbackIdentifiersForChoiceInteraction(element as QtiChoiceInteraction);
-    case 'qti-text-entry-interaction':
-      return getFeedbackIdentifiersForTextEntryInteraction(
-        element as SlateElement & { type: 'qti-text-entry-interaction' }
-      );
-    case 'qti-extended-text-interaction':
-      return getFeedbackIdentifiersForExtendedTextInteraction(
-        element as SlateElement & { type: 'qti-extended-text-interaction' }
-      );
-    default:
-      return null;
-  }
+  return getElementFeedbackIdentifiers(element as Element);
 }
 
 /**
