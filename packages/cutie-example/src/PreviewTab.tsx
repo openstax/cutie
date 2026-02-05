@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { AttemptState } from '@openstax/cutie-core';
 import { mountItem } from '@openstax/cutie-client';
 import type { MountedItem, ResponseData } from '@openstax/cutie-client';
+import { isEffectivelyEmptyTemplate } from './utils/qtiUtils';
 
 const MenuIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor">
@@ -128,7 +129,7 @@ export function PreviewTab({ attemptState, sanitizedTemplate, responses, onSubmi
             <div className="loading-spinner" />
             <p>Generating your question...</p>
           </div>
-        ) : !sanitizedTemplate ? (
+        ) : isEffectivelyEmptyTemplate(sanitizedTemplate) ? (
           <div className="preview-empty-state">
             <p>No question loaded yet.</p>
             <p className="empty-state-hint">
