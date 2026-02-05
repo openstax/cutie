@@ -90,6 +90,7 @@ body, html {
 }
 
 .app-container {
+  position: relative;
   display: flex;
   height: calc(100vh - 50px);
   width: 100vw;
@@ -104,13 +105,53 @@ body, html {
   overflow-y: auto;
 }
 
+.sidebar .header {
+  background: white;
+  padding: 0 1.5rem;
+  border-bottom: 1px solid #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sidebar-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: #5f6368;
+  cursor: pointer;
+}
+
+.sidebar-toggle.floating {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 10;
+}
+
+.sidebar-toggle.floating:hover {
+  background: #f5f5f5;
+}
+
+.app-container.sidebar-collapsed .sidebar {
+  display: none;
+}
+
+.app-container.sidebar-collapsed .preview-area {
+  position: relative;
+}
+
 h1 {
   font-size: 1.8rem;
   padding: 1.2rem 1.5rem;
-  background: #fff;
   border-bottom: 1px solid #ddd;
   color: #333;
-  flex-shrink: 0;
 }
 
 h2 {
@@ -164,7 +205,8 @@ h2 {
 
 .panel > pre,
 .panel > div {
-  padding: 0 1.5rem 1.2rem 1.5rem;
+  padding: 1.2rem 1.5rem;
+  margin: 0 1rem 1rem 0;
 }
 
 .example-select {

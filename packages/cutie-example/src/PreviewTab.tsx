@@ -3,6 +3,12 @@ import type { AttemptState } from '@openstax/cutie-core';
 import { mountItem } from '@openstax/cutie-client';
 import type { MountedItem, ResponseData } from '@openstax/cutie-client';
 
+const MenuIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor">
+    <path d="M120-240v-80h720v80H120Zm0-200v-80h720v80H120Zm0-200v-80h720v80H120Z"/>
+  </svg>
+);
+
 interface PreviewTabProps {
   attemptState: AttemptState | null;
   sanitizedTemplate: string;
@@ -13,13 +19,15 @@ interface PreviewTabProps {
 
 export function PreviewTab({ attemptState, sanitizedTemplate, responses, onSubmitResponses, onResetAttempt }: PreviewTabProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const previewRef = useRef<HTMLDivElement>(null);
   const mountedItemRef = useRef<MountedItem | null>(null);
 
   // Derived - no state needed
   const interactionsEnabled = !isSubmitting && attemptState?.completionStatus !== 'completed';
 
-  // Mount/unmount item when sanitizedTemplate changes
+  // Mount/unmount item when sanitizedTemplate or attemptState changes
+  // Including attemptState ensures the item remounts on reset (even if template is same)
   useEffect(() => {
     if (previewRef.current && sanitizedTemplate) {
       const mountedItem = mountItem(previewRef.current, sanitizedTemplate);
@@ -33,7 +41,7 @@ export function PreviewTab({ attemptState, sanitizedTemplate, responses, onSubmi
       };
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sanitizedTemplate]);
+  }, [sanitizedTemplate, attemptState]);
 
   useEffect(() => {
     if (mountedItemRef.current) {
@@ -55,9 +63,27 @@ export function PreviewTab({ attemptState, sanitizedTemplate, responses, onSubmi
   };
 
   return (
-    <div className="app-container">
+    <div className={`app-container ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+      {sidebarCollapsed && (
+        <button
+          className="sidebar-toggle floating"
+          onClick={() => setSidebarCollapsed(false)}
+          aria-label="Open sidebar"
+        >
+          <MenuIcon />
+        </button>
+      )}
       <div className="sidebar">
-        <h1>Cutie QTI Processor</h1>
+        <div className="header">
+          <h2>Debug</h2>
+          <button
+            className="sidebar-toggle"
+            onClick={() => setSidebarCollapsed(true)}
+            aria-label="Close sidebar"
+          >
+            <MenuIcon />
+          </button>
+        </div>
 
         <details className="panel" open>
           <summary>
