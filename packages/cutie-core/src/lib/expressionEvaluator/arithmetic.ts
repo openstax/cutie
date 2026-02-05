@@ -19,10 +19,14 @@ export function evaluateSum(
   for (const child of getChildElements(element)) {
     const value = subEvaluate(child, itemDoc, variables);
     if (value !== null && value !== undefined) {
-      if (typeof value !== 'number') {
+      if (typeof value === 'boolean') {
+        // Convert boolean to number (common QTI pattern for counting matches)
+        sum += value ? 1 : 0;
+      } else if (typeof value === 'number') {
+        sum += value;
+      } else {
         throw new Error(`Expected number value in <qti-sum>, got ${typeof value}`);
       }
-      sum += value;
     }
   }
 
