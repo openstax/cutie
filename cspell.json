@@ -50,9 +50,9 @@
     "*.svg",
     "*.spec.ts.snap",
     "coverage",
+    "LICENSE.txt",
     "package.json",
     "yarn.lock",
-    "node_modules/**",
-    "*.svg"
+    "node_modules/**"
   ]
 }

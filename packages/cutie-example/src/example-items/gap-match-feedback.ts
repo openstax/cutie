@@ -1,3 +1,4 @@
+// cspell:ignore distractor
 // Gap Match with Feedback
 
 export const name = "Gap Match - With Feedback";

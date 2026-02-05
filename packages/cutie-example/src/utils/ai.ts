@@ -1,3 +1,4 @@
+// cspell:ignore Moby
 import { API_URL, PROMPT_IDS, API_KEY, DEFAULT_MODEL_ID, DEFAULT_FAST_MODEL_ID } from './config';
 import { token } from './auth';
 import z from 'zod';
