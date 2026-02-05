@@ -2122,6 +2122,72 @@ describe('Response Processing Operators and Expressions', () => {
       expect(newState.variables.SCORE).toBe(1.0);
     });
 
+    test('qti-sum converts boolean values to numbers (common scoring pattern)', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+                     identifier="sum-boolean">
+  <qti-response-declaration identifier="RESPONSE1" cardinality="single" base-type="identifier">
+    <qti-correct-response>
+      <qti-value>A</qti-value>
+    </qti-correct-response>
+  </qti-response-declaration>
+
+  <qti-response-declaration identifier="RESPONSE2" cardinality="single" base-type="identifier">
+    <qti-correct-response>
+      <qti-value>B</qti-value>
+    </qti-correct-response>
+  </qti-response-declaration>
+
+  <qti-response-declaration identifier="RESPONSE3" cardinality="single" base-type="identifier">
+    <qti-correct-response>
+      <qti-value>C</qti-value>
+    </qti-correct-response>
+  </qti-response-declaration>
+
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value>
+      <qti-value>0</qti-value>
+    </qti-default-value>
+  </qti-outcome-declaration>
+
+  <qti-item-body>
+    <p>Question</p>
+  </qti-item-body>
+
+  <qti-response-processing>
+    <qti-set-outcome-value identifier="SCORE">
+      <qti-sum>
+        <qti-match>
+          <qti-variable identifier="RESPONSE1"/>
+          <qti-correct identifier="RESPONSE1"/>
+        </qti-match>
+        <qti-match>
+          <qti-variable identifier="RESPONSE2"/>
+          <qti-correct identifier="RESPONSE2"/>
+        </qti-match>
+        <qti-match>
+          <qti-variable identifier="RESPONSE3"/>
+          <qti-correct identifier="RESPONSE3"/>
+        </qti-match>
+      </qti-sum>
+    </qti-set-outcome-value>
+  </qti-response-processing>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const currentState = {
+        variables: { SCORE: 0 },
+        completionStatus: 'not_attempted' as const,
+        score: null,
+      };
+
+      // 2 correct, 1 incorrect
+      const submission = { RESPONSE1: 'A', RESPONSE2: 'B', RESPONSE3: 'wrong' };
+      const newState = processResponse(itemDoc, submission, currentState);
+
+      expect(newState.variables.SCORE).toBe(2);
+    });
+
     test('qti-product multiplies numeric values', () => {
       const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
 <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
