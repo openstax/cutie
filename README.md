@@ -29,6 +29,13 @@ Response and template processing are separated from the presentational layer usi
 - Wires up interaction handlers (drag/drop, drawing, hotspots, etc.)
 - Serializes user responses back to QTI format for submission
 
+**Authoring (cutie-editor):**
+- React-based WYSIWYG editor for QTI v3 assessment items
+- Built with Slate.js for robust editing experience 
+- Supports many QTI v3 interaction types, features, and response processing rules
+- Text formatting and media embedding
+- Strives to be non-destructive to unrecognized elements
+
 **Learner state**: A serializable `AttemptState` object representing a learner's attempt at an item, containing:
 - Opaque `variables` object managed by QTI processing (host application doesn't interpret)
 - Standardized `completionStatus` field indicating if further attempts are allowed
