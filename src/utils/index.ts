@@ -17,16 +17,4 @@ export {
   initializeRovingTabindex,
 } from './rovingTabindex';
 
-export {
-  DRAG_CLASSES,
-  wireDragSource,
-  wireDropTarget,
-  highlightDropTargets,
-  clearDropTargetHighlights,
-  parseDragData,
-} from './dragDrop';
-
-export type {
-  DragSourceCallbacks,
-  DropTargetCallbacks,
-} from './dragDrop';
+export { highlightDropTargets, clearDropTargetHighlights } from './dragDrop';

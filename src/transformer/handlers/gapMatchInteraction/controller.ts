@@ -1,3 +1,11 @@
+import {
+  announce,
+  clearDropTargetHighlights,
+  focusNext,
+  focusPrev,
+  highlightDropTargets,
+} from '../../../utils';
+
 /**
  * Controller for managing gap match interaction state and behavior.
  * Handles all drag/drop and keyboard interactions.
@@ -163,10 +171,10 @@ export class GapMatchController {
         this.clearSelection();
       } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
         e.preventDefault();
-        this.focusNextChoice(choiceId);
+        focusNext(this.choiceElements, choiceId);
       } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
         e.preventDefault();
-        this.focusPrevChoice(choiceId);
+        focusPrev(this.choiceElements, choiceId);
       }
     });
 
@@ -182,12 +190,19 @@ export class GapMatchController {
       element.classList.add('qti-gap-text--dragging');
 
       // Highlight valid drop targets
-      this.highlightValidDropTargets(choiceId);
+      highlightDropTargets(
+        this.gapElements.values(),
+        'qti-gap--drop-target',
+        (el) => {
+          const gapId = el.getAttribute('data-identifier');
+          return gapId ? this.canPlaceInGap(gapId, choiceId) : false;
+        }
+      );
     });
 
     element.addEventListener('dragend', () => {
       element.classList.remove('qti-gap-text--dragging');
-      this.clearDropTargetHighlights();
+      clearDropTargetHighlights(this.gapElements.values(), 'qti-gap--drop-target');
     });
   }
 
@@ -270,13 +285,20 @@ export class GapMatchController {
       element.classList.add('qti-gap--dragging');
 
       // Highlight valid drop targets (other gaps and the word bank)
-      this.highlightValidDropTargets(currentChoiceInGap);
+      highlightDropTargets(
+        this.gapElements.values(),
+        'qti-gap--drop-target',
+        (el) => {
+          const gapIdFromEl = el.getAttribute('data-identifier');
+          return gapIdFromEl ? this.canPlaceInGap(gapIdFromEl, currentChoiceInGap) : false;
+        }
+      );
       this.choicesContainer.classList.add('qti-gap-match-choices--drop-target');
     });
 
     element.addEventListener('dragend', () => {
       element.classList.remove('qti-gap--dragging');
-      this.clearDropTargetHighlights();
+      clearDropTargetHighlights(this.gapElements.values(), 'qti-gap--drop-target');
       this.choicesContainer.classList.remove('qti-gap-match-choices--drop-target');
       this.choicesContainer.classList.remove('qti-gap-match-choices--drag-over');
     });
@@ -345,67 +367,6 @@ export class GapMatchController {
   }
 
   /**
-   * Highlight gaps that are valid drop targets for a choice
-   */
-  private highlightValidDropTargets(choiceId: string): void {
-    for (const [gapId, element] of this.gapElements) {
-      if (this.canPlaceInGap(gapId, choiceId)) {
-        element.classList.add('qti-gap--drop-target');
-      }
-    }
-  }
-
-  /**
-   * Clear drop target highlights from all gaps
-   */
-  private clearDropTargetHighlights(): void {
-    for (const element of this.gapElements.values()) {
-      element.classList.remove('qti-gap--drop-target');
-    }
-  }
-
-  /**
-   * Focus the next choice in the list (roving tabindex)
-   */
-  private focusNextChoice(currentId: string): void {
-    const ids = Array.from(this.choiceElements.keys());
-    const currentIndex = ids.indexOf(currentId);
-    const nextIndex = (currentIndex + 1) % ids.length;
-    const nextId = ids[nextIndex];
-    const nextElement = this.choiceElements.get(nextId);
-
-    if (nextElement) {
-      this.updateRovingTabindex(nextElement);
-      nextElement.focus();
-    }
-  }
-
-  /**
-   * Focus the previous choice in the list (roving tabindex)
-   */
-  private focusPrevChoice(currentId: string): void {
-    const ids = Array.from(this.choiceElements.keys());
-    const currentIndex = ids.indexOf(currentId);
-    const prevIndex = (currentIndex - 1 + ids.length) % ids.length;
-    const prevId = ids[prevIndex];
-    const prevElement = this.choiceElements.get(prevId);
-
-    if (prevElement) {
-      this.updateRovingTabindex(prevElement);
-      prevElement.focus();
-    }
-  }
-
-  /**
-   * Update roving tabindex - only focused element should be tabbable
-   */
-  private updateRovingTabindex(focusedElement: HTMLElement): void {
-    for (const element of this.choiceElements.values()) {
-      element.setAttribute('tabindex', element === focusedElement ? '0' : '-1');
-    }
-  }
-
-  /**
    * Select a choice for placement
    * @param choiceId The choice identifier
    * @param fromGapId If selecting from a filled gap, the gap identifier
@@ -430,7 +391,14 @@ export class GapMatchController {
     }
 
     // Highlight valid drop targets
-    this.highlightValidDropTargets(choiceId);
+    highlightDropTargets(
+        this.gapElements.values(),
+        'qti-gap--drop-target',
+        (el) => {
+          const gapId = el.getAttribute('data-identifier');
+          return gapId ? this.canPlaceInGap(gapId, choiceId) : false;
+        }
+      );
 
     // Show word bank as drop target when moving from a gap
     if (fromGapId) {
@@ -444,9 +412,9 @@ export class GapMatchController {
 
     const content = this.choiceContents.get(choiceId) ?? '';
     if (fromGapId) {
-      this.announce(`${content} picked up from gap. Click on another gap to move it, or click the word bank to return it.`);
+      announce(this.liveRegion,`${content} picked up from gap. Click on another gap to move it, or click the word bank to return it.`);
     } else {
-      this.announce(`${content} selected. Click or press Enter on a gap to place it.`);
+      announce(this.liveRegion,`${content} selected. Click or press Enter on a gap to place it.`);
     }
   }
 
@@ -473,7 +441,7 @@ export class GapMatchController {
       this.selectedFromGap = null;
 
       // Clear drop target highlights
-      this.clearDropTargetHighlights();
+      clearDropTargetHighlights(this.gapElements.values(), 'qti-gap--drop-target');
       this.choicesContainer.classList.remove('qti-gap-match-choices--drop-target');
 
       // Remove tabindex from gaps when no selection
@@ -525,7 +493,7 @@ export class GapMatchController {
     this.updateChoiceExhaustion(choiceId);
 
     const content = this.choiceContents.get(choiceId) ?? '';
-    this.announce(`${content} placed in gap.`);
+    announce(this.liveRegion,`${content} placed in gap.`);
   }
 
   /**
@@ -566,7 +534,7 @@ export class GapMatchController {
 
     if (!silent) {
       const content = this.choiceContents.get(choiceId) ?? '';
-      this.announce(`${content} returned to word bank.`);
+      announce(this.liveRegion,`${content} returned to word bank.`);
     }
   }
 
@@ -598,13 +566,6 @@ export class GapMatchController {
       element.setAttribute('aria-disabled', 'false');
       element.setAttribute('draggable', 'true');
     }
-  }
-
-  /**
-   * Announce a message to screen readers via live region
-   */
-  announce(message: string): void {
-    this.liveRegion.textContent = message;
   }
 
   /**
