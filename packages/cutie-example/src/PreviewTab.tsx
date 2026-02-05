@@ -21,10 +21,12 @@ interface PreviewTabProps {
   responses: ResponseData | null;
   onSubmitResponses: (responses: ResponseData) => void;
   onResetAttempt: () => void;
+  isLoading?: boolean;
+  onOpenGenerateDialog?: () => void;
   quizMode?: QuizModeProps;
 }
 
-export function PreviewTab({ attemptState, sanitizedTemplate, responses, onSubmitResponses, onResetAttempt, quizMode }: PreviewTabProps) {
+export function PreviewTab({ attemptState, sanitizedTemplate, responses, onSubmitResponses, onResetAttempt, isLoading, onOpenGenerateDialog, quizMode }: PreviewTabProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const previewRef = useRef<HTMLDivElement>(null);
@@ -121,44 +123,63 @@ export function PreviewTab({ attemptState, sanitizedTemplate, responses, onSubmi
       </div>
 
       <div className="preview-area">
-        <div className="preview-card">
-          <div className="preview-item" ref={previewRef} />
-          <div className="preview-buttons">
-            <button
-              className="process-button"
-              onClick={handleSubmit}
-              disabled={!sanitizedTemplate || !interactionsEnabled}
-            >
-              {isSubmitting ? 'Submitting...' : 'Submit'}
-            </button>
-            {quizMode ? (
-              <>
-                <button
-                  className="process-button"
-                  onClick={quizMode.onNext}
-                  disabled={attemptState?.completionStatus !== 'completed' || quizMode.isLoadingNext}
-                >
-                  {quizMode.isLoadingNext ? 'Loading...' : 'Next'}
-                </button>
-                <button
-                  className="cancel-button"
-                  onClick={quizMode.onEnd}
-                  disabled={quizMode.isLoadingNext}
-                >
-                  End Quiz
-                </button>
-              </>
-            ) : (
-              <button
-                className="process-button"
-                onClick={onResetAttempt}
-                disabled={!attemptState}
-              >
-                Reset
+        {isLoading ? (
+          <div className="preview-empty-state">
+            <div className="loading-spinner" />
+            <p>Generating your question...</p>
+          </div>
+        ) : !sanitizedTemplate ? (
+          <div className="preview-empty-state">
+            <p>No question loaded yet.</p>
+            <p className="empty-state-hint">
+              Load an example, paste XML in the XML tab, or try AI-powered quiz mode.
+            </p>
+            {onOpenGenerateDialog && (
+              <button className="process-button" onClick={onOpenGenerateDialog}>
+                ✨ Generate with AI
               </button>
             )}
           </div>
-        </div>
+        ) : (
+          <div className="preview-card">
+            <div className="preview-item" ref={previewRef} />
+            <div className="preview-buttons">
+              <button
+                className="process-button"
+                onClick={handleSubmit}
+                disabled={!sanitizedTemplate || !interactionsEnabled}
+              >
+                {isSubmitting ? 'Submitting...' : 'Submit'}
+              </button>
+              {quizMode ? (
+                <>
+                  <button
+                    className="process-button"
+                    onClick={quizMode.onNext}
+                    disabled={attemptState?.completionStatus !== 'completed' || quizMode.isLoadingNext}
+                  >
+                    {quizMode.isLoadingNext ? 'Loading...' : 'Next'}
+                  </button>
+                  <button
+                    className="cancel-button"
+                    onClick={quizMode.onEnd}
+                    disabled={quizMode.isLoadingNext}
+                  >
+                    End Quiz
+                  </button>
+                </>
+              ) : (
+                <button
+                  className="process-button"
+                  onClick={onResetAttempt}
+                  disabled={!attemptState}
+                >
+                  Reset
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

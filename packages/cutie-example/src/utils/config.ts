@@ -12,6 +12,9 @@ export const PROMPT_IDS: Record<string, number> = {
 export const MODELS: Record<string, number> = {
   'claude-sonnet-4': 5,
   'gemini-2.5-pro': 8,
+  'gemini-3-pro': 17,
+  'gemini-3-flash': 18,
 };
 
-export const DEFAULT_MODEL_ID = MODELS['gemini-2.5-pro'];
+export const DEFAULT_MODEL_ID = MODELS['gemini-3-pro'];
+export const DEFAULT_FAST_MODEL_ID = MODELS['gemini-3-flash'];

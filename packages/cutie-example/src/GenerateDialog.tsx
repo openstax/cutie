@@ -14,7 +14,7 @@ interface GenerateDialogProps {
 
 export function GenerateDialog({ isOpen, onClose, onGenerate, onStartQuiz }: GenerateDialogProps) {
   const [topic, setTopic] = useState('');
-  const [mode, setMode] = useState<Mode>('single');
+  const [mode, setMode] = useState<Mode>('quiz');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const dialogRef = useRef<HTMLDialogElement>(null);

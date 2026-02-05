@@ -65,7 +65,7 @@ const determineResult = (state: AttemptState): 'correct' | 'incorrect' | 'partia
 };
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<Tab>('xml');
+  const [activeTab, setActiveTab] = useState<Tab>('preview');
   const [itemXml, setItemXml] = useState('');
   const [attemptState, setAttemptState] = useState<AttemptState | null>(null);
   const [sanitizedTemplate, setSanitizedTemplate] = useState<string>('');
@@ -200,8 +200,12 @@ export function App() {
 
   const handleStartQuiz = async (topic: string) => {
     setGenerateDialogOpen(false);
+    setActiveTab('preview');
     setError('');
     setProcessing(true);
+    // Clear previous content while loading
+    setSanitizedTemplate('');
+    setAttemptState(null);
 
     try {
       const quizResponse = await beginQuiz(topic);
@@ -389,6 +393,8 @@ export function App() {
             responses={responses}
             onSubmitResponses={handleSubmitResponses}
             onResetAttempt={handleResetAttempt}
+            isLoading={processing}
+            onOpenGenerateDialog={() => setGenerateDialogOpen(true)}
             quizMode={quizState.isActive ? {
               onNext: handleNextQuestion,
               onEnd: handleEndQuiz,
