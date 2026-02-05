@@ -6,6 +6,7 @@ import { examples, exampleGroups } from './example-items';
 import { EditorTab } from './EditorTab';
 import { PreviewTab } from './PreviewTab';
 import { GenerateDialog } from './GenerateDialog';
+import { Toast } from './Toast';
 import { beginQuiz, continueQuiz, generateQtiItem } from './utils/ai';
 import type { QuizResponse, InteractionType } from './utils/ai';
 import './App.css';
@@ -570,11 +571,6 @@ export function App() {
               >
                 {processing ? 'Processing...' : 'Process Item'}
               </button>
-              {error && (
-                <div className="error-message">
-                  {error}
-                </div>
-              )}
             </div>
           </div>
         );
@@ -665,6 +661,7 @@ export function App() {
         onGenerate={handleAIGenerate}
         onStartQuiz={handleStartQuiz}
       />
+      {error && <Toast message={error} onClose={() => setError('')} />}
     </>
   );
 }

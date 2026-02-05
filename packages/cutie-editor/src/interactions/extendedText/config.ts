@@ -1,5 +1,6 @@
 import { Element, Transforms } from 'slate';
-import type { CustomEditor, ElementConfig } from '../../types';
+import type { CustomEditor, ElementConfig, FeedbackIdentifier, QtiExtendedTextInteraction } from '../../types';
+import { hasCorrectResponse } from '../../utils/responseDeclaration';
 
 export const extendedTextInteractionConfig: ElementConfig = {
   type: 'qti-extended-text-interaction',
@@ -34,5 +35,32 @@ export const extendedTextInteractionConfig: ElementConfig = {
     }
 
     return false;
+  },
+
+  getFeedbackIdentifiers: (element: Element) => {
+    const el = element as QtiExtendedTextInteraction;
+    const responseId = el.attributes['response-identifier'] || 'RESPONSE';
+    const identifiers: FeedbackIdentifier[] = [];
+
+    // Only add correct/incorrect if the interaction has a correct response configured
+    if (el.responseDeclaration && hasCorrectResponse(el.responseDeclaration)) {
+      identifiers.push({
+        id: `${responseId}_correct`,
+        label: `${responseId} is correct`,
+        description: 'Shown when response matches correct value',
+      });
+
+      identifiers.push({
+        id: `${responseId}_incorrect`,
+        label: `${responseId} is incorrect`,
+        description: 'Shown when response doesn\'t match correct value',
+      });
+    }
+
+    return {
+      responseIdentifier: responseId,
+      interactionType: 'Extended Text Interaction',
+      identifiers,
+    };
   },
 };

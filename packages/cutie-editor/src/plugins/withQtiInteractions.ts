@@ -22,7 +22,7 @@ import {
 } from '../interactions/gapMatch/config';
 import { inlineChoiceInteractionConfig } from '../interactions/inlineChoice/config';
 import { textEntryInteractionConfig } from '../interactions/textEntry/config';
-import type { CustomEditor, ElementConfig } from '../types';
+import type { CustomEditor, ElementConfig, FeedbackIdentifierSource } from '../types';
 
 const elementConfigs: ElementConfig[] = [
   // Interaction configs
@@ -89,6 +89,18 @@ export function normalizeElement(editor: CustomEditor, element: Element, path: P
     return config.normalize(editor, element, path);
   }
   return false;
+}
+
+/**
+ * Get feedback identifiers for an element if it provides them.
+ */
+export function getElementFeedbackIdentifiers(element: Element): FeedbackIdentifierSource | null {
+  if (!('type' in element)) return null;
+  const config = elementConfigs.find(c => c.matches(element));
+  if (config?.getFeedbackIdentifiers) {
+    return config.getFeedbackIdentifiers(element);
+  }
+  return null;
 }
 
 /**

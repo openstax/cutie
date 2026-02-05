@@ -1,5 +1,12 @@
 import { Element, Transforms } from 'slate';
-import type { CustomEditor, ElementConfig } from '../../types';
+import type {
+  CustomEditor,
+  ElementConfig,
+  FeedbackIdentifier,
+  QtiChoiceInteraction,
+  QtiSimpleChoice,
+} from '../../types';
+import { hasCorrectResponse } from '../../utils/responseDeclaration';
 
 export const choiceInteractionConfig: ElementConfig = {
   type: 'qti-choice-interaction',
@@ -34,5 +41,47 @@ export const choiceInteractionConfig: ElementConfig = {
     }
 
     return false;
+  },
+
+  getFeedbackIdentifiers: (element: Element) => {
+    const el = element as QtiChoiceInteraction;
+    const responseId = el.attributes['response-identifier'] || 'RESPONSE';
+    const identifiers: FeedbackIdentifier[] = [];
+
+    // Only add correct/incorrect if the interaction has a correct response configured
+    if (el.responseDeclaration && hasCorrectResponse(el.responseDeclaration)) {
+      identifiers.push({
+        id: `${responseId}_correct`,
+        label: `${responseId} is correct`,
+        description: 'Shown when all selected choices are correct',
+      });
+
+      identifiers.push({
+        id: `${responseId}_incorrect`,
+        label: `${responseId} is incorrect`,
+        description: 'Shown when at least one choice is wrong',
+      });
+    }
+
+    // Add per-choice identifiers
+    for (const child of el.children) {
+      if ('type' in child && child.type === 'qti-simple-choice') {
+        const choice = child as QtiSimpleChoice;
+        const choiceId = choice.attributes.identifier;
+        if (choiceId) {
+          identifiers.push({
+            id: `${responseId}_choice_${choiceId}`,
+            label: `${responseId} is "${choiceId}"`,
+            description: `Shown when choice "${choiceId}" is selected`,
+          });
+        }
+      }
+    }
+
+    return {
+      responseIdentifier: responseId,
+      interactionType: 'Choice Interaction',
+      identifiers,
+    };
   },
 };

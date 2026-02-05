@@ -1,5 +1,33 @@
 import { Element, Transforms } from 'slate';
-import type { CustomEditor, ElementConfig } from '../../types';
+import type {
+  CustomEditor,
+  ElementConfig,
+  FeedbackIdentifier,
+  GapMatchContent,
+  QtiGap,
+  QtiGapMatchInteraction,
+  SlateElement,
+} from '../../types';
+import { hasCorrectResponse } from '../../utils/responseDeclaration';
+
+/**
+ * Recursively find all qti-gap elements within the gap-match-content
+ */
+function findGapsInContent(node: SlateElement | { text: string }): QtiGap[] {
+  if (!('type' in node)) return [];
+
+  if (node.type === 'qti-gap') {
+    return [node as QtiGap];
+  }
+
+  const gaps: QtiGap[] = [];
+  if ('children' in node && Array.isArray(node.children)) {
+    for (const child of node.children) {
+      gaps.push(...findGapsInContent(child as SlateElement | { text: string }));
+    }
+  }
+  return gaps;
+}
 
 export const gapMatchInteractionConfig: ElementConfig = {
   type: 'qti-gap-match-interaction',
@@ -60,6 +88,52 @@ export const gapMatchInteractionConfig: ElementConfig = {
     }
 
     return false;
+  },
+
+  getFeedbackIdentifiers: (element: Element) => {
+    const el = element as QtiGapMatchInteraction;
+    const responseId = el.attributes['response-identifier'] || 'RESPONSE';
+    const identifiers: FeedbackIdentifier[] = [];
+
+    // Only add correct/incorrect if the interaction has a correct response configured
+    if (el.responseDeclaration && hasCorrectResponse(el.responseDeclaration)) {
+      identifiers.push({
+        id: `${responseId}_correct`,
+        label: `${responseId} is correct`,
+        description: 'Shown when all gaps are filled correctly',
+      });
+
+      identifiers.push({
+        id: `${responseId}_incorrect`,
+        label: `${responseId} is incorrect`,
+        description: 'Shown when at least one gap is wrong',
+      });
+    }
+
+    // Find gap-match-content and extract gaps for per-gap identifiers
+    const contentChild = el.children.find(
+      (child) => 'type' in child && child.type === 'gap-match-content'
+    ) as GapMatchContent | undefined;
+
+    if (contentChild) {
+      const gaps = findGapsInContent(contentChild);
+      for (const gap of gaps) {
+        const gapId = gap.attributes.identifier;
+        if (gapId) {
+          identifiers.push({
+            id: `${responseId}_gap_${gapId}`,
+            label: `${responseId} gap "${gapId}"`,
+            description: `Shown when gap "${gapId}" is filled correctly`,
+          });
+        }
+      }
+    }
+
+    return {
+      responseIdentifier: responseId,
+      interactionType: 'Gap Match Interaction',
+      identifiers,
+    };
   },
 };
 
