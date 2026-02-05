@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { beginAttempt, submitResponse } from '@openstax/cutie-core';
 import type { AttemptState, ProcessingOptions } from '@openstax/cutie-core';
 import type { ResponseData } from '@openstax/cutie-client';
-import { examples } from './example-items';
+import { examples, exampleGroups } from './example-items';
 import { EditorTab } from './EditorTab';
 import { PreviewTab } from './PreviewTab';
 import { GenerateDialog } from './GenerateDialog';
@@ -225,10 +225,14 @@ export function App() {
             disabled={processing}
           >
             <option value="">Load example item...</option>
-            {examples.map((ex) => (
-              <option key={ex.name} value={ex.name}>
-                {ex.name}
-              </option>
+            {exampleGroups.map((group) => (
+              <optgroup key={group.label} label={group.label}>
+                {group.items.map((ex) => (
+                  <option key={ex.name} value={ex.name}>
+                    {ex.name}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
         </div>

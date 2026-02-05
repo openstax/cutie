@@ -65,7 +65,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
           <qti-correct identifier="RESPONSE"/>
         </qti-match>
         <qti-set-outcome-value identifier="SCORE">
-          <qti-variable identifier="MAXSCORE"/>
+          <qti-base-value base-type="float">1</qti-base-value>
         </qti-set-outcome-value>
       </qti-response-if>
     </qti-response-condition>

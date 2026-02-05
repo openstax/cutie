@@ -4,6 +4,11 @@ export interface ExampleItem {
   item: string;
 }
 
+export interface ExampleGroup {
+  label: string;
+  items: ExampleItem[];
+}
+
 import * as choice from './choice';
 import * as choiceMultiple from './choice-multiple';
 import * as textEntry from './text-entry';
@@ -30,30 +35,43 @@ import * as matchFeedback from './match-feedback';
 import * as gapMatchFeedback from './gap-match-feedback';
 import * as multiInteractionFeedback from './multi-interaction-feedback';
 
-export const examples: ExampleItem[] = [
-  choice,
-  choiceMultiple,
-  textEntry,
-  inlineChoice,
-  match,
-  gapMatch,
-  order,
-  slider,
-  hotspot,
-  extendedText,
-  associate,
-  hottext,
-  math,
-  selectPoint,
-  multiInput,
-  modalFeedback,
-  inlineFeedback,
-  blockFeedback,
-  choiceFeedback,
-  choiceMultipleFeedback,
-  textEntryFeedback,
-  inlineChoiceFeedback,
-  matchFeedback,
-  gapMatchFeedback,
-  multiInteractionFeedback,
+export const exampleGroups: ExampleGroup[] = [
+  {
+    label: 'QTI Spec Examples',
+    items: [
+      choice,
+      choiceMultiple,
+      textEntry,
+      inlineChoice,
+      match,
+      gapMatch,
+      order,
+      slider,
+      hotspot,
+      extendedText,
+      associate,
+      hottext,
+      math,
+      selectPoint,
+      multiInput,
+    ],
+  },
+  {
+    label: 'Feedback Examples',
+    items: [
+      modalFeedback,
+      inlineFeedback,
+      blockFeedback,
+      choiceFeedback,
+      choiceMultipleFeedback,
+      textEntryFeedback,
+      inlineChoiceFeedback,
+      matchFeedback,
+      gapMatchFeedback,
+      multiInteractionFeedback,
+    ],
+  },
 ];
+
+// Flat list for backwards compatibility
+export const examples: ExampleItem[] = exampleGroups.flatMap(g => g.items);

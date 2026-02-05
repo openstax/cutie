@@ -26,7 +26,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
       <qti-value>1.0</qti-value>
     </qti-default-value>
   </qti-outcome-declaration>
-  <qti-outcome-declaration identifier="FEEDBACK" cardinality="single" base-type="identifier"/>
+  <qti-outcome-declaration identifier="FEEDBACK" cardinality="multiple" base-type="identifier"/>
 
   <qti-item-body>
     <p>Complete the sentence by selecting the correct word from the dropdown.</p>
@@ -40,11 +40,11 @@ adaptive="false" time-dependent="false" xml:lang="en">
       and the sentence continues here.
     </p>
 
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="correct" show-hide="show">
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_correct" show-hide="show">
       <p><strong>Correct!</strong> "Correct option" is the right choice because [explanation].</p>
     </qti-feedback-block>
 
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="incorrect" show-hide="show">
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_incorrect" show-hide="show">
       <p><strong>Incorrect.</strong> The correct answer is "correct option". [Explanation of why].</p>
     </qti-feedback-block>
   </qti-item-body>
@@ -57,15 +57,21 @@ adaptive="false" time-dependent="false" xml:lang="en">
           <qti-correct identifier="RESPONSE"/>
         </qti-match>
         <qti-set-outcome-value identifier="SCORE">
-          <qti-variable identifier="MAXSCORE"/>
+          <qti-base-value base-type="float">1</qti-base-value>
         </qti-set-outcome-value>
         <qti-set-outcome-value identifier="FEEDBACK">
-          <qti-base-value base-type="identifier">correct</qti-base-value>
+          <qti-multiple>
+            <qti-variable identifier="FEEDBACK"/>
+            <qti-base-value base-type="identifier">RESPONSE_correct</qti-base-value>
+          </qti-multiple>
         </qti-set-outcome-value>
       </qti-response-if>
       <qti-response-else>
         <qti-set-outcome-value identifier="FEEDBACK">
-          <qti-base-value base-type="identifier">incorrect</qti-base-value>
+          <qti-multiple>
+            <qti-variable identifier="FEEDBACK"/>
+            <qti-base-value base-type="identifier">RESPONSE_incorrect</qti-base-value>
+          </qti-multiple>
         </qti-set-outcome-value>
       </qti-response-else>
     </qti-response-condition>

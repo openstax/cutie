@@ -67,10 +67,10 @@ adaptive="false" time-dependent="false" xml:lang="en">
     </qti-choice-interaction>
 
     <p>
-      <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="part1_correct" show-hide="show">
+      <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE1_correct" show-hide="show">
         <strong>Part 1: Correct!</strong>
       </qti-feedback-inline>
-      <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="part1_incorrect" show-hide="show">
+      <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE1_incorrect" show-hide="show">
         <strong>Part 1: Incorrect.</strong> The answer is "Correct answer".
       </qti-feedback-inline>
     </p>
@@ -81,10 +81,10 @@ adaptive="false" time-dependent="false" xml:lang="en">
     <p>Enter the expected word: <qti-text-entry-interaction response-identifier="RESPONSE2" expected-length="10"/></p>
 
     <p>
-      <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="part2_correct" show-hide="show">
+      <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE2_correct" show-hide="show">
         <strong>Part 2: Correct!</strong>
       </qti-feedback-inline>
-      <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="part2_incorrect" show-hide="show">
+      <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE2_incorrect" show-hide="show">
         <strong>Part 2: Incorrect.</strong> The answer is "answer".
       </qti-feedback-inline>
     </p>
@@ -103,24 +103,14 @@ adaptive="false" time-dependent="false" xml:lang="en">
     </p>
 
     <p>
-      <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="part3_correct" show-hide="show">
+      <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE3_correct" show-hide="show">
         <strong>Part 3: Correct!</strong>
       </qti-feedback-inline>
-      <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="part3_incorrect" show-hide="show">
+      <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE3_incorrect" show-hide="show">
         <strong>Part 3: Incorrect.</strong> The answer is "correct".
       </qti-feedback-inline>
     </p>
 
-    <hr/>
-
-    <!-- Overall feedback block -->
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="all_correct" show-hide="show">
-      <p><strong>Excellent!</strong> You got all three parts correct. Total score: 3/3.</p>
-    </qti-feedback-block>
-
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="some_correct" show-hide="show">
-      <p><strong>Partial credit.</strong> Review the feedback above for each part.</p>
-    </qti-feedback-block>
   </qti-item-body>
 
   <qti-response-processing>
@@ -136,14 +126,16 @@ adaptive="false" time-dependent="false" xml:lang="en">
         </qti-set-outcome-value>
         <qti-set-outcome-value identifier="FEEDBACK">
           <qti-multiple>
-            <qti-base-value base-type="identifier">part1_correct</qti-base-value>
+            <qti-variable identifier="FEEDBACK"/>
+            <qti-base-value base-type="identifier">RESPONSE1_correct</qti-base-value>
           </qti-multiple>
         </qti-set-outcome-value>
       </qti-response-if>
       <qti-response-else>
         <qti-set-outcome-value identifier="FEEDBACK">
           <qti-multiple>
-            <qti-base-value base-type="identifier">part1_incorrect</qti-base-value>
+            <qti-variable identifier="FEEDBACK"/>
+            <qti-base-value base-type="identifier">RESPONSE1_incorrect</qti-base-value>
           </qti-multiple>
         </qti-set-outcome-value>
       </qti-response-else>
@@ -162,7 +154,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
         <qti-set-outcome-value identifier="FEEDBACK">
           <qti-multiple>
             <qti-variable identifier="FEEDBACK"/>
-            <qti-base-value base-type="identifier">part2_correct</qti-base-value>
+            <qti-base-value base-type="identifier">RESPONSE2_correct</qti-base-value>
           </qti-multiple>
         </qti-set-outcome-value>
       </qti-response-if>
@@ -170,7 +162,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
         <qti-set-outcome-value identifier="FEEDBACK">
           <qti-multiple>
             <qti-variable identifier="FEEDBACK"/>
-            <qti-base-value base-type="identifier">part2_incorrect</qti-base-value>
+            <qti-base-value base-type="identifier">RESPONSE2_incorrect</qti-base-value>
           </qti-multiple>
         </qti-set-outcome-value>
       </qti-response-else>
@@ -189,7 +181,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
         <qti-set-outcome-value identifier="FEEDBACK">
           <qti-multiple>
             <qti-variable identifier="FEEDBACK"/>
-            <qti-base-value base-type="identifier">part3_correct</qti-base-value>
+            <qti-base-value base-type="identifier">RESPONSE3_correct</qti-base-value>
           </qti-multiple>
         </qti-set-outcome-value>
       </qti-response-if>
@@ -197,7 +189,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
         <qti-set-outcome-value identifier="FEEDBACK">
           <qti-multiple>
             <qti-variable identifier="FEEDBACK"/>
-            <qti-base-value base-type="identifier">part3_incorrect</qti-base-value>
+            <qti-base-value base-type="identifier">RESPONSE3_incorrect</qti-base-value>
           </qti-multiple>
         </qti-set-outcome-value>
       </qti-response-else>
@@ -211,29 +203,5 @@ adaptive="false" time-dependent="false" xml:lang="en">
         <qti-variable identifier="SCORE3"/>
       </qti-sum>
     </qti-set-outcome-value>
-
-    <!-- Overall feedback based on total score -->
-    <qti-response-condition>
-      <qti-response-if>
-        <qti-equal>
-          <qti-variable identifier="SCORE"/>
-          <qti-variable identifier="MAXSCORE"/>
-        </qti-equal>
-        <qti-set-outcome-value identifier="FEEDBACK">
-          <qti-multiple>
-            <qti-variable identifier="FEEDBACK"/>
-            <qti-base-value base-type="identifier">all_correct</qti-base-value>
-          </qti-multiple>
-        </qti-set-outcome-value>
-      </qti-response-if>
-      <qti-response-else>
-        <qti-set-outcome-value identifier="FEEDBACK">
-          <qti-multiple>
-            <qti-variable identifier="FEEDBACK"/>
-            <qti-base-value base-type="identifier">some_correct</qti-base-value>
-          </qti-multiple>
-        </qti-set-outcome-value>
-      </qti-response-else>
-    </qti-response-condition>
   </qti-response-processing>
 </qti-assessment-item>`;

@@ -28,7 +28,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
       <qti-value>3.0</qti-value>
     </qti-default-value>
   </qti-outcome-declaration>
-  <qti-outcome-declaration identifier="FEEDBACK" cardinality="single" base-type="identifier"/>
+  <qti-outcome-declaration identifier="FEEDBACK" cardinality="multiple" base-type="identifier"/>
 
   <qti-item-body>
     <qti-gap-match-interaction response-identifier="RESPONSE" shuffle="true">
@@ -44,7 +44,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
       </p>
     </qti-gap-match-interaction>
 
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="correct" show-hide="show">
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_correct" show-hide="show">
       <p><strong>Correct!</strong> All gaps are filled correctly.</p>
       <ul>
         <li>Gap 1: "word A" - [explanation]</li>
@@ -53,7 +53,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
       </ul>
     </qti-feedback-block>
 
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="incorrect" show-hide="show">
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_incorrect" show-hide="show">
       <p><strong>Incorrect.</strong> The correct answers are:</p>
       <ul>
         <li>Gap 1: word A</li>
@@ -72,15 +72,21 @@ adaptive="false" time-dependent="false" xml:lang="en">
           <qti-correct identifier="RESPONSE"/>
         </qti-match>
         <qti-set-outcome-value identifier="SCORE">
-          <qti-variable identifier="MAXSCORE"/>
+          <qti-base-value base-type="float">1</qti-base-value>
         </qti-set-outcome-value>
         <qti-set-outcome-value identifier="FEEDBACK">
-          <qti-base-value base-type="identifier">correct</qti-base-value>
+          <qti-multiple>
+            <qti-variable identifier="FEEDBACK"/>
+            <qti-base-value base-type="identifier">RESPONSE_correct</qti-base-value>
+          </qti-multiple>
         </qti-set-outcome-value>
       </qti-response-if>
       <qti-response-else>
         <qti-set-outcome-value identifier="FEEDBACK">
-          <qti-base-value base-type="identifier">incorrect</qti-base-value>
+          <qti-multiple>
+            <qti-variable identifier="FEEDBACK"/>
+            <qti-base-value base-type="identifier">RESPONSE_incorrect</qti-base-value>
+          </qti-multiple>
         </qti-set-outcome-value>
       </qti-response-else>
     </qti-response-condition>
