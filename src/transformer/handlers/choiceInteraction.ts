@@ -269,7 +269,6 @@ const CHOICE_INTERACTION_STYLES = `
     background-color: #f5f5f5;
     border-color: #ddd;
     cursor: not-allowed;
-    opacity: 0.6;
   }
 
   .qti-choice-interaction .qti-simple-choice:has(input:disabled):hover {
