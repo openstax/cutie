@@ -1,3 +1,4 @@
+// cspell:ignore draggables
 import { createMissingAttributeError } from '../../../errors/errorDisplay';
 import { shuffleWithFixed } from '../../../utils';
 import type { ElementHandler, TransformContext } from '../../types';
