@@ -13,6 +13,7 @@ interface ChoiceData {
   element: HTMLElement;
   matchMax: number;
   content: string;
+  connectedIds: Set<string>;
 }
 
 /**
@@ -36,10 +37,10 @@ export class MatchController {
   } | null = null;
   private enabled = true;
 
-  // Choice data
-  private sourceChoices = new Map<string, ChoiceData>();
-  private targetChoices = new Map<string, ChoiceData>();
-  private choiceUseCounts = new Map<string, number>();
+  // Choice data - unified storage
+  private choices = new Map<string, ChoiceData>();
+  private sourceIds: string[] = [];
+  private targetIds: string[] = [];
 
   // Track pending chip drag for drop-outside-to-remove behavior
   private pendingChipDrag: { sourceId: string; targetId: string } | null = null;
@@ -91,15 +92,11 @@ export class MatchController {
     matchMax: number,
     content: string
   ): void {
-    const choiceData: ChoiceData = { id, set, element, matchMax, content };
+    const choiceData: ChoiceData = { id, set, element, matchMax, content, connectedIds: new Set() };
 
-    if (set === 'source') {
-      this.sourceChoices.set(id, choiceData);
-    } else {
-      this.targetChoices.set(id, choiceData);
-    }
+    this.choices.set(id, choiceData);
+    (set === 'source' ? this.sourceIds : this.targetIds).push(id);
 
-    this.choiceUseCounts.set(id, 0);
     this.wireChoiceEvents(choiceData);
   }
 
@@ -115,54 +112,42 @@ export class MatchController {
       // Ignore clicks on chips
       if ((e.target as HTMLElement).closest('.qti-match-chip')) return;
 
-      this.handleChoiceClick(id, set);
+      this.handleChoiceClick(id);
     });
 
     // Keyboard navigation
     element.addEventListener('keydown', (e) => {
       if (!this.enabled) return;
 
-      const choices = set === 'source' ? this.sourceChoices : this.targetChoices;
-
       switch (e.key) {
         case 'Enter':
         case ' ':
           e.preventDefault();
-          this.handleChoiceClick(id, set);
+          this.handleChoiceClick(id);
           break;
 
         case 'ArrowDown':
         case 'ArrowRight':
           e.preventDefault();
-          focusNext(this.getElementMap(choices), id);
+          focusNext(this.getChoiceElementsInSet(set), id);
           break;
 
         case 'ArrowUp':
         case 'ArrowLeft':
           e.preventDefault();
-          focusPrev(this.getElementMap(choices), id);
+          focusPrev(this.getChoiceElementsInSet(set), id);
           break;
 
-        case 'Tab':
-          // Allow default tab behavior but handle set switching
-          if (!e.shiftKey && set === 'source') {
-            // Focus first item in target set
-            const firstTarget = this.targetChoices.values().next().value;
-            if (firstTarget) {
+        case 'Tab': {
+          // Handle set switching on Tab
+          const targetSet = e.shiftKey ? 'source' : 'target';
+          if ((set === 'source' && !e.shiftKey) || (set === 'target' && e.shiftKey)) {
+            if (this.focusFirstInSet(targetSet)) {
               e.preventDefault();
-              updateRovingTabindex(this.getElementMap(this.targetChoices), firstTarget.element);
-              firstTarget.element.focus();
-            }
-          } else if (e.shiftKey && set === 'target') {
-            // Focus first item in source set
-            const firstSource = this.sourceChoices.values().next().value;
-            if (firstSource) {
-              e.preventDefault();
-              updateRovingTabindex(this.getElementMap(this.sourceChoices), firstSource.element);
-              firstSource.element.focus();
             }
           }
           break;
+        }
 
         case 'Escape':
           this.clearSelection();
@@ -178,27 +163,16 @@ export class MatchController {
         return;
       }
 
+      // Select the choice (highlights valid drop targets)
+      this.select(id);
+
       e.dataTransfer?.setData('text/plain', `${set}:${id}`);
       element.classList.add('qti-match-choice--dragging');
-
-      // Highlight valid drop targets (opposite set)
-      const targetSet = set === 'source' ? this.targetChoices : this.sourceChoices;
-      highlightDropTargets(
-        this.getElements(targetSet),
-        'qti-match-choice--drop-target',
-        (el) => {
-          const targetId = el.getAttribute('data-identifier');
-          return targetId ? this.canCreateAssociation(id, targetId, set) : false;
-        }
-      );
     });
 
     element.addEventListener('dragend', () => {
       element.classList.remove('qti-match-choice--dragging');
-      clearDropTargetHighlights(
-        [...this.getElements(this.sourceChoices), ...this.getElements(this.targetChoices)],
-        'qti-match-choice--drop-target'
-      );
+      this.clearSelection();
     });
 
     // Drop target
@@ -221,77 +195,36 @@ export class MatchController {
       e.preventDefault();
       element.classList.remove('qti-match-choice--drag-over');
 
-      const data = e.dataTransfer?.getData('text/plain');
-      if (!data) return;
+      // Selection is already set up by dragstart - let handleChoiceClick complete the action
+      if (!this.selection) return;
 
-      // Handle chip drops (for moving associations)
-      if (data.startsWith('chip:')) {
-        // Mark the chip drag as handled so dragend doesn't remove the association
-        this.pendingChipDrag = null;
+      // For chip drags, mark as handled so dragend doesn't remove the association
+      this.pendingChipDrag = null;
 
-        const parts = data.split(':');
-        const chipSourceId = parts[1];
-        const chipTargetId = parts[2];
-        // chipFromSet is what the chip REPRESENTS (connectedSet), not where it lives
-        const chipFromSet = parts[3] as 'source' | 'target';
-
-        // Chip can only be dropped on the opposite set from what it represents
-        if (chipFromSet === set) return;
-
-        // The chip's old parent was in the opposite set from what it represents
-        const oldParentId = chipFromSet === 'source' ? chipTargetId : chipSourceId;
-
-        if (id === oldParentId) {
-          // Dropped on the same parent - do nothing (keep the association as is)
-          return;
-        }
-
-        // Dropped on a different choice - move the association
-        this.removeAssociation(chipSourceId, chipTargetId);
-
-        // Create new association: connectedId stays, parent changes to drop target
-        const connectedId = chipFromSet === 'source' ? chipSourceId : chipTargetId;
-        const newSourceId = chipFromSet === 'source' ? connectedId : id;
-        const newTargetId = chipFromSet === 'source' ? id : connectedId;
-
-        // Use canAcceptAssociation since the origin is being freed
-        if (this.canAcceptAssociation(id, set)) {
-          this.createAssociation(newSourceId, newTargetId);
-        }
-        return;
-      }
-
-      const [draggedSet, draggedId] = data.split(':');
-
-      // Only allow drops from the opposite set
-      if (draggedSet === set) return;
-
-      const sourceId = draggedSet === 'source' ? draggedId : id;
-      const targetId = draggedSet === 'source' ? id : draggedId;
-
-      if (this.canCreateAssociation(sourceId, targetId, 'source')) {
-        this.createAssociation(sourceId, targetId);
-      }
+      this.handleChoiceClick(id);
     });
   }
 
   /**
    * Handle click on a choice.
    */
-  private handleChoiceClick(id: string, set: 'source' | 'target'): void {
+  private handleChoiceClick(choiceId: string): void {
+    const choice = this.choices.get(choiceId);
+    if (!choice) return;
+
     // Unified handling for both choice and chip selection
     if (this.selection) {
       const { originId, originSet, existingAssociation } = this.selection;
       const oppositeSet = originSet === 'source' ? 'target' : 'source';
 
-      if (set === oppositeSet) {
+      if (choice.set === oppositeSet) {
         // Clicked on the opposite set - create (or move) association
         if (existingAssociation) {
           const oldConnectedId = originSet === 'source'
             ? existingAssociation.targetId
             : existingAssociation.sourceId;
 
-          if (id === oldConnectedId) {
+          if (choiceId === oldConnectedId) {
             // Clicked on the same connected item - just clear selection (do nothing)
             this.clearSelection();
             return;
@@ -299,20 +232,20 @@ export class MatchController {
             // Clicked on a different item - move the association
             this.removeAssociation(existingAssociation.sourceId, existingAssociation.targetId);
 
-            const newSourceId = originSet === 'source' ? originId : id;
-            const newTargetId = originSet === 'source' ? id : originId;
+            const newSourceId = originSet === 'source' ? originId : choiceId;
+            const newTargetId = originSet === 'source' ? choiceId : originId;
 
             // Use canAcceptAssociation since the origin is being freed
-            if (this.canAcceptAssociation(id, set)) {
+            if (this.canAcceptAssociation(choiceId)) {
               this.createAssociation(newSourceId, newTargetId);
             }
           }
         } else {
           // No existing association - create new
-          const sourceId = originSet === 'source' ? originId : id;
-          const targetId = originSet === 'source' ? id : originId;
+          const sourceId = originSet === 'source' ? originId : choiceId;
+          const targetId = originSet === 'source' ? choiceId : originId;
 
-          if (this.canCreateAssociation(sourceId, targetId, originSet)) {
+          if (this.canCreateAssociation(sourceId, targetId)) {
             this.createAssociation(sourceId, targetId);
           }
         }
@@ -324,10 +257,10 @@ export class MatchController {
       }
     }
 
-    if (this.isChoiceExhausted(id)) return;
+    if (this.isChoiceExhausted(choiceId)) return;
 
     // Select this choice (no existing association)
-    this.select(id, set);
+    this.select(choiceId);
   }
 
   /**
@@ -335,62 +268,59 @@ export class MatchController {
    */
   private select(
     originId: string,
-    originSet: 'source' | 'target',
     existingAssociation?: { sourceId: string; targetId: string },
     chipElement?: HTMLElement
   ): void {
     this.clearSelection();
 
-    this.selection = { originId, originSet, existingAssociation };
+    const choice = this.choices.get(originId);
+    if (!choice) return;
 
-    const choices = originSet === 'source' ? this.sourceChoices : this.targetChoices;
-    const choice = choices.get(originId);
+    this.selection = { originId, originSet: choice.set, existingAssociation };
 
-    if (choice) {
-      choice.element.classList.add('qti-match-choice--selected');
+    choice.element.classList.add('qti-match-choice--selected');
 
-      // If selecting via chip, also highlight the chip
-      if (chipElement) {
-        chipElement.classList.add('qti-match-chip--selected');
-      }
+    // If selecting via chip, also highlight the chip
+    if (chipElement) {
+      chipElement.classList.add('qti-match-chip--selected');
+    }
 
-      // Highlight valid targets in the opposite set
-      const oppositeSet = originSet === 'source' ? this.targetChoices : this.sourceChoices;
-      const connectedId = existingAssociation
-        ? (originSet === 'source' ? existingAssociation.targetId : existingAssociation.sourceId)
-        : null;
+    // Highlight valid targets in the opposite set
+    const oppositeSet = choice.set === 'source' ? 'target' : 'source';
+    const connectedId = existingAssociation
+      ? (choice.set === 'source' ? existingAssociation.targetId : existingAssociation.sourceId)
+      : null;
 
-      highlightDropTargets(
-        this.getElements(oppositeSet),
-        'qti-match-choice--drop-target',
-        (el) => {
-          const elId = el.getAttribute('data-identifier');
-          if (!elId) return false;
+    highlightDropTargets(
+      this.getChoiceElementsArray(oppositeSet),
+      'qti-match-choice--drop-target',
+      (el) => {
+        const elId = el.getAttribute('data-identifier');
+        if (!elId) return false;
 
-          // Don't highlight the current connected item (clicking it just clears selection now)
-          if (elId === connectedId) return false;
+        // Don't highlight the current connected item (clicking it just clears selection now)
+        if (elId === connectedId) return false;
 
-          // For a move operation, we need to check if the new partner can accept
-          // (the original choice's count will be freed when we remove the old association)
-          if (existingAssociation) {
-            return this.canAcceptAssociation(elId, originSet === 'source' ? 'target' : 'source');
-          }
-
-          // For a fresh selection, check full association validity
-          const sourceId = originSet === 'source' ? originId : elId;
-          const targetId = originSet === 'source' ? elId : originId;
-          return this.canCreateAssociation(sourceId, targetId, originSet);
+        // For a move operation, we need to check if the new partner can accept
+        // (the original choice's count will be freed when we remove the old association)
+        if (existingAssociation) {
+          return this.canAcceptAssociation(elId);
         }
-      );
 
-      if (existingAssociation) {
-        announce(
-          this.liveRegion,
-          `${choice.content} selected. Click another item to move, or press backspace to remove.`
-        );
-      } else {
-        announce(this.liveRegion, `${choice.content} selected. Choose an item from the other set to create an association.`);
+        // For a fresh selection, check full association validity
+        const sourceId = choice.set === 'source' ? originId : elId;
+        const targetId = choice.set === 'source' ? elId : originId;
+        return this.canCreateAssociation(sourceId, targetId);
       }
+    );
+
+    if (existingAssociation) {
+      announce(
+        this.liveRegion,
+        `${choice.content} selected. Click another item to move, or press backspace to remove.`
+      );
+    } else {
+      announce(this.liveRegion, `${choice.content} selected. Choose an item from the other set to create an association.`);
     }
   }
 
@@ -399,8 +329,7 @@ export class MatchController {
    */
   clearSelection(): void {
     if (this.selection) {
-      const choices = this.selection.originSet === 'source' ? this.sourceChoices : this.targetChoices;
-      const choice = choices.get(this.selection.originId);
+      const choice = this.choices.get(this.selection.originId);
 
       if (choice) {
         choice.element.classList.remove('qti-match-choice--selected');
@@ -416,7 +345,7 @@ export class MatchController {
     }
 
     clearDropTargetHighlights(
-      [...this.getElements(this.sourceChoices), ...this.getElements(this.targetChoices)],
+      this.getAllChoiceElements(),
       'qti-match-choice--drop-target'
     );
   }
@@ -424,11 +353,7 @@ export class MatchController {
   /**
    * Check if an association can be created.
    */
-  private canCreateAssociation(
-    sourceId: string,
-    targetId: string,
-    _initiatingSet: 'source' | 'target'
-  ): boolean {
+  private canCreateAssociation(sourceId: string, targetId: string): boolean {
     const key = `${sourceId} ${targetId}`;
 
     // Check if association already exists
@@ -440,17 +365,15 @@ export class MatchController {
     }
 
     // Check match-max for source
-    const sourceChoice = this.sourceChoices.get(sourceId);
+    const sourceChoice = this.choices.get(sourceId);
     if (sourceChoice && sourceChoice.matchMax > 0) {
-      const sourceCount = this.choiceUseCounts.get(sourceId) ?? 0;
-      if (sourceCount >= sourceChoice.matchMax) return false;
+      if (sourceChoice.connectedIds.size >= sourceChoice.matchMax) return false;
     }
 
     // Check match-max for target
-    const targetChoice = this.targetChoices.get(targetId);
+    const targetChoice = this.choices.get(targetId);
     if (targetChoice && targetChoice.matchMax > 0) {
-      const targetCount = this.choiceUseCounts.get(targetId) ?? 0;
-      if (targetCount >= targetChoice.matchMax) return false;
+      if (targetChoice.connectedIds.size >= targetChoice.matchMax) return false;
     }
 
     return true;
@@ -460,14 +383,12 @@ export class MatchController {
    * Check if a choice can accept a new association (used when moving).
    * Only checks the choice's own matchMax, not the partner's (partner will be freed).
    */
-  private canAcceptAssociation(choiceId: string, set: 'source' | 'target'): boolean {
-    const choices = set === 'source' ? this.sourceChoices : this.targetChoices;
-    const choice = choices.get(choiceId);
+  private canAcceptAssociation(choiceId: string): boolean {
+    const choice = this.choices.get(choiceId);
 
     if (!choice || choice.matchMax === 0) return true;
 
-    const count = this.choiceUseCounts.get(choiceId) ?? 0;
-    return count < choice.matchMax;
+    return choice.connectedIds.size < choice.matchMax;
   }
 
   /**
@@ -479,28 +400,26 @@ export class MatchController {
     if (this.associations.has(key)) return false;
 
     // Verify we can create this association
-    if (!this.canCreateAssociation(sourceId, targetId, 'source')) {
+    if (!this.canCreateAssociation(sourceId, targetId)) {
       return false;
     }
 
     this.associations.add(key);
 
-    // Update use counts
-    const sourceCount = (this.choiceUseCounts.get(sourceId) ?? 0) + 1;
-    const targetCount = (this.choiceUseCounts.get(targetId) ?? 0) + 1;
-    this.choiceUseCounts.set(sourceId, sourceCount);
-    this.choiceUseCounts.set(targetId, targetCount);
+    // Update connectedIds on both choices
+    const sourceChoice = this.choices.get(sourceId);
+    const targetChoice = this.choices.get(targetId);
+    sourceChoice?.connectedIds.add(targetId);
+    targetChoice?.connectedIds.add(sourceId);
 
     // Update chips on both sides
-    this.updateChips(sourceId, 'source');
-    this.updateChips(targetId, 'target');
+    this.updateChips(sourceId);
+    this.updateChips(targetId);
 
     // Update exhaustion state
     this.updateExhaustionState(sourceId);
     this.updateExhaustionState(targetId);
 
-    const sourceChoice = this.sourceChoices.get(sourceId);
-    const targetChoice = this.targetChoices.get(targetId);
     if (sourceChoice && targetChoice) {
       announce(this.liveRegion, `${sourceChoice.content} connected to ${targetChoice.content}.`);
     }
@@ -518,22 +437,20 @@ export class MatchController {
 
     this.associations.delete(key);
 
-    // Update use counts
-    const sourceCount = Math.max(0, (this.choiceUseCounts.get(sourceId) ?? 0) - 1);
-    const targetCount = Math.max(0, (this.choiceUseCounts.get(targetId) ?? 0) - 1);
-    this.choiceUseCounts.set(sourceId, sourceCount);
-    this.choiceUseCounts.set(targetId, targetCount);
+    // Update connectedIds on both choices
+    const sourceChoice = this.choices.get(sourceId);
+    const targetChoice = this.choices.get(targetId);
+    sourceChoice?.connectedIds.delete(targetId);
+    targetChoice?.connectedIds.delete(sourceId);
 
     // Update chips on both sides
-    this.updateChips(sourceId, 'source');
-    this.updateChips(targetId, 'target');
+    this.updateChips(sourceId);
+    this.updateChips(targetId);
 
     // Update exhaustion state
     this.updateExhaustionState(sourceId);
     this.updateExhaustionState(targetId);
 
-    const sourceChoice = this.sourceChoices.get(sourceId);
-    const targetChoice = this.targetChoices.get(targetId);
     if (sourceChoice && targetChoice) {
       announce(this.liveRegion, `Connection between ${sourceChoice.content} and ${targetChoice.content} removed.`);
     }
@@ -543,9 +460,8 @@ export class MatchController {
    * Update chips displayed for a choice element.
    * Chips are now siblings of the choice (in the wrapper), not children.
    */
-  private updateChips(choiceId: string, set: 'source' | 'target'): void {
-    const choices = set === 'source' ? this.sourceChoices : this.targetChoices;
-    const choice = choices.get(choiceId);
+  private updateChips(choiceId: string): void {
+    const choice = this.choices.get(choiceId);
     if (!choice) return;
 
     // Chips container is a sibling in the wrapper, not inside the choice element
@@ -556,23 +472,17 @@ export class MatchController {
     // Clear existing chips
     chipsContainer.innerHTML = '';
 
-    // Find all associations involving this choice
-    const connectedChoices = set === 'source'
-      ? this.getTargetsForSource(choiceId)
-      : this.getSourcesForTarget(choiceId);
-
-    const otherChoices = set === 'source' ? this.targetChoices : this.sourceChoices;
-
-    for (const connectedId of connectedChoices) {
-      const connectedChoice = otherChoices.get(connectedId);
+    // Use connectedIds directly from the choice
+    for (const connectedId of choice.connectedIds) {
+      const connectedChoice = this.choices.get(connectedId);
       if (!connectedChoice) continue;
 
-      const sourceId = set === 'source' ? choiceId : connectedId;
-      const targetId = set === 'source' ? connectedId : choiceId;
+      const sourceId = choice.set === 'source' ? choiceId : connectedId;
+      const targetId = choice.set === 'source' ? connectedId : choiceId;
       const existingAssociation = { sourceId, targetId };
 
       // The chip represents connectedId (from the opposite set)
-      const connectedSet: 'source' | 'target' = set === 'source' ? 'target' : 'source';
+      const connectedSet = connectedChoice.set;
 
       const chip = document.createElement('button');
       chip.type = 'button';
@@ -589,7 +499,7 @@ export class MatchController {
         e.stopPropagation();
         if (!this.enabled) return;
 
-        this.select(connectedId, connectedSet, existingAssociation, chip);
+        this.select(connectedId, existingAssociation, chip);
       });
 
       // Keyboard support for chip
@@ -599,7 +509,7 @@ export class MatchController {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           e.stopPropagation();
-          this.select(connectedId, connectedSet, existingAssociation, chip);
+          this.select(connectedId, existingAssociation, chip);
         } else if (e.key === 'Delete' || e.key === 'Backspace') {
           e.preventDefault();
           e.stopPropagation();
@@ -612,13 +522,15 @@ export class MatchController {
         }
       });
 
-      // Drag support - drag chip to move or remove association
-      // The chip represents connectedId, so we highlight the SAME set as the parent (where chip can be moved to)
+      // Drag support - select the chip and set up drag data
       chip.addEventListener('dragstart', (e) => {
         if (!this.enabled) {
           e.preventDefault();
           return;
         }
+
+        // Select the chip (highlights valid drop targets)
+        this.select(connectedId, existingAssociation, chip);
 
         // Track this drag so we can remove the association if dropped outside
         this.pendingChipDrag = { sourceId, targetId };
@@ -626,35 +538,11 @@ export class MatchController {
         e.dataTransfer?.setData('text/plain', `chip:${sourceId}:${targetId}:${connectedSet}`);
         e.dataTransfer!.effectAllowed = 'move';
         chip.classList.add('qti-match-chip--dragging');
-
-        // Highlight valid drop targets - the SAME set as the parent choice (where chip can be moved to)
-        // Don't highlight the current parent (dropping there does nothing)
-        const dropTargetSet = set === 'source' ? this.sourceChoices : this.targetChoices;
-
-        highlightDropTargets(
-          this.getElements(dropTargetSet),
-          'qti-match-choice--drop-target',
-          (el) => {
-            const elId = el.getAttribute('data-identifier');
-            if (!elId) return false;
-
-            // Don't highlight the current parent (dropping there does nothing)
-            if (elId === choiceId) return false;
-
-            // Check if the new choice can accept this association
-            return this.canAcceptAssociation(elId, set);
-          }
-        );
       });
 
       chip.addEventListener('dragend', () => {
         chip.classList.remove('qti-match-chip--dragging');
-
-        // Clear highlights
-        clearDropTargetHighlights(
-          [...this.getElements(this.sourceChoices), ...this.getElements(this.targetChoices)],
-          'qti-match-choice--drop-target'
-        );
+        this.clearSelection();
 
         // If pendingChipDrag is still set, the drop wasn't handled - remove the association
         if (this.pendingChipDrag) {
@@ -669,55 +557,17 @@ export class MatchController {
   }
 
   /**
-   * Get all target IDs associated with a source.
-   */
-  private getTargetsForSource(sourceId: string): string[] {
-    const targets: string[] = [];
-    for (const key of this.associations) {
-      const [src, tgt] = key.split(' ');
-      if (src === sourceId) {
-        targets.push(tgt);
-      }
-    }
-    return targets;
-  }
-
-  /**
-   * Get all source IDs associated with a target.
-   */
-  private getSourcesForTarget(targetId: string): string[] {
-    const sources: string[] = [];
-    for (const key of this.associations) {
-      const [src, tgt] = key.split(' ');
-      if (tgt === targetId) {
-        sources.push(src);
-      }
-    }
-    return sources;
-  }
-
-  /**
    * Check if a choice has reached its match-max limit.
    */
   private isChoiceExhausted(choiceId: string): boolean {
-    const sourceChoice = this.sourceChoices.get(choiceId);
-    const targetChoice = this.targetChoices.get(choiceId);
-    const choice = sourceChoice ?? targetChoice;
-
-    if (!choice || choice.matchMax === 0) return false;
-
-    const count = this.choiceUseCounts.get(choiceId) ?? 0;
-    return count >= choice.matchMax;
+    return !this.canAcceptAssociation(choiceId);
   }
 
   /**
    * Update the visual exhaustion state of a choice.
    */
   private updateExhaustionState(choiceId: string): void {
-    const sourceChoice = this.sourceChoices.get(choiceId);
-    const targetChoice = this.targetChoices.get(choiceId);
-    const choice = sourceChoice ?? targetChoice;
-
+    const choice = this.choices.get(choiceId);
     if (!choice) return;
 
     if (this.isChoiceExhausted(choiceId)) {
@@ -732,21 +582,51 @@ export class MatchController {
   }
 
   /**
-   * Get element map from choice map.
+   * Focus the first choice in a set and update roving tabindex.
+   * Returns true if focus was moved, false if the set is empty.
    */
-  private getElementMap(choices: Map<string, ChoiceData>): Map<string, HTMLElement> {
+  private focusFirstInSet(set: 'source' | 'target'): boolean {
+    const ids = set === 'source' ? this.sourceIds : this.targetIds;
+    const firstChoice = ids[0] ? this.choices.get(ids[0]) : undefined;
+    if (firstChoice) {
+      updateRovingTabindex(this.getChoiceElementsInSet(set), firstChoice.element);
+      firstChoice.element.focus();
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Get choice elements for a set (for roving tabindex navigation).
+   */
+  private getChoiceElementsInSet(set: 'source' | 'target'): Map<string, HTMLElement> {
+    const ids = set === 'source' ? this.sourceIds : this.targetIds;
     const map = new Map<string, HTMLElement>();
-    for (const [id, choice] of choices) {
-      map.set(id, choice.element);
+    for (const id of ids) {
+      const choice = this.choices.get(id);
+      if (choice) map.set(id, choice.element);
     }
     return map;
   }
 
   /**
-   * Get elements from choice map.
+   * Get all choice elements in a set as an array.
    */
-  private getElements(choices: Map<string, ChoiceData>): HTMLElement[] {
-    return Array.from(choices.values()).map((c) => c.element);
+  private getChoiceElementsArray(set: 'source' | 'target'): HTMLElement[] {
+    const ids = set === 'source' ? this.sourceIds : this.targetIds;
+    const elements: HTMLElement[] = [];
+    for (const id of ids) {
+      const choice = this.choices.get(id);
+      if (choice) elements.push(choice.element);
+    }
+    return elements;
+  }
+
+  /**
+   * Get all choice elements from both sets.
+   */
+  private getAllChoiceElements(): HTMLElement[] {
+    return [...this.getChoiceElementsArray('source'), ...this.getChoiceElementsArray('target')];
   }
 
   /**
@@ -763,8 +643,7 @@ export class MatchController {
     }
 
     // Update all choice elements
-    const allChoices = [...this.sourceChoices.values(), ...this.targetChoices.values()];
-    for (const choice of allChoices) {
+    for (const choice of this.choices.values()) {
       if (enabled) {
         choice.element.removeAttribute('disabled');
         if (!this.isChoiceExhausted(choice.id)) {
