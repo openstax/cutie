@@ -243,9 +243,9 @@ export function SlateEditor({
                 spellCheck
                 autoFocus
                 style={{
+                  flex: 1,
                   padding: '16px',
-                  minHeight: '300px',
-                  maxHeight: '500px',
+                  minHeight: 0,
                   overflowY: 'auto',
                 }}
               />
