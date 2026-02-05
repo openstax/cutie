@@ -45,7 +45,7 @@ const FEEDBACK_BLOCK_STYLES = `
     display: block;
     margin: 0.75em 0;
     padding: 0.75em 1em;
-    border-left: 3px solid #6b7280;
+    border-left: 0.5em solid #4a90e2;
     background-color: #f3f4f6;
     color: #374151;
     font-style: italic;
