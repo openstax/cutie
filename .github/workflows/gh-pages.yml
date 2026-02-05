@@ -36,6 +36,8 @@ jobs:
           cache: yarn
       - run: yarn install --immutable
       - run: yarn build
+        env:
+          VITE_API_KEY: ${{ secrets.API_KEY }}
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
