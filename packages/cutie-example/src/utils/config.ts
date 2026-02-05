@@ -6,6 +6,7 @@ export const TOKEN_URL = `${API_URL}/user/token`;
 
 export const PROMPT_IDS: Record<string, number> = {
   generate: 21,
+  json: 22
 };
 
 export const MODELS: Record<string, number> = {

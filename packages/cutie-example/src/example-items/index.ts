@@ -57,7 +57,7 @@ export const exampleGroups: ExampleGroup[] = [
     ],
   },
   {
-    label: 'Feedback Examples',
+    label: 'Custom Examples',
     items: [
       modalFeedback,
       inlineFeedback,

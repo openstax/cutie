@@ -6,6 +6,8 @@ import { examples, exampleGroups } from './example-items';
 import { EditorTab } from './EditorTab';
 import { PreviewTab } from './PreviewTab';
 import { GenerateDialog } from './GenerateDialog';
+import { beginQuiz, continueQuiz, generateQtiItem } from './utils/ai';
+import type { QuizResponse, InteractionType } from './utils/ai';
 import './App.css';
 
 /**
@@ -26,6 +28,42 @@ const resolveAssets: ProcessingOptions['resolveAssets'] = async (urls) => {
 
 type Tab = 'xml' | 'editor' | 'preview';
 
+interface QuizQuestion {
+  description: string;
+  interactions: InteractionType[];
+  xml?: string;
+  result?: 'correct' | 'incorrect' | 'partial-credit';
+}
+
+interface QuizState {
+  userTopic: string;
+  currentQuiz: {
+    topic: string;
+    questions: QuizQuestion[];
+  } | null;
+  currentQuestionIndex: number;
+  history: {
+    topic: string;
+    questions: { description: string; result: 'correct' | 'incorrect' | 'partial-credit' }[];
+  }[];
+  isActive: boolean;
+}
+
+const initialQuizState: QuizState = {
+  userTopic: '',
+  currentQuiz: null,
+  currentQuestionIndex: 0,
+  history: [],
+  isActive: false,
+};
+
+const determineResult = (state: AttemptState): 'correct' | 'incorrect' | 'partial-credit' => {
+  if (state.score === null || state.maxScore === null) return 'incorrect';
+  if (state.score === state.maxScore) return 'correct';
+  if (state.score === 0) return 'incorrect';
+  return 'partial-credit';
+};
+
 export function App() {
   const [activeTab, setActiveTab] = useState<Tab>('xml');
   const [itemXml, setItemXml] = useState('');
@@ -36,6 +74,8 @@ export function App() {
   const [responses, setResponses] = useState<ResponseData | null>(null);
   const [selectedExample, setSelectedExample] = useState('');
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
+  const [quizState, setQuizState] = useState<QuizState>(initialQuizState);
+  const [isLoadingNextQuestion, setIsLoadingNextQuestion] = useState(false);
 
   const handleExampleSelect = async (event: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedName = event.target.value;
@@ -137,6 +177,172 @@ export function App() {
     }
   };
 
+  const loadQuizQuestion = async (quiz: QuizResponse, questionIndex: number) => {
+    const question = quiz.questions[questionIndex];
+    if (!question) return;
+
+    // Generate XML if not already generated
+    let xml = (question as QuizQuestion).xml;
+    if (!xml) {
+      const prompt = `${quiz.topic}: ${question.description}`;
+      xml = await generateQtiItem(prompt, question.interactions);
+    }
+
+    // Process the item
+    const result = await beginAttempt(xml, { resolveAssets });
+    setItemXml(xml);
+    setAttemptState(result.state);
+    setSanitizedTemplate(result.template);
+    setResponses(null);
+
+    return xml;
+  };
+
+  const handleStartQuiz = async (topic: string) => {
+    setGenerateDialogOpen(false);
+    setError('');
+    setProcessing(true);
+
+    try {
+      const quizResponse = await beginQuiz(topic);
+      console.log('Quiz structure:', quizResponse);
+
+      const newQuizState: QuizState = {
+        userTopic: topic,
+        currentQuiz: {
+          topic: quizResponse.topic,
+          questions: quizResponse.questions.map(q => ({
+            description: q.description,
+            interactions: q.interactions,
+          })),
+        },
+        currentQuestionIndex: 0,
+        history: quizState.history,
+        isActive: true,
+      };
+
+      setQuizState(newQuizState);
+
+      // Generate and load first question
+      const xml = await loadQuizQuestion(quizResponse, 0);
+      if (xml && newQuizState.currentQuiz) {
+        newQuizState.currentQuiz.questions[0].xml = xml;
+        setQuizState({ ...newQuizState });
+      }
+
+      setActiveTab('preview');
+    } catch (err) {
+      console.error('Quiz start error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to start quiz');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleNextQuestion = async () => {
+    if (!quizState.currentQuiz || !attemptState) return;
+
+    setIsLoadingNextQuestion(true);
+    setError('');
+
+    try {
+      // Record result of current question
+      const result = determineResult(attemptState);
+      const currentQuestion = quizState.currentQuiz.questions[quizState.currentQuestionIndex];
+      currentQuestion.result = result;
+
+      const nextIndex = quizState.currentQuestionIndex + 1;
+
+      if (nextIndex < quizState.currentQuiz.questions.length) {
+        // Load next question from current quiz
+        const xml = await loadQuizQuestion(
+          { topic: quizState.currentQuiz.topic, questions: quizState.currentQuiz.questions },
+          nextIndex
+        );
+        if (xml) {
+          quizState.currentQuiz.questions[nextIndex].xml = xml;
+        }
+        setQuizState({
+          ...quizState,
+          currentQuestionIndex: nextIndex,
+        });
+      } else {
+        // Quiz complete, add to history and continue with new questions
+        const completedQuiz = {
+          topic: quizState.currentQuiz.topic,
+          questions: quizState.currentQuiz.questions.map(q => ({
+            description: q.description,
+            result: q.result || 'incorrect',
+          })),
+        };
+
+        const newHistory = [...quizState.history, completedQuiz];
+
+        // Get more questions
+        const quizResponse = await continueQuiz(quizState.userTopic, newHistory);
+        console.log('Continue quiz response:', quizResponse);
+
+        const newQuizState: QuizState = {
+          ...quizState,
+          currentQuiz: {
+            topic: quizResponse.topic,
+            questions: quizResponse.questions.map(q => ({
+              description: q.description,
+              interactions: q.interactions,
+            })),
+          },
+          currentQuestionIndex: 0,
+          history: newHistory,
+        };
+
+        setQuizState(newQuizState);
+
+        // Load first question of new quiz
+        const xml = await loadQuizQuestion(quizResponse, 0);
+        if (xml && newQuizState.currentQuiz) {
+          newQuizState.currentQuiz.questions[0].xml = xml;
+          setQuizState({ ...newQuizState });
+        }
+      }
+    } catch (err) {
+      console.error('Next question error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load next question');
+    } finally {
+      setIsLoadingNextQuestion(false);
+    }
+  };
+
+  const handleEndQuiz = () => {
+    // Record final result if there's a current attempt
+    if (quizState.currentQuiz && attemptState) {
+      const result = determineResult(attemptState);
+      const currentQuestion = quizState.currentQuiz.questions[quizState.currentQuestionIndex];
+      currentQuestion.result = result;
+
+      // Add partial quiz to history
+      const partialQuiz = {
+        topic: quizState.currentQuiz.topic,
+        questions: quizState.currentQuiz.questions
+          .filter(q => q.result !== undefined)
+          .map(q => ({
+            description: q.description,
+            result: q.result!,
+          })),
+      };
+
+      if (partialQuiz.questions.length > 0) {
+        setQuizState({
+          ...initialQuizState,
+          history: [...quizState.history, partialQuiz],
+        });
+      } else {
+        setQuizState(initialQuizState);
+      }
+    } else {
+      setQuizState(initialQuizState);
+    }
+  };
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'xml':
@@ -183,6 +389,11 @@ export function App() {
             responses={responses}
             onSubmitResponses={handleSubmitResponses}
             onResetAttempt={handleResetAttempt}
+            quizMode={quizState.isActive ? {
+              onNext: handleNextQuestion,
+              onEnd: handleEndQuiz,
+              isLoadingNext: isLoadingNextQuestion,
+            } : undefined}
           />
         );
     }
@@ -242,6 +453,7 @@ export function App() {
         isOpen={generateDialogOpen}
         onClose={() => setGenerateDialogOpen(false)}
         onGenerate={handleAIGenerate}
+        onStartQuiz={handleStartQuiz}
       />
     </>
   );

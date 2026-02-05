@@ -9,15 +9,22 @@ const MenuIcon = () => (
   </svg>
 );
 
+interface QuizModeProps {
+  onNext: () => void;
+  onEnd: () => void;
+  isLoadingNext: boolean;
+}
+
 interface PreviewTabProps {
   attemptState: AttemptState | null;
   sanitizedTemplate: string;
   responses: ResponseData | null;
   onSubmitResponses: (responses: ResponseData) => void;
   onResetAttempt: () => void;
+  quizMode?: QuizModeProps;
 }
 
-export function PreviewTab({ attemptState, sanitizedTemplate, responses, onSubmitResponses, onResetAttempt }: PreviewTabProps) {
+export function PreviewTab({ attemptState, sanitizedTemplate, responses, onSubmitResponses, onResetAttempt, quizMode }: PreviewTabProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const previewRef = useRef<HTMLDivElement>(null);
@@ -116,20 +123,41 @@ export function PreviewTab({ attemptState, sanitizedTemplate, responses, onSubmi
       <div className="preview-area">
         <div className="preview-card">
           <div className="preview-item" ref={previewRef} />
-          <button
-            className="process-button"
-            onClick={handleSubmit}
-            disabled={!sanitizedTemplate || !interactionsEnabled}
-          >
-            {isSubmitting ? 'Submitting...' : 'Submit'}
-          </button>
-          <button
-            className="process-button"
-            onClick={onResetAttempt}
-            disabled={!attemptState}
-          >
-            Reset
-          </button>
+          <div className="preview-buttons">
+            <button
+              className="process-button"
+              onClick={handleSubmit}
+              disabled={!sanitizedTemplate || !interactionsEnabled}
+            >
+              {isSubmitting ? 'Submitting...' : 'Submit'}
+            </button>
+            {quizMode ? (
+              <>
+                <button
+                  className="process-button"
+                  onClick={quizMode.onNext}
+                  disabled={attemptState?.completionStatus !== 'completed' || quizMode.isLoadingNext}
+                >
+                  {quizMode.isLoadingNext ? 'Loading...' : 'Next'}
+                </button>
+                <button
+                  className="cancel-button"
+                  onClick={quizMode.onEnd}
+                  disabled={quizMode.isLoadingNext}
+                >
+                  End Quiz
+                </button>
+              </>
+            ) : (
+              <button
+                className="process-button"
+                onClick={onResetAttempt}
+                disabled={!attemptState}
+              >
+                Reset
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
