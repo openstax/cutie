@@ -255,3 +255,5 @@ export const item = `<?xml version="1.0" encoding="UTF-8"?>
   </qti-set-outcome-value>
  </qti-response-processing>
 </qti-assessment-item>`;
+
+export const interactionTypes: string[] = ['choice', 'inline-choice', 'text-entry', 'gap-match'];

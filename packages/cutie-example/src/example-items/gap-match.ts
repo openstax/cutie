@@ -32,3 +32,5 @@ export const item = `<?xml version="1.0" encoding="UTF-8"?>
 	</qti-item-body>
 	<qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/map_response.xml"/>
 </qti-assessment-item>`;
+
+export const interactionTypes: string[] = ['gap-match'];

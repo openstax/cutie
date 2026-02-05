@@ -1,39 +1,20 @@
 import { API_URL, PROMPT_IDS, API_KEY, DEFAULT_MODEL_ID, DEFAULT_FAST_MODEL_ID } from './config';
 import { token } from './auth';
 import z from 'zod';
-import * as choiceFeedback from '../example-items/choice-feedback';
-import * as choiceMultipleFeedback from '../example-items/choice-multiple-feedback';
-import * as textEntryFeedback from '../example-items/text-entry-feedback';
-import * as textEntryMulti from '../example-items/text-entry-multi';
-import * as inlineChoiceFeedback from '../example-items/inline-choice-feedback';
-import * as inlineChoiceMulti from '../example-items/inline-choice-multi';
-import * as matchFeedback from '../example-items/match-feedback';
-import * as gapMatchFeedback from '../example-items/gap-match-feedback';
-import * as multiInteractionFeedback from '../example-items/multi-interaction-feedback';
 import { shuffle } from "./misc";
-
-const feedbackExamples = [
-  { name: 'Single Choice with Per-Choice Inline Feedback', item: choiceFeedback.item, types: ['choice'] },
-  { name: 'Multiple Choice (Checkboxes) with Per-Choice Block Feedback', item: choiceMultipleFeedback.item, types: ['choice'] },
-  { name: 'Text Entry with Correct/Incorrect Feedback', item: textEntryFeedback.item, types: ['text-entry'] },
-  { name: 'Multiple Text Entry in Paragraph', item: textEntryMulti.item, types: ['text-entry'] },
-  { name: 'Inline Choice (Dropdown) with Feedback', item: inlineChoiceFeedback.item, types: ['inline-choice'] },
-  { name: 'Multiple Inline Choice in Paragraph', item: inlineChoiceMulti.item, types: ['inline-choice'] },
-  { name: 'Match Interaction with Feedback', item: matchFeedback.item, types: ['match'] },
-  { name: 'Gap Match (Drag-and-Drop) with Feedback', item: gapMatchFeedback.item, types: ['gap-match'] },
-  { name: 'Multi-Interaction with Combined Feedback', item: multiInteractionFeedback.item, types: ['choice', 'text-entry'] },
-];
+import { customExamples } from "../example-items";
 
 const formatExamples = (interactionTypes?: string[]) => {
-  let examples = feedbackExamples;
+  let examples = customExamples;
+
   if (interactionTypes && interactionTypes.length > 0) {
 
-    examples = feedbackExamples.filter(ex =>
-      ex.types.every(type => interactionTypes.includes(type))
+    examples = examples.filter(ex =>
+      ex.interactionTypes.every(type => interactionTypes.includes(type))
     );
     // Fall back to all examples if no matches found
     if (examples.length === 0) {
-      examples = feedbackExamples;
+      examples = customExamples;
     }
   }
   return shuffle(examples)

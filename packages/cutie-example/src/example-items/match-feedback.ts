@@ -104,3 +104,5 @@ adaptive="false" time-dependent="false" xml:lang="en">
     </qti-content-body>
   </qti-modal-feedback>
 </qti-assessment-item>`;
+
+export const interactionTypes: string[] = ['match'];

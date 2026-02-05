@@ -92,3 +92,5 @@ adaptive="false" time-dependent="false" xml:lang="en">
     </qti-response-condition>
   </qti-response-processing>
 </qti-assessment-item>`;
+
+export const interactionTypes: string[] = ['gap-match'];

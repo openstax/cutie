@@ -26,3 +26,5 @@ export const item = `<?xml version="1.0" encoding="UTF-8"?>
 		</qti-extended-text-interaction>
 	</qti-item-body>
 </qti-assessment-item>`;
+
+export const interactionTypes: string[] = ['extended-text'];

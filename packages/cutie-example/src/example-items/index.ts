@@ -2,6 +2,7 @@
 export interface ExampleItem {
   name: string;
   item: string;
+  interactionTypes: string[];
 }
 
 export interface ExampleGroup {
@@ -37,43 +38,47 @@ import * as matchFeedback from './match-feedback';
 import * as gapMatchFeedback from './gap-match-feedback';
 import * as multiInteractionFeedback from './multi-interaction-feedback';
 
+export const specExamples = [
+  choice,
+  choiceMultiple,
+  textEntry,
+  inlineChoice,
+  match,
+  gapMatch,
+  order,
+  slider,
+  hotspot,
+  extendedText,
+  associate,
+  hottext,
+  math,
+  selectPoint,
+  multiInput,
+];
+
+export const customExamples = [
+  textEntryMulti,
+  inlineChoiceMulti,
+  modalFeedback,
+  inlineFeedback,
+  blockFeedback,
+  choiceFeedback,
+  choiceMultipleFeedback,
+  textEntryFeedback,
+  inlineChoiceFeedback,
+  matchFeedback,
+  gapMatchFeedback,
+  multiInteractionFeedback,
+];
+
 export const exampleGroups: ExampleGroup[] = [
   {
-    label: 'QTI Spec Examples',
-    items: [
-      choice,
-      choiceMultiple,
-      textEntry,
-      inlineChoice,
-      match,
-      gapMatch,
-      order,
-      slider,
-      hotspot,
-      extendedText,
-      associate,
-      hottext,
-      math,
-      selectPoint,
-      multiInput,
-    ],
+    label: 'Custom Examples',
+    items: customExamples,
   },
   {
-    label: 'Custom Examples',
-    items: [
-      textEntryMulti,
-      inlineChoiceMulti,
-      modalFeedback,
-      inlineFeedback,
-      blockFeedback,
-      choiceFeedback,
-      choiceMultipleFeedback,
-      textEntryFeedback,
-      inlineChoiceFeedback,
-      matchFeedback,
-      gapMatchFeedback,
-      multiInteractionFeedback,
-    ],
+    label: 'QTI Spec Examples',
+    items: specExamples,
   },
 ];
 

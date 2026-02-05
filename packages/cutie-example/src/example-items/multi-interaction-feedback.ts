@@ -205,3 +205,5 @@ adaptive="false" time-dependent="false" xml:lang="en">
     </qti-set-outcome-value>
   </qti-response-processing>
 </qti-assessment-item>`;
+
+export const interactionTypes: string[] = ['choice', 'text-entry', 'inline-choice'];
