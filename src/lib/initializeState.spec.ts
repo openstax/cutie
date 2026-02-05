@@ -2185,7 +2185,7 @@ describe('initializeState', () => {
   });
 
   describe('Standard Outcome Extraction', () => {
-    test('extracts SCORE from outcome declaration', () => {
+    test('returns null score when SCORE exists but MAXSCORE cannot be derived', () => {
       const xml = `<?xml version="1.0" encoding="UTF-8"?>
         <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
           identifier="score-test" title="Score Test">
@@ -2200,7 +2200,8 @@ describe('initializeState', () => {
       const itemDoc = parser.parseFromString(xml, 'text/xml');
       const state = initializeState(itemDoc);
 
-      expect(state.score).toBe(0.0);
+      // With xAPI score format, score is null if MAXSCORE cannot be determined
+      expect(state.score).toBe(null);
       expect(state.variables.SCORE).toBe(0.0);
     });
 
@@ -2224,8 +2225,8 @@ describe('initializeState', () => {
       const itemDoc = parser.parseFromString(xml, 'text/xml');
       const state = initializeState(itemDoc);
 
-      expect(state.score).toBe(0.0);
-      expect(state.maxScore).toBe(10.0);
+      expect(state.score?.raw).toBe(0.0);
+      expect(state.score?.max).toBe(10.0);
     });
 
     test('derives maxScore from mapping upper-bound when MAXSCORE not declared', () => {
@@ -2249,11 +2250,11 @@ describe('initializeState', () => {
       const itemDoc = parser.parseFromString(xml, 'text/xml');
       const state = initializeState(itemDoc);
 
-      expect(state.score).toBe(0.0);
-      expect(state.maxScore).toBe(5);
+      expect(state.score?.raw).toBe(0.0);
+      expect(state.score?.max).toBe(5);
     });
 
-    test('returns null maxScore when neither MAXSCORE nor upper-bound exists', () => {
+    test('returns null score when neither MAXSCORE nor upper-bound exists', () => {
       const xml = `<?xml version="1.0" encoding="UTF-8"?>
         <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
           identifier="no-max-test" title="No Max Test">
@@ -2268,8 +2269,8 @@ describe('initializeState', () => {
       const itemDoc = parser.parseFromString(xml, 'text/xml');
       const state = initializeState(itemDoc);
 
-      expect(state.score).toBe(0.0);
-      expect(state.maxScore).toBe(null);
+      // With new xAPI score format, score is null if either raw or max cannot be determined
+      expect(state.score).toBe(null);
     });
 
     test('returns null score for non-scored items (no SCORE declaration)', () => {
@@ -2284,7 +2285,6 @@ describe('initializeState', () => {
       const state = initializeState(itemDoc);
 
       expect(state.score).toBe(null);
-      expect(state.maxScore).toBe(null);
     });
 
     test('handles SCORE with non-zero default value', () => {
@@ -2302,7 +2302,8 @@ describe('initializeState', () => {
       const itemDoc = parser.parseFromString(xml, 'text/xml');
       const state = initializeState(itemDoc);
 
-      expect(state.score).toBe(5.0);
+      // With new xAPI score format, score is null if max cannot be determined
+      expect(state.score).toBe(null);
       expect(state.variables.SCORE).toBe(5.0);
     });
 
@@ -2326,9 +2327,9 @@ describe('initializeState', () => {
       const itemDoc = parser.parseFromString(xml, 'text/xml');
       const state = initializeState(itemDoc);
 
-      expect(state.score).toBe(0.0);
       // With improved deriveMaxScore, invalid upper-bound falls back to sum of map-entries
-      expect(state.maxScore).toBe(1);
+      expect(state.score?.raw).toBe(0.0);
+      expect(state.score?.max).toBe(1);
     });
 
     test('derives maxScore of 1 for match_correct template', () => {
@@ -2352,8 +2353,8 @@ describe('initializeState', () => {
       const itemDoc = parser.parseFromString(xml, 'text/xml');
       const state = initializeState(itemDoc);
 
-      expect(state.score).toBe(0);
-      expect(state.maxScore).toBe(1);
+      expect(state.score?.raw).toBe(0);
+      expect(state.score?.max).toBe(1);
     });
   });
 });

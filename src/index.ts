@@ -104,4 +104,5 @@ export type {
   AttemptState,
   ProcessingOptions,
   ResponseData,
+  Score,
 } from './types';

@@ -125,7 +125,6 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         score: null,
-        maxScore: null,
       });
 
       // Expected output preserves the original formatting, with variables substituted literally
@@ -170,7 +169,6 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         score: null,
-        maxScore: null,
       });
 
       expect(template).toContain('<p>Value: </p>');
@@ -192,7 +190,6 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         score: null,
-        maxScore: null,
       });
 
       expect(template).toContain('Number: 42.5 Text: hello');
@@ -221,7 +218,6 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         score: null,
-        maxScore: null,
       });
 
       expect(template).toContain('This is section 1');
@@ -247,7 +243,6 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         score: null,
-        maxScore: null,
       });
 
       expect(template).not.toContain('This should be hidden');
@@ -278,7 +273,6 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         score: null,
-        maxScore: null,
       });
 
       expect(template).toContain('Introduction');
@@ -304,7 +298,6 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         score: null,
-        maxScore: null,
       });
 
       expect(template).toContain('definitely correct');
@@ -327,7 +320,6 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         score: null,
-        maxScore: null,
       });
 
       expect(template).not.toContain('SECRET');
@@ -358,7 +350,6 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         score: null,
-        maxScore: null,
       });
 
       expect(template).toContain('Excellent work!');
@@ -387,7 +378,6 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         score: null,
-        maxScore: null,
       });
 
       expect(template).not.toContain('This is a hint that should be hidden');
@@ -410,7 +400,6 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         score: null,
-        maxScore: null,
       });
 
       expect(template).toContain('correct');
@@ -438,7 +427,6 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'completed',
         score: null,
-        maxScore: null,
       });
 
       expect(template).toContain('Task completed');
@@ -467,7 +455,6 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'completed',
         score: null,
-        maxScore: null,
       });
 
       expect(template).toContain('Great job!');
@@ -496,7 +483,6 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'completed',
         score: null,
-        maxScore: null,
       });
 
       expect(template).not.toContain('This modal hint should be hidden');
@@ -511,7 +497,6 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         score: null,
-        maxScore: null,
       });
 
       // Response declaration should be kept since RESPONSE is used in the body
@@ -525,7 +510,6 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         score: null,
-        maxScore: null,
       });
 
       expect(template).not.toContain('qti-outcome-declaration');
@@ -537,7 +521,6 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         score: null,
-        maxScore: null,
       });
 
       expect(template).not.toContain('qti-template-declaration');
@@ -549,7 +532,6 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         score: null,
-        maxScore: null,
       });
 
       expect(template).not.toContain('qti-template-processing');
@@ -561,7 +543,6 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         score: null,
-        maxScore: null,
       });
 
       expect(template).not.toContain('qti-response-processing');
@@ -590,7 +571,6 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         score: null,
-        maxScore: null,
       });
 
       expect(template).toContain('qti-response-declaration');
@@ -621,7 +601,6 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         score: null,
-        maxScore: null,
       });
 
       expect(template).toContain('qti-response-declaration');
@@ -650,7 +629,6 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         score: null,
-        maxScore: null,
       });
 
       expect(template).toContain('identifier="RESPONSE1"');
@@ -682,7 +660,6 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         score: null,
-        maxScore: null,
       });
 
       expect(template).toContain('identifier="VISIBLE_RESPONSE"');
@@ -708,7 +685,6 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'incomplete',
         score: null,
-        maxScore: null,
       });
 
       expect(template).toContain('qti-default-value');
@@ -735,7 +711,6 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'incomplete',
         score: null,
-        maxScore: null,
       });
 
       expect(template).toContain('qti-default-value');
@@ -760,7 +735,6 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         score: null,
-        maxScore: null,
       });
 
       expect(template).toContain('qti-response-declaration');
@@ -790,7 +764,6 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'incomplete',
         score: null,
-        maxScore: null,
       });
 
       expect(template).toContain('qti-default-value');
@@ -830,7 +803,6 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         score: null,
-        maxScore: null,
       });
 
       // The variables should be substituted into MathML
@@ -860,7 +832,6 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         score: null,
-        maxScore: null,
       });
 
       expect(template).toContain('<m:mn>3.14</m:mn>');
@@ -891,7 +862,6 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         score: null,
-        maxScore: null,
       });
 
       expect(template).toContain('<m:mi>7</m:mi>');
@@ -916,7 +886,6 @@ describe('renderTemplate', () => {
           variables: {},
           completionStatus: 'not_attempted',
           score: null,
-          maxScore: null,
         },
         {
           resolveAssets: async (urls) => urls.map((url) => `/resolved/${url}`),
@@ -942,7 +911,6 @@ describe('renderTemplate', () => {
           variables: {},
           completionStatus: 'not_attempted',
           score: null,
-          maxScore: null,
         },
         {
           resolveAssets: async (urls) => urls.map((url) => `/cdn/${url}`),
@@ -971,7 +939,6 @@ describe('renderTemplate', () => {
           variables: {},
           completionStatus: 'not_attempted',
           score: null,
-          maxScore: null,
         },
         {
           resolveAssets: async (urls) => {
@@ -1009,7 +976,6 @@ describe('renderTemplate', () => {
           variables: {},
           completionStatus: 'not_attempted',
           score: null,
-          maxScore: null,
         },
         {
           resolveAssets: async (urls) => {
@@ -1038,7 +1004,6 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         score: null,
-        maxScore: null,
       });
 
       expect(template).toContain('src="images/diagram.png"');
@@ -1060,7 +1025,6 @@ describe('renderTemplate', () => {
           variables: {},
           completionStatus: 'not_attempted',
           score: null,
-          maxScore: null,
         },
         {
           resolveAssets: async (urls) => {

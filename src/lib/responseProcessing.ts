@@ -2,11 +2,11 @@ import { AttemptState, ResponseData } from '../types';
 import { getChildElements, getFirstChildElement } from '../utils/dom';
 import { deepEqual } from '../utils/equality';
 import { parseResponseValue } from '../utils/typeParser';
-import { deriveMaxScore } from './deriveMaxScore';
 import {
   evaluateExpression as evaluateExpressionShared,
   type SubEvaluate,
 } from './expressionEvaluator/index';
+import { extractStandardOutcomes } from './scoreUtils';
 
 /**
  * Coerce a submitted response value to match the expected type from the response declaration.
@@ -100,13 +100,12 @@ export function processResponse(
   }
 
   // Step 3: Return updated state with completionStatus set to 'completed'
-  const { score, maxScore } = extractStandardOutcomes(variables, itemDoc);
+  const score = extractStandardOutcomes(variables, itemDoc);
 
   return {
     variables,
     completionStatus: 'completed',
     score,
-    maxScore
   };
 }
 
@@ -708,19 +707,3 @@ class ExitResponseError extends Error {
   }
 }
 
-/**
- * Extract standard outcome variables (SCORE, MAXSCORE) from variables object.
- */
-function extractStandardOutcomes(
-  variables: Record<string, unknown>,
-  itemDoc: Document
-): { score: number | null; maxScore: number | null } {
-  // Extract SCORE
-  const scoreValue = variables['SCORE'];
-  const score = typeof scoreValue === 'number' ? scoreValue : null;
-
-  // Derive MAXSCORE using shared function
-  const maxScore = deriveMaxScore(itemDoc, variables);
-
-  return { score, maxScore };
-}
