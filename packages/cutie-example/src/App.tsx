@@ -70,9 +70,9 @@ interface PrefetchedContent {
 }
 
 const determineResult = (state: AttemptState): 'correct' | 'incorrect' | 'partial-credit' => {
-  if (state.score === null || state.maxScore === null) return 'incorrect';
-  if (state.score === state.maxScore) return 'correct';
-  if (state.score === 0) return 'incorrect';
+  if (state.score === null) return 'incorrect';
+  if (state.score.raw === state.score.max) return 'correct';
+  if (state.score.raw === 0) return 'incorrect';
   return 'partial-credit';
 };
 

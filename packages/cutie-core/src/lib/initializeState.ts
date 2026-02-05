@@ -1,11 +1,11 @@
 import { AttemptState } from '../types';
 import { getChildElements, getFirstChildElement } from '../utils/dom';
 import { parseValue } from '../utils/typeParser';
-import { deriveMaxScore } from './deriveMaxScore';
 import {
   evaluateExpression as evaluateExpressionShared,
   type SubEvaluate,
 } from './expressionEvaluator/index';
+import { extractStandardOutcomes } from './scoreUtils';
 
 /**
  * Initializes the attempt state by processing template declarations and
@@ -47,13 +47,12 @@ export function initializeState(itemDoc: Document): AttemptState {
     }
   }
 
-  const { score, maxScore } = extractStandardOutcomes(variables, itemDoc);
+  const score = extractStandardOutcomes(variables, itemDoc);
 
   return {
     variables,
     completionStatus: 'not_attempted',
     score,
-    maxScore
   };
 }
 
@@ -393,19 +392,5 @@ function evaluateRandomFloat(element: Element): number {
   const max = parseFloat(element.getAttribute('max') || '1');
 
   return min + (Math.random() * (max - min));
-}
-
-function extractStandardOutcomes(
-  variables: Record<string, unknown>,
-  itemDoc: Document
-): { score: number | null; maxScore: number | null } {
-  // Extract SCORE
-  const scoreValue = variables['SCORE'];
-  const score = typeof scoreValue === 'number' ? scoreValue : null;
-
-  // Derive MAXSCORE using shared function
-  const maxScore = deriveMaxScore(itemDoc, variables);
-
-  return { score, maxScore };
 }
 

@@ -59,8 +59,7 @@ describe('processResponse - Basic Response Processing', () => {
     const currentState = {
       variables: { SCORE: 0 },
       completionStatus: 'not_attempted' as const,
-      score: 0,
-      maxScore: null,
+      score: null,
     };
     const submission = { RESPONSE: 'choiceA' };
 
@@ -119,8 +118,7 @@ describe('processResponse - Basic Response Processing', () => {
     const currentState = {
       variables: { SCORE: 0 },
       completionStatus: 'not_attempted' as const,
-      score: 0,
-      maxScore: null,
+      score: null,
     };
     const submission = { RESPONSE: 'choiceB' };
 
@@ -171,8 +169,7 @@ describe('processResponse - Basic Response Processing', () => {
     const currentState = {
       variables: { SCORE: 0 },
       completionStatus: 'not_attempted' as const,
-      score: 0,
-      maxScore: null,
+      score: null,
     };
     const submission = {}; // No response submitted
 
@@ -239,8 +236,7 @@ describe('processResponse - Basic Response Processing', () => {
     const currentState = {
       variables: { SCORE: 0 },
       completionStatus: 'not_attempted' as const,
-      score: 0,
-      maxScore: null,
+      score: null,
     };
     const submission = { RESPONSE1: 'choiceA', RESPONSE2: 'choiceX' };
 
@@ -308,8 +304,7 @@ describe('processResponse - Basic Response Processing', () => {
     const currentState = {
       variables: { SCORE: 0 },
       completionStatus: 'not_attempted' as const,
-      score: 0,
-      maxScore: null,
+      score: null,
     };
     const submission = { RESPONSE: 'choiceB' };
 
@@ -351,8 +346,7 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: null,
+        score: null,
       };
       const submission = { RESPONSE: 'choiceB' };
 
@@ -392,8 +386,7 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: null,
+        score: null,
       };
       const submission = { RESPONSE: 'choiceA' };
 
@@ -432,8 +425,7 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: null,
+        score: null,
       };
       const submission = {}; // No response
 
@@ -474,8 +466,7 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: null,
+        score: null,
       };
       const submission = { RESPONSE: ['choiceA', 'choiceC'] };
 
@@ -516,8 +507,7 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: null,
+        score: null,
       };
       // Only selecting one of the two correct choices
       const submission = { RESPONSE: ['choiceA'] };
@@ -561,8 +551,7 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: null,
+        score: null,
       };
       const submission = { RESPONSE: ['step1', 'step2', 'step3'] };
 
@@ -598,8 +587,7 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: null,
+        score: null,
       };
       const submission = { RESPONSE: 'Paris' };
 
@@ -638,8 +626,7 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: null,
+        score: null,
       };
       const submission = { RESPONSE: 'choiceB' };
 
@@ -679,8 +666,7 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: null,
+        score: null,
       };
       const submission = { RESPONSE: 'choiceB' };
 
@@ -728,8 +714,7 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: null,
+        score: null,
       };
       const submission = { RESPONSE: 'choiceC' };
 
@@ -771,8 +756,7 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: null,
+        score: null,
       };
       const submission = {}; // No response
 
@@ -818,8 +802,7 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: null,
+        score: null,
       };
       // Select both correct choices
       const submission = { RESPONSE: ['choiceA', 'choiceC'] };
@@ -864,8 +847,7 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: null,
+        score: null,
       };
       // Select correct but also select wrong
       const submission = { RESPONSE: ['choiceA', 'choiceB'] };
@@ -910,8 +892,7 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: null,
+        score: null,
       };
       // Only select the wrong answer with big penalty
       const submission = { RESPONSE: ['choiceB'] };
@@ -957,8 +938,7 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: null,
+        score: null,
       };
       const submission = { RESPONSE: ['choiceA', 'choiceB'] };
 
@@ -1002,8 +982,7 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: null,
+        score: null,
       };
       const submission = { RESPONSE: 'choiceA' };
 
@@ -1040,8 +1019,7 @@ describe('Standard Response Processing Templates', () => {
       const currentState: AttemptState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted',
-        score: 0,
-        maxScore: null,
+        score: null,
       };
 
       // "York" should match "york" (case-insensitive by default)
@@ -1076,8 +1054,7 @@ describe('Standard Response Processing Templates', () => {
       const currentState: AttemptState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted',
-        score: 0,
-        maxScore: null,
+        score: null,
       };
 
       // "YORK" should match "York" (case-insensitive by default)
@@ -1112,8 +1089,7 @@ describe('Standard Response Processing Templates', () => {
       const currentState: AttemptState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted',
-        score: 0,
-        maxScore: null,
+        score: null,
       };
 
       // "york" should NOT match "York" when case-sensitive="true"
@@ -1148,8 +1124,7 @@ describe('Standard Response Processing Templates', () => {
       const currentState: AttemptState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted',
-        score: 0,
-        maxScore: null,
+        score: null,
       };
 
       // "York" should match "York" exactly when case-sensitive="true"
@@ -1185,8 +1160,7 @@ describe('Standard Response Processing Templates', () => {
       const currentState: AttemptState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted',
-        score: 0,
-        maxScore: null,
+        score: null,
       };
 
       // "york" should not match "York" (case-sensitive entry)
@@ -1234,8 +1208,7 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: null,
+        score: null,
       };
       // Click inside the circle (center at 100,100 with radius 50)
       const submission = { RESPONSE: '100 100' };
@@ -1274,8 +1247,7 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: null,
+        score: null,
       };
       const submission = {}; // No click
 
@@ -1314,8 +1286,7 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: null,
+        score: null,
       };
       // Click both hotspots
       const submission = { RESPONSE: ['100 100', '200 200'] };
@@ -1355,8 +1326,7 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: null,
+        score: null,
       };
       // Click inside rectangle (x between 50-150, y between 50-150)
       const submission = { RESPONSE: '100 100' };
@@ -1395,8 +1365,7 @@ describe('Standard Response Processing Templates', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: null,
+        score: null,
       };
       // Click far outside the circle
       const submission = { RESPONSE: '500 500' };
@@ -1449,8 +1418,7 @@ describe('Response Processing Operators and Expressions', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: null,
+        score: null,
       };
       const submission = { RESPONSE: 'A' };
 
@@ -1501,8 +1469,7 @@ describe('Response Processing Operators and Expressions', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: null,
+        score: null,
       };
       // Order doesn't matter for multiple cardinality
       const submission = { RESPONSE: ['A', 'B'] };
@@ -1553,8 +1520,7 @@ describe('Response Processing Operators and Expressions', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: null,
+        score: null,
       };
       // Wrong order
       const submission = { RESPONSE: ['B', 'A'] };
@@ -1599,8 +1565,7 @@ describe('Response Processing Operators and Expressions', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: null,
+        score: null,
       };
       const submission = { RESPONSE: 'paris' }; // lowercase
 
@@ -1645,8 +1610,7 @@ describe('Response Processing Operators and Expressions', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: null,
+        score: null,
       };
       const submission = { RESPONSE: 42 };
 
@@ -1690,8 +1654,7 @@ describe('Response Processing Operators and Expressions', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: null,
+        score: null,
       };
       // Submit as string (as would come from a text input)
       const submission = { RESPONSE: '42' };
@@ -1736,8 +1699,7 @@ describe('Response Processing Operators and Expressions', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: null,
+        score: null,
       };
       const submission = { RESPONSE: 3.14 };
 
@@ -1781,8 +1743,7 @@ describe('Response Processing Operators and Expressions', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: null,
+        score: null,
       };
       // Submit as string (as would come from a text input)
       const submission = { RESPONSE: '3.14' };
@@ -1837,8 +1798,7 @@ describe('Response Processing Operators and Expressions', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: null,
+        score: null,
       };
       const submission = { RESPONSE: 'choiceC' };
 
@@ -1891,8 +1851,7 @@ describe('Response Processing Operators and Expressions', () => {
       const currentState = {
         variables: { SCORE: 0, WAS_NULL: false },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: null,
+        score: null,
       };
       const submission = {}; // No response
 
@@ -1943,7 +1902,6 @@ describe('Response Processing Operators and Expressions', () => {
         variables: { WAS_NULL: true },
         completionStatus: 'not_attempted' as const,
         score: null,
-        maxScore: null,
       };
       const submission = { RESPONSE: 'A' };
 
@@ -2001,8 +1959,7 @@ describe('Response Processing Operators and Expressions', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: null,
+        score: null,
       };
       const submission = { RESPONSE1: 'A', RESPONSE2: 'B' };
 
@@ -2055,8 +2012,7 @@ describe('Response Processing Operators and Expressions', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: null,
+        score: null,
       };
       const submission = { RESPONSE: 'B' };
 
@@ -2105,8 +2061,7 @@ describe('Response Processing Operators and Expressions', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: null,
+        score: null,
       };
       // Response is B, which is NOT A, so condition should be true
       const submission = { RESPONSE: 'B' };
@@ -2158,8 +2113,7 @@ describe('Response Processing Operators and Expressions', () => {
       const currentState = {
         variables: { PARTIAL1: 0.3, PARTIAL2: 0.7, SCORE: 0 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: null,
+        score: null,
       };
       const submission = {};
 
@@ -2208,8 +2162,7 @@ describe('Response Processing Operators and Expressions', () => {
       const currentState = {
         variables: { RAW_SCORE: 5, MULTIPLIER: 2, SCORE: 0 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: null,
+        score: null,
       };
       const submission = {};
 
@@ -2259,8 +2212,7 @@ describe('Response Processing Operators and Expressions', () => {
       const currentState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: null,
+        score: null,
       };
       const submission = { RESPONSE: ['A', 'B'] };
 
@@ -2316,8 +2268,7 @@ describe('Response Processing Operators and Expressions', () => {
       const currentState = {
         variables: {},
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: null,
+        score: null,
       };
       const submission = { RESPONSE: 'A' };
 
@@ -2403,8 +2354,7 @@ describe('Complex Response Processing Scenarios', () => {
     const currentState = {
       variables: { SCORE: 0, SCORE_PART1: 0, SCORE_PART2: 0 },
       completionStatus: 'not_attempted' as const,
-      score: 0,
-      maxScore: null,
+      score: null,
     };
     const submission = { RESPONSE_PART1: 'B', RESPONSE_PART2: 'X' };
 
@@ -2487,8 +2437,7 @@ describe('Complex Response Processing Scenarios', () => {
     const currentState = {
       variables: { SCORE: 0, FEEDBACK_ID: 'none' },
       completionStatus: 'not_attempted' as const,
-      score: 0,
-      maxScore: null,
+      score: null,
     };
     const submission = { RESPONSE: 'choiceB' };
 
@@ -2555,8 +2504,7 @@ describe('Complex Response Processing Scenarios', () => {
     let currentState: AttemptState = {
       variables: { SCORE: 0, numAttempts: 0 },
       completionStatus: 'not_attempted' as const,
-      score: 0,
-      maxScore: null,
+      score: null,
     };
     let submission = { RESPONSE: 'choiceB' };
 
@@ -2609,15 +2557,14 @@ describe('Complex Response Processing Scenarios', () => {
       const currentState: AttemptState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: null,
+        score: { raw: 0, min: 0, max: 1, scaled: 0 },
       };
 
       // Submit correct response
       const submission = { RESPONSE: 'choiceA' };
       const newState = processResponse(itemDoc, submission, currentState);
 
-      expect(newState.score).toBe(1);
+      expect(newState.score?.raw).toBe(1);
       expect(newState.variables.SCORE).toBe(1);
       expect(newState.completionStatus).toBe('completed');
     });
@@ -2652,15 +2599,14 @@ describe('Complex Response Processing Scenarios', () => {
       const currentState: AttemptState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: 10,
+        score: { raw: 0, min: 0, max: 10, scaled: 0 },
       };
 
       const submission = { RESPONSE: 'A' };
       const newState = processResponse(itemDoc, submission, currentState);
 
-      expect(newState.score).toBe(5);
-      expect(newState.maxScore).toBe(10);
+      expect(newState.score?.raw).toBe(5);
+      expect(newState.score?.max).toBe(10);
       expect(newState.completionStatus).toBe('completed');
     });
 
@@ -2682,14 +2628,12 @@ describe('Complex Response Processing Scenarios', () => {
         variables: {},
         completionStatus: 'not_attempted' as const,
         score: null,
-        maxScore: null,
       };
 
       const submission = { RESPONSE: 'My opinion' };
       const newState = processResponse(itemDoc, submission, currentState);
 
       expect(newState.score).toBe(null);
-      expect(newState.maxScore).toBe(null);
       expect(newState.completionStatus).toBe('completed');
     });
 
@@ -2740,15 +2684,14 @@ describe('Complex Response Processing Scenarios', () => {
       const currentState: AttemptState = {
         variables: { SCORE: 0, MAXSCORE: 100 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: 100,
+        score: { raw: 0, min: 0, max: 100, scaled: 0 },
       };
 
       const submission = { RESPONSE: 'choiceA' };
       const newState = processResponse(itemDoc, submission, currentState);
 
-      expect(newState.score).toBe(100);
-      expect(newState.maxScore).toBe(100);
+      expect(newState.score?.raw).toBe(100);
+      expect(newState.score?.max).toBe(100);
       expect(newState.completionStatus).toBe('completed');
     });
 
@@ -2781,15 +2724,14 @@ describe('Complex Response Processing Scenarios', () => {
       const currentState: AttemptState = {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
-        score: 0,
-        maxScore: 1,
+        score: { raw: 0, min: 0, max: 1, scaled: 0 },
       };
 
       const submission = { RESPONSE: 'ChoiceA' };
       const newState = processResponse(itemDoc, submission, currentState);
 
-      expect(newState.score).toBe(1);
-      expect(newState.maxScore).toBe(1);
+      expect(newState.score?.raw).toBe(1);
+      expect(newState.score?.max).toBe(1);
       expect(newState.completionStatus).toBe('completed');
     });
   });

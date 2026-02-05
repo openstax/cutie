@@ -3,6 +3,7 @@ import { beginAttempt } from '@openstax/cutie-core';
 import type { AttemptState } from '@openstax/cutie-core';
 import { SlateEditor } from '@openstax/cutie-editor';
 import type { EditorAssetHandlers } from '@openstax/cutie-editor';
+import { useDebouncedEffect } from './utils/useDebouncedEffect';
 
 interface EditorTabProps {
   itemXml: string;
@@ -35,33 +36,35 @@ export function EditorTab({ itemXml, setItemXml, setSanitizedTemplate, setAttemp
   const [error, setError] = useState<string>('');
   const [processing, setProcessing] = useState(false);
 
-  const handleEditorPreview = async () => {
+  useDebouncedEffect(() => {
+    if (!itemXml.trim()) return;
+
     setError('');
     setProcessing(true);
 
-    try {
-      if (!itemXml.trim()) {
-        throw new Error('No item XML loaded');
-      }
-
-      // Process with cutie-core
-      const result = await beginAttempt(itemXml);
-      setAttemptState(result.state);
-      setSanitizedTemplate(result.template);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error occurred');
-    } finally {
-      setProcessing(false);
-    }
-  };
+    beginAttempt(itemXml)
+      .then((result) => {
+        setAttemptState(result.state);
+        setSanitizedTemplate(result.template);
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : 'Unknown error occurred');
+      })
+      .finally(() => {
+        setProcessing(false);
+      });
+  }, [itemXml], 500);
 
   return (
     <div className="tab-content-full">
       <div style={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
         border: '1px solid #ddd',
         borderRadius: '4px',
-        marginBottom: '12px',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        minHeight: 0,
       }}>
         <SlateEditor
           qtiXml={itemXml}
@@ -71,16 +74,10 @@ export function EditorTab({ itemXml, setItemXml, setSanitizedTemplate, setAttemp
           assetHandlers={assetHandlers}
         />
       </div>
-      <button
-        className="process-button"
-        onClick={handleEditorPreview}
-        disabled={processing || !itemXml.trim()}
-      >
-        {processing ? 'Processing...' : 'Preview'}
-      </button>
-      {error && (
-        <div className="error-message" style={{ marginTop: '12px' }}>
-          {error}
+      {(processing || error) && (
+        <div style={{ padding: '8px 0', flexShrink: 0 }}>
+          {processing && <div style={{ color: '#666' }}>Processing...</div>}
+          {error && <div className="error-message">{error}</div>}
         </div>
       )}
     </div>
