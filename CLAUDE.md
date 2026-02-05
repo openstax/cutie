@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Project Cutie is an implementation of the QTIv3 standard for displaying and scoring QTI Assessment Items.
+Project Cutie is an implementation of the QTIv3 standard for authoring, displaying, scoring QTI Assessment Items.
 
 QTI Documentation: https://www.imsglobal.org/spec/qti/v3p0/impl
 
@@ -78,51 +78,7 @@ yarn ci:versions
   - Vite + React application
   - Shows cutie-core template processing and cutie-client rendering
   - Useful for testing and development
+- **`packages/cutie-editor/`**: WYSIWYG QTI item editor (`@openstax/cutie-editor`) 
+  - React library exporting Editor component 
 - **`scripts/`**: Build and publishing automation scripts
 - **`.github/workflows/`**: CI workflows for lint, tests, and deployment
-
-## cutie-client Architecture
-
-### Handler Registry System
-
-The cutie-client uses a **priority-based handler registry** for processing QTI elements. This design allows interaction support to be added incrementally without modifying core code.
-
-**How it works:**
-1. Each handler registers with a priority number (lower = higher priority)
-2. When transforming an element, the first matching handler is used
-3. Handlers are checked in priority order
-
-**Priority tiers:**
-- **10-100**: Specific qti-* elements (interactions, feedback, etc.)
-- **500**: Unsupported qti-* catch-all (shows error UI)
-- **1000**: Generic HTML/XHTML passthrough
-
-**To add a new interaction handler:**
-1. Create handler file in `packages/cutie-client/src/transformer/handlers/`
-2. Implement `ElementHandler` interface:
-   - `canHandle(element)`: Return true if this handler should process the element
-   - `transform(element, context)`: Transform element to DocumentFragment
-3. Register with appropriate priority (typically 10-100 for interactions)
-4. Import in `packages/cutie-client/src/transformer/handlers/index.ts`
-
-**Example:**
-```typescript
-// packages/cutie-client/src/transformer/handlers/choiceInteraction.ts
-import { registry } from '../registry';
-import type { ElementHandler, TransformContext } from '../types';
-
-class ChoiceInteractionHandler implements ElementHandler {
-  canHandle(element: Element): boolean {
-    return element.tagName.toLowerCase() === 'qti-choice-interaction';
-  }
-
-  transform(element: Element, context: TransformContext): DocumentFragment {
-    const fragment = document.createDocumentFragment();
-    // Build HTML structure for choice interaction
-    // Use context.transformChildren(element) to recursively transform children
-    return fragment;
-  }
-}
-
-registry.register('choice-interaction', new ChoiceInteractionHandler(), 50);
-```
