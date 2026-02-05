@@ -56,12 +56,15 @@ export const specExamples = [
   multiInput,
 ];
 
-export const customExamples = [
-  textEntryMulti,
-  inlineChoiceMulti,
+export const feedbackTypes = [
   modalFeedback,
   inlineFeedback,
   blockFeedback,
+];
+
+export const customExamples = [
+  textEntryMulti,
+  inlineChoiceMulti,
   choiceFeedback,
   choiceMultipleFeedback,
   textEntryFeedback,
@@ -75,6 +78,10 @@ export const exampleGroups: ExampleGroup[] = [
   {
     label: 'Custom Examples',
     items: customExamples,
+  },
+  {
+    label: 'Feedback Types',
+    items: feedbackTypes,
   },
   {
     label: 'QTI Spec Examples',

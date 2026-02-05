@@ -20,9 +20,8 @@ adaptive="false" time-dependent="false" xml:lang="en" >
     </qti-correct-response>
   </qti-response-declaration>
 
-<!-- Define a feedback variable; its base type is "identifier" so that it can contain
-        the identifier of the feedback message-->
-  <qti-outcome-declaration identifier="FEEDBACK" cardinality="single" base-type="identifier" />
+<!-- Define a feedback variable; using cardinality="multiple" for editor compatibility -->
+  <qti-outcome-declaration identifier="FEEDBACK" cardinality="multiple" base-type="identifier" />
   <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"
       normal-maximum="10.0">
     <qti-default-value>
@@ -44,43 +43,64 @@ adaptive="false" time-dependent="false" xml:lang="en" >
     </qti-choice-interaction>
   </qti-item-body>
   <qti-response-processing>
+    <!-- Score the response -->
     <qti-response-condition>
       <qti-response-if>
         <qti-match>
-            <!-- The value of RESPONSE is compared with the correct value identified
-                    in the RESPONSE declaration-->
-              <qti-variable identifier="RESPONSE" />
-              <qti-correct identifier="RESPONSE" />
+          <qti-variable identifier="RESPONSE"/>
+          <qti-correct identifier="RESPONSE"/>
         </qti-match>
         <qti-set-outcome-value identifier="SCORE">
-            <qti-variable identifier="MAXSCORE" />
-        </qti-set-outcome-value>
-        <qti-set-outcome-value identifier="FEEDBACK">
-            <qti-base-value base-type="identifier">correct</qti-base-value>
+          <qti-variable identifier="MAXSCORE"/>
         </qti-set-outcome-value>
       </qti-response-if>
-      <qti-response-else>
-      <!--￼Depending on whether the input matches the correct answer or not, FEEDBACK
-                    is given the value of the identifier of the appropriate feedback message-->
+    </qti-response-condition>
+
+    <!-- Set feedback for correct response -->
+    <qti-response-condition>
+      <qti-response-if>
+        <qti-match>
+          <qti-variable identifier="RESPONSE"/>
+          <qti-correct identifier="RESPONSE"/>
+        </qti-match>
         <qti-set-outcome-value identifier="FEEDBACK">
-            <qti-base-value base-type="identifier">incorrect</qti-base-value>
+          <qti-multiple>
+            <qti-variable identifier="FEEDBACK"/>
+            <qti-base-value base-type="identifier">RESPONSE_correct</qti-base-value>
+          </qti-multiple>
         </qti-set-outcome-value>
-      </qti-response-else>
+      </qti-response-if>
+    </qti-response-condition>
+
+    <!-- Set feedback for incorrect response -->
+    <qti-response-condition>
+      <qti-response-if>
+        <qti-not>
+          <qti-match>
+            <qti-variable identifier="RESPONSE"/>
+            <qti-correct identifier="RESPONSE"/>
+          </qti-match>
+        </qti-not>
+        <qti-set-outcome-value identifier="FEEDBACK">
+          <qti-multiple>
+            <qti-variable identifier="FEEDBACK"/>
+            <qti-base-value base-type="identifier">RESPONSE_incorrect</qti-base-value>
+          </qti-multiple>
+        </qti-set-outcome-value>
+      </qti-response-if>
     </qti-response-condition>
   </qti-response-processing>
 
 <!-- Note how the identifiers in the following modalFeedback elements match those of the
         setOutcomeValue elements above -->
 
-  <qti-modal-feedback outcome-identifier="FEEDBACK" show-hide="show" identifier="correct">
+  <qti-modal-feedback outcome-identifier="FEEDBACK" show-hide="show" identifier="RESPONSE_correct">
       <qti-content-body>correct</qti-content-body>
   </qti-modal-feedback>
-  <qti-modal-feedback outcome-identifier="FEEDBACK" show-hide="show" identifier="incorrect">
+  <qti-modal-feedback outcome-identifier="FEEDBACK" show-hide="show" identifier="RESPONSE_incorrect">
       <qti-content-body>incorrect</qti-content-body>
   </qti-modal-feedback>
 
 </qti-assessment-item>`;
 
-// Empty array: this is a modal feedback demo, not an exemplar for choice interactions.
-// For choice interaction patterns, see choice-feedback.ts or block-feedback.ts.
-export const interactionTypes: string[] = [];
+export const interactionTypes: string[] = ['choice'];

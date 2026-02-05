@@ -45,18 +45,14 @@ const FEEDBACK_INLINE_STYLES = `
     display: inline;
     font-style: italic;
     color: #374151;
-    background-color: #f3f4f6;
     padding: 0.15em 0.5em;
     border-radius: 3px;
     line-height: 1.6;
-    -webkit-box-decoration-break: clone;
-    box-decoration-break: clone;
   }
 
-  /* Em-dash separator provides visual distinction without wrapping issues */
   .qti-feedback-inline::before {
-    content: "— ";
-    font-style: normal;
-    color: #6b7280;
+    content: " ";
+    border-left: 0.5em solid #4a90e2;
+    margin-right: 0.5em;
   }
 `;

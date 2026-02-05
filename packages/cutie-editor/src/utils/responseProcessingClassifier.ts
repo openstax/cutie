@@ -146,12 +146,17 @@ function classifyInlinePattern(responseProcessing: Element): ResponseProcessingM
 
 /**
  * Check if the response processing follows the sumScores pattern:
- * A qti-set-outcome-value for SCORE containing a qti-sum
+ * A qti-set-outcome-value for SCORE containing a qti-sum,
+ * optionally followed by feedback-only conditions
  */
 function isSumScoresPattern(responseProcessing: Element): boolean {
-  // Look for a top-level set-outcome-value for SCORE with a sum
+  let foundSumScores = false;
+
+  // Process all top-level children
   for (const child of responseProcessing.children) {
-    if (child.tagName.toLowerCase() === 'qti-set-outcome-value') {
+    const tagName = child.tagName.toLowerCase();
+
+    if (tagName === 'qti-set-outcome-value') {
       const identifier = child.getAttribute('identifier');
       if (identifier === 'SCORE') {
         const sum = child.querySelector('qti-sum');
@@ -160,28 +165,65 @@ function isSumScoresPattern(responseProcessing: Element): boolean {
           const mapResponses = sum.querySelectorAll('qti-map-response');
           const variables = sum.querySelectorAll('qti-variable');
           if (mapResponses.length > 0 || variables.length > 0) {
-            return true;
+            foundSumScores = true;
+            continue;
           }
         }
       }
+      // Non-sum SCORE setter or SCORE setter without valid sum -> not sumScores
+      return false;
+    }
+
+    if (tagName === 'qti-response-condition') {
+      // Any response condition after sum must be feedback-only
+      if (foundSumScores) {
+        if (!isFeedbackOnlyCondition(child)) {
+          return false;
+        }
+      } else {
+        // Response condition before sum pattern -> not sumScores
+        return false;
+      }
     }
   }
-  return false;
+
+  return foundSumScores;
 }
 
 /**
  * Check if the response processing follows the allCorrect pattern:
- * A single condition that checks all responses match correct and sets SCORE to 1 or 0
+ * A condition that checks all responses match correct and sets SCORE to 1 or 0,
+ * optionally followed by feedback-only conditions
  */
 function isAllCorrectPattern(responseProcessing: Element): boolean {
   const conditions = responseProcessing.querySelectorAll(':scope > qti-response-condition');
 
-  // Should have exactly one condition at the root level for pure allCorrect
-  if (conditions.length !== 1) {
+  if (conditions.length === 0) {
     return false;
   }
 
-  const condition = conditions[0];
+  // First condition must be the scoring condition
+  const firstCondition = conditions[0];
+  if (!isAllCorrectScoringCondition(firstCondition)) {
+    return false;
+  }
+
+  // Additional conditions must be feedback-only conditions
+  for (let i = 1; i < conditions.length; i++) {
+    if (!isFeedbackOnlyCondition(conditions[i])) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Check if a condition follows the allCorrect scoring pattern:
+ * A qti-and over qti-match calls (multiple interactions) or
+ * a single qti-match call (single interaction)
+ */
+function isAllCorrectScoringCondition(condition: Element): boolean {
   const responseIf = condition.querySelector(':scope > qti-response-if');
   if (!responseIf) {
     return false;
@@ -267,6 +309,34 @@ function areFeedbackPatternsStandard(responseProcessing: Element): boolean {
 
   // Check each feedback setter
   for (const setter of feedbackSetters) {
+    if (!isStandardFeedbackSetter(setter)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Check if a qti-response-condition only sets FEEDBACK outcome variables
+ * using standard patterns. This is used to recognize feedback-only conditions
+ * that follow the scoring condition.
+ */
+function isFeedbackOnlyCondition(condition: Element): boolean {
+  // Get all set-outcome-value elements anywhere in the condition
+  const setters = condition.querySelectorAll('qti-set-outcome-value');
+
+  // Must have at least one setter
+  if (setters.length === 0) {
+    return false;
+  }
+
+  // All setters must be for FEEDBACK and follow standard pattern
+  for (const setter of setters) {
+    const identifier = setter.getAttribute('identifier');
+    if (identifier !== 'FEEDBACK') {
+      return false;
+    }
     if (!isStandardFeedbackSetter(setter)) {
       return false;
     }
