@@ -281,15 +281,20 @@ function getResponseMapping(itemDoc: Document, identifier: string): ResponseMapp
         const lowerBound = mappingElement.getAttribute('lower-bound');
         const upperBound = mappingElement.getAttribute('upper-bound');
 
-        const mapEntries: Record<string, number> = {};
+        const mapEntries: MapEntry[] = [];
         const mapEntryElements = mappingElement.getElementsByTagName('qti-map-entry');
 
         for (let j = 0; j < mapEntryElements.length; j++) {
           const entry = mapEntryElements[j];
           const mapKey = entry.getAttribute('map-key');
           const mappedValue = entry.getAttribute('mapped-value');
+          const caseSensitive = entry.getAttribute('case-sensitive') === 'true';
           if (mapKey && mappedValue) {
-            mapEntries[mapKey] = parseFloat(mappedValue);
+            mapEntries.push({
+              mapKey,
+              mappedValue: parseFloat(mappedValue),
+              caseSensitive
+            });
           }
         }
 
@@ -307,11 +312,24 @@ function getResponseMapping(itemDoc: Document, identifier: string): ResponseMapp
 }
 
 /**
- * Get mapped value for a given response value
+ * Get mapped value for a given response value.
+ * Per QTI spec, string mapping is case-insensitive by default.
+ * Individual map entries can override this with case-sensitive="true".
  */
 function getMappedValue(value: unknown, mapping: ResponseMapping): number {
   const key = String(value);
-  return mapping.entries[key] ?? mapping.defaultValue;
+
+  for (const entry of mapping.entries) {
+    const matches = entry.caseSensitive
+      ? key === entry.mapKey
+      : key.toLowerCase() === entry.mapKey.toLowerCase();
+
+    if (matches) {
+      return entry.mappedValue;
+    }
+  }
+
+  return mapping.defaultValue;
 }
 
 /**
@@ -656,11 +674,17 @@ function evaluateMapResponsePoint(
 
 // Type definitions
 
+interface MapEntry {
+  mapKey: string;
+  mappedValue: number;
+  caseSensitive: boolean;
+}
+
 interface ResponseMapping {
   defaultValue: number;
   lowerBound: number | null;
   upperBound: number | null;
-  entries: Record<string, number>;
+  entries: MapEntry[];
 }
 
 interface AreaMapping {
