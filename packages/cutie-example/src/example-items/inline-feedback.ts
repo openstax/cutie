@@ -16,9 +16,8 @@ adaptive="false" time-dependent="false" xml:lang="en" >
       </qti-correct-response>
   </qti-response-declaration>
 
-  <!-- Define a feedback variable; its base-type is "identifier" so that it can contain the identifier
-         of the feedback message-->
-  <qti-outcome-declaration identifier="FEEDBACK" cardinality="single" base-type="identifier"/>
+  <!-- Define a feedback variable; using cardinality="multiple" for editor compatibility -->
+  <qti-outcome-declaration identifier="FEEDBACK" cardinality="multiple" base-type="identifier"/>
   <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float" normal-maximum="10.0">
       <qti-default-value>
           <qti-value>0</qti-value>
@@ -36,34 +35,62 @@ adaptive="false" time-dependent="false" xml:lang="en" >
         <qti-prompt>Sigmund Freud and Carl Jung both belong to the psychoanalytic school of
             psychology.</qti-prompt>
         <qti-simple-choice identifier="true" fixed="true">True
-    <!--￼￼￼The feedbackInline elements are each given the same identifier as the corresponding option.-->
-          <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="true" show-hide="show">
-            — <strong>That's correct</strong></qti-feedback-inline>
+          <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_true" show-hide="show">
+            — <strong>Correct!</strong> Both Freud and Jung are foundational figures in psychoanalysis. Freud developed the original theory, while Jung contributed analytical psychology as a related approach.</qti-feedback-inline>
         </qti-simple-choice>
         <qti-simple-choice identifier="false" fixed="true">False
-        <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="false" show-hide="show">
-            — <strong>That's not correct</strong></qti-feedback-inline>
+        <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_false" show-hide="show">
+            — <strong>Incorrect.</strong> Consider the historical development of psychology. Both figures worked together early in their careers and shared foundational ideas about the unconscious mind.</qti-feedback-inline>
         </qti-simple-choice>
       </qti-choice-interaction>
   </qti-item-body>
 
   <qti-response-processing>
-<!--￼This time, FEEDBACK is given the value of the identifier of the option which was selected.-->
-        <qti-set-outcome-value identifier="FEEDBACK">
-            <qti-variable identifier="RESPONSE"/>
+    <!-- Score the response -->
+    <qti-response-condition>
+      <qti-response-if>
+        <qti-match>
+          <qti-variable identifier="RESPONSE"/>
+          <qti-correct identifier="RESPONSE"/>
+        </qti-match>
+        <qti-set-outcome-value identifier="SCORE">
+          <qti-variable identifier="MAXSCORE"/>
         </qti-set-outcome-value>
-        <qti-response-condition>
-            <qti-response-if>
-                <qti-match>
-                    <qti-variable identifier="RESPONSE"/>
-                    <qti-correct identifier="RESPONSE"/>
-                </qti-match>
-                <qti-set-outcome-value identifier="SCORE">
-                    <qti-variable identifier="MAXSCORE"/>
-                </qti-set-outcome-value>
-            </qti-response-if>
-        </qti-response-condition>
-    </qti-response-processing>
+      </qti-response-if>
+    </qti-response-condition>
+
+    <!-- Set feedback for true choice -->
+    <qti-response-condition>
+      <qti-response-if>
+        <qti-match>
+          <qti-variable identifier="RESPONSE"/>
+          <qti-base-value base-type="identifier">true</qti-base-value>
+        </qti-match>
+        <qti-set-outcome-value identifier="FEEDBACK">
+          <qti-multiple>
+            <qti-variable identifier="FEEDBACK"/>
+            <qti-base-value base-type="identifier">RESPONSE_choice_true</qti-base-value>
+          </qti-multiple>
+        </qti-set-outcome-value>
+      </qti-response-if>
+    </qti-response-condition>
+
+    <!-- Set feedback for false choice -->
+    <qti-response-condition>
+      <qti-response-if>
+        <qti-match>
+          <qti-variable identifier="RESPONSE"/>
+          <qti-base-value base-type="identifier">false</qti-base-value>
+        </qti-match>
+        <qti-set-outcome-value identifier="FEEDBACK">
+          <qti-multiple>
+            <qti-variable identifier="FEEDBACK"/>
+            <qti-base-value base-type="identifier">RESPONSE_choice_false</qti-base-value>
+          </qti-multiple>
+        </qti-set-outcome-value>
+      </qti-response-if>
+    </qti-response-condition>
+  </qti-response-processing>
 </qti-assessment-item>`;
 
 export const interactionTypes: string[] = ['choice'];

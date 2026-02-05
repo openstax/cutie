@@ -46,22 +46,11 @@ adaptive="false" time-dependent="false" xml:lang="en">
     </qti-gap-match-interaction>
 
     <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_correct" show-hide="show">
-      <p><strong>Correct!</strong> All gaps are filled correctly.</p>
-      <ul>
-        <li>Gap 1: "word A" - [explanation]</li>
-        <li>Gap 2: "word B" - [explanation]</li>
-        <li>Gap 3: "word C" - [explanation]</li>
-      </ul>
+      <p><strong>Correct!</strong> All gaps are filled correctly. You've demonstrated understanding of how each word fits into the sentence structure and meaning.</p>
     </qti-feedback-block>
 
     <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_incorrect" show-hide="show">
-      <p><strong>Incorrect.</strong> The correct answers are:</p>
-      <ul>
-        <li>Gap 1: word A</li>
-        <li>Gap 2: word B</li>
-        <li>Gap 3: word C</li>
-      </ul>
-      <p>Note: "distractor" is not used in the correct solution.</p>
+      <p><strong>Not quite.</strong> Read the sentence carefully and consider how each word fits grammatically and semantically. Look for context clues in the sentence that indicate which word belongs in each gap. Remember that one option may not be used in the correct solution.</p>
     </qti-feedback-block>
   </qti-item-body>
 

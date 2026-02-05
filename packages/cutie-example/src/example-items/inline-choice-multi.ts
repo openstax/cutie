@@ -38,6 +38,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
       <qti-value>3</qti-value>
     </qti-default-value>
   </qti-outcome-declaration>
+  <qti-outcome-declaration identifier="FEEDBACK" cardinality="multiple" base-type="identifier"/>
 
   <qti-item-body>
     <p>Select the correct words to complete the paragraph about plant biology.</p>
@@ -62,6 +63,14 @@ adaptive="false" time-dependent="false" xml:lang="en">
       </qti-inline-choice-interaction>
       into the atmosphere, which is essential for animal life.
     </p>
+
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_correct" show-hide="show">
+      <p><strong>Excellent!</strong> You correctly identified the key components of how plants produce food and contribute to the atmosphere. This process is fundamental to life on Earth.</p>
+    </qti-feedback-block>
+
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_incorrect" show-hide="show">
+      <p><strong>Not quite.</strong> Think about how plants convert light energy into chemical energy. Consider what goes into the process, what energy source drives it, and what gas is released as a byproduct.</p>
+    </qti-feedback-block>
   </qti-item-body>
 
   <qti-response-processing>
@@ -81,6 +90,29 @@ adaptive="false" time-dependent="false" xml:lang="en">
         </qti-match>
       </qti-sum>
     </qti-set-outcome-value>
+
+    <qti-response-condition>
+      <qti-response-if>
+        <qti-gte>
+          <qti-variable identifier="SCORE"/>
+          <qti-variable identifier="MAXSCORE"/>
+        </qti-gte>
+        <qti-set-outcome-value identifier="FEEDBACK">
+          <qti-multiple>
+            <qti-variable identifier="FEEDBACK"/>
+            <qti-base-value base-type="identifier">RESPONSE_correct</qti-base-value>
+          </qti-multiple>
+        </qti-set-outcome-value>
+      </qti-response-if>
+      <qti-response-else>
+        <qti-set-outcome-value identifier="FEEDBACK">
+          <qti-multiple>
+            <qti-variable identifier="FEEDBACK"/>
+            <qti-base-value base-type="identifier">RESPONSE_incorrect</qti-base-value>
+          </qti-multiple>
+        </qti-set-outcome-value>
+      </qti-response-else>
+    </qti-response-condition>
   </qti-response-processing>
 </qti-assessment-item>`;
 

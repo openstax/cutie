@@ -1,4 +1,7 @@
 // Source: https://www.imsglobal.org/spec/qti/v3p0/impl#h.of39hkegnqll
+// NOTE: This file demonstrates MODAL feedback which is generally discouraged.
+// Modal feedback interrupts the learner's flow and should be used sparingly.
+// For typical assessment items, prefer inline or block feedback instead.
 
 export const name = "Single Choice - Modal Feedback";
 
@@ -78,4 +81,6 @@ adaptive="false" time-dependent="false" xml:lang="en" >
 
 </qti-assessment-item>`;
 
-export const interactionTypes: string[] = ['choice'];
+// Empty array: this is a modal feedback demo, not an exemplar for choice interactions.
+// For choice interaction patterns, see choice-feedback.ts or block-feedback.ts.
+export const interactionTypes: string[] = [];

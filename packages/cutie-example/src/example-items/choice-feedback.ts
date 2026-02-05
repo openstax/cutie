@@ -34,25 +34,25 @@ adaptive="false" time-dependent="false" xml:lang="en">
       <qti-simple-choice identifier="choiceA">
         Correct answer text
         <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceA" show-hide="show">
-          — <strong>Correct!</strong> This is the right answer because [explanation].
+          — <strong>Correct!</strong> This option demonstrates the key concept being assessed. It correctly applies the principle discussed in the question.
         </qti-feedback-inline>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceB">
         Wrong answer B text
         <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceB" show-hide="show">
-          — <strong>Incorrect.</strong> This is wrong because [explanation for B].
+          — <strong>Incorrect.</strong> This option represents a common misconception. Consider how the key terms relate to each other differently.
         </qti-feedback-inline>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceC">
         Wrong answer C text
         <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceC" show-hide="show">
-          — <strong>Incorrect.</strong> This is wrong because [explanation for C].
+          — <strong>Incorrect.</strong> While this may seem plausible, it misses an important distinction. Review the fundamental principles involved.
         </qti-feedback-inline>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceD">
         Wrong answer D text
         <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceD" show-hide="show">
-          — <strong>Incorrect.</strong> This is wrong because [explanation for D].
+          — <strong>Incorrect.</strong> This option confuses related but distinct concepts. Think about the specific criteria mentioned in the question.
         </qti-feedback-inline>
       </qti-simple-choice>
     </qti-choice-interaction>

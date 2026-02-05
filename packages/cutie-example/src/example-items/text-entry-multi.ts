@@ -49,6 +49,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
       <qti-value>3</qti-value>
     </qti-default-value>
   </qti-outcome-declaration>
+  <qti-outcome-declaration identifier="FEEDBACK" cardinality="multiple" base-type="identifier"/>
 
   <qti-item-body>
     <p>Fill in the blanks to complete the paragraph about American history.</p>
@@ -61,6 +62,14 @@ adaptive="false" time-dependent="false" xml:lang="en">
       <qti-text-entry-interaction response-identifier="RESPONSE3" expected-length="8"/>
       colonies that declared their independence from British rule.
     </p>
+
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_correct" show-hide="show">
+      <p><strong>Excellent!</strong> You have correctly identified the key facts about the Declaration of Independence. This foundational document established the principles of American democracy and marked the birth of a new nation.</p>
+    </qti-feedback-block>
+
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_incorrect" show-hide="show">
+      <p><strong>Not quite.</strong> Review the timeline of the American Revolution and the founding of the United States. Consider when the Continental Congress met and how many colonies participated in the independence movement.</p>
+    </qti-feedback-block>
   </qti-item-body>
 
   <qti-response-processing>
@@ -71,6 +80,29 @@ adaptive="false" time-dependent="false" xml:lang="en">
         <qti-map-response identifier="RESPONSE3"/>
       </qti-sum>
     </qti-set-outcome-value>
+
+    <qti-response-condition>
+      <qti-response-if>
+        <qti-gte>
+          <qti-variable identifier="SCORE"/>
+          <qti-variable identifier="MAXSCORE"/>
+        </qti-gte>
+        <qti-set-outcome-value identifier="FEEDBACK">
+          <qti-multiple>
+            <qti-variable identifier="FEEDBACK"/>
+            <qti-base-value base-type="identifier">RESPONSE_correct</qti-base-value>
+          </qti-multiple>
+        </qti-set-outcome-value>
+      </qti-response-if>
+      <qti-response-else>
+        <qti-set-outcome-value identifier="FEEDBACK">
+          <qti-multiple>
+            <qti-variable identifier="FEEDBACK"/>
+            <qti-base-value base-type="identifier">RESPONSE_incorrect</qti-base-value>
+          </qti-multiple>
+        </qti-set-outcome-value>
+      </qti-response-else>
+    </qti-response-condition>
   </qti-response-processing>
 </qti-assessment-item>`;
 

@@ -46,21 +46,11 @@ adaptive="false" time-dependent="false" xml:lang="en">
     </qti-match-interaction>
 
     <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_correct" show-hide="show">
-      <p><strong>Correct!</strong> All matches are correct.</p>
-      <ul>
-        <li>Item A matches Target X because [explanation]</li>
-        <li>Item B matches Target Y because [explanation]</li>
-        <li>Item C matches Target Z because [explanation]</li>
-      </ul>
+      <p><strong>Correct!</strong> All matches are correct. Each item connects to its target based on the logical relationships described in the content. Understanding these connections helps build a foundation for more complex pattern recognition.</p>
     </qti-feedback-block>
 
     <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_incorrect" show-hide="show">
-      <p><strong>Incorrect.</strong> Some matches are wrong. The correct pairings are:</p>
-      <ul>
-        <li>Item A → Target X</li>
-        <li>Item B → Target Y</li>
-        <li>Item C → Target Z</li>
-      </ul>
+      <p><strong>Not quite.</strong> Review the descriptions for each item and target carefully. Look for keywords and logical connections that indicate which pairs belong together. Consider how each item's characteristics relate to the available targets.</p>
     </qti-feedback-block>
   </qti-item-body>
 
@@ -91,18 +81,6 @@ adaptive="false" time-dependent="false" xml:lang="en">
       </qti-response-else>
     </qti-response-condition>
   </qti-response-processing>
-
-  <qti-modal-feedback outcome-identifier="FEEDBACK" show-hide="show" identifier="RESPONSE_correct">
-    <qti-content-body>
-      <p><strong>All correct!</strong> You successfully matched all items.</p>
-    </qti-content-body>
-  </qti-modal-feedback>
-
-  <qti-modal-feedback outcome-identifier="FEEDBACK" show-hide="show" identifier="RESPONSE_incorrect">
-    <qti-content-body>
-      <p><strong>Some incorrect.</strong> Review the correct pairings shown below the interaction.</p>
-    </qti-content-body>
-  </qti-modal-feedback>
 </qti-assessment-item>`;
 
 export const interactionTypes: string[] = ['match'];

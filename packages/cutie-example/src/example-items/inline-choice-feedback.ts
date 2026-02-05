@@ -41,11 +41,11 @@ adaptive="false" time-dependent="false" xml:lang="en">
     </p>
 
     <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_correct" show-hide="show">
-      <p><strong>Correct!</strong> "Correct option" is the right choice because [explanation].</p>
+      <p><strong>Correct!</strong> You selected the option that correctly completes the sentence in this context. This demonstrates understanding of how the word fits grammatically and semantically.</p>
     </qti-feedback-block>
 
     <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_incorrect" show-hide="show">
-      <p><strong>Incorrect.</strong> The correct answer is "correct option". [Explanation of why].</p>
+      <p><strong>Incorrect.</strong> Consider how each option fits into the sentence's meaning and structure. Think about which word makes the most sense in this context based on the surrounding text.</p>
     </qti-feedback-block>
   </qti-item-body>
 

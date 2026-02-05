@@ -68,10 +68,10 @@ adaptive="false" time-dependent="false" xml:lang="en">
 
     <p>
       <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE1_correct" show-hide="show">
-        <strong>Part 1: Correct!</strong>
+        <strong>Part 1: Correct!</strong> You selected the right option for this choice question.
       </qti-feedback-inline>
       <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE1_incorrect" show-hide="show">
-        <strong>Part 1: Incorrect.</strong> The answer is "Correct answer".
+        <strong>Part 1: Incorrect.</strong> Review the options and consider which best addresses the question.
       </qti-feedback-inline>
     </p>
 
@@ -82,10 +82,10 @@ adaptive="false" time-dependent="false" xml:lang="en">
 
     <p>
       <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE2_correct" show-hide="show">
-        <strong>Part 2: Correct!</strong>
+        <strong>Part 2: Correct!</strong> Your text entry matches the expected response.
       </qti-feedback-inline>
       <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE2_incorrect" show-hide="show">
-        <strong>Part 2: Incorrect.</strong> The answer is "answer".
+        <strong>Part 2: Incorrect.</strong> Check your spelling and consider what word the question is asking for.
       </qti-feedback-inline>
     </p>
 
@@ -104,10 +104,10 @@ adaptive="false" time-dependent="false" xml:lang="en">
 
     <p>
       <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE3_correct" show-hide="show">
-        <strong>Part 3: Correct!</strong>
+        <strong>Part 3: Correct!</strong> You chose the word that best fits the sentence context.
       </qti-feedback-inline>
       <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE3_incorrect" show-hide="show">
-        <strong>Part 3: Incorrect.</strong> The answer is "correct".
+        <strong>Part 3: Incorrect.</strong> Re-read the sentence and consider which option makes the most sense in context.
       </qti-feedback-inline>
     </p>
 
