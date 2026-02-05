@@ -4,7 +4,9 @@ import z from 'zod';
 import * as choiceFeedback from '../example-items/choice-feedback';
 import * as choiceMultipleFeedback from '../example-items/choice-multiple-feedback';
 import * as textEntryFeedback from '../example-items/text-entry-feedback';
+import * as textEntryMulti from '../example-items/text-entry-multi';
 import * as inlineChoiceFeedback from '../example-items/inline-choice-feedback';
+import * as inlineChoiceMulti from '../example-items/inline-choice-multi';
 import * as matchFeedback from '../example-items/match-feedback';
 import * as gapMatchFeedback from '../example-items/gap-match-feedback';
 import * as multiInteractionFeedback from '../example-items/multi-interaction-feedback';
@@ -14,7 +16,9 @@ const feedbackExamples = [
   { name: 'Single Choice with Per-Choice Inline Feedback', item: choiceFeedback.item, types: ['choice'] },
   { name: 'Multiple Choice (Checkboxes) with Per-Choice Block Feedback', item: choiceMultipleFeedback.item, types: ['choice'] },
   { name: 'Text Entry with Correct/Incorrect Feedback', item: textEntryFeedback.item, types: ['text-entry'] },
+  { name: 'Multiple Text Entry in Paragraph', item: textEntryMulti.item, types: ['text-entry'] },
   { name: 'Inline Choice (Dropdown) with Feedback', item: inlineChoiceFeedback.item, types: ['inline-choice'] },
+  { name: 'Multiple Inline Choice in Paragraph', item: inlineChoiceMulti.item, types: ['inline-choice'] },
   { name: 'Match Interaction with Feedback', item: matchFeedback.item, types: ['match'] },
   { name: 'Gap Match (Drag-and-Drop) with Feedback', item: gapMatchFeedback.item, types: ['gap-match'] },
   { name: 'Multi-Interaction with Combined Feedback', item: multiInteractionFeedback.item, types: ['choice', 'text-entry'] },

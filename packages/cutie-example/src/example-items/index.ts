@@ -12,7 +12,9 @@ export interface ExampleGroup {
 import * as choice from './choice';
 import * as choiceMultiple from './choice-multiple';
 import * as textEntry from './text-entry';
+import * as textEntryMulti from './text-entry-multi';
 import * as inlineChoice from './inline-choice';
+import * as inlineChoiceMulti from './inline-choice-multi';
 import * as match from './match';
 import * as gapMatch from './gap-match';
 import * as order from './order';
@@ -59,6 +61,8 @@ export const exampleGroups: ExampleGroup[] = [
   {
     label: 'Custom Examples',
     items: [
+      textEntryMulti,
+      inlineChoiceMulti,
       modalFeedback,
       inlineFeedback,
       blockFeedback,
