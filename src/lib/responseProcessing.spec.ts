@@ -2802,3 +2802,149 @@ describe('Complex Response Processing Scenarios', () => {
     });
   });
 });
+
+describe('processResponse - Shuffle Order Preservation', () => {
+  test('preserves shuffleOrders from input state', () => {
+    const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+                     identifier="shuffle-test"
+                     title="Shuffle Test">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier">
+    <qti-correct-response>
+      <qti-value>A</qti-value>
+    </qti-correct-response>
+  </qti-response-declaration>
+
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value>
+      <qti-value>0</qti-value>
+    </qti-default-value>
+  </qti-outcome-declaration>
+
+  <qti-item-body>
+    <qti-choice-interaction response-identifier="RESPONSE" shuffle="true" max-choices="1">
+      <qti-simple-choice identifier="A">Choice A</qti-simple-choice>
+      <qti-simple-choice identifier="B">Choice B</qti-simple-choice>
+      <qti-simple-choice identifier="C">Choice C</qti-simple-choice>
+    </qti-choice-interaction>
+  </qti-item-body>
+
+  <qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>
+</qti-assessment-item>`;
+
+    const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+
+    const currentState: AttemptState = {
+      variables: { SCORE: 0 },
+      completionStatus: 'not_attempted' as const,
+      score: { raw: 0, min: 0, max: 1, scaled: 0 },
+      shuffleOrders: {
+        RESPONSE: ['C', 'A', 'B'],
+      },
+    };
+
+    const submission = { RESPONSE: 'A' };
+    const newState = processResponse(itemDoc, submission, currentState);
+
+    // Verify shuffle orders are preserved
+    expect(newState.shuffleOrders).toBeDefined();
+    expect(newState.shuffleOrders).toEqual({ RESPONSE: ['C', 'A', 'B'] });
+  });
+
+  test('handles state without shuffleOrders', () => {
+    const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+                     identifier="no-shuffle-test"
+                     title="No Shuffle Test">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier">
+    <qti-correct-response>
+      <qti-value>A</qti-value>
+    </qti-correct-response>
+  </qti-response-declaration>
+
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value>
+      <qti-value>0</qti-value>
+    </qti-default-value>
+  </qti-outcome-declaration>
+
+  <qti-item-body>
+    <qti-choice-interaction response-identifier="RESPONSE" shuffle="false" max-choices="1">
+      <qti-simple-choice identifier="A">Choice A</qti-simple-choice>
+      <qti-simple-choice identifier="B">Choice B</qti-simple-choice>
+    </qti-choice-interaction>
+  </qti-item-body>
+
+  <qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>
+</qti-assessment-item>`;
+
+    const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+
+    const currentState: AttemptState = {
+      variables: { SCORE: 0 },
+      completionStatus: 'not_attempted' as const,
+      score: { raw: 0, min: 0, max: 1, scaled: 0 },
+      // No shuffleOrders
+    };
+
+    const submission = { RESPONSE: 'A' };
+    const newState = processResponse(itemDoc, submission, currentState);
+
+    // Verify state doesn't have shuffleOrders
+    expect(newState.shuffleOrders).toBeUndefined();
+  });
+
+  test('preserves multiple shuffle orders for match interactions', () => {
+    const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+                     identifier="match-shuffle-test"
+                     title="Match Shuffle Test">
+  <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="directedPair">
+    <qti-correct-response>
+      <qti-value>S1 T1</qti-value>
+    </qti-correct-response>
+  </qti-response-declaration>
+
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value>
+      <qti-value>0</qti-value>
+    </qti-default-value>
+  </qti-outcome-declaration>
+
+  <qti-item-body>
+    <qti-match-interaction response-identifier="RESPONSE" shuffle="true">
+      <qti-simple-match-set>
+        <qti-simple-associable-choice identifier="S1" match-max="1">Source 1</qti-simple-associable-choice>
+        <qti-simple-associable-choice identifier="S2" match-max="1">Source 2</qti-simple-associable-choice>
+      </qti-simple-match-set>
+      <qti-simple-match-set>
+        <qti-simple-associable-choice identifier="T1" match-max="1">Target 1</qti-simple-associable-choice>
+        <qti-simple-associable-choice identifier="T2" match-max="1">Target 2</qti-simple-associable-choice>
+      </qti-simple-match-set>
+    </qti-match-interaction>
+  </qti-item-body>
+
+  <qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>
+</qti-assessment-item>`;
+
+    const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+
+    const currentState: AttemptState = {
+      variables: { SCORE: 0 },
+      completionStatus: 'not_attempted' as const,
+      score: { raw: 0, min: 0, max: 1, scaled: 0 },
+      shuffleOrders: {
+        RESPONSE_0: ['S2', 'S1'],
+        RESPONSE_1: ['T2', 'T1'],
+      },
+    };
+
+    const submission = { RESPONSE: ['S1 T1'] };
+    const newState = processResponse(itemDoc, submission, currentState);
+
+    // Verify all shuffle orders are preserved
+    expect(newState.shuffleOrders).toBeDefined();
+    expect(newState.shuffleOrders?.RESPONSE_0).toEqual(['S2', 'S1']);
+    expect(newState.shuffleOrders?.RESPONSE_1).toEqual(['T2', 'T1']);
+  });
+});

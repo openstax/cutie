@@ -46,6 +46,11 @@ export async function renderTemplate(
   // Step 3: Process conditional template blocks and inlines
   processTemplateConditionals(root, state.variables);
 
+  // Step 3.5: Apply shuffle orders to reorder interaction choices
+  if (state.shuffleOrders) {
+    applyShuffleOrders(root, state.shuffleOrders);
+  }
+
   // Step 4: Process feedback visibility based on outcome variables
   processFeedbackVisibility(root, state.variables);
 
@@ -488,4 +493,218 @@ async function resolveAssetUrls(
 function serializeToXml(doc: Document): string {
   const serializer = new XMLSerializer();
   return serializer.serializeToString(doc);
+}
+
+/**
+ * Applies shuffle orders to reorder interaction choice elements.
+ * Each interaction type has its choices reordered according to the stored shuffle order.
+ */
+function applyShuffleOrders(
+  root: Element,
+  shuffleOrders: Record<string, string[]>
+): void {
+  // Apply to choice interactions
+  applyShuffleToChoiceInteractions(root, shuffleOrders);
+
+  // Apply to inline-choice interactions
+  applyShuffleToInlineChoiceInteractions(root, shuffleOrders);
+
+  // Apply to match interactions
+  applyShuffleToMatchInteractions(root, shuffleOrders);
+
+  // Apply to gap-match interactions
+  applyShuffleToGapMatchInteractions(root, shuffleOrders);
+}
+
+/**
+ * Reorders qti-simple-choice elements within qti-choice-interaction.
+ */
+function applyShuffleToChoiceInteractions(
+  root: Element,
+  shuffleOrders: Record<string, string[]>
+): void {
+  const interactions = root.getElementsByTagName('qti-choice-interaction');
+
+  for (let i = 0; i < interactions.length; i++) {
+    const interaction = interactions[i];
+    const responseId = interaction.getAttribute('response-identifier');
+    if (!responseId || !shuffleOrders[responseId]) continue;
+
+    const order = shuffleOrders[responseId];
+    reorderChildrenByIdentifier(interaction, 'qti-simple-choice', order);
+  }
+}
+
+/**
+ * Reorders qti-inline-choice elements within qti-inline-choice-interaction.
+ */
+function applyShuffleToInlineChoiceInteractions(
+  root: Element,
+  shuffleOrders: Record<string, string[]>
+): void {
+  const interactions = root.getElementsByTagName('qti-inline-choice-interaction');
+
+  for (let i = 0; i < interactions.length; i++) {
+    const interaction = interactions[i];
+    const responseId = interaction.getAttribute('response-identifier');
+    if (!responseId || !shuffleOrders[responseId]) continue;
+
+    const order = shuffleOrders[responseId];
+    reorderChildrenByIdentifier(interaction, 'qti-inline-choice', order);
+  }
+}
+
+/**
+ * Reorders choices within qti-match-interaction match sets.
+ * Uses keys like RESPONSE_0 and RESPONSE_1 for each match set.
+ */
+function applyShuffleToMatchInteractions(
+  root: Element,
+  shuffleOrders: Record<string, string[]>
+): void {
+  const interactions = root.getElementsByTagName('qti-match-interaction');
+
+  for (let i = 0; i < interactions.length; i++) {
+    const interaction = interactions[i];
+    const responseId = interaction.getAttribute('response-identifier');
+    if (!responseId) continue;
+
+    const matchSets = interaction.getElementsByTagName('qti-simple-match-set');
+
+    for (let setIndex = 0; setIndex < matchSets.length; setIndex++) {
+      const matchSet = matchSets[setIndex];
+      const orderKey = `${responseId}_${setIndex}`;
+      const order = shuffleOrders[orderKey];
+
+      if (order) {
+        reorderChildrenByIdentifier(matchSet, 'qti-simple-associable-choice', order);
+      }
+    }
+  }
+}
+
+/**
+ * Reorders qti-gap-text and qti-gap-img elements within qti-gap-match-interaction.
+ */
+function applyShuffleToGapMatchInteractions(
+  root: Element,
+  shuffleOrders: Record<string, string[]>
+): void {
+  const interactions = root.getElementsByTagName('qti-gap-match-interaction');
+
+  for (let i = 0; i < interactions.length; i++) {
+    const interaction = interactions[i];
+    const responseId = interaction.getAttribute('response-identifier');
+    if (!responseId || !shuffleOrders[responseId]) continue;
+
+    const order = shuffleOrders[responseId];
+    reorderGapMatchChoices(interaction, order);
+  }
+}
+
+/**
+ * Reorders child elements of a specific tag name according to the given identifier order.
+ */
+function reorderChildrenByIdentifier(
+  parent: Element,
+  childTagName: string,
+  order: string[]
+): void {
+  const children = Array.from(parent.getElementsByTagName(childTagName));
+
+  // Create a map of identifier to element
+  const elementMap = new Map<string, Element>();
+  for (const child of children) {
+    const identifier = child.getAttribute('identifier');
+    if (identifier) {
+      elementMap.set(identifier, child);
+    }
+  }
+
+  // Find the first child element to use as insertion point
+  const firstChild = children[0];
+  if (!firstChild) return;
+
+  // Remove all choice elements
+  for (const child of children) {
+    parent.removeChild(child);
+  }
+
+  // Re-insert in the specified order
+  const insertionPoint = firstChild.nextSibling;
+  for (const identifier of order) {
+    const element = elementMap.get(identifier);
+    if (element) {
+      if (insertionPoint) {
+        parent.insertBefore(element, insertionPoint);
+      } else {
+        parent.appendChild(element);
+      }
+    }
+  }
+}
+
+/**
+ * Reorders gap-text and gap-img elements within a gap-match interaction.
+ * These are direct children of the interaction, mixed with other content.
+ */
+function reorderGapMatchChoices(interaction: Element, order: string[]): void {
+  // Collect gap-text and gap-img elements
+  const gapChoices: Element[] = [];
+  const childNodes = Array.from(interaction.childNodes);
+
+  for (const node of childNodes) {
+    if (node.nodeType === 1) {
+      const element = node as Element;
+      const tagName = element.tagName?.toLowerCase();
+      if (tagName === 'qti-gap-text' || tagName === 'qti-gap-img') {
+        gapChoices.push(element);
+      }
+    }
+  }
+
+  if (gapChoices.length === 0) return;
+
+  // Create a map of identifier to element
+  const elementMap = new Map<string, Element>();
+  for (const choice of gapChoices) {
+    const identifier = choice.getAttribute('identifier');
+    if (identifier) {
+      elementMap.set(identifier, choice);
+    }
+  }
+
+  // Find the position of the first gap choice
+  const firstChoice = gapChoices[0];
+  const insertionPoint = firstChoice;
+
+  // Remove all gap choices
+  for (const choice of gapChoices) {
+    interaction.removeChild(choice);
+  }
+
+  // Find the new insertion point (the element that was after the first choice, or the first child)
+  let insertBefore: Node | null = null;
+  for (const node of Array.from(interaction.childNodes)) {
+    if (node === insertionPoint) {
+      insertBefore = node;
+      break;
+    }
+  }
+  // If the first choice was at the beginning, insert at the beginning
+  if (!insertBefore) {
+    insertBefore = interaction.firstChild;
+  }
+
+  // Re-insert in the specified order
+  for (const identifier of order) {
+    const element = elementMap.get(identifier);
+    if (element) {
+      if (insertBefore) {
+        interaction.insertBefore(element, insertBefore);
+      } else {
+        interaction.appendChild(element);
+      }
+    }
+  }
 }

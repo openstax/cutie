@@ -62,6 +62,16 @@ export interface AttemptState {
    * Null if either raw score or max score cannot be determined (non-scored items).
    */
   score: Score | null;
+
+  /**
+   * Shuffle orders for interactions with shuffle="true".
+   * Maps response identifiers to ordered arrays of choice identifiers.
+   * Generated during initializeState and applied during renderTemplate.
+   *
+   * For match interactions with two sets, uses keys like "RESPONSE_0" and "RESPONSE_1"
+   * to store each set's shuffle order separately.
+   */
+  shuffleOrders?: Record<string, string[]>;
 }
 
 /**
