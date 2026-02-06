@@ -61,7 +61,7 @@ class ModalFeedbackHandler implements ElementHandler {
 const MODAL_FEEDBACK_STYLES = `
 
   .qti-modal-feedback {
-    min-width 15rem;
+    min-width: 15rem;
     max-width: calc(100vw - 4rem);
     max-height: calc(100vh - 4rem);
     position: fixed;
