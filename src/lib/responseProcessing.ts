@@ -6,6 +6,7 @@ import {
   evaluateExpression as evaluateExpressionShared,
   type SubEvaluate,
 } from './expressionEvaluator/index';
+import { compareMathExpressions, type MathComparisonMode } from './expressionEvaluator/math';
 import { extractStandardOutcomes } from './scoreUtils';
 
 /**
@@ -48,6 +49,61 @@ function coerceResponseValue(itemDoc: Document, identifier: string, value: unkno
   }
 
   return value;
+}
+
+/**
+ * Response declaration metadata for formula responses
+ */
+interface ResponseDeclarationMeta {
+  responseType: string | null;
+  comparisonMode: string | null;
+}
+
+/**
+ * Get metadata from a response declaration (data-* attributes)
+ */
+function getResponseDeclarationMeta(
+  itemDoc: Document,
+  identifier: string
+): ResponseDeclarationMeta | null {
+  const declarations = itemDoc.getElementsByTagName('qti-response-declaration');
+  for (let i = 0; i < declarations.length; i++) {
+    const decl = declarations[i];
+    if (decl.getAttribute('identifier') === identifier) {
+      return {
+        responseType: decl.getAttribute('data-response-type'),
+        comparisonMode: decl.getAttribute('data-comparison-mode'),
+      };
+    }
+  }
+  return null;
+}
+
+/**
+ * Compare response values, using formula comparison when appropriate
+ *
+ * This is the single source of truth for response comparison. It detects
+ * formula responses via data-response-type="formula" and routes to
+ * Compute Engine comparison with the specified mode.
+ */
+export function compareResponseValues(
+  itemDoc: Document,
+  responseIdentifier: string,
+  responseValue: unknown,
+  correctValue: unknown
+): boolean {
+  const meta = getResponseDeclarationMeta(itemDoc, responseIdentifier);
+
+  if (meta?.responseType === 'formula') {
+    const mode = (meta.comparisonMode || 'canonical') as MathComparisonMode;
+    return compareMathExpressions(
+      String(responseValue ?? ''),
+      String(correctValue ?? ''),
+      mode
+    );
+  }
+
+  return deepEqual(responseValue, correctValue);
 }
 
 /**
@@ -148,6 +204,9 @@ function executeResponseTemplate(
  * Execute MATCH CORRECT template
  * Sets SCORE to 1 if RESPONSE matches correct value, 0 otherwise
  *
+ * For formula responses (data-response-type="formula"), uses Compute Engine
+ * for mathematical comparison based on the data-comparison-mode attribute.
+ *
  * Note: Per QTI spec, match_correct only works with single interactions
  * using the identifier "RESPONSE". Composite items (multiple interactions)
  * require custom response processing.
@@ -156,7 +215,7 @@ function executeMatchCorrectTemplate(itemDoc: Document, variables: Record<string
   const responseValue = variables['RESPONSE'];
   const correctValue = getCorrectResponse(itemDoc, 'RESPONSE');
 
-  if (deepEqual(responseValue, correctValue)) {
+  if (compareResponseValues(itemDoc, 'RESPONSE', responseValue, correctValue)) {
     variables['SCORE'] = 1;
   } else {
     variables['SCORE'] = 0;

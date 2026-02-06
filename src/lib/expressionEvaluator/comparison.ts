@@ -4,7 +4,44 @@
 
 import { getChildElements } from '../../utils/dom';
 import { deepEqual, deepEqualUnordered } from '../../utils/equality';
+import { compareMathExpressions, type MathComparisonMode } from './math';
 import type { SubEvaluate } from './types';
+
+/**
+ * Helper to find a response identifier from qti-variable or qti-correct children
+ */
+function findResponseIdentifier(children: Element[]): string | null {
+  for (const child of children) {
+    const localName = child.localName;
+    if (localName === 'qti-variable' || localName === 'qti-correct') {
+      const identifier = child.getAttribute('identifier');
+      if (identifier) return identifier;
+    }
+  }
+  return null;
+}
+
+/**
+ * Get formula comparison mode from response declaration if it's a formula response
+ */
+function getFormulaMode(itemDoc: Document, identifier: string): MathComparisonMode | null {
+  const declarations = itemDoc.getElementsByTagName('qti-response-declaration');
+  for (let i = 0; i < declarations.length; i++) {
+    const decl = declarations[i];
+    if (decl.getAttribute('identifier') === identifier) {
+      const responseType = decl.getAttribute('data-response-type');
+      if (responseType === 'formula') {
+        const mode = decl.getAttribute('data-comparison-mode');
+        if (mode === 'strict' || mode === 'canonical' || mode === 'algebraic') {
+          return mode;
+        }
+        return 'canonical'; // Default mode
+      }
+      break;
+    }
+  }
+  return null;
+}
 
 /**
  * Evaluate qti-lt (less than) element
@@ -139,6 +176,9 @@ export function evaluateEqual(
  * This uses the enhanced version from responseProcessing that detects qti-multiple
  * containers and uses the appropriate equality function (ordered vs unordered).
  * Since qti-multiple is valid in both template and response contexts, this works for both.
+ *
+ * For formula responses (data-response-type="formula" on the response declaration),
+ * uses Compute Engine for mathematical comparison based on data-comparison-mode.
  */
 export function evaluateMatch(
   element: Element,
@@ -162,6 +202,19 @@ export function evaluateMatch(
     // If either is explicitly multiple (unordered), use unordered comparison
     if (isFirstMultiple || isSecondMultiple) {
       return deepEqualUnordered(values[0], values[1]);
+    }
+
+    // Check if this is a formula response that needs math comparison
+    const responseId = findResponseIdentifier(childElements);
+    if (responseId) {
+      const formulaMode = getFormulaMode(itemDoc, responseId);
+      if (formulaMode) {
+        return compareMathExpressions(
+          String(values[0] ?? ''),
+          String(values[1] ?? ''),
+          formulaMode
+        );
+      }
     }
 
     return deepEqual(values[0], values[1]);
