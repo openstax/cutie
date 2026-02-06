@@ -38,7 +38,7 @@ adaptive="false" time-dependent="false" xml:lang="en" >
     </qti-choice-interaction>
 
     <!-- Block feedback appears as separate blocks after the interaction -->
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_correct" show-hide="show">
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_correct" show-hide="show" data-feedback-type="correct">
         <p><strong>Correct!</strong></p>
         <p>Both Sigmund Freud and Carl Jung are considered founders of the psychoanalytic
             school of psychology. Freud developed the foundational theories, while Jung,
@@ -46,7 +46,7 @@ adaptive="false" time-dependent="false" xml:lang="en" >
             but remained within the broader psychoanalytic tradition.</p>
     </qti-feedback-block>
 
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_incorrect" show-hide="show">
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_incorrect" show-hide="show" data-feedback-type="incorrect">
         <p><strong>Incorrect.</strong></p>
         <p>Actually, both Sigmund Freud and Carl Jung do belong to the psychoanalytic school.
             Freud is considered the father of psychoanalysis, and Jung was one of his early

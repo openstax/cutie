@@ -7,7 +7,7 @@ export const feedbackInlineConfig: ElementConfig = {
   isInline: true,
   needsSpacers: false,
   categories: ['feedback'],
-  forbidDescendants: ['interaction', 'feedback'],
+  forbidDescendants: ['feedback'],
   matches: (element: Element) => 'type' in element && element.type === 'qti-feedback-inline',
 
   normalize: (editor: CustomEditor, node: Element, path) => {

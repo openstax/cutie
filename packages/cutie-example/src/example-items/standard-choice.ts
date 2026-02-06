@@ -33,25 +33,25 @@ adaptive="false" time-dependent="false" xml:lang="en">
       <qti-prompt>Question prompt goes here. Select the best answer.</qti-prompt>
       <qti-simple-choice identifier="choiceA">
         Correct answer text
-        <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceA" show-hide="show">
+        <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceA" show-hide="show" data-feedback-type="correct">
           <strong>Correct!</strong> This option demonstrates the key concept being assessed. It correctly applies the principle discussed in the question.
         </qti-feedback-inline>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceB">
         Wrong answer B text
-        <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceB" show-hide="show">
+        <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceB" show-hide="show" data-feedback-type="incorrect">
           <strong>Incorrect.</strong> This option represents a common misconception. Consider how the key terms relate to each other differently.
         </qti-feedback-inline>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceC">
         Wrong answer C text
-        <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceC" show-hide="show">
+        <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceC" show-hide="show" data-feedback-type="incorrect">
           <strong>Incorrect.</strong> While this may seem plausible, it misses an important distinction. Review the fundamental principles involved.
         </qti-feedback-inline>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceD">
         Wrong answer D text
-        <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceD" show-hide="show">
+        <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceD" show-hide="show" data-feedback-type="incorrect">
           <strong>Incorrect.</strong> This option confuses related but distinct concepts. Think about the specific criteria mentioned in the question.
         </qti-feedback-inline>
       </qti-simple-choice>

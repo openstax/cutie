@@ -7,7 +7,7 @@ export const feedbackBlockConfig: ElementConfig = {
   isInline: false,
   needsSpacers: true,
   categories: ['feedback'],
-  forbidDescendants: ['interaction', 'feedback'],
+  forbidDescendants: ['feedback'],
   matches: (element: Element) => 'type' in element && element.type === 'qti-feedback-block',
 
   normalize: (editor: CustomEditor, node: Element, path) => {

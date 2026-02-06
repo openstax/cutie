@@ -1,3 +1,4 @@
+// spell-checker: ignore FIRSTDOOR PRIZEDOOR
 // from https://www.imsglobal.org/spec/qti/v3p0/impl#h.hs6z9wmqtzq7
 
 export const name = "Adaptive - Monty Hall Problem";
@@ -372,7 +373,7 @@ export const item = `<?xml version="1.0" encoding="UTF-8"?>
   </qti-modal-feedback>
   <qti-modal-feedback outcome-identifier="FEEDBACK" show-hide="show" identifier="noStrategy">
     <qti-content-body>
-      <p>No, you should infact <em>always</em> switch doors. This problem has fooled many
+      <p>No, you should in fact <em>always</em> switch doors. This problem has fooled many
         mathematicians since it was first posed in an American magazine article and
         continues to present a seemingly paradoxical answer!</p>
       <p>The probability of your first choice door hiding the prize is 1/3 and this can't change.

@@ -45,11 +45,11 @@ adaptive="false" time-dependent="false" xml:lang="en">
       </p>
     </qti-gap-match-interaction>
 
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_correct" show-hide="show">
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_correct" show-hide="show" data-feedback-type="correct">
       <p><strong>Correct!</strong> All gaps are filled correctly. You've demonstrated understanding of how each word fits into the sentence structure and meaning.</p>
     </qti-feedback-block>
 
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_incorrect" show-hide="show">
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_incorrect" show-hide="show" data-feedback-type="incorrect">
       <p><strong>Not quite.</strong> Read the sentence carefully and consider how each word fits grammatically and semantically. Look for context clues in the sentence that indicate which word belongs in each gap. Remember that one option may not be used in the correct solution.</p>
     </qti-feedback-block>
   </qti-item-body>

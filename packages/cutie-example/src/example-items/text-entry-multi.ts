@@ -63,11 +63,11 @@ adaptive="false" time-dependent="false" xml:lang="en">
       colonies that declared their independence from British rule.
     </p>
 
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_correct" show-hide="show">
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_correct" show-hide="show" data-feedback-type="correct">
       <p><strong>Excellent!</strong> You have correctly identified the key facts about the Declaration of Independence. This foundational document established the principles of American democracy and marked the birth of a new nation.</p>
     </qti-feedback-block>
 
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_incorrect" show-hide="show">
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_incorrect" show-hide="show" data-feedback-type="incorrect">
       <p><strong>Not quite.</strong> Review the timeline of the American Revolution and the founding of the United States. Consider when the Continental Congress met and how many colonies participated in the independence movement.</p>
     </qti-feedback-block>
   </qti-item-body>

@@ -67,10 +67,10 @@ adaptive="false" time-dependent="false" xml:lang="en">
     </qti-choice-interaction>
 
     <p>
-      <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE1_correct" show-hide="show">
+      <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE1_correct" show-hide="show" data-feedback-type="correct">
         <strong>Part 1: Correct!</strong> You selected the right option for this choice question.
       </qti-feedback-inline>
-      <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE1_incorrect" show-hide="show">
+      <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE1_incorrect" show-hide="show" data-feedback-type="incorrect">
         <strong>Part 1: Incorrect.</strong> Review the options and consider which best addresses the question.
       </qti-feedback-inline>
     </p>
@@ -81,10 +81,10 @@ adaptive="false" time-dependent="false" xml:lang="en">
     <p>Enter the expected word: <qti-text-entry-interaction response-identifier="RESPONSE2" expected-length="10"/></p>
 
     <p>
-      <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE2_correct" show-hide="show">
+      <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE2_correct" show-hide="show" data-feedback-type="correct">
         <strong>Part 2: Correct!</strong> Your text entry matches the expected response.
       </qti-feedback-inline>
-      <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE2_incorrect" show-hide="show">
+      <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE2_incorrect" show-hide="show" data-feedback-type="incorrect">
         <strong>Part 2: Incorrect.</strong> Check your spelling and consider what word the question is asking for.
       </qti-feedback-inline>
     </p>
@@ -103,10 +103,10 @@ adaptive="false" time-dependent="false" xml:lang="en">
     </p>
 
     <p>
-      <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE3_correct" show-hide="show">
+      <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE3_correct" show-hide="show" data-feedback-type="correct">
         <strong>Part 3: Correct!</strong> You chose the word that best fits the sentence context.
       </qti-feedback-inline>
-      <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE3_incorrect" show-hide="show">
+      <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE3_incorrect" show-hide="show" data-feedback-type="incorrect">
         <strong>Part 3: Incorrect.</strong> Re-read the sentence and consider which option makes the most sense in context.
       </qti-feedback-inline>
     </p>

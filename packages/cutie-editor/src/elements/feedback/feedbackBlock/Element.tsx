@@ -22,6 +22,7 @@ export function FeedbackBlockElement({
 
   const identifier = el.attributes.identifier || '';
   const showHide = el.attributes['show-hide'] || 'show';
+  const feedbackType = el.attributes['data-feedback-type'] || '';
   // In custom mode, any non-empty identifier is valid (custom response processing can use arbitrary identifiers)
   const isValid = isCustomMode
     ? Boolean(identifier)
@@ -33,6 +34,7 @@ export function FeedbackBlockElement({
     'feedback-block',
     isActive ? 'feedback-block--active' : '',
     !isValid ? 'feedback-block--invalid' : '',
+    feedbackType ? `feedback-block--${feedbackType}` : '',
   ].filter(Boolean).join(' ');
 
   return (
@@ -67,6 +69,18 @@ const FEEDBACK_BLOCK_STYLES = `
   .feedback-block--invalid.feedback-block--active {
     border-color: #3b82f6;
     background-color: #fefce8;
+  }
+
+  .feedback-block--correct {
+    border-left: 4px solid #22c55e;
+  }
+
+  .feedback-block--incorrect {
+    border-left: 4px solid #ef4444;
+  }
+
+  .feedback-block--info {
+    border-left: 4px solid #4a90e2;
   }
 
   .feedback-block__legend {

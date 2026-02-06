@@ -8,7 +8,7 @@ export const contentBodyConfig: ElementConfig = {
   isInline: false,
   needsSpacers: false,
   categories: [],
-  forbidDescendants: ['interaction'],
+  forbidDescendants: [],
   matches: (element: Element) => 'type' in element && element.type === 'qti-content-body',
 
   normalize: (editor, node, path) => wrapInlineContentInParagraphs(editor, node, path),

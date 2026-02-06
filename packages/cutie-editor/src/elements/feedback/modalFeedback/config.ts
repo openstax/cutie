@@ -7,7 +7,7 @@ export const modalFeedbackConfig: ElementConfig = {
   isInline: false,
   needsSpacers: false,
   categories: ['feedback', 'modal-feedback'],
-  forbidDescendants: ['interaction', 'feedback', 'modal-feedback'],
+  forbidDescendants: ['feedback', 'modal-feedback'],
   matches: (element: Element) => 'type' in element && element.type === 'qti-modal-feedback',
 
   normalize: (editor: CustomEditor, node: Element, path) => {

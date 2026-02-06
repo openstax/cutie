@@ -35,11 +35,11 @@ adaptive="false" time-dependent="false" xml:lang="en" >
         <qti-prompt>Sigmund Freud and Carl Jung both belong to the psychoanalytic school of
             psychology.</qti-prompt>
         <qti-simple-choice identifier="true" fixed="true">True
-          <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_true" show-hide="show">
+          <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_true" show-hide="show" data-feedback-type="correct">
             <strong>Correct!</strong> Both Freud and Jung are foundational figures in psychoanalysis. Freud developed the original theory, while Jung contributed analytical psychology as a related approach.</qti-feedback-inline>
         </qti-simple-choice>
         <qti-simple-choice identifier="false" fixed="true">False
-        <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_false" show-hide="show">
+        <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_false" show-hide="show" data-feedback-type="incorrect">
             <strong>Incorrect.</strong> Consider the historical development of psychology. Both figures worked together early in their careers and shared foundational ideas about the unconscious mind.</qti-feedback-inline>
         </qti-simple-choice>
       </qti-choice-interaction>

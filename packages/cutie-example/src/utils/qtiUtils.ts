@@ -1,3 +1,4 @@
+// spell-checker: ignore parsererror
 /**
  * Checks if a sanitized QTI template is effectively empty.
  * Returns true if:

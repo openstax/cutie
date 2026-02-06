@@ -40,11 +40,11 @@ adaptive="false" time-dependent="false" xml:lang="en">
       and the sentence continues here.
     </p>
 
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_correct" show-hide="show">
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_correct" show-hide="show" data-feedback-type="correct">
       <p><strong>Correct!</strong> You selected the option that correctly completes the sentence in this context. This demonstrates understanding of how the word fits grammatically and semantically.</p>
     </qti-feedback-block>
 
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_incorrect" show-hide="show">
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_incorrect" show-hide="show" data-feedback-type="incorrect">
       <p><strong>Incorrect.</strong> Consider how each option fits into the sentence's meaning and structure. Think about which word makes the most sense in this context based on the surrounding text.</p>
     </qti-feedback-block>
   </qti-item-body>

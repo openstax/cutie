@@ -94,10 +94,10 @@ adaptive="false" time-dependent="false" xml:lang="en" >
 <!-- Note how the identifiers in the following modalFeedback elements match those of the
         setOutcomeValue elements above -->
 
-  <qti-modal-feedback outcome-identifier="FEEDBACK" show-hide="show" identifier="RESPONSE_correct">
+  <qti-modal-feedback outcome-identifier="FEEDBACK" show-hide="show" identifier="RESPONSE_correct" data-feedback-type="correct">
       <qti-content-body>correct</qti-content-body>
   </qti-modal-feedback>
-  <qti-modal-feedback outcome-identifier="FEEDBACK" show-hide="show" identifier="RESPONSE_incorrect">
+  <qti-modal-feedback outcome-identifier="FEEDBACK" show-hide="show" identifier="RESPONSE_incorrect" data-feedback-type="incorrect">
       <qti-content-body>incorrect</qti-content-body>
   </qti-modal-feedback>
 

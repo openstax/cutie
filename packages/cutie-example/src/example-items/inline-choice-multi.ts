@@ -64,11 +64,11 @@ adaptive="false" time-dependent="false" xml:lang="en">
       into the atmosphere, which is essential for animal life.
     </p>
 
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_correct" show-hide="show">
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_correct" show-hide="show" data-feedback-type="correct">
       <p><strong>Excellent!</strong> You correctly identified the key components of how plants produce food and contribute to the atmosphere. This process is fundamental to life on Earth.</p>
     </qti-feedback-block>
 
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_incorrect" show-hide="show">
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_incorrect" show-hide="show" data-feedback-type="incorrect">
       <p><strong>Not quite.</strong> Think about how plants convert light energy into chemical energy. Consider what goes into the process, what energy source drives it, and what gas is released as a byproduct.</p>
     </qti-feedback-block>
   </qti-item-body>

@@ -39,19 +39,19 @@ adaptive="false" time-dependent="false" xml:lang="en">
     </qti-choice-interaction>
 
     <!-- Block feedback for each choice - shown when that choice is selected -->
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceA" show-hide="show">
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceA" show-hide="show" data-feedback-type="correct">
       <p><strong>Choice A:</strong> This is one of the valid answers. It meets the criteria specified in the question by demonstrating the required characteristic.</p>
     </qti-feedback-block>
 
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceB" show-hide="show">
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceB" show-hide="show" data-feedback-type="incorrect">
       <p><strong>Choice B:</strong> This option does not meet the criteria. While it may appear related, it lacks the key characteristic that defines a correct answer for this question.</p>
     </qti-feedback-block>
 
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceC" show-hide="show">
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceC" show-hide="show" data-feedback-type="correct">
       <p><strong>Choice C:</strong> This is one of the valid answers. It satisfies the requirements outlined in the question through its essential properties.</p>
     </qti-feedback-block>
 
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceD" show-hide="show">
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceD" show-hide="show" data-feedback-type="incorrect">
       <p><strong>Choice D:</strong> This option does not meet the criteria. Consider what specific attributes are needed to qualify as a correct answer.</p>
     </qti-feedback-block>
   </qti-item-body>

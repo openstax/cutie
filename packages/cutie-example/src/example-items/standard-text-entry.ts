@@ -32,11 +32,11 @@ adaptive="false" time-dependent="false" xml:lang="en">
     <p>Question prompt goes here. Enter your answer in the text field below.</p>
     <p>The expected answer is: <qti-text-entry-interaction response-identifier="RESPONSE" expected-length="15"/></p>
 
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_correct" show-hide="show">
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_correct" show-hide="show" data-feedback-type="correct">
       <p><strong>Correct!</strong> Your answer matches the expected value. You've demonstrated understanding of this concept.</p>
     </qti-feedback-block>
 
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_incorrect" show-hide="show">
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_incorrect" show-hide="show" data-feedback-type="incorrect">
       <p><strong>Incorrect.</strong> Review the question carefully and consider what key term or concept is being asked for. Think about the context and any hints provided in the prompt.</p>
     </qti-feedback-block>
   </qti-item-body>

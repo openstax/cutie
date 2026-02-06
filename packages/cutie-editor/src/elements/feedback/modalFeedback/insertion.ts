@@ -19,6 +19,7 @@ export function insertModalFeedback(
       'outcome-identifier': 'FEEDBACK',
       identifier,
       'show-hide': showHide,
+      'data-feedback-type': 'info',
     },
     children: [
       {

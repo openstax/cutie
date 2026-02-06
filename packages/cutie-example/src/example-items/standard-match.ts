@@ -45,11 +45,11 @@ adaptive="false" time-dependent="false" xml:lang="en">
       </qti-simple-match-set>
     </qti-match-interaction>
 
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_correct" show-hide="show">
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_correct" show-hide="show" data-feedback-type="correct">
       <p><strong>Correct!</strong> All matches are correct. Each item connects to its target based on the logical relationships described in the content. Understanding these connections helps build a foundation for more complex pattern recognition.</p>
     </qti-feedback-block>
 
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_incorrect" show-hide="show">
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_incorrect" show-hide="show" data-feedback-type="incorrect">
       <p><strong>Not quite.</strong> Review the descriptions for each item and target carefully. Look for keywords and logical connections that indicate which pairs belong together. Consider how each item's characteristics relate to the available targets.</p>
     </qti-feedback-block>
   </qti-item-body>
