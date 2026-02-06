@@ -254,6 +254,54 @@ export interface QtiGap {
 }
 
 /**
+ * QTI Match Interaction (block with children)
+ * Creates directional associations between items in two sets (source → target)
+ */
+export interface QtiMatchInteraction {
+  type: 'qti-match-interaction';
+  children: Array<QtiPrompt | MatchSourceSet | MatchTargetSet>;
+  attributes: {
+    'response-identifier': string;
+    'max-associations'?: string;
+    'min-associations'?: string;
+    shuffle?: string;
+  } & ElementAttributes;
+  responseDeclaration: XmlNode;
+}
+
+/**
+ * Editor-only wrapper for the first qti-simple-match-set (source items)
+ */
+export interface MatchSourceSet {
+  type: 'match-source-set';
+  children: Array<QtiSimpleAssociableChoice>;
+  attributes?: ElementAttributes;
+}
+
+/**
+ * Editor-only wrapper for the second qti-simple-match-set (target items)
+ */
+export interface MatchTargetSet {
+  type: 'match-target-set';
+  children: Array<QtiSimpleAssociableChoice>;
+  attributes?: ElementAttributes;
+}
+
+/**
+ * QTI Simple Associable Choice (choice element within match interaction)
+ */
+export interface QtiSimpleAssociableChoice {
+  type: 'qti-simple-associable-choice';
+  children: Array<SlateElement | SlateText>;
+  attributes: {
+    identifier: string;
+    'match-max'?: string;
+    'match-min'?: string;
+    fixed?: string;
+  } & ElementAttributes;
+}
+
+/**
  * QTI Feedback Inline - inline feedback element shown based on outcome variable
  */
 export interface QtiFeedbackInline {
@@ -443,6 +491,7 @@ export type SlateElement =
   | QtiExtendedTextInteraction
   | QtiChoiceInteraction
   | QtiGapMatchInteraction
+  | QtiMatchInteraction
   | QtiPrompt
   | QtiSimpleChoice
   | ChoiceIdLabel
@@ -452,6 +501,9 @@ export type SlateElement =
   | QtiGapText
   | QtiGapImg
   | QtiGap
+  | MatchSourceSet
+  | MatchTargetSet
+  | QtiSimpleAssociableChoice
   | QtiFeedbackInline
   | QtiFeedbackBlock
   | QtiModalFeedback

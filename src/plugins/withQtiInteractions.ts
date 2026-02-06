@@ -1,4 +1,4 @@
-import { Element, Path } from 'slate';
+import { Editor, Element, Path } from 'slate';
 import { contentBodyConfig } from '../elements/contentBody/config';
 import { feedbackBlockConfig } from '../elements/feedback/feedbackBlock/config';
 import { feedbackInlineConfig } from '../elements/feedback/feedbackInline/config';
@@ -21,6 +21,12 @@ import {
   gapTextConfig,
 } from '../interactions/gapMatch/config';
 import { inlineChoiceInteractionConfig } from '../interactions/inlineChoice/config';
+import {
+  matchInteractionConfig,
+  matchSourceSetConfig,
+  matchTargetSetConfig,
+  simpleAssociableChoiceConfig,
+} from '../interactions/match/config';
 import { textEntryInteractionConfig } from '../interactions/textEntry/config';
 import type { CustomEditor, ElementConfig, FeedbackIdentifierSource } from '../types';
 
@@ -31,6 +37,7 @@ const elementConfigs: ElementConfig[] = [
   inlineChoiceInteractionConfig,
   extendedTextInteractionConfig,
   gapMatchInteractionConfig,
+  matchInteractionConfig,
   // Element configs
   promptConfig,
   simpleChoiceConfig,
@@ -41,6 +48,9 @@ const elementConfigs: ElementConfig[] = [
   gapTextConfig,
   gapImgConfig,
   gapConfig,
+  matchSourceSetConfig,
+  matchTargetSetConfig,
+  simpleAssociableChoiceConfig,
   imageConfig,
   contentBodyConfig,
   // Feedback element configs
@@ -122,6 +132,32 @@ export function isElementInline(element: Element): boolean {
 
   const type = element.type as string;
   return FALLBACK_INLINE_TYPES.includes(type);
+}
+
+/**
+ * Collect all existing response identifiers from the editor.
+ * Uses the element config registry to find all interactions.
+ */
+export function collectExistingResponseIds(editor: Editor): Set<string> {
+  const existingIds = new Set<string>();
+
+  for (const [node] of Editor.nodes(editor, {
+    at: [],
+    match: (n) => {
+      if (!Element.isElement(n)) return false;
+      const categories = getElementCategories(n);
+      return categories.includes('interaction');
+    },
+  })) {
+    if (Element.isElement(node) && 'attributes' in node) {
+      const attrs = node.attributes as Record<string, string | undefined>;
+      if (attrs?.['response-identifier']) {
+        existingIds.add(attrs['response-identifier']);
+      }
+    }
+  }
+
+  return existingIds;
 }
 
 /**

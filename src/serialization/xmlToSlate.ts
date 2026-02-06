@@ -9,6 +9,7 @@ import { choiceParsers } from '../interactions/choice';
 import { extendedTextParsers } from '../interactions/extendedText';
 import { gapMatchParsers } from '../interactions/gapMatch';
 import { inlineChoiceParsers } from '../interactions/inlineChoice';
+import { matchParsers } from '../interactions/match';
 import { textEntryParsers } from '../interactions/textEntry';
 import { isElementInline } from '../plugins/withQtiInteractions';
 import type { DocumentMetadata, ElementAttributes, SlateElement, SlateText, TextAlign } from '../types';
@@ -48,6 +49,7 @@ const interactionParsers: Record<string, ParserFn> = {
   ...inlineChoiceParsers,
   ...extendedTextParsers,
   ...gapMatchParsers,
+  ...matchParsers,
   ...promptParsers,
   ...simpleChoiceParsers,
   ...feedbackInlineParsers,
