@@ -10,7 +10,9 @@ import {
   ShowHideRadioGroup,
   ReadonlyAttributeInfo,
   IdentifierTip,
+  FeedbackTypeSelector,
 } from '..';
+import type { FeedbackType } from '..';
 
 interface ModalFeedbackPropertiesPanelProps {
   element: QtiModalFeedback;
@@ -35,6 +37,7 @@ export function ModalFeedbackPropertiesPanel({
   const attrs = element.attributes;
   const currentIdentifier = attrs.identifier || '';
   const currentShowHide = attrs['show-hide'] || 'show';
+  const currentFeedbackType = (attrs['data-feedback-type'] || '') as FeedbackType;
 
   const feedbackOptions = getAllFeedbackIdentifierOptions(editor.children);
 
@@ -50,6 +53,14 @@ export function ModalFeedbackPropertiesPanel({
     const newAttrs = {
       ...attrs,
       'show-hide': value,
+    };
+    onUpdate(path, newAttrs);
+  };
+
+  const handleFeedbackTypeChange = (value: FeedbackType) => {
+    const newAttrs = {
+      ...attrs,
+      'data-feedback-type': value || undefined,
     };
     onUpdate(path, newAttrs);
   };
@@ -72,6 +83,11 @@ export function ModalFeedbackPropertiesPanel({
         onChange={handleShowHideChange}
         name="show-hide-modal"
         disabled={isCustomMode}
+      />
+
+      <FeedbackTypeSelector
+        value={currentFeedbackType}
+        onChange={handleFeedbackTypeChange}
       />
 
       {currentIdentifier && !isCustomMode && (

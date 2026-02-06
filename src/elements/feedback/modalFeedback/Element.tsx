@@ -21,6 +21,7 @@ export function ModalFeedbackElement({
 
   const identifier = el.attributes.identifier || '';
   const showHide = el.attributes['show-hide'] || 'show';
+  const feedbackType = el.attributes['data-feedback-type'] || '';
   // In custom mode, any non-empty identifier is valid (custom response processing can use arbitrary identifiers)
   const isValid = isCustomMode
     ? Boolean(identifier)
@@ -32,6 +33,7 @@ export function ModalFeedbackElement({
     'modal-feedback',
     isActive ? 'modal-feedback--active' : '',
     !isValid ? 'modal-feedback--invalid' : '',
+    feedbackType ? `modal-feedback--${feedbackType}` : '',
   ].filter(Boolean).join(' ');
 
   return (
@@ -66,6 +68,18 @@ const MODAL_FEEDBACK_STYLES = `
   .modal-feedback--invalid.modal-feedback--active {
     border-color: #3b82f6;
     background-color: #fefce8;
+  }
+
+  .modal-feedback--correct {
+    border-left: 4px solid #22c55e;
+  }
+
+  .modal-feedback--incorrect {
+    border-left: 4px solid #ef4444;
+  }
+
+  .modal-feedback--info {
+    border-left: 4px solid #4a90e2;
   }
 
   .modal-feedback__legend {

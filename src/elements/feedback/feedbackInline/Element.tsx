@@ -22,6 +22,7 @@ export function FeedbackInlineElement({
 
   const identifier = el.attributes.identifier || '';
   const showHide = el.attributes['show-hide'] || 'show';
+  const feedbackType = el.attributes['data-feedback-type'] || '';
   // In custom mode, any non-empty identifier is valid (custom response processing can use arbitrary identifiers)
   const isValid = isCustomMode
     ? Boolean(identifier)
@@ -33,6 +34,7 @@ export function FeedbackInlineElement({
     'feedback-inline',
     isActive ? 'feedback-inline--active' : '',
     !isValid ? 'feedback-inline--invalid' : '',
+    feedbackType ? `feedback-inline--${feedbackType}` : '',
   ].filter(Boolean).join(' ');
 
   return (
@@ -71,6 +73,18 @@ const FEEDBACK_INLINE_STYLES = `
   .feedback-inline--invalid.feedback-inline--active {
     background-color: #fef3c7;
     border-color: #3b82f6;
+  }
+
+  .feedback-inline--correct {
+    border-left: 3px solid #22c55e;
+  }
+
+  .feedback-inline--incorrect {
+    border-left: 3px solid #ef4444;
+  }
+
+  .feedback-inline--info {
+    border-left: 3px solid #4a90e2;
   }
 
   .feedback-inline__label {

@@ -37,4 +37,29 @@ export const FEEDBACK_PROPERTIES_STYLES = `
   .feedback-readonly-info p:last-child {
     margin-bottom: 0;
   }
+
+  .feedback-type-selector {
+    margin-bottom: 16px;
+  }
+
+  .feedback-type-selector__label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #374151;
+  }
+
+  .feedback-type-selector__select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 14px;
+    background-color: white;
+  }
+
+  .feedback-type-selector__select:disabled {
+    background-color: #f3f4f6;
+    color: #9ca3af;
+  }
 `;

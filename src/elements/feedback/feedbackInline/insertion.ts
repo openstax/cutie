@@ -24,6 +24,7 @@ export function insertFeedbackInline(
       'outcome-identifier': 'FEEDBACK',
       identifier,
       'show-hide': showHide,
+      'data-feedback-type': 'info',
     },
     children: isExpanded
       ? [] // Children will be wrapped from selection
