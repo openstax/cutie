@@ -29,6 +29,11 @@ class FeedbackInlineHandler implements ElementHandler {
       span.dataset.identifier = identifier;
     }
 
+    const feedbackType = element.getAttribute('data-feedback-type');
+    if (feedbackType) {
+      span.dataset.feedbackType = feedbackType;
+    }
+
     if (context.transformChildren) {
       span.appendChild(context.transformChildren(element));
     }
@@ -41,7 +46,9 @@ class FeedbackInlineHandler implements ElementHandler {
 registry.register('feedback-inline', new FeedbackInlineHandler(), 50);
 
 const FEEDBACK_INLINE_STYLES = `
-  .qti-feedback-inline {
+  .qti-feedback-inline[data-feedback-type="correct"],
+  .qti-feedback-inline[data-feedback-type="incorrect"],
+  .qti-feedback-inline[data-feedback-type="info"] {
     display: inline;
     font-style: italic;
     color: #374151;
@@ -50,9 +57,22 @@ const FEEDBACK_INLINE_STYLES = `
     line-height: 1.6;
   }
 
-  .qti-feedback-inline::before {
+  .qti-feedback-inline[data-feedback-type="correct"]::before,
+  .qti-feedback-inline[data-feedback-type="incorrect"]::before,
+  .qti-feedback-inline[data-feedback-type="info"]::before {
     content: " ";
-    border-left: 0.5em solid #4a90e2;
     margin-right: 0.5em;
+  }
+
+  .qti-feedback-inline[data-feedback-type="correct"]::before {
+    border-left: 0.5em solid #22c55e;
+  }
+
+  .qti-feedback-inline[data-feedback-type="incorrect"]::before {
+    border-left: 0.5em solid #ef4444;
+  }
+
+  .qti-feedback-inline[data-feedback-type="info"]::before {
+    border-left: 0.5em solid #4a90e2;
   }
 `;

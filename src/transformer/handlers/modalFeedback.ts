@@ -31,6 +31,11 @@ class ModalFeedbackHandler implements ElementHandler {
       dialog.dataset.identifier = identifier;
     }
 
+    const feedbackType = element.getAttribute('data-feedback-type');
+    if (feedbackType) {
+      dialog.dataset.feedbackType = feedbackType;
+    }
+
     // Create content container
     const contentDiv = document.createElement('div');
     contentDiv.className = 'qti-modal-feedback__content';
@@ -59,7 +64,6 @@ class ModalFeedbackHandler implements ElementHandler {
 }
 
 const MODAL_FEEDBACK_STYLES = `
-
   .qti-modal-feedback {
     min-width: 15rem;
     max-width: calc(100vw - 4rem);
@@ -69,6 +73,18 @@ const MODAL_FEEDBACK_STYLES = `
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
+  }
+
+  .qti-modal-feedback[data-feedback-type="correct"] {
+    border: 3px solid #22c55e;
+  }
+
+  .qti-modal-feedback[data-feedback-type="incorrect"] {
+    border: 3px solid #ef4444;
+  }
+
+  .qti-modal-feedback[data-feedback-type="info"] {
+    border: 3px solid #4a90e2;
   }
 
   .qti-modal-feedback__form {
