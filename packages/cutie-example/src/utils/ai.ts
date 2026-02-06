@@ -3,10 +3,10 @@ import { API_URL, PROMPT_IDS, API_KEY, DEFAULT_MODEL_ID, DEFAULT_FAST_MODEL_ID }
 import { token } from './auth';
 import z from 'zod';
 import { shuffle } from "./misc";
-import { customExamples } from "../example-items";
+import { standardExamples } from "../example-items";
 
 const formatExamples = (interactionTypes?: string[]) => {
-  let examples = customExamples;
+  let examples = standardExamples;
 
   if (interactionTypes && interactionTypes.length > 0) {
 
@@ -15,7 +15,7 @@ const formatExamples = (interactionTypes?: string[]) => {
     );
     // Fall back to all examples if no matches found
     if (examples.length === 0) {
-      examples = customExamples;
+      examples = standardExamples;
     }
   }
   return shuffle(examples)

@@ -30,14 +30,17 @@ import * as multiInput from './multi-input';
 import * as modalFeedback from './modal-feedback';
 import * as inlineFeedback from './inline-feedback';
 import * as blockFeedback from './block-feedback';
-import * as choiceFeedback from './choice-feedback';
-import * as choiceMultipleFeedback from './choice-multiple-feedback';
-import * as textEntryFeedback from './text-entry-feedback';
-import * as inlineChoiceFeedback from './inline-choice-feedback';
-import * as matchFeedback from './match-feedback';
-import * as gapMatchFeedback from './gap-match-feedback';
-import * as multiInteractionFeedback from './multi-interaction-feedback';
+import * as choiceStandard from './standard-choice';
+import * as choiceMultipleStandard from './standard-choice-multiple';
+import * as textEntryStandard from './standard-text-entry';
+import * as inlineChoiceStandard from './standard-inline-choice';
+import * as matchStandard from './standard-match';
+import * as gapMatchStandard from './standard-gap-match';
+import * as multiInteractionStandard from './standard-multi-interaction';
 
+/* these examples are copied exactly from examples in the spec
+ * documents, they are used for verification that cutie works
+ * correctly on official samples */
 export const specExamples = [
   choice,
   choiceMultiple,
@@ -56,28 +59,32 @@ export const specExamples = [
   multiInput,
 ];
 
+/* these were made just to show different types of feedback */
 export const feedbackTypes = [
   modalFeedback,
   inlineFeedback,
   blockFeedback,
 ];
 
-export const customExamples = [
+/* these examples were made for each interaction type to show editor-supported
+ * response processing and feedback patterns, and show extensive feedback as
+ * we would expect to see in real assessment items */
+export const standardExamples = [
   textEntryMulti,
   inlineChoiceMulti,
-  choiceFeedback,
-  choiceMultipleFeedback,
-  textEntryFeedback,
-  inlineChoiceFeedback,
-  matchFeedback,
-  gapMatchFeedback,
-  multiInteractionFeedback,
+  choiceStandard,
+  choiceMultipleStandard,
+  textEntryStandard,
+  inlineChoiceStandard,
+  matchStandard,
+  gapMatchStandard,
+  multiInteractionStandard,
 ];
 
 export const exampleGroups: ExampleGroup[] = [
   {
-    label: 'Custom Examples',
-    items: customExamples,
+    label: 'Supported Examples',
+    items: standardExamples,
   },
   {
     label: 'Feedback Types',
