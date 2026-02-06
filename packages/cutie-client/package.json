@@ -2,6 +2,9 @@
   "name": "@openstax/cutie-client",
   "description": "Client-side QTI v3 rendering library for interactive assessment items",
   "version": "1.0.0",
+  "dependencies": {
+    "mathlive": "^0.98.0"
+  },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "@types/jsdom": "^27.0.0",

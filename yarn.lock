@@ -192,6 +192,22 @@
     "@babel/helper-string-parser" "^7.27.1"
     "@babel/helper-validator-identifier" "^7.28.5"
 
+"@cortex-js/compute-engine@0.22.0":
+  version "0.22.0"
+  resolved "https://registry.yarnpkg.com/@cortex-js/compute-engine/-/compute-engine-0.22.0.tgz#de040fde468b9770848c278d0b729e2abb62c97e"
+  integrity sha512-TPePa4bCbgZO/xh++3ZMNhJD7eLNTFxctbqHtIYbQjLLlUX585HaWeZqIptao4Xi59jZZtP3bPb19txTb251ZA==
+  dependencies:
+    complex.js "^2.1.1"
+    decimal.js "^10.4.3"
+
+"@cortex-js/compute-engine@^0.24.0":
+  version "0.24.1"
+  resolved "https://registry.yarnpkg.com/@cortex-js/compute-engine/-/compute-engine-0.24.1.tgz#f923e970b7e21dc686d46468b018bdc9ba289a9b"
+  integrity sha512-B9pLaZFC1vBrL64yR2LQWy2sj1E/+wtwIVokPuPqX8YWXwj9W2AMVyS9pSMN8gEdjpAC50nSmtL6110Rgi7dKA==
+  dependencies:
+    complex.js "^2.1.1"
+    decimal.js "^10.4.3"
+
 "@cspell/cspell-bundled-dicts@^5.21.2":
   version "5.21.2"
   resolved "https://registry.yarnpkg.com/@cspell/cspell-bundled-dicts/-/cspell-bundled-dicts-5.21.2.tgz#2254c392e2a617b5ffe591a438840028fe8dc4b8"
@@ -1660,6 +1676,11 @@ comment-json@^4.2.2:
     core-util-is "^1.0.3"
     esprima "^4.0.1"
 
+complex.js@^2.1.1:
+  version "2.4.3"
+  resolved "https://registry.yarnpkg.com/complex.js/-/complex.js-2.4.3.tgz#72ee9c303a9b89ebcfeca0d39f74927d38721fce"
+  integrity sha512-UrQVSUur14tNX6tiP4y8T4w4FeJAX3bi2cIv0pu/DTLFNxoq7z2Yh83Vfzztj6Px3X/lubqQ9IrPp7Bpn6p4MQ==
+
 compute-scroll-into-view@^3.0.2:
   version "3.1.1"
   resolved "https://registry.yarnpkg.com/compute-scroll-into-view/-/compute-scroll-into-view-3.1.1.tgz#02c3386ec531fb6a9881967388e53e8564f3e9aa"
@@ -1890,7 +1911,7 @@ debug@^3.2.7:
   dependencies:
     ms "^2.1.1"
 
-decimal.js@^10.6.0:
+decimal.js@^10.4.3, decimal.js@^10.6.0:
   version "10.6.0"
   resolved "https://registry.yarnpkg.com/decimal.js/-/decimal.js-10.6.0.tgz#e649a43e3ab953a72192ff5983865e509f37ed9a"
   integrity sha512-YpgQiITW3JXGntzdUmyUR1V812Hn8T1YVXhCu+wO3OpS4eU9l4YdD3qjyiKdV6mvV29zapkMeD390UVEf2lkUg==
@@ -3257,6 +3278,13 @@ math-intrinsics@^1.1.0:
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/math-intrinsics/-/math-intrinsics-1.1.0.tgz#a0dd74be81e2aa5c2f27e65ce283605ee4e2b7f9"
   integrity sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==
+
+mathlive@^0.98.0:
+  version "0.98.6"
+  resolved "https://registry.yarnpkg.com/mathlive/-/mathlive-0.98.6.tgz#50fc14cbbb7ed46d27dde21baea820a66c6049a9"
+  integrity sha512-5rRnVa1Xc9iD+f3sfQ6CWgL0GIIq0Fl6A/FbM5gZcrMaEeYn34DFIxUnLLLMgpb8vc/LZhJ1s9dDCqxv2bYTBw==
+  dependencies:
+    "@cortex-js/compute-engine" "0.22.0"
 
 mdn-data@2.12.2:
   version "2.12.2"

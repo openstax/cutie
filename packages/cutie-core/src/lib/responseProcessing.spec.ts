@@ -2948,3 +2948,339 @@ describe('processResponse - Shuffle Order Preservation', () => {
     expect(newState.shuffleOrders?.RESPONSE_1).toEqual(['T2', 'T1']);
   });
 });
+
+describe('processResponse - Formula Response Processing', () => {
+  describe('match_correct template with formula responses', () => {
+    test('scores exact match correctly', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="formula-item">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="string"
+    data-response-type="formula" data-comparison-mode="canonical">
+    <qti-correct-response>
+      <qti-value>5x</qti-value>
+    </qti-correct-response>
+  </qti-response-declaration>
+
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value><qti-value>0</qti-value></qti-default-value>
+  </qti-outcome-declaration>
+
+  <qti-item-body>
+    <qti-extended-text-interaction response-identifier="RESPONSE"/>
+  </qti-item-body>
+
+  <qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const currentState: AttemptState = {
+        variables: { SCORE: 0 },
+        completionStatus: 'not_attempted',
+        score: null,
+      };
+
+      const newState = processResponse(itemDoc, { RESPONSE: '5x' }, currentState);
+      expect(newState.variables.SCORE).toBe(1);
+    });
+
+    test('scores equivalent expression in canonical mode', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="formula-item">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="string"
+    data-response-type="formula" data-comparison-mode="canonical">
+    <qti-correct-response>
+      <qti-value>5x</qti-value>
+    </qti-correct-response>
+  </qti-response-declaration>
+
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value><qti-value>0</qti-value></qti-default-value>
+  </qti-outcome-declaration>
+
+  <qti-item-body>
+    <qti-extended-text-interaction response-identifier="RESPONSE"/>
+  </qti-item-body>
+
+  <qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const currentState: AttemptState = {
+        variables: { SCORE: 0 },
+        completionStatus: 'not_attempted',
+        score: null,
+      };
+
+      // x*5 should match 5x in canonical mode
+      const newState = processResponse(itemDoc, { RESPONSE: 'x*5' }, currentState);
+      expect(newState.variables.SCORE).toBe(1);
+    });
+
+    test('scores algebraically equivalent expression in algebraic mode', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="formula-item">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="string"
+    data-response-type="formula" data-comparison-mode="algebraic">
+    <qti-correct-response>
+      <qti-value>5x</qti-value>
+    </qti-correct-response>
+  </qti-response-declaration>
+
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value><qti-value>0</qti-value></qti-default-value>
+  </qti-outcome-declaration>
+
+  <qti-item-body>
+    <qti-extended-text-interaction response-identifier="RESPONSE"/>
+  </qti-item-body>
+
+  <qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const currentState: AttemptState = {
+        variables: { SCORE: 0 },
+        completionStatus: 'not_attempted',
+        score: null,
+      };
+
+      // 2x+3x should match 5x in algebraic mode
+      const newState = processResponse(itemDoc, { RESPONSE: '2x+3x' }, currentState);
+      expect(newState.variables.SCORE).toBe(1);
+    });
+
+    test('rejects non-simplified expression in canonical mode', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="formula-item">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="string"
+    data-response-type="formula" data-comparison-mode="canonical">
+    <qti-correct-response>
+      <qti-value>5x</qti-value>
+    </qti-correct-response>
+  </qti-response-declaration>
+
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value><qti-value>0</qti-value></qti-default-value>
+  </qti-outcome-declaration>
+
+  <qti-item-body>
+    <qti-extended-text-interaction response-identifier="RESPONSE"/>
+  </qti-item-body>
+
+  <qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const currentState: AttemptState = {
+        variables: { SCORE: 0 },
+        completionStatus: 'not_attempted',
+        score: null,
+      };
+
+      // 2x+3x should NOT match 5x in canonical mode (not simplified)
+      const newState = processResponse(itemDoc, { RESPONSE: '2x+3x' }, currentState);
+      expect(newState.variables.SCORE).toBe(0);
+    });
+
+    test('defaults to canonical mode when no mode specified', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="formula-item">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="string"
+    data-response-type="formula">
+    <qti-correct-response>
+      <qti-value>5x</qti-value>
+    </qti-correct-response>
+  </qti-response-declaration>
+
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value><qti-value>0</qti-value></qti-default-value>
+  </qti-outcome-declaration>
+
+  <qti-item-body>
+    <qti-extended-text-interaction response-identifier="RESPONSE"/>
+  </qti-item-body>
+
+  <qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const currentState: AttemptState = {
+        variables: { SCORE: 0 },
+        completionStatus: 'not_attempted',
+        score: null,
+      };
+
+      // x*5 should match 5x with default canonical mode
+      const newState = processResponse(itemDoc, { RESPONSE: 'x*5' }, currentState);
+      expect(newState.variables.SCORE).toBe(1);
+    });
+  });
+
+  describe('explicit qti-match with formula responses', () => {
+    test('uses formula comparison with qti-match operator', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="formula-item">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="string"
+    data-response-type="formula" data-comparison-mode="algebraic">
+    <qti-correct-response>
+      <qti-value>x^2-1</qti-value>
+    </qti-correct-response>
+  </qti-response-declaration>
+
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value><qti-value>0</qti-value></qti-default-value>
+  </qti-outcome-declaration>
+
+  <qti-item-body>
+    <qti-extended-text-interaction response-identifier="RESPONSE"/>
+  </qti-item-body>
+
+  <qti-response-processing>
+    <qti-response-condition>
+      <qti-response-if>
+        <qti-match>
+          <qti-variable identifier="RESPONSE"/>
+          <qti-correct identifier="RESPONSE"/>
+        </qti-match>
+        <qti-set-outcome-value identifier="SCORE">
+          <qti-base-value base-type="float">1</qti-base-value>
+        </qti-set-outcome-value>
+      </qti-response-if>
+      <qti-response-else>
+        <qti-set-outcome-value identifier="SCORE">
+          <qti-base-value base-type="float">0</qti-base-value>
+        </qti-set-outcome-value>
+      </qti-response-else>
+    </qti-response-condition>
+  </qti-response-processing>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const currentState: AttemptState = {
+        variables: { SCORE: 0 },
+        completionStatus: 'not_attempted',
+        score: null,
+      };
+
+      // (x+1)(x-1) should match x^2-1 in algebraic mode
+      const newState = processResponse(itemDoc, { RESPONSE: '(x+1)(x-1)' }, currentState);
+      expect(newState.variables.SCORE).toBe(1);
+    });
+
+    test('handles incorrect formula response', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="formula-item">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="string"
+    data-response-type="formula" data-comparison-mode="algebraic">
+    <qti-correct-response>
+      <qti-value>5x</qti-value>
+    </qti-correct-response>
+  </qti-response-declaration>
+
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value><qti-value>0</qti-value></qti-default-value>
+  </qti-outcome-declaration>
+
+  <qti-item-body>
+    <qti-extended-text-interaction response-identifier="RESPONSE"/>
+  </qti-item-body>
+
+  <qti-response-processing>
+    <qti-response-condition>
+      <qti-response-if>
+        <qti-match>
+          <qti-variable identifier="RESPONSE"/>
+          <qti-correct identifier="RESPONSE"/>
+        </qti-match>
+        <qti-set-outcome-value identifier="SCORE">
+          <qti-base-value base-type="float">1</qti-base-value>
+        </qti-set-outcome-value>
+      </qti-response-if>
+      <qti-response-else>
+        <qti-set-outcome-value identifier="SCORE">
+          <qti-base-value base-type="float">0</qti-base-value>
+        </qti-set-outcome-value>
+      </qti-response-else>
+    </qti-response-condition>
+  </qti-response-processing>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const currentState: AttemptState = {
+        variables: { SCORE: 0 },
+        completionStatus: 'not_attempted',
+        score: null,
+      };
+
+      // 6x is not equivalent to 5x
+      const newState = processResponse(itemDoc, { RESPONSE: '6x' }, currentState);
+      expect(newState.variables.SCORE).toBe(0);
+    });
+  });
+
+  describe('edge cases', () => {
+    test('handles empty formula response', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="formula-item">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="string"
+    data-response-type="formula" data-comparison-mode="canonical">
+    <qti-correct-response>
+      <qti-value>5x</qti-value>
+    </qti-correct-response>
+  </qti-response-declaration>
+
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value><qti-value>0</qti-value></qti-default-value>
+  </qti-outcome-declaration>
+
+  <qti-item-body>
+    <qti-extended-text-interaction response-identifier="RESPONSE"/>
+  </qti-item-body>
+
+  <qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const currentState: AttemptState = {
+        variables: { SCORE: 0 },
+        completionStatus: 'not_attempted',
+        score: null,
+      };
+
+      const newState = processResponse(itemDoc, { RESPONSE: '' }, currentState);
+      expect(newState.variables.SCORE).toBe(0);
+    });
+
+    test('handles null formula response', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="formula-item">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="string"
+    data-response-type="formula" data-comparison-mode="canonical">
+    <qti-correct-response>
+      <qti-value>5x</qti-value>
+    </qti-correct-response>
+  </qti-response-declaration>
+
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value><qti-value>0</qti-value></qti-default-value>
+  </qti-outcome-declaration>
+
+  <qti-item-body>
+    <qti-extended-text-interaction response-identifier="RESPONSE"/>
+  </qti-item-body>
+
+  <qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const currentState: AttemptState = {
+        variables: { SCORE: 0 },
+        completionStatus: 'not_attempted',
+        score: null,
+      };
+
+      const newState = processResponse(itemDoc, { RESPONSE: null }, currentState);
+      expect(newState.variables.SCORE).toBe(0);
+    });
+  });
+});

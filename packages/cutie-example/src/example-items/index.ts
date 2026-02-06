@@ -38,6 +38,9 @@ import * as matchStandard from './standard-match';
 import * as gapMatchStandard from './standard-gap-match';
 import * as multiInteractionStandard from './standard-multi-interaction';
 import * as adaptiveMontyHall from './spec-adaptive-monty-hall';
+import * as formulaStrict from './formula-strict';
+import * as formulaCanonical from './formula-canonical';
+import * as formulaAlgebraic from './formula-algebraic';
 
 /* these examples are copied exactly from examples in the spec
  * documents, they are used for verification that cutie works
@@ -68,6 +71,13 @@ export const feedbackTypes = [
   blockFeedback,
 ];
 
+/* math formula entry examples demonstrating different comparison modes */
+export const formulaExamples = [
+  formulaStrict,
+  formulaCanonical,
+  formulaAlgebraic,
+];
+
 /* these examples were made for each interaction type to show editor-supported
  * response processing and feedback patterns, and show extensive feedback as
  * we would expect to see in real assessment items */
@@ -87,6 +97,10 @@ export const exampleGroups: ExampleGroup[] = [
   {
     label: 'Supported Examples',
     items: standardExamples,
+  },
+  {
+    label: 'Math Formula Entry',
+    items: formulaExamples,
   },
   {
     label: 'Feedback Types',

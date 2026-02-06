@@ -3,6 +3,7 @@
   "description": "Core QTI v3 processing engine for template and response processing",
   "version": "1.0.0",
   "dependencies": {
+    "@cortex-js/compute-engine": "^0.24.0",
     "@xmldom/xmldom": "^0.8.10"
   },
   "devDependencies": {

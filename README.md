@@ -46,3 +46,27 @@ Response and template processing are separated from the presentational layer usi
 - **Security**: Server acts as content filter, never exposing sensitive item data
 - **Separation of concerns**: Server handles QTI logic, client handles presentation
 - **Testability**: Easy to verify server output is valid, sanitized QTI XML
+
+## QTI Extensions
+
+### Feedback Type Attribute (`data-feedback-type`)
+
+QTI uses "feedback" elements (`qti-feedback-block`, `qti-feedback-inline`, `qti-modal-feedback`) for any conditionally-displayed content based on response variables. In practice, this conflates two distinct purposes:
+
+1. **Genuine feedback** - Messages shown to learners about their performance ("Correct!", "Try again", hints)
+2. **Conditional content** - Content that changes based on state, especially in adaptive items (problem variations, dynamic instructions)
+
+This distinction matters for delivery: learner feedback benefits from visual treatment (colored borders, emphasis), while conditional content should render as normal prose.
+
+**Solution**: Cutie extends QTI feedback elements with an optional `data-feedback-type` attribute:
+
+| Value | Purpose | Styling |
+|-------|---------|---------|
+| `correct` | Positive feedback | Green accent |
+| `incorrect` | Negative feedback | Red accent |
+| `info` | Neutral/informational feedback | Blue accent |
+| (none) | Conditional content, not feedback | No special styling |
+
+This attribute is set in `cutie-editor` and preserved through `cutie-core` processing. `cutie-client` applies appropriate styles based on the value.
+
+Items authored without this attribute will render feedback elements unstyled, maintaining backward compatibility with standard QTI content.
