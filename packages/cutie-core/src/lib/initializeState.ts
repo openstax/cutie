@@ -1,5 +1,6 @@
 import { AttemptState } from '../types';
 import { getChildElements, getFirstChildElement } from '../utils/dom';
+import { generateShuffleOrder, ShuffleItem } from '../utils/shuffle';
 import { parseValue } from '../utils/typeParser';
 import {
   evaluateExpression as evaluateExpressionShared,
@@ -49,10 +50,14 @@ export function initializeState(itemDoc: Document): AttemptState {
 
   const score = extractStandardOutcomes(variables, itemDoc);
 
+  // Generate shuffle orders for interactions with shuffle="true"
+  const shuffleOrders = initializeShuffleOrders(itemDoc);
+
   return {
     variables,
     completionStatus: 'not_attempted',
     score,
+    ...(shuffleOrders && { shuffleOrders }),
   };
 }
 
@@ -329,5 +334,195 @@ function evaluateExpression(element: Element, itemDoc: Document, variables: Reco
     evaluateExpression(el, doc, vars);
 
   return evaluateExpressionShared(element, itemDoc, variables, subEvaluate);
+}
+
+/**
+ * Initialize shuffle orders for interactions with shuffle="true".
+ * Returns a record mapping response identifiers to ordered arrays of choice identifiers,
+ * or undefined if no shuffled interactions are found.
+ */
+function initializeShuffleOrders(itemDoc: Document): Record<string, string[]> | undefined {
+  const shuffleOrders: Record<string, string[]> = {};
+
+  // Process choice interactions
+  processChoiceInteractions(itemDoc, shuffleOrders);
+
+  // Process inline-choice interactions
+  processInlineChoiceInteractions(itemDoc, shuffleOrders);
+
+  // Process match interactions (has two match sets)
+  processMatchInteractions(itemDoc, shuffleOrders);
+
+  // Process gap-match interactions
+  processGapMatchInteractions(itemDoc, shuffleOrders);
+
+  // Return undefined if no shuffle orders were generated
+  return Object.keys(shuffleOrders).length > 0 ? shuffleOrders : undefined;
+}
+
+/**
+ * Process qti-choice-interaction elements for shuffle orders.
+ */
+function processChoiceInteractions(
+  itemDoc: Document,
+  shuffleOrders: Record<string, string[]>
+): void {
+  const interactions = itemDoc.getElementsByTagName('qti-choice-interaction');
+
+  for (let i = 0; i < interactions.length; i++) {
+    const interaction = interactions[i];
+    if (interaction.getAttribute('shuffle') !== 'true') continue;
+
+    const responseId = interaction.getAttribute('response-identifier');
+    if (!responseId) continue;
+
+    const choices = interaction.getElementsByTagName('qti-simple-choice');
+    const items: ShuffleItem[] = [];
+
+    for (let j = 0; j < choices.length; j++) {
+      const choice = choices[j];
+      const identifier = choice.getAttribute('identifier');
+      if (identifier) {
+        items.push({
+          identifier,
+          fixed: choice.getAttribute('fixed') === 'true',
+        });
+      }
+    }
+
+    if (items.length > 0) {
+      shuffleOrders[responseId] = generateShuffleOrder(items);
+    }
+  }
+}
+
+/**
+ * Process qti-inline-choice-interaction elements for shuffle orders.
+ */
+function processInlineChoiceInteractions(
+  itemDoc: Document,
+  shuffleOrders: Record<string, string[]>
+): void {
+  const interactions = itemDoc.getElementsByTagName('qti-inline-choice-interaction');
+
+  for (let i = 0; i < interactions.length; i++) {
+    const interaction = interactions[i];
+    if (interaction.getAttribute('shuffle') !== 'true') continue;
+
+    const responseId = interaction.getAttribute('response-identifier');
+    if (!responseId) continue;
+
+    const choices = interaction.getElementsByTagName('qti-inline-choice');
+    const items: ShuffleItem[] = [];
+
+    for (let j = 0; j < choices.length; j++) {
+      const choice = choices[j];
+      const identifier = choice.getAttribute('identifier');
+      if (identifier) {
+        items.push({
+          identifier,
+          fixed: choice.getAttribute('fixed') === 'true',
+        });
+      }
+    }
+
+    if (items.length > 0) {
+      shuffleOrders[responseId] = generateShuffleOrder(items);
+    }
+  }
+}
+
+/**
+ * Process qti-match-interaction elements for shuffle orders.
+ * Match interactions have two qti-simple-match-set elements, each needs its own shuffle order.
+ */
+function processMatchInteractions(
+  itemDoc: Document,
+  shuffleOrders: Record<string, string[]>
+): void {
+  const interactions = itemDoc.getElementsByTagName('qti-match-interaction');
+
+  for (let i = 0; i < interactions.length; i++) {
+    const interaction = interactions[i];
+    if (interaction.getAttribute('shuffle') !== 'true') continue;
+
+    const responseId = interaction.getAttribute('response-identifier');
+    if (!responseId) continue;
+
+    const matchSets = interaction.getElementsByTagName('qti-simple-match-set');
+
+    for (let setIndex = 0; setIndex < matchSets.length; setIndex++) {
+      const matchSet = matchSets[setIndex];
+      const choices = matchSet.getElementsByTagName('qti-simple-associable-choice');
+      const items: ShuffleItem[] = [];
+
+      for (let j = 0; j < choices.length; j++) {
+        const choice = choices[j];
+        const identifier = choice.getAttribute('identifier');
+        if (identifier) {
+          items.push({
+            identifier,
+            fixed: choice.getAttribute('fixed') === 'true',
+          });
+        }
+      }
+
+      if (items.length > 0) {
+        // Use RESPONSE_0 for first set, RESPONSE_1 for second set
+        shuffleOrders[`${responseId}_${setIndex}`] = generateShuffleOrder(items);
+      }
+    }
+  }
+}
+
+/**
+ * Process qti-gap-match-interaction elements for shuffle orders.
+ * Only the draggable choices (qti-gap-text and qti-gap-img) are shuffled, not the gaps.
+ */
+function processGapMatchInteractions(
+  itemDoc: Document,
+  shuffleOrders: Record<string, string[]>
+): void {
+  const interactions = itemDoc.getElementsByTagName('qti-gap-match-interaction');
+
+  for (let i = 0; i < interactions.length; i++) {
+    const interaction = interactions[i];
+    if (interaction.getAttribute('shuffle') !== 'true') continue;
+
+    const responseId = interaction.getAttribute('response-identifier');
+    if (!responseId) continue;
+
+    const items: ShuffleItem[] = [];
+
+    // Collect qti-gap-text elements
+    const gapTexts = interaction.getElementsByTagName('qti-gap-text');
+    for (let j = 0; j < gapTexts.length; j++) {
+      const choice = gapTexts[j];
+      const identifier = choice.getAttribute('identifier');
+      if (identifier) {
+        items.push({
+          identifier,
+          fixed: choice.getAttribute('fixed') === 'true',
+        });
+      }
+    }
+
+    // Collect qti-gap-img elements
+    const gapImgs = interaction.getElementsByTagName('qti-gap-img');
+    for (let j = 0; j < gapImgs.length; j++) {
+      const choice = gapImgs[j];
+      const identifier = choice.getAttribute('identifier');
+      if (identifier) {
+        items.push({
+          identifier,
+          fixed: choice.getAttribute('fixed') === 'true',
+        });
+      }
+    }
+
+    if (items.length > 0) {
+      shuffleOrders[responseId] = generateShuffleOrder(items);
+    }
+  }
 }
 

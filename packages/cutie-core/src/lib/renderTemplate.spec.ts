@@ -1038,4 +1038,201 @@ describe('renderTemplate', () => {
       expect(resolverCalled).toBe(false);
     });
   });
+
+  describe('Shuffle Order Application', () => {
+    test('reorders choice elements based on shuffle order', async () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="shuffle-test">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier"/>
+  <qti-item-body>
+    <qti-choice-interaction response-identifier="RESPONSE" shuffle="true" max-choices="1">
+      <qti-simple-choice identifier="A">Choice A</qti-simple-choice>
+      <qti-simple-choice identifier="B">Choice B</qti-simple-choice>
+      <qti-simple-choice identifier="C">Choice C</qti-simple-choice>
+    </qti-choice-interaction>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = await renderTemplate(itemDoc, {
+        variables: {},
+        completionStatus: 'not_attempted',
+        score: null,
+        shuffleOrders: {
+          RESPONSE: ['C', 'A', 'B'],
+        },
+      });
+
+      // Verify the order is C, A, B
+      const choiceAIndex = template.indexOf('identifier="A"');
+      const choiceBIndex = template.indexOf('identifier="B"');
+      const choiceCIndex = template.indexOf('identifier="C"');
+
+      expect(choiceCIndex).toBeLessThan(choiceAIndex);
+      expect(choiceAIndex).toBeLessThan(choiceBIndex);
+    });
+
+    test('preserves element content when reordering', async () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="content-test">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier"/>
+  <qti-item-body>
+    <qti-choice-interaction response-identifier="RESPONSE" shuffle="true" max-choices="1">
+      <qti-simple-choice identifier="A">First choice text</qti-simple-choice>
+      <qti-simple-choice identifier="B">Second choice text</qti-simple-choice>
+    </qti-choice-interaction>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = await renderTemplate(itemDoc, {
+        variables: {},
+        completionStatus: 'not_attempted',
+        score: null,
+        shuffleOrders: {
+          RESPONSE: ['B', 'A'],
+        },
+      });
+
+      // Both texts should still be present
+      expect(template).toContain('First choice text');
+      expect(template).toContain('Second choice text');
+
+      // B should come before A
+      const choiceAIndex = template.indexOf('identifier="A"');
+      const choiceBIndex = template.indexOf('identifier="B"');
+      expect(choiceBIndex).toBeLessThan(choiceAIndex);
+    });
+
+    test('handles missing shuffle order gracefully (no reordering)', async () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="no-shuffle-test">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier"/>
+  <qti-item-body>
+    <qti-choice-interaction response-identifier="RESPONSE" shuffle="true" max-choices="1">
+      <qti-simple-choice identifier="A">Choice A</qti-simple-choice>
+      <qti-simple-choice identifier="B">Choice B</qti-simple-choice>
+    </qti-choice-interaction>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = await renderTemplate(itemDoc, {
+        variables: {},
+        completionStatus: 'not_attempted',
+        score: null,
+        // No shuffleOrders provided
+      });
+
+      // Original order should be preserved (A before B)
+      const choiceAIndex = template.indexOf('identifier="A"');
+      const choiceBIndex = template.indexOf('identifier="B"');
+      expect(choiceAIndex).toBeLessThan(choiceBIndex);
+    });
+
+    test('reorders inline-choice elements', async () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="inline-test">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier"/>
+  <qti-item-body>
+    <p>Select:
+      <qti-inline-choice-interaction response-identifier="RESPONSE" shuffle="true">
+        <qti-inline-choice identifier="X">Option X</qti-inline-choice>
+        <qti-inline-choice identifier="Y">Option Y</qti-inline-choice>
+        <qti-inline-choice identifier="Z">Option Z</qti-inline-choice>
+      </qti-inline-choice-interaction>
+    </p>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = await renderTemplate(itemDoc, {
+        variables: {},
+        completionStatus: 'not_attempted',
+        score: null,
+        shuffleOrders: {
+          RESPONSE: ['Z', 'X', 'Y'],
+        },
+      });
+
+      const choiceXIndex = template.indexOf('identifier="X"');
+      const choiceYIndex = template.indexOf('identifier="Y"');
+      const choiceZIndex = template.indexOf('identifier="Z"');
+
+      expect(choiceZIndex).toBeLessThan(choiceXIndex);
+      expect(choiceXIndex).toBeLessThan(choiceYIndex);
+    });
+
+    test('reorders match interaction sets separately', async () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="match-test">
+  <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="directedPair"/>
+  <qti-item-body>
+    <qti-match-interaction response-identifier="RESPONSE" shuffle="true">
+      <qti-simple-match-set>
+        <qti-simple-associable-choice identifier="S1" match-max="1">Source 1</qti-simple-associable-choice>
+        <qti-simple-associable-choice identifier="S2" match-max="1">Source 2</qti-simple-associable-choice>
+      </qti-simple-match-set>
+      <qti-simple-match-set>
+        <qti-simple-associable-choice identifier="T1" match-max="1">Target 1</qti-simple-associable-choice>
+        <qti-simple-associable-choice identifier="T2" match-max="1">Target 2</qti-simple-associable-choice>
+      </qti-simple-match-set>
+    </qti-match-interaction>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = await renderTemplate(itemDoc, {
+        variables: {},
+        completionStatus: 'not_attempted',
+        score: null,
+        shuffleOrders: {
+          RESPONSE_0: ['S2', 'S1'],
+          RESPONSE_1: ['T2', 'T1'],
+        },
+      });
+
+      // First match set: S2 should come before S1
+      const s1Index = template.indexOf('identifier="S1"');
+      const s2Index = template.indexOf('identifier="S2"');
+      expect(s2Index).toBeLessThan(s1Index);
+
+      // Second match set: T2 should come before T1
+      const t1Index = template.indexOf('identifier="T1"');
+      const t2Index = template.indexOf('identifier="T2"');
+      expect(t2Index).toBeLessThan(t1Index);
+    });
+
+    test('reorders gap-match choices', async () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="gap-match-test">
+  <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="directedPair"/>
+  <qti-item-body>
+    <qti-gap-match-interaction response-identifier="RESPONSE" shuffle="true">
+      <qti-gap-text identifier="W1" match-max="1">Word1</qti-gap-text>
+      <qti-gap-text identifier="W2" match-max="1">Word2</qti-gap-text>
+      <qti-gap-text identifier="W3" match-max="1">Word3</qti-gap-text>
+      <p>Fill the <qti-gap identifier="G1"/> with <qti-gap identifier="G2"/></p>
+    </qti-gap-match-interaction>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = await renderTemplate(itemDoc, {
+        variables: {},
+        completionStatus: 'not_attempted',
+        score: null,
+        shuffleOrders: {
+          RESPONSE: ['W3', 'W1', 'W2'],
+        },
+      });
+
+      const w1Index = template.indexOf('identifier="W1"');
+      const w2Index = template.indexOf('identifier="W2"');
+      const w3Index = template.indexOf('identifier="W3"');
+
+      expect(w3Index).toBeLessThan(w1Index);
+      expect(w1Index).toBeLessThan(w2Index);
+    });
+  });
 });

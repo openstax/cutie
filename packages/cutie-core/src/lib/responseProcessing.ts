@@ -110,6 +110,8 @@ export function processResponse(
     variables,
     completionStatus,
     score,
+    // Preserve shuffle orders from input state
+    ...(currentState.shuffleOrders && { shuffleOrders: currentState.shuffleOrders }),
   };
 }
 

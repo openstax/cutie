@@ -1,5 +1,4 @@
 import { createMissingAttributeError } from '../../errors/errorDisplay';
-import { shuffleWithFixed } from '../../utils';
 import { registry } from '../registry';
 import type { ElementHandler, TransformContext } from '../types';
 import { getDefaultValue } from './responseUtils';
@@ -52,9 +51,6 @@ class InlineChoiceInteractionHandler implements ElementHandler {
       return fragment;
     }
 
-    // Check if shuffle is enabled
-    const shuffle = element.getAttribute('shuffle') === 'true';
-
     // Create select element
     const select = document.createElement('select');
     select.className = 'qti-inline-choice-interaction';
@@ -65,14 +61,13 @@ class InlineChoiceInteractionHandler implements ElementHandler {
       (child) => child.tagName.toLowerCase() === 'qti-inline-choice'
     );
 
-    // Build choice data with positions
-    interface ChoiceData {
-      identifier: string;
-      text: string;
-      fixed: boolean;
-    }
+    // Add placeholder option for initial unselected state
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = '';
+    select.appendChild(placeholder);
 
-    const choices: ChoiceData[] = [];
+    // Create option elements from pre-shuffled choices (order comes from server via renderTemplate)
     for (const choiceElement of choiceElements) {
       const identifier = choiceElement.getAttribute('identifier');
       if (!identifier) {
@@ -80,27 +75,9 @@ class InlineChoiceInteractionHandler implements ElementHandler {
         continue;
       }
 
-      choices.push({
-        identifier,
-        text: choiceElement.textContent ?? '',
-        fixed: choiceElement.getAttribute('fixed') === 'true',
-      });
-    }
-
-    // Apply shuffle if enabled, respecting fixed positions
-    const orderedChoices = shuffle ? shuffleWithFixed(choices) : choices;
-
-    // Add placeholder option for initial unselected state
-    const placeholder = document.createElement('option');
-    placeholder.value = '';
-    placeholder.textContent = '';
-    select.appendChild(placeholder);
-
-    // Create option elements
-    for (const choice of orderedChoices) {
       const option = document.createElement('option');
-      option.value = choice.identifier;
-      option.textContent = choice.text;
+      option.value = identifier;
+      option.textContent = choiceElement.textContent ?? '';
       select.appendChild(option);
     }
 

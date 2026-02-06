@@ -1,6 +1,5 @@
 // cspell:ignore draggables
 import { createMissingAttributeError } from '../../../errors/errorDisplay';
-import { shuffleWithFixed } from '../../../utils';
 import type { ElementHandler, TransformContext } from '../../types';
 import { getDefaultValue } from '../responseUtils';
 import { MatchController } from './controller';
@@ -9,7 +8,6 @@ import { MATCH_INTERACTION_STYLES } from './styles';
 interface ChoiceData {
   identifier: string;
   content: string;
-  fixed: boolean;
   matchMax: number;
 }
 
@@ -48,7 +46,6 @@ export class MatchInteractionHandler implements ElementHandler {
     }
 
     // Get optional attributes
-    const shuffle = element.getAttribute('shuffle') === 'true';
     const maxAssociations = parseInt(element.getAttribute('max-associations') ?? '0', 10);
 
     // Create main container
@@ -99,25 +96,14 @@ export class MatchInteractionHandler implements ElementHandler {
     );
 
     // Process source set (first match set)
+    // Note: choices are pre-shuffled by the server in renderTemplate
     const sourceSetElement = layoutContainer.appendChild(
-      this.createMatchSet(
-        matchSets[0],
-        'source',
-        shuffle,
-        controller,
-        context
-      )
+      this.createMatchSet(matchSets[0], 'source', controller, context)
     );
 
     // Process target set (second match set)
     const targetSetElement = layoutContainer.appendChild(
-      this.createMatchSet(
-        matchSets[1],
-        'target',
-        shuffle,
-        controller,
-        context
-      )
+      this.createMatchSet(matchSets[1], 'target', controller, context)
     );
 
     container.appendChild(layoutContainer);
@@ -157,11 +143,11 @@ export class MatchInteractionHandler implements ElementHandler {
 
   /**
    * Create a match set container with its choices.
+   * Choices are already in the correct (potentially shuffled) order from the server.
    */
   private createMatchSet(
     matchSetElement: Element,
     setType: 'source' | 'target',
-    shuffle: boolean,
     controller: MatchController,
     _context: TransformContext
   ): HTMLElement {
@@ -175,7 +161,7 @@ export class MatchInteractionHandler implements ElementHandler {
       (child) => child.tagName.toLowerCase() === 'qti-simple-associable-choice'
     );
 
-    // Build choice data
+    // Build choice data - choices are already in the correct order from the server
     const choices: ChoiceData[] = [];
     for (const choiceElement of choiceElements) {
       const identifier = choiceElement.getAttribute('identifier');
@@ -189,17 +175,13 @@ export class MatchInteractionHandler implements ElementHandler {
       choices.push({
         identifier,
         content: choiceElement.textContent ?? '',
-        fixed: choiceElement.getAttribute('fixed') === 'true',
         matchMax: isNaN(matchMax) ? 1 : matchMax,
       });
     }
 
-    // Apply shuffle if enabled
-    const orderedChoices = shuffle ? shuffleWithFixed(choices) : choices;
-
     // Create choice elements
     let isFirst = true;
-    for (const choice of orderedChoices) {
+    for (const choice of choices) {
       // Create wrapper to hold choice and chips as siblings (avoids nested draggables)
       const wrapperDiv = document.createElement('div');
       wrapperDiv.className = 'qti-match-choice-wrapper';

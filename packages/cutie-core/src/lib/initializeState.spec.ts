@@ -2357,4 +2357,198 @@ describe('initializeState', () => {
       expect(state.score?.max).toBe(1);
     });
   });
+
+  describe('Shuffle Order Generation', () => {
+    test('generates shuffle order for choice interaction with shuffle="true"', () => {
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+        <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="shuffle-test">
+          <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier"/>
+          <qti-item-body>
+            <qti-choice-interaction response-identifier="RESPONSE" shuffle="true" max-choices="1">
+              <qti-simple-choice identifier="A">Choice A</qti-simple-choice>
+              <qti-simple-choice identifier="B">Choice B</qti-simple-choice>
+              <qti-simple-choice identifier="C">Choice C</qti-simple-choice>
+            </qti-choice-interaction>
+          </qti-item-body>
+        </qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(xml, 'text/xml');
+      const state = initializeState(itemDoc);
+
+      expect(state.shuffleOrders).toBeDefined();
+      expect(state.shuffleOrders?.RESPONSE).toBeDefined();
+      expect(state.shuffleOrders?.RESPONSE).toHaveLength(3);
+      expect(state.shuffleOrders?.RESPONSE).toContain('A');
+      expect(state.shuffleOrders?.RESPONSE).toContain('B');
+      expect(state.shuffleOrders?.RESPONSE).toContain('C');
+    });
+
+    test('does not generate shuffle order when shuffle="false"', () => {
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+        <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="no-shuffle-test">
+          <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier"/>
+          <qti-item-body>
+            <qti-choice-interaction response-identifier="RESPONSE" shuffle="false" max-choices="1">
+              <qti-simple-choice identifier="A">Choice A</qti-simple-choice>
+              <qti-simple-choice identifier="B">Choice B</qti-simple-choice>
+            </qti-choice-interaction>
+          </qti-item-body>
+        </qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(xml, 'text/xml');
+      const state = initializeState(itemDoc);
+
+      expect(state.shuffleOrders).toBeUndefined();
+    });
+
+    test('does not generate shuffle order when shuffle attribute is missing', () => {
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+        <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="no-shuffle-attr-test">
+          <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier"/>
+          <qti-item-body>
+            <qti-choice-interaction response-identifier="RESPONSE" max-choices="1">
+              <qti-simple-choice identifier="A">Choice A</qti-simple-choice>
+              <qti-simple-choice identifier="B">Choice B</qti-simple-choice>
+            </qti-choice-interaction>
+          </qti-item-body>
+        </qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(xml, 'text/xml');
+      const state = initializeState(itemDoc);
+
+      expect(state.shuffleOrders).toBeUndefined();
+    });
+
+    test('respects fixed="true" on choices', () => {
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+        <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="fixed-test">
+          <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier"/>
+          <qti-item-body>
+            <qti-choice-interaction response-identifier="RESPONSE" shuffle="true" max-choices="1">
+              <qti-simple-choice identifier="A" fixed="true">Choice A (fixed)</qti-simple-choice>
+              <qti-simple-choice identifier="B">Choice B</qti-simple-choice>
+              <qti-simple-choice identifier="C">Choice C</qti-simple-choice>
+              <qti-simple-choice identifier="D" fixed="true">Choice D (fixed)</qti-simple-choice>
+            </qti-choice-interaction>
+          </qti-item-body>
+        </qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(xml, 'text/xml');
+      const state = initializeState(itemDoc);
+
+      expect(state.shuffleOrders?.RESPONSE).toBeDefined();
+      expect(state.shuffleOrders?.RESPONSE).toHaveLength(4);
+      // Fixed items should remain in their original positions
+      expect(state.shuffleOrders?.RESPONSE?.[0]).toBe('A');
+      expect(state.shuffleOrders?.RESPONSE?.[3]).toBe('D');
+    });
+
+    test('generates separate orders for match interaction sets', () => {
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+        <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="match-test">
+          <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="directedPair"/>
+          <qti-item-body>
+            <qti-match-interaction response-identifier="RESPONSE" shuffle="true">
+              <qti-simple-match-set>
+                <qti-simple-associable-choice identifier="S1" match-max="1">Source 1</qti-simple-associable-choice>
+                <qti-simple-associable-choice identifier="S2" match-max="1">Source 2</qti-simple-associable-choice>
+              </qti-simple-match-set>
+              <qti-simple-match-set>
+                <qti-simple-associable-choice identifier="T1" match-max="1">Target 1</qti-simple-associable-choice>
+                <qti-simple-associable-choice identifier="T2" match-max="1">Target 2</qti-simple-associable-choice>
+              </qti-simple-match-set>
+            </qti-match-interaction>
+          </qti-item-body>
+        </qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(xml, 'text/xml');
+      const state = initializeState(itemDoc);
+
+      expect(state.shuffleOrders).toBeDefined();
+      expect(state.shuffleOrders?.RESPONSE_0).toBeDefined();
+      expect(state.shuffleOrders?.RESPONSE_0).toHaveLength(2);
+      expect(state.shuffleOrders?.RESPONSE_0).toContain('S1');
+      expect(state.shuffleOrders?.RESPONSE_0).toContain('S2');
+
+      expect(state.shuffleOrders?.RESPONSE_1).toBeDefined();
+      expect(state.shuffleOrders?.RESPONSE_1).toHaveLength(2);
+      expect(state.shuffleOrders?.RESPONSE_1).toContain('T1');
+      expect(state.shuffleOrders?.RESPONSE_1).toContain('T2');
+    });
+
+    test('generates shuffle order for inline-choice interaction', () => {
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+        <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="inline-choice-test">
+          <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier"/>
+          <qti-item-body>
+            <p>Select the correct answer:
+              <qti-inline-choice-interaction response-identifier="RESPONSE" shuffle="true">
+                <qti-inline-choice identifier="A">Option A</qti-inline-choice>
+                <qti-inline-choice identifier="B">Option B</qti-inline-choice>
+                <qti-inline-choice identifier="C">Option C</qti-inline-choice>
+              </qti-inline-choice-interaction>
+            </p>
+          </qti-item-body>
+        </qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(xml, 'text/xml');
+      const state = initializeState(itemDoc);
+
+      expect(state.shuffleOrders?.RESPONSE).toBeDefined();
+      expect(state.shuffleOrders?.RESPONSE).toHaveLength(3);
+      expect(state.shuffleOrders?.RESPONSE).toContain('A');
+      expect(state.shuffleOrders?.RESPONSE).toContain('B');
+      expect(state.shuffleOrders?.RESPONSE).toContain('C');
+    });
+
+    test('generates shuffle order for gap-match interaction', () => {
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+        <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="gap-match-test">
+          <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="directedPair"/>
+          <qti-item-body>
+            <qti-gap-match-interaction response-identifier="RESPONSE" shuffle="true">
+              <qti-gap-text identifier="W1" match-max="1">Word1</qti-gap-text>
+              <qti-gap-text identifier="W2" match-max="1">Word2</qti-gap-text>
+              <qti-gap-text identifier="W3" match-max="1">Word3</qti-gap-text>
+              <p>Fill the <qti-gap identifier="G1"/> with <qti-gap identifier="G2"/></p>
+            </qti-gap-match-interaction>
+          </qti-item-body>
+        </qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(xml, 'text/xml');
+      const state = initializeState(itemDoc);
+
+      expect(state.shuffleOrders?.RESPONSE).toBeDefined();
+      expect(state.shuffleOrders?.RESPONSE).toHaveLength(3);
+      expect(state.shuffleOrders?.RESPONSE).toContain('W1');
+      expect(state.shuffleOrders?.RESPONSE).toContain('W2');
+      expect(state.shuffleOrders?.RESPONSE).toContain('W3');
+    });
+
+    test('handles multiple interactions with different shuffle settings', () => {
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+        <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="multi-test">
+          <qti-response-declaration identifier="R1" cardinality="single" base-type="identifier"/>
+          <qti-response-declaration identifier="R2" cardinality="single" base-type="identifier"/>
+          <qti-item-body>
+            <qti-choice-interaction response-identifier="R1" shuffle="true" max-choices="1">
+              <qti-simple-choice identifier="A">A</qti-simple-choice>
+              <qti-simple-choice identifier="B">B</qti-simple-choice>
+            </qti-choice-interaction>
+            <qti-choice-interaction response-identifier="R2" shuffle="false" max-choices="1">
+              <qti-simple-choice identifier="C">C</qti-simple-choice>
+              <qti-simple-choice identifier="D">D</qti-simple-choice>
+            </qti-choice-interaction>
+          </qti-item-body>
+        </qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(xml, 'text/xml');
+      const state = initializeState(itemDoc);
+
+      // Only R1 should have a shuffle order
+      expect(state.shuffleOrders?.R1).toBeDefined();
+      expect(state.shuffleOrders?.R1).toHaveLength(2);
+      expect(state.shuffleOrders?.R2).toBeUndefined();
+    });
+  });
 });

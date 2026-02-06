@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { item as choiceFeedbackItem } from '../../../cutie-example/src/example-items/choice-feedback';
+import { item as choiceFeedbackItem } from '../../../cutie-example/src/example-items/standard-choice';
 import { item as inlineFeedbackItem } from '../../../cutie-example/src/example-items/inline-feedback';
 import { item as modalFeedbackItem } from '../../../cutie-example/src/example-items/modal-feedback';
 import { classifyResponseProcessing } from './responseProcessingClassifier';
