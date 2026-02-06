@@ -32,7 +32,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
 
   <qti-item-body>
     <qti-match-interaction response-identifier="RESPONSE" shuffle="true" max-associations="3">
-      <qti-prompt>Match each item on the left to its corresponding target on the right.</qti-prompt>
+      <qti-prompt>Match each item to its corresponding target.</qti-prompt>
       <qti-simple-match-set>
         <qti-simple-associable-choice identifier="itemA" match-max="1">Item A text</qti-simple-associable-choice>
         <qti-simple-associable-choice identifier="itemB" match-max="1">Item B text</qti-simple-associable-choice>
