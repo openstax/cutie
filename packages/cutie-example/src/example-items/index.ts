@@ -70,12 +70,12 @@ export const feedbackTypes = [
  * response processing and feedback patterns, and show extensive feedback as
  * we would expect to see in real assessment items */
 export const standardExamples = [
-  textEntryMulti,
-  inlineChoiceMulti,
   choiceStandard,
   choiceMultipleStandard,
   textEntryStandard,
+  textEntryMulti,
   inlineChoiceStandard,
+  inlineChoiceMulti,
   matchStandard,
   gapMatchStandard,
   multiInteractionStandard,

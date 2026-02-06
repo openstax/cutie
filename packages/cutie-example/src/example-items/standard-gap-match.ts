@@ -1,7 +1,7 @@
 // cspell:ignore distractor
 // Gap Match with Feedback
 
-export const name = "Gap Match - With Feedback";
+export const name = "Gap Match";
 
 export const item = `<?xml version="1.0" encoding="UTF-8"?>
 <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
