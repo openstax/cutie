@@ -112,6 +112,7 @@ function substituteVariables(
  * - qti-template-declaration
  * - qti-template-processing
  * - qti-response-processing
+ * - qti-rubric-block elements not intended for the candidate view
  *
  * Note: qti-response-declaration elements are kept but sanitized separately.
  */
@@ -127,6 +128,16 @@ function removeSensitiveElements(root: Element): void {
     const elements = Array.from(root.getElementsByTagName(tagName));
     for (const element of elements) {
       element.parentNode?.removeChild(element);
+    }
+  }
+
+  // Remove rubric blocks not intended for candidates
+  const rubricBlocks = Array.from(root.getElementsByTagName('qti-rubric-block'));
+  for (const rubric of rubricBlocks) {
+    const view = rubric.getAttribute('view') ?? '';
+    const views = view.split(/\s+/).filter(Boolean);
+    if (!views.includes('candidate')) {
+      rubric.parentNode?.removeChild(rubric);
     }
   }
 }
