@@ -1,5 +1,4 @@
 import { createMissingAttributeError } from '../../../errors/errorDisplay';
-import { shuffleWithFixed } from '../../../utils';
 import type { ElementHandler, TransformContext } from '../../types';
 import { getDefaultValue } from '../responseUtils';
 import { GapMatchController } from './controller';
@@ -8,7 +7,6 @@ import { GAP_MATCH_INTERACTION_STYLES } from './styles';
 interface ChoiceData {
   identifier: string;
   element: Element;
-  fixed: boolean;
   matchMax: number;
   matchGroup: string;
   isImage: boolean;
@@ -39,9 +37,6 @@ export class GapMatchInteractionHandler implements ElementHandler {
       );
       return fragment;
     }
-
-    // Check if shuffle is enabled
-    const shuffle = element.getAttribute('shuffle') === 'true';
 
     // Create main container
     const container = document.createElement('div');
@@ -75,7 +70,7 @@ export class GapMatchInteractionHandler implements ElementHandler {
     choicesContainer.setAttribute('role', 'listbox');
     choicesContainer.setAttribute('aria-label', 'Available choices');
 
-    // Build choice data
+    // Build choice data - choices are already in the correct order from the server
     const choices: ChoiceData[] = [];
     for (const choiceElement of choiceElements) {
       const identifier = choiceElement.getAttribute('identifier');
@@ -89,15 +84,11 @@ export class GapMatchInteractionHandler implements ElementHandler {
       choices.push({
         identifier,
         element: choiceElement,
-        fixed: choiceElement.getAttribute('fixed') === 'true',
         matchMax: isNaN(matchMax) ? 1 : matchMax,
         matchGroup: choiceElement.getAttribute('match-group') ?? '',
         isImage: choiceElement.tagName.toLowerCase() === 'qti-gap-img',
       });
     }
-
-    // Apply shuffle if enabled, respecting fixed positions
-    const orderedChoices = shuffle ? shuffleWithFixed(choices) : choices;
 
     container.appendChild(choicesContainer);
 
@@ -133,7 +124,7 @@ export class GapMatchInteractionHandler implements ElementHandler {
 
     // Create and register choice elements
     let isFirst = true;
-    for (const choice of orderedChoices) {
+    for (const choice of choices) {
       const choiceBtn = document.createElement('button');
       choiceBtn.className = 'qti-gap-text';
       choiceBtn.type = 'button';

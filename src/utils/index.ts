@@ -2,8 +2,6 @@
  * Shared utilities for interaction handlers.
  */
 
-export { shuffleWithFixed } from './shuffleWithFixed';
-
 export {
   createLiveRegion,
   announce,
