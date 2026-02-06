@@ -185,3 +185,22 @@ export function getCardinality(decl: XmlNode): 'single' | 'multiple' {
 export function getIdentifier(decl: XmlNode): string {
   return decl.attributes['identifier'] || '';
 }
+
+/**
+ * Get an arbitrary attribute from a response declaration
+ */
+export function getResponseDeclAttribute(decl: XmlNode, attrName: string): string | undefined {
+  return decl.attributes?.[attrName];
+}
+
+/**
+ * Remove an attribute from a response declaration
+ */
+export function removeDeclAttribute(decl: XmlNode, attrName: string): XmlNode {
+  const { [attrName]: _, ...restAttrs } = decl.attributes || {};
+  return {
+    tagName: decl.tagName,
+    attributes: restAttrs,
+    children: [...decl.children],
+  };
+}

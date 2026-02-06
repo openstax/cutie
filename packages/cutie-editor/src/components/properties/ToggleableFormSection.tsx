@@ -9,6 +9,8 @@ interface ToggleableFormSectionProps {
   onToggle: (enabled: boolean) => void;
   /** Content to show when enabled */
   children: React.ReactNode;
+  /** Optional help text shown below the checkbox */
+  helpText?: string;
 }
 
 /**
@@ -21,6 +23,7 @@ export function ToggleableFormSection({
   enabled,
   onToggle,
   children,
+  helpText,
 }: ToggleableFormSectionProps): React.JSX.Element {
   return (
     <div className="toggleable-form-section">
@@ -29,6 +32,7 @@ export function ToggleableFormSection({
         checked={enabled}
         onChange={onToggle}
       />
+      {helpText && <div className="property-help">{helpText}</div>}
 
       {enabled && (
         <div className="toggleable-content">
