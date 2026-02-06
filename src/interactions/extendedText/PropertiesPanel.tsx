@@ -11,6 +11,9 @@ import {
   removeCorrectResponse,
   addEmptyCorrectResponse,
   updateIdentifier,
+  getResponseDeclAttribute,
+  updateDeclAttribute,
+  removeDeclAttribute,
 } from '../../utils/responseDeclaration';
 import {
   hasMapping,
@@ -21,6 +24,12 @@ import {
   type MappingMetadata,
   type MapEntry,
 } from '../../utils/mappingDeclaration';
+
+const COMPARISON_MODE_OPTIONS = [
+  { value: 'canonical', label: "Canonical (default) - order doesn't matter" },
+  { value: 'strict', label: 'Strict - exact structure required' },
+  { value: 'algebraic', label: 'Algebraic - full mathematical equivalence' },
+];
 
 interface ExtendedTextPropertiesPanelProps {
   element: QtiExtendedTextInteraction;
@@ -41,6 +50,10 @@ export function ExtendedTextPropertiesPanel({
 
   const correctValue = getCorrectValue(responseDecl);
   const hasCorrectAnswer = hasCorrectResponse(responseDecl);
+
+  // Formula mode state
+  const isFormulaMode = getResponseDeclAttribute(responseDecl, 'data-response-type') === 'formula';
+  const comparisonMode = getResponseDeclAttribute(responseDecl, 'data-comparison-mode') || 'canonical';
 
   const handleAttributeChange = (key: string, value: string) => {
     const newAttrs = { ...attrs };
@@ -72,6 +85,23 @@ export function ExtendedTextPropertiesPanel({
 
   const handleCorrectValueChange = (value: string) => {
     const updatedDecl = updateCorrectValue(responseDecl, value);
+    onUpdate(path, attrs, updatedDecl);
+  };
+
+  const handleFormulaModeToggle = (enabled: boolean) => {
+    let updatedDecl = responseDecl;
+    if (enabled) {
+      updatedDecl = updateDeclAttribute(updatedDecl, 'data-response-type', 'formula');
+      updatedDecl = updateDeclAttribute(updatedDecl, 'data-comparison-mode', 'canonical');
+    } else {
+      updatedDecl = removeDeclAttribute(updatedDecl, 'data-response-type');
+      updatedDecl = removeDeclAttribute(updatedDecl, 'data-comparison-mode');
+    }
+    onUpdate(path, attrs, updatedDecl);
+  };
+
+  const handleComparisonModeChange = (mode: string) => {
+    const updatedDecl = updateDeclAttribute(responseDecl, 'data-comparison-mode', mode);
     onUpdate(path, attrs, updatedDecl);
   };
 
@@ -156,6 +186,25 @@ export function ExtendedTextPropertiesPanel({
             placeholder="Enter correct answer"
             rows={4}
           />
+        </div>
+      </ToggleableFormSection>
+
+      <ToggleableFormSection
+        label="Response is mathematical formula"
+        enabled={isFormulaMode}
+        onToggle={handleFormulaModeToggle}
+      >
+        <div className="property-field">
+          <label className="property-label">Comparison mode</label>
+          <select
+            className="property-select"
+            value={comparisonMode}
+            onChange={(e) => handleComparisonModeChange(e.target.value)}
+          >
+            {COMPARISON_MODE_OPTIONS.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
         </div>
       </ToggleableFormSection>
 
