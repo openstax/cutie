@@ -1039,6 +1039,122 @@ describe('renderTemplate', () => {
     });
   });
 
+  describe('9. Rubric block stripping', () => {
+    test('removes rubric blocks with non-candidate view', async () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
+  <qti-item-body>
+    <p>Question text</p>
+    <qti-rubric-block view="scorer">
+      <p>Award 1 mark for each correct point</p>
+    </qti-rubric-block>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = await renderTemplate(itemDoc, {
+        variables: {},
+        completionStatus: 'not_attempted',
+        score: null,
+      });
+
+      expect(template).toContain('Question text');
+      expect(template).not.toContain('qti-rubric-block');
+      expect(template).not.toContain('Award 1 mark');
+    });
+
+    test('keeps rubric blocks with candidate view', async () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
+  <qti-item-body>
+    <p>Question text</p>
+    <qti-rubric-block view="candidate" use="instructions">
+      <p>Read the passage carefully before answering</p>
+    </qti-rubric-block>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = await renderTemplate(itemDoc, {
+        variables: {},
+        completionStatus: 'not_attempted',
+        score: null,
+      });
+
+      expect(template).toContain('qti-rubric-block');
+      expect(template).toContain('Read the passage carefully');
+    });
+
+    test('keeps rubric blocks when candidate is one of multiple views', async () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
+  <qti-item-body>
+    <qti-rubric-block view="candidate scorer">
+      <p>Shared rubric</p>
+    </qti-rubric-block>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = await renderTemplate(itemDoc, {
+        variables: {},
+        completionStatus: 'not_attempted',
+        score: null,
+      });
+
+      expect(template).toContain('Shared rubric');
+    });
+
+    test('removes rubric blocks with author, tutor, and proctor views', async () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
+  <qti-item-body>
+    <p>Question text</p>
+    <qti-rubric-block view="author">
+      <p>Author notes</p>
+    </qti-rubric-block>
+    <qti-rubric-block view="tutor">
+      <p>Tutor guidance</p>
+    </qti-rubric-block>
+    <qti-rubric-block view="proctor">
+      <p>Proctor instructions</p>
+    </qti-rubric-block>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = await renderTemplate(itemDoc, {
+        variables: {},
+        completionStatus: 'not_attempted',
+        score: null,
+      });
+
+      expect(template).not.toContain('Author notes');
+      expect(template).not.toContain('Tutor guidance');
+      expect(template).not.toContain('Proctor instructions');
+    });
+
+    test('removes rubric blocks with no view attribute', async () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
+  <qti-item-body>
+    <qti-rubric-block>
+      <p>Rubric with no view</p>
+    </qti-rubric-block>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = await renderTemplate(itemDoc, {
+        variables: {},
+        completionStatus: 'not_attempted',
+        score: null,
+      });
+
+      expect(template).not.toContain('Rubric with no view');
+    });
+  });
+
   describe('Shuffle Order Application', () => {
     test('reorders choice elements based on shuffle order', async () => {
       const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
