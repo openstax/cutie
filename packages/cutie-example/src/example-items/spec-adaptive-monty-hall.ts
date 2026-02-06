@@ -36,6 +36,12 @@ export const item = `<?xml version="1.0" encoding="UTF-8"?>
   <qti-outcome-declaration identifier="FIRSTDOOR" cardinality="single" base-type="identifier" />
   <qti-outcome-declaration identifier="REVEALED" cardinality="single" base-type="identifier" />
   <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float" />
+  <!-- MAXSCORE not in original spec example, added here to enable top-level score output -->
+  <qti-outcome-declaration identifier="MAXSCORE" cardinality="single" base-type="float">
+    <qti-default-value>
+      <qti-value>3</qti-value>
+    </qti-default-value>
+  </qti-outcome-declaration>
 
   <qti-template-declaration identifier="PRIZEDOOR" cardinality="single" base-type="identifier"
     math-variable="false" param-variable="false" />
