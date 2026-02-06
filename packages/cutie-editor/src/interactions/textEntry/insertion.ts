@@ -1,52 +1,5 @@
-import { Editor, Element, Transforms } from 'slate';
-
-/**
- * Generate a unique response identifier
- */
-function generateResponseId(editor: Editor): string {
-  const existingIds = new Set<string>();
-
-  // Collect all existing response identifiers
-  const nodes = Array.from(Editor.nodes(editor, {
-    at: [],
-    match: (n) => {
-      if (!Element.isElement(n)) return false;
-      if (!('type' in n)) return false;
-      const type = n.type as string;
-      return (
-        type === 'qti-text-entry-interaction' ||
-        type === 'qti-extended-text-interaction' ||
-        type === 'qti-choice-interaction'
-      );
-    },
-  }));
-
-  for (const [node] of nodes) {
-    if (Element.isElement(node) && 'attributes' in node) {
-      const attrs = node.attributes as any;
-      if (attrs && attrs['response-identifier']) {
-        existingIds.add(attrs['response-identifier']);
-      }
-    }
-  }
-
-  // Generate unique ID
-  // First interaction gets "RESPONSE", subsequent get "RESPONSE_2", "RESPONSE_3", etc.
-  // This ensures compatibility with QTI standard templates (match_correct, map_response)
-  // which require the identifier to be exactly "RESPONSE"
-  if (!existingIds.has('RESPONSE')) {
-    return 'RESPONSE';
-  }
-
-  let counter = 2;
-  let id = `RESPONSE_${counter}`;
-  while (existingIds.has(id)) {
-    counter++;
-    id = `RESPONSE_${counter}`;
-  }
-
-  return id;
-}
+import { Editor, Transforms } from 'slate';
+import { generateUniqueResponseId } from '../../utils/idGenerator';
 
 /**
  * Insert a text entry interaction at the current selection
@@ -60,7 +13,7 @@ export function insertTextEntryInteraction(
     placeholderText?: string;
   } = {}
 ): void {
-  const responseId = config.responseIdentifier || generateResponseId(editor);
+  const responseId = config.responseIdentifier || generateUniqueResponseId(editor);
 
   const textEntry = {
     type: 'qti-text-entry-interaction',

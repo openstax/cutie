@@ -1,21 +1,31 @@
-/**
- * Generate a unique response identifier
- *
- * @param existingIds - Set of IDs already in use
- * @param prefix - Prefix for the ID (default: "RESPONSE")
- * @returns A unique response identifier
- */
-export function generateResponseId(existingIds: Set<string>, prefix = 'RESPONSE'): string {
-  let counter = 1;
-  let candidate = `${prefix}_${counter}`;
+import { Editor } from 'slate';
+import { collectExistingResponseIds } from '../plugins/withQtiInteractions';
 
-  // Keep incrementing until we find an unused ID
-  while (existingIds.has(candidate)) {
-    counter++;
-    candidate = `${prefix}_${counter}`;
+// Re-export for backwards compatibility - uses element registry to find interactions
+export { collectExistingResponseIds };
+
+/**
+ * Generate a unique response identifier by scanning the editor
+ *
+ * First interaction gets "RESPONSE", subsequent get "RESPONSE_2", "RESPONSE_3", etc.
+ * This ensures compatibility with QTI standard templates (match_correct, map_response)
+ * which require the identifier to be exactly "RESPONSE"
+ */
+export function generateUniqueResponseId(editor: Editor): string {
+  const existingIds = collectExistingResponseIds(editor);
+
+  if (!existingIds.has('RESPONSE')) {
+    return 'RESPONSE';
   }
 
-  return candidate;
+  let counter = 2;
+  let id = `RESPONSE_${counter}`;
+  while (existingIds.has(id)) {
+    counter++;
+    id = `RESPONSE_${counter}`;
+  }
+
+  return id;
 }
 
 /**
