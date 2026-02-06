@@ -70,3 +70,39 @@ This distinction matters for delivery: learner feedback benefits from visual tre
 This attribute is set in `cutie-editor` and preserved through `cutie-core` processing. `cutie-client` applies appropriate styles based on the value.
 
 Items authored without this attribute will render feedback elements unstyled, maintaining backward compatibility with standard QTI content.
+
+### Formula Response Type (`data-response-type="formula"`)
+
+QTI's standard `qti-extended-text-interaction` treats responses as plain text, comparing strings exactly. For mathematical content, this is problematic: `5x` and `x*5` are mathematically equivalent but fail string comparison.
+
+**Solution**: Cutie extends `qti-response-declaration` with attributes that enable mathematical formula comparison:
+
+```xml
+<qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="string"
+  data-response-type="formula" data-comparison-mode="algebraic">
+  <qti-correct-response>
+    <qti-value>x^2-1</qti-value>
+  </qti-correct-response>
+</qti-response-declaration>
+```
+
+**Attributes on `qti-response-declaration`:**
+
+| Attribute | Values | Description |
+|-----------|--------|-------------|
+| `data-response-type` | `formula` | Enables formula processing for this response |
+| `data-comparison-mode` | `strict`, `canonical`, `algebraic` | How to compare expressions (default: `canonical`) |
+
+**Comparison Modes:**
+
+| Mode | Description | Example equivalences |
+|------|-------------|---------------------|
+| `strict` | AST structure must match exactly after parsing | Only identical LaTeX matches |
+| `canonical` | Normalized forms compared | `5x` = `x*5`, `x+y` = `y+x` |
+| `algebraic` | Full mathematical equivalence | `2x+3x` = `5x`, `(x+1)(x-1)` = `x^2-1` |
+
+**Client-side rendering**: When `cutie-client` encounters a `qti-extended-text-interaction` linked to a formula response, it renders a [MathLive](https://cortexjs.io/mathlive/) math-field instead of a textarea, providing a rich math editing experience. Falls back to a LaTeX textarea if MathLive fails to load.
+
+**Server-side scoring**: `cutie-core` uses the [Compute Engine](https://cortexjs.io/compute-engine/) to compare LaTeX expressions according to the specified mode when evaluating `qti-match` elements.
+
+Standard QTI items without these attributes continue to work normally with string comparison.
