@@ -40,7 +40,14 @@ import { evaluateAnd, evaluateNot, evaluateOr } from './logical';
 import { evaluateFieldValue, evaluateRecord } from './record';
 import { evaluatePatternMatch, evaluateStringMatch, evaluateSubstring } from './string';
 import type { SubEvaluate } from './types';
-import { evaluateAnyN, evaluateIntegerToFloat, evaluateIsNull } from './utility';
+import {
+  evaluateAnyN,
+  evaluateIntegerToFloat,
+  evaluateIsNull,
+  evaluateRandom,
+  evaluateRandomFloat,
+  evaluateRandomInteger,
+} from './utility';
 
 // Export types
 export type { SubEvaluate } from './types';
@@ -157,6 +164,12 @@ export function evaluateExpression(
       return evaluateAnyN(element, itemDoc, variables, subEvaluate);
     case 'qti-is-null':
       return evaluateIsNull(element, itemDoc, variables, subEvaluate);
+    case 'qti-random':
+      return evaluateRandom(element, itemDoc, variables, subEvaluate);
+    case 'qti-random-integer':
+      return evaluateRandomInteger(element);
+    case 'qti-random-float':
+      return evaluateRandomFloat(element);
 
     default:
       throw new Error(`Unsupported expression type: ${localName}`);

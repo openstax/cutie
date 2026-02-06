@@ -87,6 +87,10 @@ export function evaluateRepeat(
 
 /**
  * Evaluate qti-delete element
+ *
+ * Per QTI spec: The first sub-expression must have single cardinality (value to delete)
+ * and the second must be a multiple or ordered container. The result is a new container
+ * derived from the second sub-expression with all instances of the first sub-expression removed.
  */
 export function evaluateDelete(
   element: Element,
@@ -101,8 +105,8 @@ export function evaluateDelete(
   }
 
   if (values.length >= 2) {
-    const container = values[0] as unknown[];
-    const valueToDelete = values[1];
+    const valueToDelete = values[0];
+    const container = values[1] as unknown[];
 
     if (Array.isArray(container)) {
       return container.filter(item => !deepEqual(item, valueToDelete));
