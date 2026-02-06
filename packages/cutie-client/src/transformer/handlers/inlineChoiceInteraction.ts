@@ -90,6 +90,12 @@ class InlineChoiceInteractionHandler implements ElementHandler {
     // Apply shuffle if enabled, respecting fixed positions
     const orderedChoices = shuffle ? shuffleWithFixed(choices) : choices;
 
+    // Add placeholder option for initial unselected state
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = '';
+    select.appendChild(placeholder);
+
     // Create option elements
     for (const choice of orderedChoices) {
       const option = document.createElement('option');

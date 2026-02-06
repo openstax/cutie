@@ -99,12 +99,16 @@ export function processResponse(
     }
   }
 
-  // Step 3: Return updated state with completionStatus set to 'completed'
+  // Step 3: Return updated state
+  // Trust completionStatus set by response processing, default to 'completed'
   const score = extractStandardOutcomes(variables, itemDoc);
+  const completionStatus = variables.completionStatus === 'incomplete'
+    ? 'incomplete'
+    : 'completed';
 
   return {
     variables,
-    completionStatus: 'completed',
+    completionStatus,
     score,
   };
 }

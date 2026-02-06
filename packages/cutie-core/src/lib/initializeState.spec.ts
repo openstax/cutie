@@ -1787,8 +1787,8 @@ describe('initializeState', () => {
             </qti-set-template-value>
             <qti-set-template-value identifier="RESULT">
               <qti-delete>
-                <qti-variable identifier="LIST"/>
                 <qti-base-value base-type="integer">2</qti-base-value>
+                <qti-variable identifier="LIST"/>
               </qti-delete>
             </qti-set-template-value>
           </qti-template-processing>

@@ -80,8 +80,9 @@ export class MatchInteractionHandler implements ElementHandler {
     }
 
     // Create layout container
+    // Default to source-left orientation; later we can read this from QTI class attribute
     const layoutContainer = document.createElement('div');
-    layoutContainer.className = 'qti-match-layout';
+    layoutContainer.className = 'qti-match-layout qti-match-source-left';
 
     // Create live region for announcements
     const liveRegion = document.createElement('div');

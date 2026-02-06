@@ -37,6 +37,7 @@ import * as inlineChoiceStandard from './standard-inline-choice';
 import * as matchStandard from './standard-match';
 import * as gapMatchStandard from './standard-gap-match';
 import * as multiInteractionStandard from './standard-multi-interaction';
+import * as adaptiveMontyHall from './spec-adaptive-monty-hall';
 
 /* these examples are copied exactly from examples in the spec
  * documents, they are used for verification that cutie works
@@ -57,6 +58,7 @@ export const specExamples = [
   math,
   selectPoint,
   multiInput,
+  adaptiveMontyHall,
 ];
 
 /* these were made just to show different types of feedback */

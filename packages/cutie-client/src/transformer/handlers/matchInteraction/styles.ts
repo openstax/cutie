@@ -16,6 +16,55 @@ export const MATCH_INTERACTION_STYLES = `
     justify-content: center;
   }
 
+  /* Horizontal orientations: source and target side-by-side */
+  .qti-match-layout.qti-match-source-left,
+  .qti-match-layout.qti-match-source-right {
+    flex-direction: row;
+  }
+
+  .qti-match-layout.qti-match-source-right {
+    flex-direction: row-reverse;
+  }
+
+  /* Vertical orientations: source and target stacked */
+  .qti-match-layout.qti-match-source-top,
+  .qti-match-layout.qti-match-source-bottom {
+    flex-direction: column;
+  }
+
+  .qti-match-layout.qti-match-source-bottom {
+    flex-direction: column-reverse;
+  }
+
+  /* Visual separation for vertical layouts - divider between sets */
+  .qti-match-layout.qti-match-source-top > .qti-match-set--target,
+  .qti-match-layout.qti-match-source-bottom > .qti-match-set--source {
+    padding-top: 1.5em;
+    border-top: 1px solid #ccc;
+  }
+
+  /* Mobile: force vertical stack regardless of orientation preference */
+  @media (max-width: 600px) {
+    .qti-match-layout.qti-match-source-left,
+    .qti-match-layout.qti-match-source-right,
+    .qti-match-layout.qti-match-source-top,
+    .qti-match-layout.qti-match-source-bottom {
+      flex-direction: column;
+      gap: 1.5em;
+    }
+
+    .qti-match-set {
+      min-width: unset;
+      width: 100%;
+    }
+
+    /* Divider on second set (target comes after source in DOM) */
+    .qti-match-set--target {
+      padding-top: 1.5em;
+      border-top: 1px solid #ccc;
+    }
+  }
+
   .qti-match-set {
     display: flex;
     flex-direction: column;
