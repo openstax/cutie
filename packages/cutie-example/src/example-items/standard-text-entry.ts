@@ -53,15 +53,17 @@ adaptive="false" time-dependent="false" xml:lang="en">
 
   <qti-response-processing>
     <qti-set-outcome-value identifier="SCORE">
-      <qti-map-response identifier="RESPONSE"/>
+      <qti-sum>
+        <qti-map-response identifier="RESPONSE"/>
+      </qti-sum>
     </qti-set-outcome-value>
 
     <qti-response-condition>
       <qti-response-if>
-        <qti-gte>
-          <qti-variable identifier="SCORE"/>
-          <qti-variable identifier="MAXSCORE"/>
-        </qti-gte>
+        <qti-match>
+          <qti-variable identifier="RESPONSE"/>
+          <qti-correct identifier="RESPONSE"/>
+        </qti-match>
         <qti-set-outcome-value identifier="FEEDBACK">
           <qti-multiple>
             <qti-variable identifier="FEEDBACK"/>
