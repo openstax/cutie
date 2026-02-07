@@ -1869,6 +1869,50 @@ describe('initializeState', () => {
       expect(state.variables.RESULT).toBe(true);
     });
 
+    test('qti-string-match defaults to case-insensitive', () => {
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+        <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+          identifier="string-match-default" title="String Match Default">
+          <qti-template-declaration identifier="RESULT" cardinality="single" base-type="boolean"/>
+          <qti-template-processing>
+            <qti-set-template-value identifier="RESULT">
+              <qti-string-match>
+                <qti-base-value base-type="string">Hello</qti-base-value>
+                <qti-base-value base-type="string">hello</qti-base-value>
+              </qti-string-match>
+            </qti-set-template-value>
+          </qti-template-processing>
+          <qti-item-body><p>Test</p></qti-item-body>
+        </qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(xml, 'text/xml');
+      const state = initializeState(itemDoc);
+
+      expect(state.variables.RESULT).toBe(true);
+    });
+
+    test('qti-substring defaults to case-insensitive', () => {
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+        <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+          identifier="substring-default" title="Substring Default">
+          <qti-template-declaration identifier="RESULT" cardinality="single" base-type="boolean"/>
+          <qti-template-processing>
+            <qti-set-template-value identifier="RESULT">
+              <qti-substring>
+                <qti-base-value base-type="string">Hello World</qti-base-value>
+                <qti-base-value base-type="string">hello</qti-base-value>
+              </qti-substring>
+            </qti-set-template-value>
+          </qti-template-processing>
+          <qti-item-body><p>Test</p></qti-item-body>
+        </qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(xml, 'text/xml');
+      const state = initializeState(itemDoc);
+
+      expect(state.variables.RESULT).toBe(true);
+    });
+
     test('evaluates qti-pattern-match operator', () => {
       const xml = `<?xml version="1.0" encoding="UTF-8"?>
         <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
