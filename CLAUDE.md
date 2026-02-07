@@ -9,6 +9,12 @@ Project Cutie is an implementation of the QTIv3 standard for authoring, displayi
 
 QTI Documentation: https://www.imsglobal.org/spec/qti/v3p0/impl
 
+### Design goals
+
+QTI spec compliance is KEY. before making any changes, research the spec and make sure the changes align with the spec requirements.
+
+code quality is important. when making changes, make sure to follow best practices such as DRY and SOLID so that code remains understandable and maintainable.
+
 ### Architecture
 
 The architecture separates response and template processing from the presentational layer using purely stateless and asynchronous functions. This design allows item definitions to be processed securely in a backend environment without exposing them to the interface.
