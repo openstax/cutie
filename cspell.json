@@ -5,6 +5,7 @@
   "words": [
     "alignable",
     "blockquote",
+    "canonicalization",
     "Jwks",
     "listbox",
     "MAXSCORE",
@@ -17,6 +18,8 @@
     "hotspot",
     "jwks",
     "macroecon",
+    "mathfield",
+    "mathlive",
     "Mathqurate",
     "maxscore",
     "microecon",
@@ -43,6 +46,7 @@
     "tabindex",
     "testid",
     "toggleable",
+    "unsimplified",
     "unversioned"
   ],
   "flagWords": [],
