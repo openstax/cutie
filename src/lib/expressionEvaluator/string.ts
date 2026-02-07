@@ -14,7 +14,7 @@ export function evaluateSubstring(
   variables: Record<string, unknown>,
   subEvaluate: SubEvaluate
 ): boolean {
-  const caseSensitive = element.getAttribute('case-sensitive') === 'true';
+  const caseSensitive = element.getAttribute('case-sensitive') !== 'false';
   const values: string[] = [];
 
   for (const child of getChildElements(element)) {
@@ -39,7 +39,7 @@ export function evaluateStringMatch(
   variables: Record<string, unknown>,
   subEvaluate: SubEvaluate
 ): boolean {
-  const caseSensitive = element.getAttribute('case-sensitive') === 'true';
+  const caseSensitive = element.getAttribute('case-sensitive') !== 'false';
   const values: string[] = [];
 
   for (const child of getChildElements(element)) {
