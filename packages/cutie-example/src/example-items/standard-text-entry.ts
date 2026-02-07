@@ -60,10 +60,10 @@ adaptive="false" time-dependent="false" xml:lang="en">
 
     <qti-response-condition>
       <qti-response-if>
-        <qti-match>
-          <qti-variable identifier="RESPONSE"/>
-          <qti-correct identifier="RESPONSE"/>
-        </qti-match>
+        <qti-gt>
+          <qti-map-response identifier="RESPONSE"/>
+          <qti-base-value base-type="float">0</qti-base-value>
+        </qti-gt>
         <qti-set-outcome-value identifier="FEEDBACK">
           <qti-multiple>
             <qti-variable identifier="FEEDBACK"/>
