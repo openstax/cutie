@@ -475,6 +475,49 @@ describe('Standard Response Processing Templates', () => {
       expect(newState.variables.SCORE).toBe(1);
     });
 
+    test('match_correct template with multiple cardinality (all correct, different order)', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+                     identifier="match-correct-multiple">
+  <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="identifier">
+    <qti-correct-response>
+      <qti-value>choiceA</qti-value>
+      <qti-value>choiceC</qti-value>
+    </qti-correct-response>
+  </qti-response-declaration>
+
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value>
+      <qti-value>0</qti-value>
+    </qti-default-value>
+  </qti-outcome-declaration>
+
+  <qti-item-body>
+    <qti-choice-interaction response-identifier="RESPONSE" max-choices="3">
+      <qti-simple-choice identifier="choiceA">Correct 1</qti-simple-choice>
+      <qti-simple-choice identifier="choiceB">Wrong</qti-simple-choice>
+      <qti-simple-choice identifier="choiceC">Correct 2</qti-simple-choice>
+    </qti-choice-interaction>
+  </qti-item-body>
+
+  <qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct.xml"/>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const currentState = {
+        variables: { SCORE: 0 },
+        completionStatus: 'not_attempted' as const,
+        score: null,
+      };
+      // Same correct choices but in reverse order
+      const submission = { RESPONSE: ['choiceC', 'choiceA'] };
+
+      const newState = processResponse(itemDoc, submission, currentState);
+
+      // Order should not matter for multiple cardinality
+      expect(newState.variables.SCORE).toBe(1);
+    });
+
     test('match_correct template with multiple cardinality (partially correct)', () => {
       const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
 <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
