@@ -44,6 +44,20 @@ function getFormulaMode(itemDoc: Document, identifier: string): MathComparisonMo
 }
 
 /**
+ * Check if a response declaration has base-type="string"
+ */
+function isStringBaseType(itemDoc: Document, identifier: string): boolean {
+  const declarations = itemDoc.getElementsByTagName('qti-response-declaration');
+  for (let i = 0; i < declarations.length; i++) {
+    const decl = declarations[i];
+    if (decl.getAttribute('identifier') === identifier) {
+      return decl.getAttribute('base-type') === 'string';
+    }
+  }
+  return false;
+}
+
+/**
  * Evaluate qti-lt (less than) element
  */
 export function evaluateLessThan(
@@ -214,6 +228,12 @@ export function evaluateMatch(
           String(values[1] ?? ''),
           formulaMode
         );
+      }
+
+      // String base-type responses use case-insensitive comparison by default
+      if (isStringBaseType(itemDoc, responseId) &&
+          typeof values[0] === 'string' && typeof values[1] === 'string') {
+        return values[0].toLowerCase() === values[1].toLowerCase();
       }
     }
 
