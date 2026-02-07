@@ -3,6 +3,7 @@
  */
 
 import { getChildElements } from '../../utils/dom';
+import { stringEquals, stringIncludes } from '../../utils/equality';
 import type { SubEvaluate } from './types';
 
 /**
@@ -22,9 +23,7 @@ export function evaluateSubstring(
   }
 
   if (values.length >= 2) {
-    const text = caseSensitive ? values[0] : values[0].toLowerCase();
-    const substring = caseSensitive ? values[1] : values[1].toLowerCase();
-    return text.includes(substring);
+    return stringIncludes(values[0], values[1], caseSensitive);
   }
 
   return false;
@@ -47,9 +46,7 @@ export function evaluateStringMatch(
   }
 
   if (values.length >= 2) {
-    const str1 = caseSensitive ? values[0] : values[0].toLowerCase();
-    const str2 = caseSensitive ? values[1] : values[1].toLowerCase();
-    return str1 === str2;
+    return stringEquals(values[0], values[1], caseSensitive);
   }
 
   return false;

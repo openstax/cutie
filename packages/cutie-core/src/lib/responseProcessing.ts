@@ -1,6 +1,6 @@
 import { AttemptState, ResponseData } from '../types';
 import { getChildElements, getFirstChildElement } from '../utils/dom';
-import { deepEqual, deepEqualUnordered } from '../utils/equality';
+import { deepEqual, deepEqualUnordered, stringEquals } from '../utils/equality';
 import { parseResponseValue } from '../utils/typeParser';
 import {
   evaluateExpression as evaluateExpressionShared,
@@ -407,9 +407,7 @@ function getMappedValue(value: unknown, mapping: ResponseMapping): number {
   const key = String(value);
 
   for (const entry of mapping.entries) {
-    const matches = entry.caseSensitive
-      ? key === entry.mapKey
-      : key.toLowerCase() === entry.mapKey.toLowerCase();
+    const matches = stringEquals(key, entry.mapKey, entry.caseSensitive);
 
     if (matches) {
       return entry.mappedValue;

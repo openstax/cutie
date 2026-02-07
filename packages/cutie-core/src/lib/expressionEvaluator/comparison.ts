@@ -3,7 +3,7 @@
  */
 
 import { getChildElements } from '../../utils/dom';
-import { deepEqual, deepEqualUnordered } from '../../utils/equality';
+import { deepEqual, deepEqualUnordered, stringEquals } from '../../utils/equality';
 import { compareMathExpressions, type MathComparisonMode } from './math';
 import type { SubEvaluate } from './types';
 
@@ -233,7 +233,7 @@ export function evaluateMatch(
       // String base-type responses use case-insensitive comparison by default
       if (isStringBaseType(itemDoc, responseId) &&
           typeof values[0] === 'string' && typeof values[1] === 'string') {
-        return values[0].toLowerCase() === values[1].toLowerCase();
+        return stringEquals(values[0], values[1]);
       }
     }
 

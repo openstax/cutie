@@ -1,4 +1,20 @@
 /**
+ * Case-aware string equality. Defaults to case-insensitive.
+ */
+export function stringEquals(a: string, b: string, caseSensitive = false): boolean {
+  return caseSensitive ? a === b : a.toLowerCase() === b.toLowerCase();
+}
+
+/**
+ * Case-aware substring check. Defaults to case-insensitive.
+ */
+export function stringIncludes(haystack: string, needle: string, caseSensitive = false): boolean {
+  return caseSensitive
+    ? haystack.includes(needle)
+    : haystack.toLowerCase().includes(needle.toLowerCase());
+}
+
+/**
  * Deep equality check for comparing values
  */
 export function deepEqual(a: unknown, b: unknown): boolean {
