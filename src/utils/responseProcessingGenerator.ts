@@ -270,7 +270,8 @@ function generateSumScoresXml(
       responseIdentifiers,
       responseDeclarations,
       feedbackIdentifiersUsed,
-      doc
+      doc,
+      new Set(withMapping)
     );
     for (const fc of feedbackConditions) {
       responseProcessing.appendChild(fc);
@@ -381,7 +382,8 @@ function generateFeedbackProcessingXml(
   responseIdentifiers: string[],
   responseDeclarations: Map<string, XmlNode>,
   feedbackIdentifiersUsed: Set<string>,
-  doc: Document
+  doc: Document,
+  mappedResponseIds?: Set<string>
 ): Element[] {
   const conditions: Element[] = [];
 
@@ -413,12 +415,15 @@ function generateFeedbackProcessingXml(
     const hasIncorrect = feedbackIds.has(incorrectId);
 
     if (hasCorrect || hasIncorrect) {
-      // Generate correct/incorrect condition
+      // For responses with mappings, use qti-map-response > 0 instead of qti-match
+      // so that feedback agrees with case-insensitive mapped scoring
+      const useMapResponse = mappedResponseIds?.has(responseId) ?? false;
       const condition = createFeedbackCorrectIncorrectCondition(
         responseId,
         hasCorrect ? correctId : null,
         hasIncorrect ? incorrectId : null,
-        doc
+        doc,
+        useMapResponse
       );
       conditions.push(condition);
     }
@@ -445,26 +450,32 @@ function generateFeedbackProcessingXml(
 /**
  * Create a feedback condition for correct/incorrect responses.
  *
+ * For unmapped responses (useMapResponse=false), uses qti-match:
  * <qti-response-condition>
  *   <qti-response-if>
  *     <qti-match>
  *       <qti-variable identifier="RESPONSE"/>
  *       <qti-correct identifier="RESPONSE"/>
  *     </qti-match>
- *     <qti-set-outcome-value identifier="FEEDBACK">
- *       <qti-multiple>
- *         <qti-variable identifier="FEEDBACK"/>
- *         <qti-base-value base-type="identifier">RESPONSE_correct</qti-base-value>
- *       </qti-multiple>
- *     </qti-set-outcome-value>
+ *     <qti-set-outcome-value identifier="FEEDBACK">...</qti-set-outcome-value>
  *   </qti-response-if>
  *   <qti-response-else>
- *     <qti-set-outcome-value identifier="FEEDBACK">
- *       <qti-multiple>
- *         <qti-variable identifier="FEEDBACK"/>
- *         <qti-base-value base-type="identifier">RESPONSE_incorrect</qti-base-value>
- *       </qti-multiple>
- *     </qti-set-outcome-value>
+ *     <qti-set-outcome-value identifier="FEEDBACK">...</qti-set-outcome-value>
+ *   </qti-response-else>
+ * </qti-response-condition>
+ *
+ * For mapped responses (useMapResponse=true), uses qti-gt with qti-map-response
+ * so that feedback agrees with case-insensitive mapped scoring:
+ * <qti-response-condition>
+ *   <qti-response-if>
+ *     <qti-gt>
+ *       <qti-map-response identifier="RESPONSE"/>
+ *       <qti-base-value base-type="float">0</qti-base-value>
+ *     </qti-gt>
+ *     <qti-set-outcome-value identifier="FEEDBACK">...</qti-set-outcome-value>
+ *   </qti-response-if>
+ *   <qti-response-else>
+ *     <qti-set-outcome-value identifier="FEEDBACK">...</qti-set-outcome-value>
  *   </qti-response-else>
  * </qti-response-condition>
  */
@@ -472,13 +483,18 @@ function createFeedbackCorrectIncorrectCondition(
   responseId: string,
   correctFeedbackId: string | null,
   incorrectFeedbackId: string | null,
-  doc: Document
+  doc: Document,
+  useMapResponse: boolean = false
 ): Element {
   const condition = doc.createElementNS(QTI_NAMESPACE, 'qti-response-condition');
 
   // Response if - when correct
   const responseIf = doc.createElementNS(QTI_NAMESPACE, 'qti-response-if');
-  responseIf.appendChild(createMatchElement(responseId, doc));
+  if (useMapResponse) {
+    responseIf.appendChild(createMapResponseGtZeroElement(responseId, doc));
+  } else {
+    responseIf.appendChild(createMatchElement(responseId, doc));
+  }
 
   if (correctFeedbackId) {
     responseIf.appendChild(createSetFeedbackElement(correctFeedbackId, doc));
@@ -494,6 +510,26 @@ function createFeedbackCorrectIncorrectCondition(
   }
 
   return condition;
+}
+
+/**
+ * Create a qti-gt element that checks if a mapped response score is greater than 0.
+ * Used for feedback conditions on responses with mappings, so that feedback
+ * uses the same case-insensitive matching as the scoring.
+ */
+function createMapResponseGtZeroElement(identifier: string, doc: Document): Element {
+  const gt = doc.createElementNS(QTI_NAMESPACE, 'qti-gt');
+
+  const mapResponse = doc.createElementNS(QTI_NAMESPACE, 'qti-map-response');
+  mapResponse.setAttribute('identifier', identifier);
+  gt.appendChild(mapResponse);
+
+  const baseValue = doc.createElementNS(QTI_NAMESPACE, 'qti-base-value');
+  baseValue.setAttribute('base-type', 'float');
+  baseValue.textContent = '0';
+  gt.appendChild(baseValue);
+
+  return gt;
 }
 
 /**
