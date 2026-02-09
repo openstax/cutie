@@ -1,6 +1,6 @@
 import { AttemptState, ResponseData } from '../types';
 import { getChildElements, getFirstChildElement } from '../utils/dom';
-import { deepEqual } from '../utils/equality';
+import { deepEqual, deepEqualUnordered } from '../utils/equality';
 import { parseResponseValue } from '../utils/typeParser';
 import {
   evaluateExpression as evaluateExpressionShared,
@@ -81,6 +81,23 @@ function getResponseDeclarationMeta(
 }
 
 /**
+ * Get the cardinality of a response declaration
+ */
+function getResponseCardinality(
+  itemDoc: Document,
+  identifier: string
+): string {
+  const declarations = itemDoc.getElementsByTagName('qti-response-declaration');
+  for (let i = 0; i < declarations.length; i++) {
+    const decl = declarations[i];
+    if (decl.getAttribute('identifier') === identifier) {
+      return decl.getAttribute('cardinality') || 'single';
+    }
+  }
+  return 'single';
+}
+
+/**
  * Compare response values, using formula comparison when appropriate
  *
  * This is the single source of truth for response comparison. It detects
@@ -102,6 +119,12 @@ export function compareResponseValues(
       String(correctValue ?? ''),
       mode
     );
+  }
+
+  // Multiple cardinality responses are unordered sets; order should not matter
+  const cardinality = getResponseCardinality(itemDoc, responseIdentifier);
+  if (cardinality === 'multiple') {
+    return deepEqualUnordered(responseValue, correctValue);
   }
 
   return deepEqual(responseValue, correctValue);
