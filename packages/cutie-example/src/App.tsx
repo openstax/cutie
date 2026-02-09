@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { beginAttempt, submitResponse } from '@openstax/cutie-core';
+import { beginAttempt, submitResponse, setScore } from '@openstax/cutie-core';
 import type { AttemptState, ProcessingOptions } from '@openstax/cutie-core';
 import type { ResponseData } from '@openstax/cutie-client';
 import { examples, exampleGroups } from './example-items';
@@ -7,8 +7,9 @@ import { EditorTab } from './EditorTab';
 import { PreviewTab } from './PreviewTab';
 import { GenerateDialog } from './GenerateDialog';
 import { Toast } from './Toast';
-import { beginQuiz, continueQuiz, generateQtiItem } from './utils/ai';
+import { beginQuiz, continueQuiz, DEFAULT_FAST_MODEL_ID, generateQtiItem, scoreExternalResponse } from './utils/ai';
 import type { QuizResponse, InteractionType } from './utils/ai';
+import { shouldRenewToken } from './utils/auth';
 import './App.css';
 
 /**
@@ -173,7 +174,23 @@ export function App() {
 
     setResponses(newResponses);
     try {
-      const result = await submitResponse(newResponses, attemptState, itemXml, { resolveAssets });
+      let result = await submitResponse(newResponses, attemptState, itemXml, { resolveAssets });
+
+      if (result.state.pendingManualScoring) {
+        if (shouldRenewToken()) {
+          setError('AI scoring unavailable — please log in');
+        } else {
+          const scoringModelId = quizState.isActive ? quizState.fastModelId : DEFAULT_FAST_MODEL_ID;
+          const aiResult = await scoreExternalResponse(
+            scoringModelId,
+            itemXml,
+            result.state.pendingManualScoring.maxScore,
+            newResponses,
+          );
+          result = await setScore(aiResult.score, aiResult.comments, result.state, itemXml, { resolveAssets });
+        }
+      }
+
       setAttemptState(result.state);
       setSanitizedTemplate(result.template);
     } catch (err) {

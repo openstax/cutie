@@ -3,6 +3,7 @@
  *
  * Strategy (in priority order):
  * 1. Check for explicit MAXSCORE variable
+ * 1b. Check for normal-maximum attribute on SCORE outcome declaration
  * 2. Try pattern: Sum of outcome variables (e.g., SCORE = SCORE1 + SCORE2 + SCORE3 + SCORE4)
  * 3. Try pattern: Mapping upper-bound
  * 4. Try pattern: Sum of map-entries
@@ -21,6 +22,12 @@ export function deriveMaxScore(
   const maxScoreValue = variables['MAXSCORE'];
   if (typeof maxScoreValue === 'number') {
     return maxScoreValue;
+  }
+
+  // 1b. Check for normal-maximum attribute on SCORE outcome declaration
+  const normalMaxResult = tryDeriveFromNormalMaximum(itemDoc);
+  if (normalMaxResult !== null) {
+    return normalMaxResult;
   }
 
   // 2. Try pattern: Sum of outcome variables
@@ -48,6 +55,27 @@ export function deriveMaxScore(
   }
 
   // 6. Return null (graceful failure)
+  return null;
+}
+
+/**
+ * Attempt to derive maxScore from the normal-maximum attribute on the SCORE outcome declaration.
+ */
+function tryDeriveFromNormalMaximum(itemDoc: Document): number | null {
+  const outcomeDeclarations = itemDoc.getElementsByTagName('qti-outcome-declaration');
+  for (let i = 0; i < outcomeDeclarations.length; i++) {
+    const decl = outcomeDeclarations[i];
+    if (decl.getAttribute('identifier') === 'SCORE') {
+      const normalMax = decl.getAttribute('normal-maximum');
+      if (normalMax !== null) {
+        const parsed = parseFloat(normalMax);
+        if (!isNaN(parsed)) {
+          return parsed;
+        }
+      }
+      break;
+    }
+  }
   return null;
 }
 

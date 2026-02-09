@@ -41,6 +41,7 @@ import * as adaptiveMontyHall from './spec-adaptive-monty-hall';
 import * as formulaStrict from './formula-strict';
 import * as formulaCanonical from './formula-canonical';
 import * as formulaAlgebraic from './formula-algebraic';
+import * as extendedTextScored from './extended-text-scored';
 
 /* these examples are copied exactly from examples in the spec
  * documents, they are used for verification that cutie works
@@ -71,6 +72,11 @@ export const feedbackTypes = [
   blockFeedback,
 ];
 
+/* externally scored items that use AI for scoring */
+export const aiScoredExamples = [
+  extendedTextScored,
+];
+
 /* math formula entry examples demonstrating different comparison modes */
 export const formulaExamples = [
   formulaStrict,
@@ -97,6 +103,10 @@ export const exampleGroups: ExampleGroup[] = [
   {
     label: 'Supported Examples',
     items: standardExamples,
+  },
+  {
+    label: 'AI Scored',
+    items: aiScoredExamples,
   },
   {
     label: 'Math Formula Entry',

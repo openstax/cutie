@@ -20,7 +20,7 @@ interface PreviewTabProps {
   attemptState: AttemptState | null;
   sanitizedTemplate: string;
   responses: ResponseData | null;
-  onSubmitResponses: (responses: ResponseData) => void;
+  onSubmitResponses: (responses: ResponseData) => Promise<void>;
   onResetAttempt: () => void;
   isLoading?: boolean;
   onOpenGenerateDialog?: () => void;
@@ -59,17 +59,17 @@ export function PreviewTab({ attemptState, sanitizedTemplate, responses, onSubmi
     }
   }, [interactionsEnabled]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!mountedItemRef.current) return;
 
     setIsSubmitting(true);
     const collectedResponses = mountedItemRef.current.collectResponses();
 
-    // Brief delay to show submitting state, then submit
-    setTimeout(() => {
+    try {
+      await onSubmitResponses(collectedResponses);
+    } finally {
       setIsSubmitting(false);
-      onSubmitResponses(collectedResponses);
-    }, 1000);
+    }
   };
 
   return (

@@ -1,4 +1,5 @@
 // cspell:ignore Moby
+import type { ResponseData } from '@openstax/cutie-core';
 import { API_URL, PROMPT_IDS, API_KEY, DEFAULT_MODEL_ID, DEFAULT_FAST_MODEL_ID } from './config';
 import { token } from './auth';
 import z from 'zod';
@@ -167,6 +168,33 @@ ${formattedHistory}
 
 Sketch out the structure of a quiz that will meet the user on their level based on their previous responses.
 `, quizResponse);
+};
+
+export const scoreExternalResponse = async (
+  modelId: number,
+  itemXml: string,
+  maxScore: number,
+  responses: ResponseData
+): Promise<{ score: number; comments: string }> => {
+
+  const scoringResultSchema = z.object({
+    score: z.number().min(0).max(maxScore).describe('The score awarded based on the rubric'),
+    comments: z.string().describe('Your justification for the given score, to be reviewed by human instructors (not visible to student)'),
+  });
+
+  const prompt = `You are scoring a student's response to an assessment item. The full QTI item XML (including any rubric) is below.
+
+Item XML:
+${itemXml}
+
+Student's response:
+${JSON.stringify(responses)}
+
+Maximum score: ${maxScore}
+
+Score the response according to the details in the item.`;
+
+  return generateJson(modelId, prompt, scoringResultSchema);
 };
 
 export { DEFAULT_FAST_MODEL_ID };
