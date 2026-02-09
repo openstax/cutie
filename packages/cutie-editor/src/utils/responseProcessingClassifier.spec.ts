@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { item as inlineFeedbackItem } from '../../../cutie-example/src/example-items/inline-feedback';
 import { item as modalFeedbackItem } from '../../../cutie-example/src/example-items/modal-feedback';
 import { item as choiceFeedbackItem } from '../../../cutie-example/src/example-items/standard-choice';
+import { item as textEntryItem } from '../../../cutie-example/src/example-items/standard-text-entry';
+import { item as textEntryMultiItem } from '../../../cutie-example/src/example-items/text-entry-multi';
 import { classifyResponseProcessing } from './responseProcessingClassifier';
 
 /**
@@ -285,6 +287,44 @@ describe('responseProcessingClassifier', () => {
       expect(result.mode).toBe('sumScores');
     });
 
+    it('should recognize sumScores + mapped response feedback (qti-gt > qti-map-response)', () => {
+      const doc = createQtiDoc(`
+        <qti-response-processing>
+          <qti-set-outcome-value identifier="SCORE">
+            <qti-sum>
+              <qti-map-response identifier="RESPONSE"/>
+            </qti-sum>
+          </qti-set-outcome-value>
+
+          <qti-response-condition>
+            <qti-response-if>
+              <qti-gt>
+                <qti-map-response identifier="RESPONSE"/>
+                <qti-base-value base-type="float">0</qti-base-value>
+              </qti-gt>
+              <qti-set-outcome-value identifier="FEEDBACK">
+                <qti-multiple>
+                  <qti-variable identifier="FEEDBACK"/>
+                  <qti-base-value base-type="identifier">RESPONSE_correct</qti-base-value>
+                </qti-multiple>
+              </qti-set-outcome-value>
+            </qti-response-if>
+            <qti-response-else>
+              <qti-set-outcome-value identifier="FEEDBACK">
+                <qti-multiple>
+                  <qti-variable identifier="FEEDBACK"/>
+                  <qti-base-value base-type="identifier">RESPONSE_incorrect</qti-base-value>
+                </qti-multiple>
+              </qti-set-outcome-value>
+            </qti-response-else>
+          </qti-response-condition>
+        </qti-response-processing>
+      `);
+
+      const result = classifyResponseProcessing(doc);
+      expect(result.mode).toBe('sumScores');
+    });
+
     it('should reject sumScores if additional condition sets non-FEEDBACK outcome', () => {
       const doc = createQtiDoc(`
         <qti-response-processing>
@@ -337,6 +377,18 @@ describe('responseProcessingClassifier', () => {
       const doc = parseItem(choiceFeedbackItem);
       const result = classifyResponseProcessing(doc);
       expect(result.mode).toBe('allCorrect');
+    });
+
+    it('should classify standard-text-entry.ts as sumScores', () => {
+      const doc = parseItem(textEntryItem);
+      const result = classifyResponseProcessing(doc);
+      expect(result.mode).toBe('sumScores');
+    });
+
+    it('should classify text-entry-multi.ts as sumScores', () => {
+      const doc = parseItem(textEntryMultiItem);
+      const result = classifyResponseProcessing(doc);
+      expect(result.mode).toBe('sumScores');
     });
   });
 });

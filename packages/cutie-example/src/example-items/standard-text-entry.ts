@@ -10,10 +10,20 @@ https://purl.imsglobal.org/spec/qti/v3p0/schema/xsd/imsqti_asiv3p0p1_v1p0.xsd"
 identifier="text-entry-feedback" title="Text Entry - With Feedback"
 adaptive="false" time-dependent="false" xml:lang="en">
 
+  <!--
+    For text entry interactions, prefer using qti-mapping with qti-map-response over
+    match_correct. The match operator is always case-sensitive for strings, so a learner
+    typing "Correct" instead of "correct" would be marked wrong. Mappings in QTI 3.0 are
+    case-insensitive by default, which is more forgiving and appropriate for text responses.
+    Individual map entries can opt into case-sensitive matching with case-sensitive="true".
+  -->
   <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="string">
     <qti-correct-response>
       <qti-value>correct</qti-value>
     </qti-correct-response>
+    <qti-mapping default-value="0">
+      <qti-map-entry map-key="correct" mapped-value="1"/>
+    </qti-mapping>
   </qti-response-declaration>
 
   <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
@@ -42,15 +52,18 @@ adaptive="false" time-dependent="false" xml:lang="en">
   </qti-item-body>
 
   <qti-response-processing>
+    <qti-set-outcome-value identifier="SCORE">
+      <qti-sum>
+        <qti-map-response identifier="RESPONSE"/>
+      </qti-sum>
+    </qti-set-outcome-value>
+
     <qti-response-condition>
       <qti-response-if>
-        <qti-match>
-          <qti-variable identifier="RESPONSE"/>
-          <qti-correct identifier="RESPONSE"/>
-        </qti-match>
-        <qti-set-outcome-value identifier="SCORE">
-          <qti-base-value base-type="float">1</qti-base-value>
-        </qti-set-outcome-value>
+        <qti-gt>
+          <qti-map-response identifier="RESPONSE"/>
+          <qti-base-value base-type="float">0</qti-base-value>
+        </qti-gt>
         <qti-set-outcome-value identifier="FEEDBACK">
           <qti-multiple>
             <qti-variable identifier="FEEDBACK"/>
