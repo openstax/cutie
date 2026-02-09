@@ -72,6 +72,18 @@ export interface AttemptState {
    * to store each set's shuffle order separately.
    */
   shuffleOrders?: Record<string, string[]>;
+
+  /**
+   * Comments from external scoring (e.g., AI-generated feedback for human-scored items).
+   * Null when no external scoring has been performed.
+   */
+  comments?: string | null;
+
+  /**
+   * Present when the item needs external scoring (e.g., human or AI grading).
+   * Contains metadata for the scorer to use. Cleared by `setScore()`.
+   */
+  pendingManualScoring?: { maxScore: number };
 }
 
 /**

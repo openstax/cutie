@@ -30,6 +30,50 @@ describe('deriveMaxScore', () => {
     });
   });
 
+  describe('Normal-maximum attribute on SCORE outcome', () => {
+    test('should return normal-maximum when present on SCORE outcome declaration', () => {
+      const itemDoc = parseXML(`
+        <qti-assessment-item>
+          <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"
+                                   normal-maximum="5.0"/>
+        </qti-assessment-item>
+      `);
+
+      const variables: Record<string, unknown> = {};
+
+      const result = deriveMaxScore(itemDoc, variables);
+      expect(result).toBe(5.0);
+    });
+
+    test('should ignore normal-maximum on non-SCORE outcome declarations', () => {
+      const itemDoc = parseXML(`
+        <qti-assessment-item>
+          <qti-outcome-declaration identifier="OTHER" cardinality="single" base-type="float"
+                                   normal-maximum="10.0"/>
+        </qti-assessment-item>
+      `);
+
+      const variables: Record<string, unknown> = {};
+
+      const result = deriveMaxScore(itemDoc, variables);
+      expect(result).toBeNull();
+    });
+
+    test('should prefer explicit MAXSCORE variable over normal-maximum', () => {
+      const itemDoc = parseXML(`
+        <qti-assessment-item>
+          <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"
+                                   normal-maximum="5.0"/>
+        </qti-assessment-item>
+      `);
+
+      const variables: Record<string, unknown> = { MAXSCORE: 10 };
+
+      const result = deriveMaxScore(itemDoc, variables);
+      expect(result).toBe(10);
+    });
+  });
+
   describe('Composite sum pattern (official QTI v3 multi-input.xml)', () => {
     test('should derive maxScore from sum of component scores with literal values', () => {
       const itemDoc = parseXML(`

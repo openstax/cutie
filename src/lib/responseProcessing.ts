@@ -7,6 +7,7 @@ import {
   type SubEvaluate,
 } from './expressionEvaluator/index';
 import { compareMathExpressions, type MathComparisonMode } from './expressionEvaluator/math';
+import { getExternalScoredInfo } from './externalScoring';
 import { extractStandardOutcomes } from './scoreUtils';
 
 /**
@@ -162,12 +163,16 @@ export function processResponse(
     ? 'incomplete'
     : 'completed';
 
+  const externalInfo = getExternalScoredInfo(itemDoc, variables);
+
   return {
     variables,
     completionStatus,
     score,
     // Preserve shuffle orders from input state
     ...(currentState.shuffleOrders && { shuffleOrders: currentState.shuffleOrders }),
+    // Signal that external scoring is needed
+    ...(externalInfo && { pendingManualScoring: { maxScore: externalInfo.maxScore } }),
   };
 }
 

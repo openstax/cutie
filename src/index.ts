@@ -1,7 +1,9 @@
 import { DOMParser } from '@xmldom/xmldom';
+import { deriveMaxScore } from './lib/deriveMaxScore';
 import { initializeState } from './lib/initializeState';
 import { renderTemplate } from './lib/renderTemplate';
 import { processResponse } from './lib/responseProcessing';
+import { buildScore } from './lib/scoreUtils';
 import { AttemptState, ProcessingOptions, ResponseData } from './types';
 
 /**
@@ -93,6 +95,49 @@ export async function submitResponse(
   const updatedState = processResponse(itemDoc, submission, state);
 
   // Render the updated template with new state (feedback may now be visible)
+  const template = await renderTemplate(itemDoc, updatedState, options);
+
+  return { state: updatedState, template };
+}
+
+/**
+ * Applies an externally-determined score to an attempt state.
+ *
+ * Used after `submitResponse` returns a state with `pendingManualScoring`
+ * to finalize the score (e.g., after AI or human grading). Clears the
+ * `pendingManualScoring` flag and re-renders the template so that any
+ * score-based feedback becomes visible.
+ *
+ * @param score - The score awarded by the external scorer
+ * @param comments - Feedback or comments from the external scorer
+ * @param state - Current attempt state (should have `pendingManualScoring`)
+ * @param itemXml - Complete QTI v3 assessment item XML definition
+ * @param options - Optional processing options (e.g., asset resolver)
+ * @returns Promise resolving to updated state and sanitized template XML
+ */
+export async function setScore(
+  score: number,
+  comments: string,
+  state: AttemptState,
+  itemXml: string,
+  options?: ProcessingOptions
+): Promise<AttemptResult> {
+  const parser = new DOMParser();
+  const itemDoc = parser.parseFromString(itemXml.trim(), 'text/xml');
+
+  const maxScore = deriveMaxScore(itemDoc, state.variables);
+  if (maxScore === null) {
+    throw new Error('Cannot determine max score for item');
+  }
+
+  const updatedState: AttemptState = {
+    ...state,
+    variables: { ...state.variables, SCORE: score },
+    score: buildScore(score, maxScore),
+    comments,
+    pendingManualScoring: undefined,
+  };
+
   const template = await renderTemplate(itemDoc, updatedState, options);
 
   return { state: updatedState, template };
