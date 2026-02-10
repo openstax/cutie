@@ -3,6 +3,7 @@ import type { CustomEditor, ElementConfig } from '../../../types';
 
 export const modalFeedbackConfig: ElementConfig = {
   type: 'qti-modal-feedback',
+  xmlTagName: 'qti-modal-feedback',
   isVoid: false,
   isInline: false,
   needsSpacers: false,

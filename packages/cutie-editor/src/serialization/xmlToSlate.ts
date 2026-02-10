@@ -233,7 +233,7 @@ function convertNodesToSlate(nodes: Node[], isRootLevel = false, context?: Parse
  * Includes XHTML block elements and qti-item-body (container without a dedicated parser).
  * Other QTI elements are NOT included - their parsers handle whitespace directly.
  */
-const BLOCK_ELEMENTS_FOR_WHITESPACE = [
+export const BLOCK_ELEMENTS_FOR_WHITESPACE = [
   'p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
   'ul', 'ol', 'li', 'blockquote', 'pre',
   'qti-item-body', // Container element without dedicated parser

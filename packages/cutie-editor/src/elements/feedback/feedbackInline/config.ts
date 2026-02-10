@@ -3,6 +3,7 @@ import type { CustomEditor, ElementConfig } from '../../../types';
 
 export const feedbackInlineConfig: ElementConfig = {
   type: 'qti-feedback-inline',
+  xmlTagName: 'qti-feedback-inline',
   isVoid: false,
   isInline: true,
   needsSpacers: false,

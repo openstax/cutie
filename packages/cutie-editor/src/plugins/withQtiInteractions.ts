@@ -30,7 +30,7 @@ import {
 import { textEntryInteractionConfig } from '../interactions/textEntry/config';
 import type { CustomEditor, ElementConfig, FeedbackIdentifierSource } from '../types';
 
-const elementConfigs: ElementConfig[] = [
+export const elementConfigs: ElementConfig[] = [
   // Interaction configs
   choiceInteractionConfig,
   textEntryInteractionConfig,

@@ -31,6 +31,7 @@ function findGapsInContent(node: SlateElement | { text: string }): QtiGap[] {
 
 export const gapMatchInteractionConfig: ElementConfig = {
   type: 'qti-gap-match-interaction',
+  xmlTagName: 'qti-gap-match-interaction',
   isVoid: false,
   isInline: false,
   needsSpacers: true,
@@ -139,6 +140,7 @@ export const gapMatchInteractionConfig: ElementConfig = {
 
 export const gapMatchChoicesConfig: ElementConfig = {
   type: 'gap-match-choices',
+  xmlTagName: null,
   isVoid: false,
   isInline: false,
   needsSpacers: false,
@@ -149,6 +151,7 @@ export const gapMatchChoicesConfig: ElementConfig = {
 
 export const gapMatchContentConfig: ElementConfig = {
   type: 'gap-match-content',
+  xmlTagName: null,
   isVoid: false,
   isInline: false,
   needsSpacers: false,
@@ -159,6 +162,7 @@ export const gapMatchContentConfig: ElementConfig = {
 
 export const gapTextConfig: ElementConfig = {
   type: 'qti-gap-text',
+  xmlTagName: 'qti-gap-text',
   isVoid: false,
   isInline: false,
   needsSpacers: false,
@@ -169,6 +173,7 @@ export const gapTextConfig: ElementConfig = {
 
 export const gapImgConfig: ElementConfig = {
   type: 'qti-gap-img',
+  xmlTagName: 'qti-gap-img',
   isVoid: false,
   isInline: false,
   needsSpacers: false,
@@ -179,6 +184,7 @@ export const gapImgConfig: ElementConfig = {
 
 export const gapConfig: ElementConfig = {
   type: 'qti-gap',
+  xmlTagName: 'qti-gap',
   isVoid: true,
   isInline: true,
   needsSpacers: false,

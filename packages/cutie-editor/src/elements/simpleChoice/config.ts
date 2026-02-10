@@ -4,6 +4,7 @@ import { wrapInlineContentInParagraphs } from '../../utils/normalization';
 
 export const simpleChoiceConfig: ElementConfig = {
   type: 'qti-simple-choice',
+  xmlTagName: 'qti-simple-choice',
   isVoid: false,
   isInline: false,
   needsSpacers: false,
@@ -14,6 +15,7 @@ export const simpleChoiceConfig: ElementConfig = {
 
 export const choiceIdLabelConfig: ElementConfig = {
   type: 'choice-id-label',
+  xmlTagName: null,
   isVoid: true,
   isInline: false,
   needsSpacers: false,
@@ -24,6 +26,7 @@ export const choiceIdLabelConfig: ElementConfig = {
 
 export const choiceContentConfig: ElementConfig = {
   type: 'choice-content',
+  xmlTagName: null,
   isVoid: false,
   isInline: false,
   needsSpacers: false,

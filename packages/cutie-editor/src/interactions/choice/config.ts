@@ -21,6 +21,7 @@ const QTI_NAMESPACE = 'http://www.imsglobal.org/xsd/imsqtiasi_v3p0';
 
 export const choiceInteractionConfig: ElementConfig = {
   type: 'qti-choice-interaction',
+  xmlTagName: 'qti-choice-interaction',
   isVoid: false,
   isInline: false,
   needsSpacers: true,
