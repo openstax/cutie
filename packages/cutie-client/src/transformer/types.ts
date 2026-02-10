@@ -73,6 +73,12 @@ export interface TransformContext {
    * Handlers use this to register styles that can use pseudo-selectors and pseudo-elements.
    */
   styleManager?: StyleManager;
+
+  /**
+   * Register a callback to run after transformed content is mounted into the DOM.
+   * Use for operations requiring elements to be connected (e.g., dialog.showModal()).
+   */
+  onMount?: (callback: () => void) => void;
 }
 
 /**
