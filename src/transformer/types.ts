@@ -79,6 +79,18 @@ export interface TransformContext {
    * Use for operations requiring elements to be connected (e.g., dialog.showModal()).
    */
   onMount?: (callback: () => void) => void;
+
+  /**
+   * Register a teardown callback to run when the item is unmounted.
+   * Use for cleanup of resources that persist beyond a single render (e.g., live regions on document.body).
+   */
+  onCleanup?: (callback: () => void) => void;
+
+  /**
+   * Persistent state bag that survives across update() calls.
+   * Handlers can read/write arbitrary keyed data. Cleared on unmount().
+   */
+  state?: Map<string, unknown>;
 }
 
 /**

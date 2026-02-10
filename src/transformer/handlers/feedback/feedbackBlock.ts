@@ -1,5 +1,6 @@
 import { registry } from '../../registry';
 import type { ElementHandler, TransformContext } from '../../types';
+import { announceFeedback } from './feedbackAnnouncer';
 import { createFeedbackIcon, FEEDBACK_ICON_STYLES, isFeedbackType } from './feedbackIcons';
 
 /**
@@ -33,6 +34,11 @@ class FeedbackBlockHandler implements ElementHandler {
       div.dataset.identifier = identifier;
     }
 
+    const outcomeIdentifier = element.getAttribute('outcome-identifier');
+    if (outcomeIdentifier) {
+      div.dataset.outcomeIdentifier = outcomeIdentifier;
+    }
+
     const feedbackType = element.getAttribute('data-feedback-type');
     if (feedbackType) {
       div.dataset.feedbackType = feedbackType;
@@ -45,6 +51,9 @@ class FeedbackBlockHandler implements ElementHandler {
     if (context.transformChildren) {
       div.appendChild(context.transformChildren(element));
     }
+
+    announceFeedback(element, div, context);
+
     fragment.appendChild(div);
     return fragment;
   }

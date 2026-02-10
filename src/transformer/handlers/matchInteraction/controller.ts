@@ -6,6 +6,7 @@ import {
   highlightDropTargets,
   updateRovingTabindex,
 } from '../../../utils';
+import type { TransformContext } from '../../types';
 
 interface ChoiceData {
   id: string;
@@ -22,7 +23,7 @@ interface ChoiceData {
  */
 export class MatchController {
   readonly responseIdentifier: string;
-  private liveRegion: HTMLElement;
+  private context: TransformContext;
   private container: HTMLElement;
   private maxAssociations: number;
 
@@ -50,12 +51,12 @@ export class MatchController {
 
   constructor(
     responseIdentifier: string,
-    liveRegion: HTMLElement,
+    context: TransformContext,
     container: HTMLElement,
     maxAssociations: number = 0
   ) {
     this.responseIdentifier = responseIdentifier;
-    this.liveRegion = liveRegion;
+    this.context = context;
     this.container = container;
     this.maxAssociations = maxAssociations;
 
@@ -316,11 +317,11 @@ export class MatchController {
 
     if (existingAssociation) {
       announce(
-        this.liveRegion,
+        this.context,
         `${choice.content} selected. Click another item to move, or press backspace to remove.`
       );
     } else {
-      announce(this.liveRegion, `${choice.content} selected. Choose an item from the other set to create an association.`);
+      announce(this.context, `${choice.content} selected. Choose an item from the other set to create an association.`);
     }
   }
 
@@ -421,7 +422,7 @@ export class MatchController {
     this.updateExhaustionState(targetId);
 
     if (sourceChoice && targetChoice) {
-      announce(this.liveRegion, `${sourceChoice.content} connected to ${targetChoice.content}.`);
+      announce(this.context, `${sourceChoice.content} connected to ${targetChoice.content}.`);
     }
 
     return true;
@@ -452,7 +453,7 @@ export class MatchController {
     this.updateExhaustionState(targetId);
 
     if (sourceChoice && targetChoice) {
-      announce(this.liveRegion, `Connection between ${sourceChoice.content} and ${targetChoice.content} removed.`);
+      announce(this.context, `Connection between ${sourceChoice.content} and ${targetChoice.content} removed.`);
     }
   }
 

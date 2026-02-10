@@ -3,7 +3,6 @@
  */
 
 export {
-  createLiveRegion,
   announce,
   LIVE_REGION_STYLES,
 } from './liveRegion';
