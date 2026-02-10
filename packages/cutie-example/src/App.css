@@ -475,6 +475,10 @@ main {
   text-decoration: underline;
 }
 
+.app-footer a svg {
+  vertical-align: middle;
+}
+
 /* Mobile responsive tabs */
 @media (max-width: 600px) {
   .tabs {

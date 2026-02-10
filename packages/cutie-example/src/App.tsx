@@ -12,6 +12,7 @@ import { Toast } from './Toast';
 import { beginQuiz, continueQuiz, DEFAULT_FAST_MODEL_ID, generateQtiItem, scoreExternalResponse } from './utils/ai';
 import type { QuizResponse, InteractionType } from './utils/ai';
 import { shouldRenewToken } from './utils/auth';
+import { OpenInNewIcon } from './icons';
 import './App.css';
 
 /**
@@ -645,11 +646,11 @@ export function App() {
       {error && <Toast message={error} onClose={() => setError('')} />}
       <footer className="app-footer">
         <a href="https://github.com/openstax/cutie" target="_blank" rel="noopener noreferrer">
-          Project Cutie<span className="visually-hidden"> (opens in new tab)</span> ↗
+          Project Cutie<span className="visually-hidden"> (opens in new tab)</span> <OpenInNewIcon />
         </a>
         {' '}is an experiment from{' '}
         <a href="https://openstax.org" target="_blank" rel="noopener noreferrer">
-          OpenStax<span className="visually-hidden"> (opens in new tab)</span> ↗
+          OpenStax<span className="visually-hidden"> (opens in new tab)</span> <OpenInNewIcon />
         </a>
       </footer>
     </Tabs>
