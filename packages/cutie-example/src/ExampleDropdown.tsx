@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { ExampleGroup } from './example-items';
+import { ExpandMoreIcon } from './icons';
 import './ExampleDropdown.css';
 
 interface ExampleDropdownProps {
@@ -96,7 +97,7 @@ export function ExampleDropdown({ groups, onSelect, disabled }: ExampleDropdownP
         aria-expanded={open}
         aria-label="Load example item"
       >
-        {'Examples \u25BE'}
+        Load Example <ExpandMoreIcon />
       </button>
       {open && (
         <div ref={menuRef} className="example-dropdown-menu" role="menu">
