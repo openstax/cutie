@@ -52,6 +52,7 @@ export class MatchInteractionHandler implements ElementHandler {
     const container = document.createElement('div');
     container.className = 'qti-match-interaction';
     container.setAttribute('data-response-identifier', responseIdentifier);
+    container.setAttribute('role', 'group');
 
     // Find elements
     const children = Array.from(element.children);
@@ -69,11 +70,16 @@ export class MatchInteractionHandler implements ElementHandler {
     }
 
     // Transform prompt if present
+    const promptId = `prompt-${responseIdentifier}`;
     if (promptElement && context.transformChildren) {
       const promptDiv = document.createElement('div');
       promptDiv.className = 'qti-prompt';
+      promptDiv.id = promptId;
       promptDiv.appendChild(context.transformChildren(promptElement));
       container.appendChild(promptDiv);
+      container.setAttribute('aria-labelledby', promptId);
+    } else {
+      container.setAttribute('aria-label', 'Match interaction');
     }
 
     // Create layout container

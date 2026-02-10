@@ -62,9 +62,11 @@ class FormulaInteractionHandler implements ElementHandler {
 
     // Process qti-prompt if present
     const promptElement = element.querySelector('qti-prompt');
+    const promptId = `prompt-${responseIdentifier}`;
     if (promptElement && context.transformChildren) {
       const promptContainer = document.createElement('div');
       promptContainer.className = 'qti-prompt';
+      promptContainer.id = promptId;
       const promptFragment = context.transformChildren(promptElement);
       promptContainer.appendChild(promptFragment);
       container.appendChild(promptContainer);
@@ -111,6 +113,11 @@ class FormulaInteractionHandler implements ElementHandler {
         };
         mathField.className = 'qti-formula-field';
         mathField.setAttribute('data-response-identifier', responseIdentifier);
+        if (promptElement) {
+          mathField.setAttribute('aria-labelledby', promptId);
+        } else {
+          mathField.setAttribute('aria-label', 'Formula input');
+        }
 
         // Set initial value
         if (initialValue) {
@@ -158,6 +165,11 @@ class FormulaInteractionHandler implements ElementHandler {
         const textarea = document.createElement('textarea');
         textarea.className = 'qti-formula-fallback';
         textarea.setAttribute('data-response-identifier', responseIdentifier);
+        if (promptElement) {
+          textarea.setAttribute('aria-labelledby', promptId);
+        } else {
+          textarea.setAttribute('aria-label', 'Formula input');
+        }
         textarea.placeholder = 'Enter LaTeX formula (e.g., 5x or \\frac{1}{2})';
 
         if (initialValue) {

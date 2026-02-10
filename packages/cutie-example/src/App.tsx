@@ -3,6 +3,7 @@ import { beginAttempt, submitResponse, setScore } from '@openstax/cutie-core';
 import type { AttemptState, ProcessingOptions } from '@openstax/cutie-core';
 import type { ResponseData } from '@openstax/cutie-client';
 import { examples, exampleGroups } from './example-items';
+import { ExampleDropdown } from './ExampleDropdown';
 import { EditorTab } from './EditorTab';
 import { PreviewTab } from './PreviewTab';
 import { GenerateDialog } from './GenerateDialog';
@@ -87,7 +88,6 @@ export function App() {
   const [error, setError] = useState<string>('');
   const [processing, setProcessing] = useState(false);
   const [responses, setResponses] = useState<ResponseData | null>(null);
-  const [selectedExample, setSelectedExample] = useState('');
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
   const [quizState, setQuizState] = useState<QuizState>(initialQuizState);
   const [isLoadingNextQuestion, setIsLoadingNextQuestion] = useState(false);
@@ -97,41 +97,24 @@ export function App() {
     nextQuiz: Promise<{ quiz: QuizResponse; firstQuestionXml: string }> | null;
   }>({ nextQuestion: null, nextQuiz: null });
 
-  const handleExampleSelect = async (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedName = event.target.value;
+  const loadExample = async (exampleName: string) => {
+    const example = examples.find(ex => ex.name === exampleName);
+    if (!example) return;
 
-    if (!selectedName) {
-      return;
+    setItemXml(example.item);
+    setResponses(null);
+    setError('');
+    setProcessing(true);
+    try {
+      const result = await beginAttempt(example.item, { resolveAssets });
+      setAttemptState(result.state);
+      setSanitizedTemplate(result.template);
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : 'Unknown error occurred');
+    } finally {
+      setProcessing(false);
     }
-
-    // Confirm if there's existing content
-    if (itemXml.trim()) {
-      // Reset select to placeholder
-      setSelectedExample('');
-      return;
-    }
-
-    const example = examples.find(ex => ex.name === selectedName);
-    if (example) {
-      setItemXml(example.item);
-
-      // Auto-process the item
-      setError('');
-      setProcessing(true);
-      try {
-        const result = await beginAttempt(example.item, { resolveAssets });
-        setAttemptState(result.state);
-        setSanitizedTemplate(result.template);
-      } catch (err) {
-        console.error(err);
-        setError(err instanceof Error ? err.message : 'Unknown error occurred');
-      } finally {
-        setProcessing(false);
-      }
-    }
-
-    // Reset select back to placeholder
-    setSelectedExample('');
   };
 
   const handleAIGenerate = async (xml: string) => {
@@ -642,24 +625,11 @@ export function App() {
               aria-label="Generate with AI"
               title="Generate with AI"
             >✨</button>
-            <select
-              className="example-select-nav"
-              onChange={handleExampleSelect}
-              value={selectedExample}
+            <ExampleDropdown
+              groups={exampleGroups}
+              onSelect={loadExample}
               disabled={processing}
-              aria-label="Load example item"
-            >
-              <option value="">Load example item...</option>
-              {exampleGroups.map((group) => (
-                <optgroup key={group.label} label={group.label}>
-                  {group.items.map((ex) => (
-                    <option key={ex.name} value={ex.name}>
-                      {ex.name}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
+            />
           </div>
         </nav>
       </header>
