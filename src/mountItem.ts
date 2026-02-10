@@ -49,11 +49,18 @@ export function mountItem(
   const styleManager = new DefaultStyleManager();
   registerBaseStyles(styleManager);
 
+  // Collect post-mount callbacks for operations requiring DOM connection
+  const mountCallbacks: Array<() => void> = [];
+
   // Parse QTI XML
   const parsed = parseQtiXml(itemTemplateXml);
 
   // Create transform context once for all transformations
-  const context = createTransformContext({ itemState, styleManager });
+  const context = createTransformContext({
+    itemState,
+    styleManager,
+    onMount: (cb) => mountCallbacks.push(cb),
+  });
 
   // Transform item body children
   const fragment = transformChildren(parsed.itemBody, context);
@@ -65,6 +72,9 @@ export function mountItem(
 
   // Render to container
   const unmountDom = renderToContainer(container, fragment);
+
+  // Run post-mount callbacks (elements are now in the DOM)
+  for (const cb of mountCallbacks) cb();
 
   // Return controller object
   return {

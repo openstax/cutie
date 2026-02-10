@@ -27,7 +27,7 @@ class ModalFeedbackHandler implements ElementHandler {
 
     const dialog = document.createElement('dialog');
     dialog.className = 'qti-modal-feedback';
-    dialog.open = true;
+    context.onMount?.(() => { dialog.showModal(); });
 
     // Preserve identifier
     const identifier = element.getAttribute('identifier');
@@ -62,7 +62,7 @@ class ModalFeedbackHandler implements ElementHandler {
 
     const closeButton = document.createElement('button');
     closeButton.className = 'qti-modal-feedback__close-button';
-    closeButton.innerText = 'OK';
+    closeButton.textContent = 'OK';
 
     form.appendChild(closeButton);
 
@@ -80,11 +80,10 @@ const MODAL_FEEDBACK_STYLES = `
     min-width: 15rem;
     max-width: calc(100vw - 4rem);
     max-height: calc(100vh - 4rem);
-    position: fixed;
-    margin: 0;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+  }
+
+  .qti-modal-feedback::backdrop {
+    background-color: rgba(0, 0, 0, 0.5);
   }
 
   .qti-modal-feedback[data-feedback-type="correct"] {
