@@ -3,6 +3,7 @@ import type { ElementConfig } from '../../types';
 
 export const imageConfig: ElementConfig = {
   type: 'image',
+  xmlTagName: 'img',
   isVoid: true,
   isInline: true,
   needsSpacers: false,

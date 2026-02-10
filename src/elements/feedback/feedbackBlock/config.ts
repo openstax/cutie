@@ -3,6 +3,7 @@ import type { CustomEditor, ElementConfig } from '../../../types';
 
 export const feedbackBlockConfig: ElementConfig = {
   type: 'qti-feedback-block',
+  xmlTagName: 'qti-feedback-block',
   isVoid: false,
   isInline: false,
   needsSpacers: true,

@@ -13,6 +13,7 @@ import { matchSerializers } from '../interactions/match';
 import { textEntrySerializers } from '../interactions/textEntry';
 import type { DocumentMetadata, ElementConfig, ResponseProcessingConfig, SerializationResult, SlateElement, SlateText, TextAlign, ValidationError } from '../types';
 import { generateResponseProcessingXml } from '../utils/responseProcessingGenerator';
+import { formatXmlDom } from './formatXmlDom';
 import { type XmlNode, xmlNodeToDom } from './xmlNode';
 import { createXmlDocument, createXmlElement } from './xmlUtils';
 
@@ -965,6 +966,9 @@ export function serializeSlateToQti(
   // Remove xmlns attribute - it's inherited from the parent qti-assessment-item
   imported.removeAttribute('xmlns');
   assessmentItem.replaceChild(imported, oldItemBody);
+
+  // Pretty-print the DOM before serializing
+  formatXmlDom(doc.documentElement);
 
   // Serialize the complete document back to XML
   const serializer = new XMLSerializer();

@@ -4,6 +4,7 @@ import { hasCorrectResponse } from '../../utils/responseDeclaration';
 
 export const extendedTextInteractionConfig: ElementConfig = {
   type: 'qti-extended-text-interaction',
+  xmlTagName: 'qti-extended-text-interaction',
   isVoid: false,
   isInline: false,
   needsSpacers: true,

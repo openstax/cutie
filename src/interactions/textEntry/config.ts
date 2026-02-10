@@ -14,6 +14,7 @@ const QTI_NAMESPACE = 'http://www.imsglobal.org/xsd/imsqtiasi_v3p0';
 
 export const textEntryInteractionConfig: ElementConfig = {
   type: 'qti-text-entry-interaction',
+  xmlTagName: 'qti-text-entry-interaction',
   isVoid: true,
   isInline: true,
   needsSpacers: false, // Inline elements don't need spacers

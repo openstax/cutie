@@ -4,6 +4,7 @@ import { wrapInlineContentInParagraphs } from '../../utils/normalization';
 
 export const contentBodyConfig: ElementConfig = {
   type: 'qti-content-body',
+  xmlTagName: 'qti-content-body',
   isVoid: false,
   isInline: false,
   needsSpacers: false,

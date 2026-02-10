@@ -4,6 +4,7 @@ import { wrapInlineContentInParagraphs } from '../../utils/normalization';
 
 export const promptConfig: ElementConfig = {
   type: 'qti-prompt',
+  xmlTagName: 'qti-prompt',
   isVoid: false,
   isInline: false,
   needsSpacers: false,

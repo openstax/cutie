@@ -4,6 +4,7 @@ import { hasCorrectResponse } from '../../utils/responseDeclaration';
 
 export const inlineChoiceInteractionConfig: ElementConfig = {
   type: 'qti-inline-choice-interaction',
+  xmlTagName: 'qti-inline-choice-interaction',
   isVoid: true,
   isInline: true,
   needsSpacers: false, // Inline elements don't need spacers

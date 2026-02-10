@@ -668,6 +668,8 @@ export interface FeedbackIdentifierSource {
 export interface ElementConfig {
   /** The element type identifier */
   type: string;
+  /** The XML tag name this element serializes to, or null for editor-only elements */
+  xmlTagName: string | null;
   /** Whether this element is void (has no editable children) */
   isVoid: boolean;
   /** Whether this element is inline */

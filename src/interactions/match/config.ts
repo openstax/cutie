@@ -24,6 +24,7 @@ function getChoicesFromSet(
 
 export const matchInteractionConfig: ElementConfig = {
   type: 'qti-match-interaction',
+  xmlTagName: 'qti-match-interaction',
   isVoid: false,
   isInline: false,
   needsSpacers: true,
@@ -169,6 +170,7 @@ export const matchInteractionConfig: ElementConfig = {
 
 export const matchSourceSetConfig: ElementConfig = {
   type: 'match-source-set',
+  xmlTagName: null,
   isVoid: false,
   isInline: false,
   needsSpacers: false,
@@ -180,6 +182,7 @@ export const matchSourceSetConfig: ElementConfig = {
 
 export const matchTargetSetConfig: ElementConfig = {
   type: 'match-target-set',
+  xmlTagName: null,
   isVoid: false,
   isInline: false,
   needsSpacers: false,
@@ -191,6 +194,7 @@ export const matchTargetSetConfig: ElementConfig = {
 
 export const simpleAssociableChoiceConfig: ElementConfig = {
   type: 'qti-simple-associable-choice',
+  xmlTagName: 'qti-simple-associable-choice',
   isVoid: false,
   isInline: false,
   needsSpacers: false,
