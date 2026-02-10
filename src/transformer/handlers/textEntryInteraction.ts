@@ -123,10 +123,20 @@ const TEXT_ENTRY_INTERACTION_STYLES = `
     vertical-align: baseline;
   }
 
+  .qti-text-entry-interaction:focus {
+    outline: 2px solid #2196f3;
+    outline-offset: 1px;
+    border-color: #2196f3;
+  }
+
   .qti-text-entry-interaction:disabled {
     background-color: #f5f5f5;
     cursor: not-allowed;
     opacity: 0.6;
+  }
+
+  .qti-text-entry-interaction:disabled:focus {
+    outline: none;
   }
 `;
 
