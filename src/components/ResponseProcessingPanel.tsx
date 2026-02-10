@@ -4,7 +4,6 @@ import type { ResponseProcessingConfig, ResponseProcessingMode } from '../types'
 interface ResponseProcessingPanelProps {
   config: ResponseProcessingConfig;
   interactionCount: number;
-  hasMappings: boolean;
   hasFeedbackElements: boolean;
   onModeChange: (mode: ResponseProcessingMode) => void;
 }
@@ -15,7 +14,6 @@ interface ResponseProcessingPanelProps {
 export function ResponseProcessingPanel({
   config,
   interactionCount,
-  hasMappings,
   hasFeedbackElements,
   onModeChange,
 }: ResponseProcessingPanelProps): React.JSX.Element {
@@ -25,9 +23,6 @@ export function ResponseProcessingPanel({
 
   // Warning messages based on mode/content mismatch
   const warnings: string[] = [];
-  if (config.mode === 'allCorrect' && hasMappings) {
-    warnings.push('This item has score mappings that will be ignored with "All or nothing" scoring.');
-  }
 
   return (
     <div className="response-processing-panel">

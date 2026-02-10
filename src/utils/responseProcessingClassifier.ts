@@ -145,6 +145,23 @@ function classifyInlinePattern(responseProcessing: Element): ResponseProcessingM
 }
 
 /**
+ * Check if a response condition only sets intermediate score variables (e.g. RESPONSE1_SCORE).
+ * These are allowed before the sum in sumScores pattern, where unmapped responses
+ * need individual score conditions before being summed.
+ */
+function isIntermediateScoreCondition(condition: Element): boolean {
+  const setters = condition.querySelectorAll('qti-set-outcome-value');
+  if (setters.length === 0) return false;
+  for (const setter of setters) {
+    const identifier = setter.getAttribute('identifier');
+    if (!identifier || identifier === 'SCORE' || !identifier.endsWith('_SCORE')) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
  * Check if the response processing follows the sumScores pattern:
  * A qti-set-outcome-value for SCORE containing a qti-sum,
  * optionally followed by feedback-only conditions
@@ -181,8 +198,10 @@ function isSumScoresPattern(responseProcessing: Element): boolean {
           return false;
         }
       } else {
-        // Response condition before sum pattern -> not sumScores
-        return false;
+        // Before sum: allow intermediate score conditions (e.g. setting RESPONSE1_SCORE)
+        if (!isIntermediateScoreCondition(child)) {
+          return false;
+        }
       }
     }
   }
@@ -220,8 +239,8 @@ function isAllCorrectPattern(responseProcessing: Element): boolean {
 
 /**
  * Check if a condition follows the allCorrect scoring pattern:
- * A qti-and over qti-match calls (multiple interactions) or
- * a single qti-match call (single interaction)
+ * A qti-and over qti-match/qti-equal calls (multiple interactions) or
+ * a single qti-match/qti-equal call (single interaction)
  */
 function isAllCorrectScoringCondition(condition: Element): boolean {
   const responseIf = condition.querySelector(':scope > qti-response-if');
@@ -229,28 +248,31 @@ function isAllCorrectScoringCondition(condition: Element): boolean {
     return false;
   }
 
-  // Check if the condition is a qti-and (multiple interactions) or qti-match (single interaction)
+  // Check if the condition is a qti-and (multiple interactions) or a single correctness check
   const and = responseIf.querySelector(':scope > qti-and');
   const match = responseIf.querySelector(':scope > qti-match');
+  const equal = responseIf.querySelector(':scope > qti-equal');
 
   if (and) {
-    // Multiple interactions: all children should be qti-match elements
-    const matches = and.querySelectorAll(':scope > qti-match');
-    if (matches.length === 0) {
+    // Multiple interactions: all children should be qti-match or qti-equal(qti-map-response) elements
+    for (const child of and.children) {
+      const tag = child.tagName.toLowerCase();
+      if (tag === 'qti-match' && isMatchVariableToCorrect(child)) continue;
+      if (tag === 'qti-equal' && isMapResponseEqualToValue(child)) continue;
       return false;
     }
-    // Verify all matches compare variable to correct
-    for (const m of matches) {
-      if (!isMatchVariableToCorrect(m)) {
-        return false;
-      }
-    }
-    return true;
+    // Must have at least one child
+    return and.children.length > 0;
   }
 
   if (match) {
     // Single interaction: verify it compares variable to correct
     return isMatchVariableToCorrect(match);
+  }
+
+  if (equal) {
+    // Single interaction with mapping: verify it compares map-response to a value
+    return isMapResponseEqualToValue(equal);
   }
 
   return false;
@@ -273,6 +295,29 @@ function isMatchVariableToCorrect(match: Element): boolean {
 
   // The identifiers should match
   return varId !== null && varId === correctId;
+}
+
+/**
+ * Check if a qti-equal element compares a qti-map-response to a qti-base-value.
+ * Pattern: <qti-equal><qti-map-response identifier="X"/><qti-base-value base-type="float">N</qti-base-value></qti-equal>
+ */
+function isMapResponseEqualToValue(equal: Element): boolean {
+  const mapResponse = equal.querySelector('qti-map-response');
+  const baseValue = equal.querySelector('qti-base-value');
+
+  if (!mapResponse || !baseValue) {
+    return false;
+  }
+
+  // Must have an identifier on map-response
+  const identifier = mapResponse.getAttribute('identifier');
+  if (!identifier) {
+    return false;
+  }
+
+  // base-value should be float type
+  const baseType = baseValue.getAttribute('base-type');
+  return baseType === 'float';
 }
 
 /**

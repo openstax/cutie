@@ -11,7 +11,7 @@ import { gapMatchSerializers } from '../interactions/gapMatch';
 import { inlineChoiceSerializers } from '../interactions/inlineChoice';
 import { matchSerializers } from '../interactions/match';
 import { textEntrySerializers } from '../interactions/textEntry';
-import type { DocumentMetadata, ResponseProcessingConfig, SerializationResult, SlateElement, SlateText, TextAlign, ValidationError } from '../types';
+import type { DocumentMetadata, ElementConfig, ResponseProcessingConfig, SerializationResult, SlateElement, SlateText, TextAlign, ValidationError } from '../types';
 import { generateResponseProcessingXml } from '../utils/responseProcessingGenerator';
 import { type XmlNode, xmlNodeToDom } from './xmlNode';
 import { createXmlDocument, createXmlElement } from './xmlUtils';
@@ -28,6 +28,8 @@ interface InternalSerializationResult extends SerializationResult {
   feedbackIdentifiersUsed: Set<string>;
   /** Modal feedback elements to be inserted outside qti-item-body */
   modalFeedbackElements: Element[];
+  /** Map of response identifier to its interaction's ElementConfig */
+  responseConfigs: Map<string, ElementConfig>;
 }
 
 /**
@@ -77,6 +79,7 @@ export function serializeSlateToXml(nodes: Descendant[]): InternalSerializationR
     outcomeDeclarations: new Map(),
     feedbackIdentifiersUsed: new Set(),
     modalFeedbackElements: [],
+    responseConfigs: new Map(),
   };
 
   // Extract document metadata if present (always at position [0])
@@ -113,6 +116,7 @@ export function serializeSlateToXml(nodes: Descendant[]): InternalSerializationR
     responseProcessingConfig,
     feedbackIdentifiersUsed: context.feedbackIdentifiersUsed,
     modalFeedbackElements: context.modalFeedbackElements,
+    responseConfigs: context.responseConfigs,
   };
 }
 
@@ -128,6 +132,8 @@ export interface SerializationContext {
   feedbackIdentifiersUsed: Set<string>;
   /** Container for modal feedback elements (serialized outside item-body) */
   modalFeedbackElements: Element[];
+  /** Map of response identifier to its interaction's ElementConfig */
+  responseConfigs: Map<string, ElementConfig>;
 }
 
 // Single contact point per interaction: spread all serializer objects
@@ -779,6 +785,7 @@ function updateResponseProcessing(
   responseDeclarations: Map<string, XmlNode>,
   outcomeDeclarations: Map<string, XmlNode>,
   feedbackIdentifiersUsed: Set<string>,
+  responseConfigs: Map<string, ElementConfig>,
   doc: Document
 ): void {
   // Remove existing response processing
@@ -795,7 +802,8 @@ function updateResponseProcessing(
       responseDeclarations,
       outcomeDeclarations,
       doc,
-      feedbackIdentifiersUsed
+      feedbackIdentifiersUsed,
+      responseConfigs
     );
 
     if (newRP) {
@@ -928,6 +936,7 @@ export function serializeSlateToQti(
     itemBodyResult.responseDeclarations,
     itemBodyResult.outcomeDeclarations,
     itemBodyResult.feedbackIdentifiersUsed,
+    itemBodyResult.responseConfigs,
     doc
   );
 

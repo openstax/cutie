@@ -3,6 +3,7 @@ import type { SerializationContext } from '../../serialization/slateToXml';
 import type { ConvertChildrenFn, ParserContext } from '../../serialization/xmlToSlate';
 import { createXmlElement } from '../../serialization/xmlUtils';
 import type { QtiGapText, SlateElement, XmlNode } from '../../types';
+import { gapMatchInteractionConfig } from './config';
 
 /**
  * Create a default response declaration for a gap-match interaction
@@ -230,6 +231,9 @@ function serializeGapMatchInteraction(
     if (element.responseDeclaration) {
       context.responseDeclarations.set(responseId, element.responseDeclaration);
     }
+
+    // Register interaction config for response processing generation
+    context.responseConfigs.set(responseId, gapMatchInteractionConfig);
   } else {
     context.errors.push({
       type: 'missing-identifier',

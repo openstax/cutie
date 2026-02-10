@@ -3,6 +3,7 @@ import type { SerializationContext } from '../../serialization/slateToXml';
 import type { ConvertChildrenFn, ParserContext } from '../../serialization/xmlToSlate';
 import { createXmlElement } from '../../serialization/xmlUtils';
 import type { SlateElement, XmlNode } from '../../types';
+import { choiceInteractionConfig } from './config';
 
 /**
  * Create a default response declaration for a choice interaction
@@ -79,6 +80,9 @@ function serializeChoiceInteraction(
     if (element.responseDeclaration) {
       context.responseDeclarations.set(responseId, element.responseDeclaration);
     }
+
+    // Register interaction config for response processing generation
+    context.responseConfigs.set(responseId, choiceInteractionConfig);
   } else {
     context.errors.push({
       type: 'missing-identifier',

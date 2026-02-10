@@ -1,7 +1,7 @@
 import { xmlNodeToDom } from '../serialization/xmlNode';
-import type { ResponseProcessingConfig, XmlNode } from '../types';
+import type { ElementConfig, ResponseProcessingConfig, XmlNode } from '../types';
 import { parseFeedbackIdentifier } from './feedbackIdentifiers';
-import { hasMapping } from './responseProcessingClassifier';
+import { getMaxMappedValue, hasMapping } from './mappingDeclaration';
 
 /**
  * QTI namespace URI
@@ -33,7 +33,8 @@ export function generateResponseProcessingXml(
   responseDeclarations: Map<string, XmlNode>,
   outcomeDeclarations: Map<string, XmlNode>,
   doc: Document,
-  feedbackIdentifiersUsed?: Set<string>
+  feedbackIdentifiersUsed?: Set<string>,
+  responseConfigs?: Map<string, ElementConfig>
 ): Element | null {
   // No interactions -> no response processing needed (unless we have feedback)
   if (responseIdentifiers.length === 0 && (!feedbackIdentifiersUsed || feedbackIdentifiersUsed.size === 0)) {
@@ -44,9 +45,9 @@ export function generateResponseProcessingXml(
     case 'custom':
       return generateCustomXml(config, doc);
     case 'allCorrect':
-      return generateAllCorrectXml(responseIdentifiers, responseDeclarations, doc, feedbackIdentifiersUsed);
+      return generateAllCorrectXml(responseIdentifiers, responseDeclarations, doc, feedbackIdentifiersUsed, responseConfigs);
     case 'sumScores':
-      return generateSumScoresXml(responseIdentifiers, responseDeclarations, outcomeDeclarations, doc, feedbackIdentifiersUsed);
+      return generateSumScoresXml(responseIdentifiers, responseDeclarations, outcomeDeclarations, doc, feedbackIdentifiersUsed, responseConfigs);
     default:
       return null;
   }
@@ -72,57 +73,43 @@ function generateAllCorrectXml(
   responseIdentifiers: string[],
   responseDeclarations: Map<string, XmlNode>,
   doc: Document,
-  feedbackIdentifiersUsed?: Set<string>
+  feedbackIdentifiersUsed?: Set<string>,
+  responseConfigs?: Map<string, ElementConfig>
 ): Element {
   const responseProcessing = doc.createElementNS(QTI_NAMESPACE, 'qti-response-processing');
   const hasFeedback = feedbackIdentifiersUsed && feedbackIdentifiersUsed.size > 0;
 
-  // Single interaction with standard identifier and no feedback: use template
-  // The match_correct template requires identifier to be exactly "RESPONSE"
-  if (responseIdentifiers.length === 1 && responseIdentifiers[0] === 'RESPONSE' && !hasFeedback) {
+  // Check if any response has a mapping
+  const anyHasMapping = responseIdentifiers.some(id => {
+    const decl = responseDeclarations.get(id);
+    return decl && hasMapping(decl);
+  });
+
+  // Template shortcut: only when no mapping, no feedback, and single RESPONSE
+  if (responseIdentifiers.length === 1 && responseIdentifiers[0] === 'RESPONSE' && !hasFeedback && !anyHasMapping) {
     responseProcessing.setAttribute('template', TEMPLATES.matchCorrect);
     return responseProcessing;
   }
 
-  // Generate inline pattern when we have multiple interactions or feedback
+  // Generate inline pattern
   if (responseIdentifiers.length > 0) {
-    // <qti-response-condition>
-    //   <qti-response-if>
-    //     <qti-and>
-    //       <qti-match><qti-variable identifier="RESP1"/><qti-correct identifier="RESP1"/></qti-match>
-    //       ...
-    //     </qti-and>
-    //     <qti-set-outcome-value identifier="SCORE">
-    //       <qti-base-value base-type="float">1</qti-base-value>
-    //     </qti-set-outcome-value>
-    //   </qti-response-if>
-    //   <qti-response-else>
-    //     <qti-set-outcome-value identifier="SCORE">
-    //       <qti-base-value base-type="float">0</qti-base-value>
-    //     </qti-set-outcome-value>
-    //   </qti-response-else>
-    // </qti-response-condition>
-
     const condition = doc.createElementNS(QTI_NAMESPACE, 'qti-response-condition');
-
-    // Response if
     const responseIf = doc.createElementNS(QTI_NAMESPACE, 'qti-response-if');
 
     if (responseIdentifiers.length === 1) {
-      // Single interaction: use qti-match directly
-      responseIf.appendChild(createMatchElement(responseIdentifiers[0], doc));
+      // Single interaction: use correctness check directly
+      responseIf.appendChild(createCorrectnessCheckForId(responseIdentifiers[0], responseDeclarations, responseConfigs, doc));
     } else {
       // Multiple interactions: use qti-and
       const and = doc.createElementNS(QTI_NAMESPACE, 'qti-and');
       for (const id of responseIdentifiers) {
-        and.appendChild(createMatchElement(id, doc));
+        and.appendChild(createCorrectnessCheckForId(id, responseDeclarations, responseConfigs, doc));
       }
       responseIf.appendChild(and);
     }
 
     // Set score to 1
     responseIf.appendChild(createSetScoreElement('1', doc));
-
     condition.appendChild(responseIf);
 
     // Response else - set score to 0
@@ -139,7 +126,9 @@ function generateAllCorrectXml(
       responseIdentifiers,
       responseDeclarations,
       feedbackIdentifiersUsed,
-      doc
+      doc,
+      undefined,
+      responseConfigs
     );
     for (const fc of feedbackConditions) {
       responseProcessing.appendChild(fc);
@@ -189,7 +178,8 @@ function generateSumScoresXml(
   responseDeclarations: Map<string, XmlNode>,
   outcomeDeclarations: Map<string, XmlNode>,
   doc: Document,
-  feedbackIdentifiersUsed?: Set<string>
+  feedbackIdentifiersUsed?: Set<string>,
+  responseConfigs?: Map<string, ElementConfig>
 ): Element {
   const responseProcessing = doc.createElementNS(QTI_NAMESPACE, 'qti-response-processing');
   const hasFeedback = feedbackIdentifiersUsed && feedbackIdentifiersUsed.size > 0;
@@ -271,7 +261,8 @@ function generateSumScoresXml(
       responseDeclarations,
       feedbackIdentifiersUsed,
       doc,
-      new Set(withMapping)
+      new Set(withMapping),
+      responseConfigs
     );
     for (const fc of feedbackConditions) {
       responseProcessing.appendChild(fc);
@@ -282,9 +273,40 @@ function generateSumScoresXml(
 }
 
 /**
+ * Create the correctness check element for a given response identifier.
+ * Delegates to config.generateCorrectnessCheck if available,
+ * otherwise uses mapping-based or match-based default.
+ */
+function createCorrectnessCheckForId(
+  id: string,
+  responseDeclarations: Map<string, XmlNode>,
+  responseConfigs: Map<string, ElementConfig> | undefined,
+  doc: Document
+): Element {
+  const decl = responseDeclarations.get(id);
+  const config = responseConfigs?.get(id);
+
+  // Use config method if available
+  if (config?.generateCorrectnessCheck && decl) {
+    return config.generateCorrectnessCheck(id, decl, doc);
+  }
+
+  // Default: if mapping exists, use qti-equal(qti-map-response, maxValue)
+  if (decl && hasMapping(decl)) {
+    const maxValue = getMaxMappedValue(decl);
+    if (maxValue !== null) {
+      return createMapResponseEqualElement(id, maxValue, doc);
+    }
+  }
+
+  // Default: qti-match(variable, correct)
+  return createMatchElement(id, doc);
+}
+
+/**
  * Create a qti-match element that compares a variable to its correct value
  */
-function createMatchElement(identifier: string, doc: Document): Element {
+export function createMatchElement(identifier: string, doc: Document): Element {
   const match = doc.createElementNS(QTI_NAMESPACE, 'qti-match');
 
   const variable = doc.createElementNS(QTI_NAMESPACE, 'qti-variable');
@@ -296,6 +318,30 @@ function createMatchElement(identifier: string, doc: Document): Element {
   match.appendChild(correct);
 
   return match;
+}
+
+/**
+ * Create a qti-equal element that checks if a mapped response equals a specific value.
+ * Used for allCorrect correctness checks on mapped responses.
+ *
+ * <qti-equal>
+ *   <qti-map-response identifier="ID"/>
+ *   <qti-base-value base-type="float">{value}</qti-base-value>
+ * </qti-equal>
+ */
+export function createMapResponseEqualElement(identifier: string, value: number, doc: Document): Element {
+  const equal = doc.createElementNS(QTI_NAMESPACE, 'qti-equal');
+
+  const mapResponse = doc.createElementNS(QTI_NAMESPACE, 'qti-map-response');
+  mapResponse.setAttribute('identifier', identifier);
+  equal.appendChild(mapResponse);
+
+  const baseValue = doc.createElementNS(QTI_NAMESPACE, 'qti-base-value');
+  baseValue.setAttribute('base-type', 'float');
+  baseValue.textContent = String(value);
+  equal.appendChild(baseValue);
+
+  return equal;
 }
 
 /**
@@ -383,7 +429,8 @@ function generateFeedbackProcessingXml(
   responseDeclarations: Map<string, XmlNode>,
   feedbackIdentifiersUsed: Set<string>,
   doc: Document,
-  mappedResponseIds?: Set<string>
+  mappedResponseIds?: Set<string>,
+  responseConfigs?: Map<string, ElementConfig>
 ): Element[] {
   const conditions: Element[] = [];
 
@@ -404,11 +451,22 @@ function generateFeedbackProcessingXml(
     const feedbackIds = feedbackByResponse.get(responseId);
     if (!feedbackIds || feedbackIds.size === 0) continue;
 
-    // Get response declaration to check cardinality
     const responseDecl = responseDeclarations.get(responseId);
+    const config = responseConfigs?.get(responseId);
+
+    // Delegate to config if it provides generateFeedbackConditions
+    if (config?.generateFeedbackConditions && responseDecl) {
+      const configConditions = config.generateFeedbackConditions(
+        responseId, responseDecl, feedbackIds, doc
+      );
+      conditions.push(...configConditions);
+      continue;
+    }
+
+    // Default feedback generation
     const cardinality = responseDecl?.attributes?.cardinality || 'single';
 
-    // Check for correct/incorrect feedback
+    // Check for correct/incorrect/partial feedback
     const correctId = `${responseId}_correct`;
     const incorrectId = `${responseId}_incorrect`;
     const hasCorrect = feedbackIds.has(correctId);
@@ -517,7 +575,7 @@ function createFeedbackCorrectIncorrectCondition(
  * Used for feedback conditions on responses with mappings, so that feedback
  * uses the same case-insensitive matching as the scoring.
  */
-function createMapResponseGtZeroElement(identifier: string, doc: Document): Element {
+export function createMapResponseGtZeroElement(identifier: string, doc: Document): Element {
   const gt = doc.createElementNS(QTI_NAMESPACE, 'qti-gt');
 
   const mapResponse = doc.createElementNS(QTI_NAMESPACE, 'qti-map-response');
@@ -616,7 +674,7 @@ function createFeedbackChoiceCondition(
  *   </qti-multiple>
  * </qti-set-outcome-value>
  */
-function createSetFeedbackElement(feedbackId: string, doc: Document): Element {
+export function createSetFeedbackElement(feedbackId: string, doc: Document): Element {
   const setOutcome = doc.createElementNS(QTI_NAMESPACE, 'qti-set-outcome-value');
   setOutcome.setAttribute('identifier', 'FEEDBACK');
 

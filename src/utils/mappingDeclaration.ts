@@ -191,6 +191,40 @@ export function setMapEntries(decl: XmlNode, entries: MapEntry[]): XmlNode {
 }
 
 /**
+ * Compute the maximum possible mapped value for a single response declaration.
+ *
+ * For single cardinality: max of positive entry values.
+ * For multiple/ordered cardinality: sum of positive entry values.
+ * Respects upperBound if set on the mapping.
+ * Returns null if no mapping or no positive entries.
+ */
+export function getMaxMappedValue(decl: XmlNode): number | null {
+  const mapping = getMapping(decl);
+  if (!mapping) return null;
+
+  const positiveValues = mapping.entries
+    .map(e => e.mappedValue)
+    .filter(v => v > 0);
+
+  if (positiveValues.length === 0) return null;
+
+  const cardinality = decl.attributes['cardinality'] || 'single';
+  let max: number;
+
+  if (cardinality === 'multiple' || cardinality === 'ordered') {
+    max = positiveValues.reduce((sum, v) => sum + v, 0);
+  } else {
+    max = Math.max(...positiveValues);
+  }
+
+  if (mapping.metadata.upperBound !== undefined) {
+    max = Math.min(max, mapping.metadata.upperBound);
+  }
+
+  return max;
+}
+
+/**
  * Update mapping with both metadata and entries at once
  */
 export function updateMapping(

@@ -20,7 +20,6 @@ interface PropertiesPanelProps {
   onUpdateAttributes: (path: Path, attributes: ElementAttributes, responseDeclaration?: XmlNode, additionalProps?: Record<string, unknown>) => void;
   responseProcessingConfig?: ResponseProcessingConfig;
   interactionCount?: number;
-  hasMappings?: boolean;
   hasFeedbackElements?: boolean;
   onResponseProcessingModeChange?: (mode: ResponseProcessingMode) => void;
 }
@@ -50,7 +49,6 @@ export function PropertiesPanel({
   onUpdateAttributes,
   responseProcessingConfig,
   interactionCount = 0,
-  hasMappings = false,
   hasFeedbackElements = false,
   onResponseProcessingModeChange,
 }: PropertiesPanelProps): React.JSX.Element {
@@ -65,7 +63,6 @@ export function PropertiesPanel({
           <ResponseProcessingPanel
             config={responseProcessingConfig}
             interactionCount={interactionCount}
-            hasMappings={hasMappings}
             hasFeedbackElements={hasFeedbackElements}
             onModeChange={onResponseProcessingModeChange}
           />
@@ -109,7 +106,6 @@ export function PropertiesPanel({
         <ResponseProcessingPanel
           config={responseProcessingConfig}
           interactionCount={interactionCount}
-          hasMappings={hasMappings}
           hasFeedbackElements={hasFeedbackElements}
           onModeChange={onResponseProcessingModeChange}
         />

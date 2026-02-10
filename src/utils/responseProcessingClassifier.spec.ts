@@ -1,8 +1,16 @@
 import { describe, expect, it } from 'vitest';
+import { item as inlineChoiceMultiItem } from '../../../cutie-example/src/example-items/inline-choice-multi';
 import { item as inlineFeedbackItem } from '../../../cutie-example/src/example-items/inline-feedback';
 import { item as modalFeedbackItem } from '../../../cutie-example/src/example-items/modal-feedback';
 import { item as choiceFeedbackItem } from '../../../cutie-example/src/example-items/standard-choice';
+import { item as choiceMultipleFeedbackItem } from '../../../cutie-example/src/example-items/standard-choice-multiple';
+import { item as choicePartialItem } from '../../../cutie-example/src/example-items/standard-choice-partial';
+import { item as gapMatchFeedbackItem } from '../../../cutie-example/src/example-items/standard-gap-match';
+import { item as inlineChoiceFeedbackItem } from '../../../cutie-example/src/example-items/standard-inline-choice';
+import { item as matchFeedbackItem } from '../../../cutie-example/src/example-items/standard-match';
+import { item as multiInteractionItem } from '../../../cutie-example/src/example-items/standard-multi-interaction';
 import { item as textEntryItem } from '../../../cutie-example/src/example-items/standard-text-entry';
+import { item as textEntryPartialItem } from '../../../cutie-example/src/example-items/standard-text-entry-partial';
 import { item as textEntryMultiItem } from '../../../cutie-example/src/example-items/text-entry-multi';
 import { classifyResponseProcessing } from './responseProcessingClassifier';
 
@@ -44,6 +52,64 @@ describe('responseProcessingClassifier', () => {
                 <qti-base-value base-type="float">1</qti-base-value>
               </qti-set-outcome-value>
             </qti-response-if>
+          </qti-response-condition>
+        </qti-response-processing>
+      `);
+
+      const result = classifyResponseProcessing(doc);
+      expect(result.mode).toBe('allCorrect');
+    });
+
+    it('should recognize single interaction allCorrect with qti-equal(qti-map-response)', () => {
+      const doc = createQtiDoc(`
+        <qti-response-processing>
+          <qti-response-condition>
+            <qti-response-if>
+              <qti-equal>
+                <qti-map-response identifier="RESPONSE"/>
+                <qti-base-value base-type="float">1</qti-base-value>
+              </qti-equal>
+              <qti-set-outcome-value identifier="SCORE">
+                <qti-base-value base-type="float">1</qti-base-value>
+              </qti-set-outcome-value>
+            </qti-response-if>
+            <qti-response-else>
+              <qti-set-outcome-value identifier="SCORE">
+                <qti-base-value base-type="float">0</qti-base-value>
+              </qti-set-outcome-value>
+            </qti-response-else>
+          </qti-response-condition>
+        </qti-response-processing>
+      `);
+
+      const result = classifyResponseProcessing(doc);
+      expect(result.mode).toBe('allCorrect');
+    });
+
+    it('should recognize multiple interaction allCorrect with mixed qti-match and qti-equal', () => {
+      const doc = createQtiDoc(`
+        <qti-response-processing>
+          <qti-response-condition>
+            <qti-response-if>
+              <qti-and>
+                <qti-match>
+                  <qti-variable identifier="RESPONSE"/>
+                  <qti-correct identifier="RESPONSE"/>
+                </qti-match>
+                <qti-equal>
+                  <qti-map-response identifier="RESPONSE_2"/>
+                  <qti-base-value base-type="float">1</qti-base-value>
+                </qti-equal>
+              </qti-and>
+              <qti-set-outcome-value identifier="SCORE">
+                <qti-base-value base-type="float">1</qti-base-value>
+              </qti-set-outcome-value>
+            </qti-response-if>
+            <qti-response-else>
+              <qti-set-outcome-value identifier="SCORE">
+                <qti-base-value base-type="float">0</qti-base-value>
+              </qti-set-outcome-value>
+            </qti-response-else>
           </qti-response-condition>
         </qti-response-processing>
       `);
@@ -172,6 +238,67 @@ describe('responseProcessingClassifier', () => {
                 </qti-multiple>
               </qti-set-outcome-value>
             </qti-response-if>
+          </qti-response-condition>
+        </qti-response-processing>
+      `);
+
+      const result = classifyResponseProcessing(doc);
+      expect(result.mode).toBe('allCorrect');
+    });
+
+    it('should recognize allCorrect with partial feedback (three-way condition)', () => {
+      const doc = createQtiDoc(`
+        <qti-response-processing>
+          <qti-response-condition>
+            <qti-response-if>
+              <qti-equal>
+                <qti-map-response identifier="RESPONSE"/>
+                <qti-base-value base-type="float">1</qti-base-value>
+              </qti-equal>
+              <qti-set-outcome-value identifier="SCORE">
+                <qti-base-value base-type="float">1</qti-base-value>
+              </qti-set-outcome-value>
+            </qti-response-if>
+            <qti-response-else>
+              <qti-set-outcome-value identifier="SCORE">
+                <qti-base-value base-type="float">0</qti-base-value>
+              </qti-set-outcome-value>
+            </qti-response-else>
+          </qti-response-condition>
+
+          <qti-response-condition>
+            <qti-response-if>
+              <qti-equal>
+                <qti-map-response identifier="RESPONSE"/>
+                <qti-base-value base-type="float">1</qti-base-value>
+              </qti-equal>
+              <qti-set-outcome-value identifier="FEEDBACK">
+                <qti-multiple>
+                  <qti-variable identifier="FEEDBACK"/>
+                  <qti-base-value base-type="identifier">RESPONSE_correct</qti-base-value>
+                </qti-multiple>
+              </qti-set-outcome-value>
+            </qti-response-if>
+            <qti-response-else-if>
+              <qti-gt>
+                <qti-map-response identifier="RESPONSE"/>
+                <qti-base-value base-type="float">0</qti-base-value>
+              </qti-gt>
+              <qti-set-outcome-value identifier="FEEDBACK">
+                <qti-multiple>
+                  <qti-variable identifier="FEEDBACK"/>
+                  <qti-base-value base-type="identifier">RESPONSE_partial</qti-base-value>
+                </qti-multiple>
+              </qti-set-outcome-value>
+            </qti-response-else-if>
+            <qti-response-else>
+              <qti-set-outcome-value identifier="FEEDBACK">
+                <qti-multiple>
+                  <qti-variable identifier="FEEDBACK"/>
+                  <qti-base-value base-type="identifier">RESPONSE_incorrect</qti-base-value>
+                </qti-multiple>
+              </qti-set-outcome-value>
+            </qti-response-else>
           </qti-response-condition>
         </qti-response-processing>
       `);
@@ -325,6 +452,155 @@ describe('responseProcessingClassifier', () => {
       expect(result.mode).toBe('sumScores');
     });
 
+    it('should recognize sumScores with intermediate score conditions before sum', () => {
+      const doc = createQtiDoc(`
+        <qti-response-processing>
+          <qti-response-condition>
+            <qti-response-if>
+              <qti-match>
+                <qti-variable identifier="RESPONSE"/>
+                <qti-correct identifier="RESPONSE"/>
+              </qti-match>
+              <qti-set-outcome-value identifier="RESPONSE_SCORE">
+                <qti-base-value base-type="float">1</qti-base-value>
+              </qti-set-outcome-value>
+            </qti-response-if>
+            <qti-response-else>
+              <qti-set-outcome-value identifier="RESPONSE_SCORE">
+                <qti-base-value base-type="float">0</qti-base-value>
+              </qti-set-outcome-value>
+            </qti-response-else>
+          </qti-response-condition>
+
+          <qti-set-outcome-value identifier="SCORE">
+            <qti-sum>
+              <qti-variable identifier="RESPONSE_SCORE"/>
+            </qti-sum>
+          </qti-set-outcome-value>
+        </qti-response-processing>
+      `);
+
+      const result = classifyResponseProcessing(doc);
+      expect(result.mode).toBe('sumScores');
+    });
+
+    it('should recognize sumScores with intermediate score conditions + feedback after sum', () => {
+      const doc = createQtiDoc(`
+        <qti-response-processing>
+          <qti-response-condition>
+            <qti-response-if>
+              <qti-match>
+                <qti-variable identifier="RESPONSE"/>
+                <qti-correct identifier="RESPONSE"/>
+              </qti-match>
+              <qti-set-outcome-value identifier="RESPONSE_SCORE">
+                <qti-base-value base-type="float">1</qti-base-value>
+              </qti-set-outcome-value>
+            </qti-response-if>
+            <qti-response-else>
+              <qti-set-outcome-value identifier="RESPONSE_SCORE">
+                <qti-base-value base-type="float">0</qti-base-value>
+              </qti-set-outcome-value>
+            </qti-response-else>
+          </qti-response-condition>
+
+          <qti-set-outcome-value identifier="SCORE">
+            <qti-sum>
+              <qti-variable identifier="RESPONSE_SCORE"/>
+            </qti-sum>
+          </qti-set-outcome-value>
+
+          <qti-response-condition>
+            <qti-response-if>
+              <qti-match>
+                <qti-variable identifier="RESPONSE"/>
+                <qti-correct identifier="RESPONSE"/>
+              </qti-match>
+              <qti-set-outcome-value identifier="FEEDBACK">
+                <qti-multiple>
+                  <qti-variable identifier="FEEDBACK"/>
+                  <qti-base-value base-type="identifier">RESPONSE_correct</qti-base-value>
+                </qti-multiple>
+              </qti-set-outcome-value>
+            </qti-response-if>
+            <qti-response-else>
+              <qti-set-outcome-value identifier="FEEDBACK">
+                <qti-multiple>
+                  <qti-variable identifier="FEEDBACK"/>
+                  <qti-base-value base-type="identifier">RESPONSE_incorrect</qti-base-value>
+                </qti-multiple>
+              </qti-set-outcome-value>
+            </qti-response-else>
+          </qti-response-condition>
+        </qti-response-processing>
+      `);
+
+      const result = classifyResponseProcessing(doc);
+      expect(result.mode).toBe('sumScores');
+    });
+
+    it('should not classify as sumScores when condition before sum sets SCORE', () => {
+      const doc = createQtiDoc(`
+        <qti-response-processing>
+          <qti-response-condition>
+            <qti-response-if>
+              <qti-match>
+                <qti-variable identifier="RESPONSE"/>
+                <qti-correct identifier="RESPONSE"/>
+              </qti-match>
+              <qti-set-outcome-value identifier="SCORE">
+                <qti-base-value base-type="float">1</qti-base-value>
+              </qti-set-outcome-value>
+            </qti-response-if>
+          </qti-response-condition>
+
+          <qti-set-outcome-value identifier="SCORE">
+            <qti-sum>
+              <qti-variable identifier="RESPONSE_SCORE"/>
+            </qti-sum>
+          </qti-set-outcome-value>
+        </qti-response-processing>
+      `);
+
+      const result = classifyResponseProcessing(doc);
+      // Falls through to allCorrect since the first condition matches that pattern
+      expect(result.mode).not.toBe('sumScores');
+    });
+
+    it('should not classify as sumScores when condition before sum sets FEEDBACK', () => {
+      const doc = createQtiDoc(`
+        <qti-response-processing>
+          <qti-response-condition>
+            <qti-response-if>
+              <qti-match>
+                <qti-variable identifier="RESPONSE"/>
+                <qti-correct identifier="RESPONSE"/>
+              </qti-match>
+              <qti-set-outcome-value identifier="SCORE">
+                <qti-base-value base-type="float">1</qti-base-value>
+              </qti-set-outcome-value>
+              <qti-set-outcome-value identifier="FEEDBACK">
+                <qti-multiple>
+                  <qti-variable identifier="FEEDBACK"/>
+                  <qti-base-value base-type="identifier">RESPONSE_correct</qti-base-value>
+                </qti-multiple>
+              </qti-set-outcome-value>
+            </qti-response-if>
+          </qti-response-condition>
+
+          <qti-set-outcome-value identifier="SCORE">
+            <qti-sum>
+              <qti-variable identifier="RESPONSE_SCORE"/>
+            </qti-sum>
+          </qti-set-outcome-value>
+        </qti-response-processing>
+      `);
+
+      const result = classifyResponseProcessing(doc);
+      // Condition sets both SCORE and FEEDBACK, which is not a valid intermediate score condition
+      expect(result.mode).not.toBe('sumScores');
+    });
+
     it('should reject sumScores if additional condition sets non-FEEDBACK outcome', () => {
       const doc = createQtiDoc(`
         <qti-response-processing>
@@ -379,14 +655,62 @@ describe('responseProcessingClassifier', () => {
       expect(result.mode).toBe('allCorrect');
     });
 
-    it('should classify standard-text-entry.ts as sumScores', () => {
+    it('should classify standard-text-entry.ts as allCorrect', () => {
       const doc = parseItem(textEntryItem);
+      const result = classifyResponseProcessing(doc);
+      expect(result.mode).toBe('allCorrect');
+    });
+
+    it('should classify text-entry-multi.ts as allCorrect', () => {
+      const doc = parseItem(textEntryMultiItem);
+      const result = classifyResponseProcessing(doc);
+      expect(result.mode).toBe('allCorrect');
+    });
+
+    it('should classify standard-choice-multiple.ts as allCorrect', () => {
+      const doc = parseItem(choiceMultipleFeedbackItem);
+      const result = classifyResponseProcessing(doc);
+      expect(result.mode).toBe('allCorrect');
+    });
+
+    it('should classify standard-inline-choice.ts as allCorrect', () => {
+      const doc = parseItem(inlineChoiceFeedbackItem);
+      const result = classifyResponseProcessing(doc);
+      expect(result.mode).toBe('allCorrect');
+    });
+
+    it('should classify standard-match.ts as allCorrect', () => {
+      const doc = parseItem(matchFeedbackItem);
+      const result = classifyResponseProcessing(doc);
+      expect(result.mode).toBe('allCorrect');
+    });
+
+    it('should classify standard-gap-match.ts as allCorrect', () => {
+      const doc = parseItem(gapMatchFeedbackItem);
+      const result = classifyResponseProcessing(doc);
+      expect(result.mode).toBe('allCorrect');
+    });
+
+    it('should classify standard-multi-interaction.ts as sumScores', () => {
+      const doc = parseItem(multiInteractionItem);
       const result = classifyResponseProcessing(doc);
       expect(result.mode).toBe('sumScores');
     });
 
-    it('should classify text-entry-multi.ts as sumScores', () => {
-      const doc = parseItem(textEntryMultiItem);
+    it('should classify inline-choice-multi.ts as sumScores', () => {
+      const doc = parseItem(inlineChoiceMultiItem);
+      const result = classifyResponseProcessing(doc);
+      expect(result.mode).toBe('sumScores');
+    });
+
+    it('should classify standard-text-entry-partial.ts as sumScores', () => {
+      const doc = parseItem(textEntryPartialItem);
+      const result = classifyResponseProcessing(doc);
+      expect(result.mode).toBe('sumScores');
+    });
+
+    it('should classify standard-choice-partial.ts as sumScores', () => {
+      const doc = parseItem(choicePartialItem);
       const result = classifyResponseProcessing(doc);
       expect(result.mode).toBe('sumScores');
     });
