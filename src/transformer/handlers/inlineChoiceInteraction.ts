@@ -1,6 +1,7 @@
 import { createMissingAttributeError } from '../../errors/errorDisplay';
 import { registry } from '../registry';
 import type { ElementHandler, TransformContext } from '../types';
+import { buildInlineInteractionLabel } from './inlineInteractionLabel';
 import { getDefaultValue } from './responseUtils';
 
 /**
@@ -55,6 +56,7 @@ class InlineChoiceInteractionHandler implements ElementHandler {
     const select = document.createElement('select');
     select.className = 'qti-inline-choice-interaction';
     select.dataset.responseIdentifier = responseIdentifier;
+    select.setAttribute('aria-label', buildInlineInteractionLabel(element));
 
     // Collect choices from qti-inline-choice children
     const choiceElements = Array.from(element.children).filter(
