@@ -1,3 +1,7 @@
+// Scoring mode: sumScores
+// Each response contributes independently to the total SCORE via qti-sum.
+// See README.md "sumScores Mode" for full pattern documentation.
+
 // Multi-Interaction Item with Accumulated Feedback
 
 export const name = "Multi-Interaction";
@@ -21,6 +25,9 @@ adaptive="false" time-dependent="false" xml:lang="en">
     <qti-correct-response>
       <qti-value>answer</qti-value>
     </qti-correct-response>
+    <qti-mapping default-value="0">
+      <qti-map-entry map-key="answer" mapped-value="1"/>
+    </qti-mapping>
   </qti-response-declaration>
 
   <qti-response-declaration identifier="RESPONSE3" cardinality="single" base-type="identifier">
@@ -35,17 +42,12 @@ adaptive="false" time-dependent="false" xml:lang="en">
       <qti-value>0</qti-value>
     </qti-default-value>
   </qti-outcome-declaration>
-  <qti-outcome-declaration identifier="SCORE1" cardinality="single" base-type="float">
+  <qti-outcome-declaration identifier="RESPONSE1_SCORE" cardinality="single" base-type="float">
     <qti-default-value>
       <qti-value>0</qti-value>
     </qti-default-value>
   </qti-outcome-declaration>
-  <qti-outcome-declaration identifier="SCORE2" cardinality="single" base-type="float">
-    <qti-default-value>
-      <qti-value>0</qti-value>
-    </qti-default-value>
-  </qti-outcome-declaration>
-  <qti-outcome-declaration identifier="SCORE3" cardinality="single" base-type="float">
+  <qti-outcome-declaration identifier="RESPONSE3_SCORE" cardinality="single" base-type="float">
     <qti-default-value>
       <qti-value>0</qti-value>
     </qti-default-value>
@@ -114,16 +116,58 @@ adaptive="false" time-dependent="false" xml:lang="en">
   </qti-item-body>
 
   <qti-response-processing>
-    <!-- Score and feedback for Part 1 (choice) -->
+    <!-- Intermediate score for RESPONSE1 (unmapped choice) -->
     <qti-response-condition>
       <qti-response-if>
         <qti-match>
           <qti-variable identifier="RESPONSE1"/>
           <qti-correct identifier="RESPONSE1"/>
         </qti-match>
-        <qti-set-outcome-value identifier="SCORE1">
-          <qti-base-value base-type="float">1.0</qti-base-value>
+        <qti-set-outcome-value identifier="RESPONSE1_SCORE">
+          <qti-base-value base-type="float">1</qti-base-value>
         </qti-set-outcome-value>
+      </qti-response-if>
+      <qti-response-else>
+        <qti-set-outcome-value identifier="RESPONSE1_SCORE">
+          <qti-base-value base-type="float">0</qti-base-value>
+        </qti-set-outcome-value>
+      </qti-response-else>
+    </qti-response-condition>
+
+    <!-- Intermediate score for RESPONSE3 (unmapped inline choice) -->
+    <qti-response-condition>
+      <qti-response-if>
+        <qti-match>
+          <qti-variable identifier="RESPONSE3"/>
+          <qti-correct identifier="RESPONSE3"/>
+        </qti-match>
+        <qti-set-outcome-value identifier="RESPONSE3_SCORE">
+          <qti-base-value base-type="float">1</qti-base-value>
+        </qti-set-outcome-value>
+      </qti-response-if>
+      <qti-response-else>
+        <qti-set-outcome-value identifier="RESPONSE3_SCORE">
+          <qti-base-value base-type="float">0</qti-base-value>
+        </qti-set-outcome-value>
+      </qti-response-else>
+    </qti-response-condition>
+
+    <!-- Sum: mixed mapped (qti-map-response) and unmapped ({id}_SCORE) into SCORE -->
+    <qti-set-outcome-value identifier="SCORE">
+      <qti-sum>
+        <qti-variable identifier="RESPONSE1_SCORE"/>
+        <qti-map-response identifier="RESPONSE2"/>
+        <qti-variable identifier="RESPONSE3_SCORE"/>
+      </qti-sum>
+    </qti-set-outcome-value>
+
+    <!-- Feedback for RESPONSE1 -->
+    <qti-response-condition>
+      <qti-response-if>
+        <qti-match>
+          <qti-variable identifier="RESPONSE1"/>
+          <qti-correct identifier="RESPONSE1"/>
+        </qti-match>
         <qti-set-outcome-value identifier="FEEDBACK">
           <qti-multiple>
             <qti-variable identifier="FEEDBACK"/>
@@ -141,16 +185,13 @@ adaptive="false" time-dependent="false" xml:lang="en">
       </qti-response-else>
     </qti-response-condition>
 
-    <!-- Score and feedback for Part 2 (text entry) -->
+    <!-- Feedback for RESPONSE2: mapped response uses qti-gt(qti-map-response, 0) -->
     <qti-response-condition>
       <qti-response-if>
-        <qti-match>
-          <qti-variable identifier="RESPONSE2"/>
-          <qti-correct identifier="RESPONSE2"/>
-        </qti-match>
-        <qti-set-outcome-value identifier="SCORE2">
-          <qti-base-value base-type="float">1.0</qti-base-value>
-        </qti-set-outcome-value>
+        <qti-gt>
+          <qti-map-response identifier="RESPONSE2"/>
+          <qti-base-value base-type="float">0</qti-base-value>
+        </qti-gt>
         <qti-set-outcome-value identifier="FEEDBACK">
           <qti-multiple>
             <qti-variable identifier="FEEDBACK"/>
@@ -168,16 +209,13 @@ adaptive="false" time-dependent="false" xml:lang="en">
       </qti-response-else>
     </qti-response-condition>
 
-    <!-- Score and feedback for Part 3 (inline choice) -->
+    <!-- Feedback for RESPONSE3 -->
     <qti-response-condition>
       <qti-response-if>
         <qti-match>
           <qti-variable identifier="RESPONSE3"/>
           <qti-correct identifier="RESPONSE3"/>
         </qti-match>
-        <qti-set-outcome-value identifier="SCORE3">
-          <qti-base-value base-type="float">1.0</qti-base-value>
-        </qti-set-outcome-value>
         <qti-set-outcome-value identifier="FEEDBACK">
           <qti-multiple>
             <qti-variable identifier="FEEDBACK"/>
@@ -194,15 +232,6 @@ adaptive="false" time-dependent="false" xml:lang="en">
         </qti-set-outcome-value>
       </qti-response-else>
     </qti-response-condition>
-
-    <!-- Calculate total score -->
-    <qti-set-outcome-value identifier="SCORE">
-      <qti-sum>
-        <qti-variable identifier="SCORE1"/>
-        <qti-variable identifier="SCORE2"/>
-        <qti-variable identifier="SCORE3"/>
-      </qti-sum>
-    </qti-set-outcome-value>
   </qti-response-processing>
 </qti-assessment-item>`;
 

@@ -23,7 +23,6 @@ import { feedbackBlockRenderers } from '../elements/feedback/feedbackBlock';
 import { modalFeedbackRenderers } from '../elements/feedback/modalFeedback';
 import { contentBodyRenderers } from '../elements/contentBody';
 import { useStyle } from '../hooks/useStyle';
-import { hasMapping } from '../utils/responseProcessingClassifier';
 import { AssetContext } from '../contexts/AssetContext';
 import { FeedbackIdentifiersContext } from '../contexts/FeedbackIdentifiersContext';
 import { getAllFeedbackIdentifierOptions } from '../utils/feedbackIdentifiers';
@@ -198,7 +197,7 @@ export function SlateEditor({
   // Extract response processing config and interaction info
   const metadata = getDocumentMetadata(value);
   const responseProcessingConfig = metadata?.responseProcessing;
-  const { count: interactionCount, hasMappings, hasFeedbackElements } = analyzeInteractions(value);
+  const { count: interactionCount, hasFeedbackElements } = analyzeInteractions(value);
 
   // Compute available feedback identifiers from interactions
   const feedbackOptions = useMemo(
@@ -257,7 +256,6 @@ export function SlateEditor({
               onUpdateAttributes={handleUpdateAttributes}
               responseProcessingConfig={responseProcessingConfig}
               interactionCount={interactionCount}
-              hasMappings={hasMappings}
               hasFeedbackElements={hasFeedbackElements}
               onResponseProcessingModeChange={handleResponseProcessingModeChange}
             />
@@ -313,9 +311,8 @@ function getDocumentMetadata(nodes: Descendant[]): DocumentMetadata | null {
 /**
  * Count interactions and check for mappings and feedback elements in the document
  */
-function analyzeInteractions(nodes: Descendant[]): { count: number; hasMappings: boolean; hasFeedbackElements: boolean } {
+function analyzeInteractions(nodes: Descendant[]): { count: number; hasFeedbackElements: boolean } {
   let count = 0;
-  let hasMappings = false;
   let hasFeedbackElements = false;
 
   function traverse(node: Descendant): void {
@@ -323,12 +320,6 @@ function analyzeInteractions(nodes: Descendant[]): { count: number; hasMappings:
       const element = node as SlateElement;
       if (isInteractionElement(element)) {
         count++;
-        // Check for mapping in response declaration
-        if ('responseDeclaration' in element && element.responseDeclaration) {
-          if (hasMapping(element.responseDeclaration)) {
-            hasMappings = true;
-          }
-        }
       }
       // Check for feedback elements
       if (element.type === 'qti-feedback-inline' || element.type === 'qti-feedback-block' || element.type === 'qti-modal-feedback') {
@@ -346,7 +337,7 @@ function analyzeInteractions(nodes: Descendant[]): { count: number; hasMappings:
     traverse(node);
   }
 
-  return { count, hasMappings, hasFeedbackElements };
+  return { count, hasFeedbackElements };
 }
 
 // Single contact point per interaction: spread all renderer objects

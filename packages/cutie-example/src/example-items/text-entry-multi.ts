@@ -1,3 +1,7 @@
+// Scoring mode: allCorrect
+// All responses must be correct for SCORE=1, otherwise SCORE=0.
+// See README.md "allCorrect Mode" for full pattern documentation.
+
 // Multiple Text Entry Interactions in Flowing Text
 
 export const name = "Text Entry - Multiple";
@@ -25,7 +29,6 @@ adaptive="false" time-dependent="false" xml:lang="en">
     </qti-correct-response>
     <qti-mapping default-value="0">
       <qti-map-entry map-key="Philadelphia" mapped-value="1"/>
-      <qti-map-entry map-key="Philly" mapped-value="0.5"/>
     </qti-mapping>
   </qti-response-declaration>
 
@@ -46,7 +49,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
   </qti-outcome-declaration>
   <qti-outcome-declaration identifier="MAXSCORE" cardinality="single" base-type="float">
     <qti-default-value>
-      <qti-value>3</qti-value>
+      <qti-value>1</qti-value>
     </qti-default-value>
   </qti-outcome-declaration>
   <qti-outcome-declaration identifier="FEEDBACK" cardinality="multiple" base-type="identifier"/>
@@ -86,20 +89,40 @@ adaptive="false" time-dependent="false" xml:lang="en">
   </qti-item-body>
 
   <qti-response-processing>
-    <qti-set-outcome-value identifier="SCORE">
-      <qti-sum>
-        <qti-map-response identifier="RESPONSE"/>
-        <qti-map-response identifier="RESPONSE_2"/>
-        <qti-map-response identifier="RESPONSE_3"/>
-      </qti-sum>
-    </qti-set-outcome-value>
+    <!-- Scoring: all-or-nothing via qti-and(qti-equal(qti-map-response, 1), ...) -->
+    <qti-response-condition>
+      <qti-response-if>
+        <qti-and>
+          <qti-equal>
+            <qti-map-response identifier="RESPONSE"/>
+            <qti-base-value base-type="float">1</qti-base-value>
+          </qti-equal>
+          <qti-equal>
+            <qti-map-response identifier="RESPONSE_2"/>
+            <qti-base-value base-type="float">1</qti-base-value>
+          </qti-equal>
+          <qti-equal>
+            <qti-map-response identifier="RESPONSE_3"/>
+            <qti-base-value base-type="float">1</qti-base-value>
+          </qti-equal>
+        </qti-and>
+        <qti-set-outcome-value identifier="SCORE">
+          <qti-base-value base-type="float">1</qti-base-value>
+        </qti-set-outcome-value>
+      </qti-response-if>
+      <qti-response-else>
+        <qti-set-outcome-value identifier="SCORE">
+          <qti-base-value base-type="float">0</qti-base-value>
+        </qti-set-outcome-value>
+      </qti-response-else>
+    </qti-response-condition>
 
     <qti-response-condition>
       <qti-response-if>
-        <qti-gt>
+        <qti-equal>
           <qti-map-response identifier="RESPONSE"/>
-          <qti-base-value base-type="float">0</qti-base-value>
-        </qti-gt>
+          <qti-base-value base-type="float">1</qti-base-value>
+        </qti-equal>
         <qti-set-outcome-value identifier="FEEDBACK">
           <qti-multiple>
             <qti-variable identifier="FEEDBACK"/>
@@ -119,10 +142,10 @@ adaptive="false" time-dependent="false" xml:lang="en">
 
     <qti-response-condition>
       <qti-response-if>
-        <qti-gt>
+        <qti-equal>
           <qti-map-response identifier="RESPONSE_2"/>
-          <qti-base-value base-type="float">0</qti-base-value>
-        </qti-gt>
+          <qti-base-value base-type="float">1</qti-base-value>
+        </qti-equal>
         <qti-set-outcome-value identifier="FEEDBACK">
           <qti-multiple>
             <qti-variable identifier="FEEDBACK"/>
@@ -142,10 +165,10 @@ adaptive="false" time-dependent="false" xml:lang="en">
 
     <qti-response-condition>
       <qti-response-if>
-        <qti-gt>
+        <qti-equal>
           <qti-map-response identifier="RESPONSE_3"/>
-          <qti-base-value base-type="float">0</qti-base-value>
-        </qti-gt>
+          <qti-base-value base-type="float">1</qti-base-value>
+        </qti-equal>
         <qti-set-outcome-value identifier="FEEDBACK">
           <qti-multiple>
             <qti-variable identifier="FEEDBACK"/>

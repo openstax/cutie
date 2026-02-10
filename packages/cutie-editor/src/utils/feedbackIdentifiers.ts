@@ -95,7 +95,7 @@ export function getAllFeedbackIdentifierOptions(
  */
 export function parseFeedbackIdentifier(
   identifier: string
-): { responseIdentifier: string; type: 'correct' | 'incorrect' | 'choice'; choiceId?: string } | null {
+): { responseIdentifier: string; type: 'correct' | 'incorrect' | 'partial' | 'choice'; choiceId?: string } | null {
   // Check for _correct suffix
   if (identifier.endsWith('_correct')) {
     return {
@@ -109,6 +109,14 @@ export function parseFeedbackIdentifier(
     return {
       responseIdentifier: identifier.slice(0, -'_incorrect'.length),
       type: 'incorrect',
+    };
+  }
+
+  // Check for _partial suffix
+  if (identifier.endsWith('_partial')) {
+    return {
+      responseIdentifier: identifier.slice(0, -'_partial'.length),
+      type: 'partial',
     };
   }
 

@@ -692,6 +692,25 @@ export interface ElementConfig {
    * Return null if this element doesn't provide feedback identifiers.
    */
   getFeedbackIdentifiers?: (element: Element) => FeedbackIdentifierSource | null;
+  /**
+   * Generate correctness check for allCorrect mode. Returns a DOM element
+   * evaluating to a boolean expression.
+   * If not provided, defaults to qti-match(variable, correct).
+   */
+  generateCorrectnessCheck?: (
+    responseId: string, responseDecl: XmlNode, doc: Document
+  ) => globalThis.Element;
+  /**
+   * Generate feedback conditions for this interaction.
+   * Returns array of qti-response-condition elements.
+   * If not provided, defaults to standard correct/incorrect via qti-match.
+   */
+  generateFeedbackConditions?: (
+    responseId: string,
+    responseDecl: XmlNode,
+    feedbackIds: Set<string>,
+    doc: Document
+  ) => globalThis.Element[];
 }
 
 // ============================================================================

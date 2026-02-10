@@ -1,3 +1,7 @@
+// Scoring mode: allCorrect
+// All responses must be correct for SCORE=1, otherwise SCORE=0.
+// See README.md "allCorrect Mode" for full pattern documentation.
+
 // Text Entry with Correct/Incorrect Feedback
 
 export const name = "Text Entry";
@@ -52,18 +56,31 @@ adaptive="false" time-dependent="false" xml:lang="en">
   </qti-item-body>
 
   <qti-response-processing>
-    <qti-set-outcome-value identifier="SCORE">
-      <qti-sum>
-        <qti-map-response identifier="RESPONSE"/>
-      </qti-sum>
-    </qti-set-outcome-value>
-
+    <!-- Scoring: all-or-nothing via qti-equal(qti-map-response, 1) -->
     <qti-response-condition>
       <qti-response-if>
-        <qti-gt>
+        <qti-equal>
           <qti-map-response identifier="RESPONSE"/>
+          <qti-base-value base-type="float">1</qti-base-value>
+        </qti-equal>
+        <qti-set-outcome-value identifier="SCORE">
+          <qti-base-value base-type="float">1</qti-base-value>
+        </qti-set-outcome-value>
+      </qti-response-if>
+      <qti-response-else>
+        <qti-set-outcome-value identifier="SCORE">
           <qti-base-value base-type="float">0</qti-base-value>
-        </qti-gt>
+        </qti-set-outcome-value>
+      </qti-response-else>
+    </qti-response-condition>
+
+    <!-- Feedback: 2-way (correct / incorrect) via qti-map-response -->
+    <qti-response-condition>
+      <qti-response-if>
+        <qti-equal>
+          <qti-map-response identifier="RESPONSE"/>
+          <qti-base-value base-type="float">1</qti-base-value>
+        </qti-equal>
         <qti-set-outcome-value identifier="FEEDBACK">
           <qti-multiple>
             <qti-variable identifier="FEEDBACK"/>

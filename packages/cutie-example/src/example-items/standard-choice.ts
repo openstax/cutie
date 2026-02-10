@@ -1,3 +1,7 @@
+// Scoring mode: allCorrect
+// All responses must be correct for SCORE=1, otherwise SCORE=0.
+// See README.md "allCorrect Mode" for full pattern documentation.
+
 // Single Choice with Per-Choice Inline Feedback
 
 export const name = "Single Choice";
@@ -59,7 +63,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
   </qti-item-body>
 
   <qti-response-processing>
-    <!-- Score the response -->
+    <!-- Scoring: all-or-nothing via qti-match -->
     <qti-response-condition>
       <qti-response-if>
         <qti-match>
@@ -70,9 +74,14 @@ adaptive="false" time-dependent="false" xml:lang="en">
           <qti-base-value base-type="float">1</qti-base-value>
         </qti-set-outcome-value>
       </qti-response-if>
+      <qti-response-else>
+        <qti-set-outcome-value identifier="SCORE">
+          <qti-base-value base-type="float">0</qti-base-value>
+        </qti-set-outcome-value>
+      </qti-response-else>
     </qti-response-condition>
 
-    <!-- Set feedback for choiceA -->
+    <!-- Per-choice feedback using qti-match against specific choice identifiers -->
     <qti-response-condition>
       <qti-response-if>
         <qti-match>

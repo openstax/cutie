@@ -1,3 +1,7 @@
+// Scoring mode: sumScores
+// Each response contributes independently to the total SCORE via qti-sum.
+// See README.md "sumScores Mode" for full pattern documentation.
+
 // Multiple Inline Choice Interactions in Flowing Text
 
 export const name = "Inline Choice - Multiple";
@@ -29,6 +33,21 @@ adaptive="false" time-dependent="false" xml:lang="en">
   </qti-response-declaration>
 
   <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value>
+      <qti-value>0</qti-value>
+    </qti-default-value>
+  </qti-outcome-declaration>
+  <qti-outcome-declaration identifier="RESPONSE_SCORE" cardinality="single" base-type="float">
+    <qti-default-value>
+      <qti-value>0</qti-value>
+    </qti-default-value>
+  </qti-outcome-declaration>
+  <qti-outcome-declaration identifier="RESPONSE_2_SCORE" cardinality="single" base-type="float">
+    <qti-default-value>
+      <qti-value>0</qti-value>
+    </qti-default-value>
+  </qti-outcome-declaration>
+  <qti-outcome-declaration identifier="RESPONSE_3_SCORE" cardinality="single" base-type="float">
     <qti-default-value>
       <qti-value>0</qti-value>
     </qti-default-value>
@@ -65,38 +84,101 @@ adaptive="false" time-dependent="false" xml:lang="en">
     </p>
 
     <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_correct" show-hide="show" data-feedback-type="correct">
-      <p><strong>Excellent!</strong> You correctly identified the key components of how plants produce food and contribute to the atmosphere. This process is fundamental to life on Earth.</p>
+      <p><strong>Part 1: Correct!</strong> The process by which plants produce their own food is indeed photosynthesis.</p>
     </qti-feedback-block>
 
     <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_incorrect" show-hide="show" data-feedback-type="incorrect">
-      <p><strong>Not quite.</strong> Think about how plants convert light energy into chemical energy. Consider what goes into the process, what energy source drives it, and what gas is released as a byproduct.</p>
+      <p><strong>Part 1: Incorrect.</strong> Think about the process that uses light to convert carbon dioxide and water into glucose.</p>
+    </qti-feedback-block>
+
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_2_correct" show-hide="show" data-feedback-type="correct">
+      <p><strong>Part 2: Correct!</strong> Sunlight provides the energy that drives photosynthesis.</p>
+    </qti-feedback-block>
+
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_2_incorrect" show-hide="show" data-feedback-type="incorrect">
+      <p><strong>Part 2: Incorrect.</strong> Consider what energy source plants absorb through their leaves to power the conversion of carbon dioxide and water.</p>
+    </qti-feedback-block>
+
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_3_correct" show-hide="show" data-feedback-type="correct">
+      <p><strong>Part 3: Correct!</strong> Oxygen is the byproduct of photosynthesis that is essential for animal life.</p>
+    </qti-feedback-block>
+
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_3_incorrect" show-hide="show" data-feedback-type="incorrect">
+      <p><strong>Part 3: Incorrect.</strong> Think about what gas is released as a byproduct of photosynthesis and is vital for animal respiration.</p>
     </qti-feedback-block>
   </qti-item-body>
 
   <qti-response-processing>
-    <qti-set-outcome-value identifier="SCORE">
-      <qti-sum>
+    <!-- Intermediate scores: unmapped responses use {id}_SCORE variables via qti-match -->
+    <qti-response-condition>
+      <qti-response-if>
         <qti-match>
           <qti-variable identifier="RESPONSE"/>
           <qti-correct identifier="RESPONSE"/>
         </qti-match>
+        <qti-set-outcome-value identifier="RESPONSE_SCORE">
+          <qti-base-value base-type="float">1</qti-base-value>
+        </qti-set-outcome-value>
+      </qti-response-if>
+      <qti-response-else>
+        <qti-set-outcome-value identifier="RESPONSE_SCORE">
+          <qti-base-value base-type="float">0</qti-base-value>
+        </qti-set-outcome-value>
+      </qti-response-else>
+    </qti-response-condition>
+
+    <!-- Intermediate score for RESPONSE_2 -->
+    <qti-response-condition>
+      <qti-response-if>
         <qti-match>
           <qti-variable identifier="RESPONSE_2"/>
           <qti-correct identifier="RESPONSE_2"/>
         </qti-match>
+        <qti-set-outcome-value identifier="RESPONSE_2_SCORE">
+          <qti-base-value base-type="float">1</qti-base-value>
+        </qti-set-outcome-value>
+      </qti-response-if>
+      <qti-response-else>
+        <qti-set-outcome-value identifier="RESPONSE_2_SCORE">
+          <qti-base-value base-type="float">0</qti-base-value>
+        </qti-set-outcome-value>
+      </qti-response-else>
+    </qti-response-condition>
+
+    <!-- Intermediate score for RESPONSE_3 -->
+    <qti-response-condition>
+      <qti-response-if>
         <qti-match>
           <qti-variable identifier="RESPONSE_3"/>
           <qti-correct identifier="RESPONSE_3"/>
         </qti-match>
+        <qti-set-outcome-value identifier="RESPONSE_3_SCORE">
+          <qti-base-value base-type="float">1</qti-base-value>
+        </qti-set-outcome-value>
+      </qti-response-if>
+      <qti-response-else>
+        <qti-set-outcome-value identifier="RESPONSE_3_SCORE">
+          <qti-base-value base-type="float">0</qti-base-value>
+        </qti-set-outcome-value>
+      </qti-response-else>
+    </qti-response-condition>
+
+    <!-- Sum: intermediate scores are summed into SCORE -->
+    <qti-set-outcome-value identifier="SCORE">
+      <qti-sum>
+        <qti-variable identifier="RESPONSE_SCORE"/>
+        <qti-variable identifier="RESPONSE_2_SCORE"/>
+        <qti-variable identifier="RESPONSE_3_SCORE"/>
       </qti-sum>
     </qti-set-outcome-value>
 
+    <!-- Feedback for RESPONSE -->
     <qti-response-condition>
       <qti-response-if>
-        <qti-gte>
-          <qti-variable identifier="SCORE"/>
-          <qti-variable identifier="MAXSCORE"/>
-        </qti-gte>
+        <qti-match>
+          <qti-variable identifier="RESPONSE"/>
+          <qti-correct identifier="RESPONSE"/>
+        </qti-match>
         <qti-set-outcome-value identifier="FEEDBACK">
           <qti-multiple>
             <qti-variable identifier="FEEDBACK"/>
@@ -109,6 +191,54 @@ adaptive="false" time-dependent="false" xml:lang="en">
           <qti-multiple>
             <qti-variable identifier="FEEDBACK"/>
             <qti-base-value base-type="identifier">RESPONSE_incorrect</qti-base-value>
+          </qti-multiple>
+        </qti-set-outcome-value>
+      </qti-response-else>
+    </qti-response-condition>
+
+    <!-- Feedback for RESPONSE_2 -->
+    <qti-response-condition>
+      <qti-response-if>
+        <qti-match>
+          <qti-variable identifier="RESPONSE_2"/>
+          <qti-correct identifier="RESPONSE_2"/>
+        </qti-match>
+        <qti-set-outcome-value identifier="FEEDBACK">
+          <qti-multiple>
+            <qti-variable identifier="FEEDBACK"/>
+            <qti-base-value base-type="identifier">RESPONSE_2_correct</qti-base-value>
+          </qti-multiple>
+        </qti-set-outcome-value>
+      </qti-response-if>
+      <qti-response-else>
+        <qti-set-outcome-value identifier="FEEDBACK">
+          <qti-multiple>
+            <qti-variable identifier="FEEDBACK"/>
+            <qti-base-value base-type="identifier">RESPONSE_2_incorrect</qti-base-value>
+          </qti-multiple>
+        </qti-set-outcome-value>
+      </qti-response-else>
+    </qti-response-condition>
+
+    <!-- Feedback for RESPONSE_3 -->
+    <qti-response-condition>
+      <qti-response-if>
+        <qti-match>
+          <qti-variable identifier="RESPONSE_3"/>
+          <qti-correct identifier="RESPONSE_3"/>
+        </qti-match>
+        <qti-set-outcome-value identifier="FEEDBACK">
+          <qti-multiple>
+            <qti-variable identifier="FEEDBACK"/>
+            <qti-base-value base-type="identifier">RESPONSE_3_correct</qti-base-value>
+          </qti-multiple>
+        </qti-set-outcome-value>
+      </qti-response-if>
+      <qti-response-else>
+        <qti-set-outcome-value identifier="FEEDBACK">
+          <qti-multiple>
+            <qti-variable identifier="FEEDBACK"/>
+            <qti-base-value base-type="identifier">RESPONSE_3_incorrect</qti-base-value>
           </qti-multiple>
         </qti-set-outcome-value>
       </qti-response-else>

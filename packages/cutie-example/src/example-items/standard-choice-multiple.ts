@@ -1,3 +1,7 @@
+// Scoring mode: allCorrect
+// All responses must be correct for SCORE=1, otherwise SCORE=0.
+// See README.md "allCorrect Mode" for full pattern documentation.
+
 // Multiple Choice with Per-Choice Block Feedback
 
 export const name = "Multiple Choice";
@@ -24,7 +28,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
   </qti-outcome-declaration>
   <qti-outcome-declaration identifier="MAXSCORE" cardinality="single" base-type="float">
     <qti-default-value>
-      <qti-value>2.0</qti-value>
+      <qti-value>1.0</qti-value>
     </qti-default-value>
   </qti-outcome-declaration>
   <qti-outcome-declaration identifier="FEEDBACK" cardinality="multiple" base-type="identifier"/>
@@ -57,7 +61,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
   </qti-item-body>
 
   <qti-response-processing>
-    <!-- Score the response -->
+    <!-- Scoring: all-or-nothing via qti-match -->
     <qti-response-condition>
       <qti-response-if>
         <qti-match>
@@ -68,9 +72,14 @@ adaptive="false" time-dependent="false" xml:lang="en">
           <qti-base-value base-type="float">1</qti-base-value>
         </qti-set-outcome-value>
       </qti-response-if>
+      <qti-response-else>
+        <qti-set-outcome-value identifier="SCORE">
+          <qti-base-value base-type="float">0</qti-base-value>
+        </qti-set-outcome-value>
+      </qti-response-else>
     </qti-response-condition>
 
-    <!-- Set feedback for choiceA if selected (using qti-member for multiple cardinality) -->
+    <!-- Per-choice feedback using qti-member (multiple cardinality) -->
     <qti-response-condition>
       <qti-response-if>
         <qti-member>

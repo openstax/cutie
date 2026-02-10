@@ -1,3 +1,7 @@
+// Scoring mode: allCorrect
+// All responses must be correct for SCORE=1, otherwise SCORE=0.
+// See README.md "allCorrect Mode" for full pattern documentation.
+
 // Match Interaction with Block Feedback
 
 export const name = "Match Interaction";
@@ -25,7 +29,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
   </qti-outcome-declaration>
   <qti-outcome-declaration identifier="MAXSCORE" cardinality="single" base-type="float">
     <qti-default-value>
-      <qti-value>3.0</qti-value>
+      <qti-value>1.0</qti-value>
     </qti-default-value>
   </qti-outcome-declaration>
   <qti-outcome-declaration identifier="FEEDBACK" cardinality="multiple" base-type="identifier"/>
@@ -55,6 +59,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
   </qti-item-body>
 
   <qti-response-processing>
+    <!-- Scoring: all-or-nothing via qti-match -->
     <qti-response-condition>
       <qti-response-if>
         <qti-match>
@@ -64,6 +69,21 @@ adaptive="false" time-dependent="false" xml:lang="en">
         <qti-set-outcome-value identifier="SCORE">
           <qti-base-value base-type="float">1</qti-base-value>
         </qti-set-outcome-value>
+      </qti-response-if>
+      <qti-response-else>
+        <qti-set-outcome-value identifier="SCORE">
+          <qti-base-value base-type="float">0</qti-base-value>
+        </qti-set-outcome-value>
+      </qti-response-else>
+    </qti-response-condition>
+
+    <!-- Feedback: 2-way (correct / incorrect) via qti-match -->
+    <qti-response-condition>
+      <qti-response-if>
+        <qti-match>
+          <qti-variable identifier="RESPONSE"/>
+          <qti-correct identifier="RESPONSE"/>
+        </qti-match>
         <qti-set-outcome-value identifier="FEEDBACK">
           <qti-multiple>
             <qti-variable identifier="FEEDBACK"/>
