@@ -10,7 +10,7 @@
     "build": "./scripts/build.bash",
     "ci": "CI=true npm-run-all ci:*",
     "ci:packages": "./scripts/ci.bash",
-    "ci:spelling": "git ls-files -- . ':!:packages/' | yarn cspell -c ./cspell.json --file-list stdin",
+    "ci:spelling": "yarn cspell -c ./cspell.json --exclude \"packages/**\" \"**\"",
     "ci:versions": "syncpack lint"
   },
   "workspaces": [

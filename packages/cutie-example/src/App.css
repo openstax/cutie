@@ -441,6 +441,13 @@ main {
   overflow: hidden;
 }
 
+.tab-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 .skip-link {
   position: absolute;
   left: -9999px;

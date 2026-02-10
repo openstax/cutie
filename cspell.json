@@ -47,7 +47,8 @@
     "testid",
     "toggleable",
     "unsimplified",
-    "unversioned"
+    "unversioned",
+    "WCAG"
   ],
   "flagWords": [],
   "ignorePaths": [
@@ -55,8 +56,12 @@
     "*.spec.ts.snap",
     "coverage",
     "LICENSE.txt",
+    "cspell.json",
     "package.json",
     "yarn.lock",
-    "node_modules/**"
+    "node_modules/**",
+    "**/dist/**",
+    "**/*.css.map",
+    "**/*.tsbuildinfo"
   ]
 }

@@ -33,7 +33,7 @@
     "build:clean": "yarn clean && yarn build",
     "ci": "CI=true npm-run-all ci:*",
     "ci:lint": "eslint --max-warnings=0 .",
-    "ci:spelling": "git ls-files | yarn cspell -c ../../cspell.json --file-list stdin",
+    "ci:spelling": "yarn cspell -c ../../cspell.json \"**\"",
     "ci:typecheck": "tsc -b --noEmit",
     "clean": "rm -rf dist",
     "dev": "vite",

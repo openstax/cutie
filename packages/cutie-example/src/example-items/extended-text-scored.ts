@@ -1,3 +1,4 @@
+/* spell-checker: ignore thylakoids stroma */
 export const name = "Extended Text - AI Scored";
 
 export const item = `<?xml version="1.0" encoding="UTF-8"?>
