@@ -6,6 +6,7 @@ import { examples, exampleGroups } from './example-items';
 import { EditorTab } from './EditorTab';
 import { PreviewTab } from './PreviewTab';
 import { GenerateDialog } from './GenerateDialog';
+import { Tabs, TabList, TabPanel } from './Tabs';
 import { Toast } from './Toast';
 import { beginQuiz, continueQuiz, DEFAULT_FAST_MODEL_ID, generateQtiItem, scoreExternalResponse } from './utils/ai';
 import type { QuizResponse, InteractionType } from './utils/ai';
@@ -104,7 +105,7 @@ export function App() {
     }
 
     // Confirm if there's existing content
-    if (itemXml.trim() && !confirm('Loading an example will overwrite the current item. Continue?')) {
+    if (itemXml.trim()) {
       // Reset select to placeholder
       setSelectedExample('');
       return;
@@ -569,109 +570,102 @@ export function App() {
     }
   };
 
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 'xml':
-        return (
-          <div className="tab-content-full">
-            <div className="panel xml-panel">
-              <textarea
-                className="xml-input xml-input-large"
-                value={itemXml}
-                onChange={(e) => setItemXml(e.target.value)}
-                placeholder="Paste QTI v3 XML here..."
-              />
-              <button
-                className="process-button"
-                onClick={handleProcess}
-                disabled={!itemXml.trim() || processing}
-              >
-                {processing ? 'Processing...' : 'Process Item'}
-              </button>
-            </div>
+  const tabDefinitions = [
+    {
+      id: 'xml',
+      label: 'XML',
+      content: (
+        <div className="tab-content-full">
+          <div className="panel xml-panel">
+            <textarea
+              className="xml-input xml-input-large"
+              value={itemXml}
+              onChange={(e) => setItemXml(e.target.value)}
+              placeholder="Paste QTI v3 XML here..."
+            />
+            <button
+              className="process-button"
+              onClick={handleProcess}
+              disabled={!itemXml.trim() || processing}
+            >
+              {processing ? 'Processing...' : 'Process Item'}
+            </button>
           </div>
-        );
-
-      case 'editor':
-        return (
-          <EditorTab
-            itemXml={itemXml}
-            setItemXml={setItemXml}
-            setSanitizedTemplate={setSanitizedTemplate}
-            setAttemptState={setAttemptState}
-          />
-        );
-
-      case 'preview':
-        return (
-          <PreviewTab
-            attemptState={attemptState}
-            sanitizedTemplate={sanitizedTemplate}
-            responses={responses}
-            onSubmitResponses={handleSubmitResponses}
-            onResetAttempt={handleResetAttempt}
-            isLoading={processing}
-            onOpenGenerateDialog={() => setGenerateDialogOpen(true)}
-            quizMode={quizState.isActive ? {
-              onNext: handleNextQuestion,
-              onEnd: handleEndQuiz,
-              isLoadingNext: isLoadingNextQuestion,
-            } : undefined}
-          />
-        );
-    }
-  };
+        </div>
+      ),
+    },
+    {
+      id: 'editor',
+      label: 'Editor',
+      content: (
+        <EditorTab
+          itemXml={itemXml}
+          setItemXml={setItemXml}
+          setSanitizedTemplate={setSanitizedTemplate}
+          setAttemptState={setAttemptState}
+        />
+      ),
+    },
+    {
+      id: 'preview',
+      label: 'Preview',
+      content: (
+        <PreviewTab
+          attemptState={attemptState}
+          sanitizedTemplate={sanitizedTemplate}
+          responses={responses}
+          onSubmitResponses={handleSubmitResponses}
+          onResetAttempt={handleResetAttempt}
+          isLoading={processing}
+          onOpenGenerateDialog={() => setGenerateDialogOpen(true)}
+          quizMode={quizState.isActive ? {
+            onNext: handleNextQuestion,
+            onEnd: handleEndQuiz,
+            isLoadingNext: isLoadingNextQuestion,
+          } : undefined}
+        />
+      ),
+    },
+  ];
 
   return (
-    <>
-      <div className="tabs">
-        <div className="tabs-left">
-          <button
-            className={`tab ${activeTab === 'xml' ? 'active' : ''}`}
-            onClick={() => setActiveTab('xml')}
-          >
-            XML
-          </button>
-          <button
-            className={`tab ${activeTab === 'editor' ? 'active' : ''}`}
-            onClick={() => setActiveTab('editor')}
-          >
-            Editor
-          </button>
-          <button
-            className={`tab ${activeTab === 'preview' ? 'active' : ''}`}
-            onClick={() => setActiveTab('preview')}
-          >
-            Preview
-          </button>
-        </div>
-        <div className="tabs-right">
-          <button
-            className="generate-button"
-            onClick={() => setGenerateDialogOpen(true)}
-            disabled={processing}
-            title="Generate with AI"
-          >✨</button>
-          <select
-            className="example-select-nav"
-            onChange={handleExampleSelect}
-            value={selectedExample}
-            disabled={processing}
-          >
-            <option value="">Load example item...</option>
-            {exampleGroups.map((group) => (
-              <optgroup key={group.label} label={group.label}>
-                {group.items.map((ex) => (
-                  <option key={ex.name} value={ex.name}>
-                    {ex.name}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-        </div>
-      </div>
-      {renderTabContent()}
+    <Tabs tabs={tabDefinitions} activeTab={activeTab} onTabChange={(id) => setActiveTab(id as Tab)}>
+      <a href="#main-content" className="skip-link">Skip to main content</a>
+      <header>
+        <nav className="tabs" aria-label="Main navigation">
+          <TabList />
+          <div className="tabs-right">
+            <button
+              className="generate-button"
+              onClick={() => setGenerateDialogOpen(true)}
+              disabled={processing}
+              aria-label="Generate with AI"
+              title="Generate with AI"
+            >✨</button>
+            <select
+              className="example-select-nav"
+              onChange={handleExampleSelect}
+              value={selectedExample}
+              disabled={processing}
+              aria-label="Load example item"
+            >
+              <option value="">Load example item...</option>
+              {exampleGroups.map((group) => (
+                <optgroup key={group.label} label={group.label}>
+                  {group.items.map((ex) => (
+                    <option key={ex.name} value={ex.name}>
+                      {ex.name}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </div>
+        </nav>
+      </header>
+      <main id="main-content">
+        <TabPanel />
+      </main>
       <GenerateDialog
         isOpen={generateDialogOpen}
         onClose={() => setGenerateDialogOpen(false)}
@@ -680,11 +674,15 @@ export function App() {
       />
       {error && <Toast message={error} onClose={() => setError('')} />}
       <footer className="app-footer">
-        <a href="https://github.com/openstax/cutie" target="_blank" rel="noopener noreferrer">Project Cutie</a>
+        <a href="https://github.com/openstax/cutie" target="_blank" rel="noopener noreferrer">
+          Project Cutie<span className="visually-hidden"> (opens in new tab)</span> ↗
+        </a>
         {' '}is an experiment from{' '}
-        <a href="https://openstax.org" target="_blank" rel="noopener noreferrer">OpenStax</a>
+        <a href="https://openstax.org" target="_blank" rel="noopener noreferrer">
+          OpenStax<span className="visually-hidden"> (opens in new tab)</span> ↗
+        </a>
       </footer>
-    </>
+    </Tabs>
   );
 }
 

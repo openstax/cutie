@@ -65,13 +65,19 @@ body, html, #root {
 }
 
 .tab.active {
-  background: #4a90e2;
+  background: #2b5e91;
   color: white;
-  border-right: 1px solid #4a90e2;
+  border-right: 1px solid #2b5e91;
 }
 
 .tab:last-child {
   border-right: none;
+}
+
+.tab:focus-visible {
+  outline: 2px solid #333;
+  outline-offset: -2px;
+  z-index: 1;
 }
 
 .tab-content-full {
@@ -226,7 +232,8 @@ h2 {
 }
 
 .example-select:focus {
-  outline: none;
+  outline: 2px solid #4a90e2;
+  outline-offset: 2px;
   border-color: #4a90e2;
 }
 
@@ -241,7 +248,8 @@ h2 {
 }
 
 .example-select-nav:focus {
-  outline: none;
+  outline: 2px solid #4a90e2;
+  outline-offset: 2px;
   border-color: #4a90e2;
 }
 
@@ -263,7 +271,8 @@ h2 {
 }
 
 .xml-input:focus {
-  outline: none;
+  outline: 2px solid #4a90e2;
+  outline-offset: 2px;
   border-color: #4a90e2;
   background: #fff;
 }
@@ -285,8 +294,14 @@ h2 {
 }
 
 .process-button:disabled {
-  background-color: #ccc;
+  background-color: #767676;
+  color: white;
   cursor: not-allowed;
+}
+
+.process-button:focus-visible {
+  outline: 2px solid #333;
+  outline-offset: 2px;
 }
 
 .process-button + .process-button {
@@ -415,6 +430,46 @@ h2 {
   }
 }
 
+header {
+  flex-shrink: 0;
+}
+
+main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  padding: 8px 16px;
+  background: #333;
+  color: white;
+  text-decoration: none;
+  font-size: 14px;
+  border-radius: 0 0 4px 0;
+}
+
+.skip-link:focus {
+  left: 0;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .app-footer {
   padding: 0.6rem 1rem;
   background: #f5f5f5;
@@ -454,7 +509,7 @@ h2 {
   }
 
   .tab.active:last-child {
-    border-right: 1px solid #4a90e2;
+    border-right: 1px solid #2b5e91;
   }
 
   .tabs-right {
