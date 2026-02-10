@@ -1,20 +1,49 @@
-/**
- * Creates an ARIA live region for screen reader announcements.
- * The region is visually hidden but accessible to assistive technology.
- */
-export function createLiveRegion(className: string): HTMLElement {
-  const region = document.createElement('div');
-  region.className = className;
-  region.setAttribute('aria-live', 'polite');
-  region.setAttribute('aria-atomic', 'true');
-  return region;
+import type { TransformContext } from '../transformer/types';
+
+let pendingMessages: string[] = [];
+let flushScheduled = false;
+let flushCtx: TransformContext | null = null;
+let liveRegion: HTMLElement | null = null;
+
+function getOrCreateLiveRegion(ctx: TransformContext): HTMLElement {
+  if (!liveRegion) {
+    liveRegion = document.createElement('div');
+    liveRegion.setAttribute('aria-live', 'polite');
+    liveRegion.setAttribute('aria-atomic', 'true');
+    liveRegion.style.cssText = LIVE_REGION_STYLES;
+    document.body.appendChild(liveRegion);
+    ctx.onCleanup?.(() => {
+      liveRegion?.remove();
+      liveRegion = null;
+    });
+  }
+  return liveRegion;
+}
+
+function flush(): void {
+  const ctx = flushCtx;
+  const messages = pendingMessages;
+  pendingMessages = [];
+  flushScheduled = false;
+  flushCtx = null;
+
+  if (!ctx || messages.length === 0) return;
+
+  getOrCreateLiveRegion(ctx).textContent = messages.join(' ');
 }
 
 /**
- * Announces a message to screen readers via a live region.
+ * Announces a message to screen readers via a shared live region.
+ * Messages within the same microtask are batched and concatenated.
  */
-export function announce(liveRegion: HTMLElement, message: string): void {
-  liveRegion.textContent = message;
+export function announce(ctx: TransformContext, message: string): void {
+  pendingMessages.push(message);
+  flushCtx = ctx;
+
+  if (!flushScheduled) {
+    flushScheduled = true;
+    queueMicrotask(flush);
+  }
 }
 
 /**

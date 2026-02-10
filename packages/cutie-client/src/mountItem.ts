@@ -16,6 +16,11 @@ export interface MountedItem {
   unmount: () => void;
 
   /**
+   * Re-render the item with new template XML, preserving persistent state
+   */
+  update: (itemTemplateXml: string) => void;
+
+  /**
    * Collect all response data from registered interactions
    */
   collectResponses: () => ResponseData;
@@ -42,49 +47,75 @@ export function mountItem(
   container: HTMLElement,
   itemTemplateXml: string
 ): MountedItem {
-  // Create item state manager
-  const itemState = new ItemStateImpl();
+  // Persistent state bag — survives across update() calls, cleared on unmount()
+  const state = new Map<string, unknown>();
 
-  // Create style manager and register base styles
-  const styleManager = new DefaultStyleManager();
-  registerBaseStyles(styleManager);
+  // Cleanup callbacks — accumulated across renders, all called on unmount()
+  const cleanupCallbacks: Array<() => void> = [];
 
-  // Collect post-mount callbacks for operations requiring DOM connection
-  const mountCallbacks: Array<() => void> = [];
+  // Mutable reference to current render's itemState
+  let currentItemState: ItemStateImpl | null = null;
 
-  // Parse QTI XML
-  const parsed = parseQtiXml(itemTemplateXml);
+  // Current render's teardown — called on update() and unmount()
+  let teardownCurrentRender: (() => void) | null = null;
 
-  // Create transform context once for all transformations
-  const context = createTransformContext({
-    itemState,
-    styleManager,
-    onMount: (cb) => mountCallbacks.push(cb),
-  });
+  function doRender(xml: string): void {
+    const itemState = new ItemStateImpl();
+    currentItemState = itemState;
 
-  // Transform item body children
-  const fragment = transformChildren(parsed.itemBody, context);
+    const styleManager = new DefaultStyleManager();
+    registerBaseStyles(styleManager);
 
-  // Transform modal feedback elements (the elements themselves, not just children)
-  for (const modalFeedback of parsed.modalFeedbacks) {
-    fragment.appendChild(transformNode(modalFeedback, context));
-  }
+    const mountCallbacks: Array<() => void> = [];
 
-  // Render to container
-  const unmountDom = renderToContainer(container, fragment);
+    const parsed = parseQtiXml(xml);
 
-  // Run post-mount callbacks (elements are now in the DOM)
-  for (const cb of mountCallbacks) cb();
+    const context = createTransformContext({
+      itemState,
+      styleManager,
+      onMount: (cb) => mountCallbacks.push(cb),
+      onCleanup: (cb) => cleanupCallbacks.push(cb),
+      state,
+    });
 
-  // Return controller object
-  return {
-    unmount: () => {
+    const fragment = transformChildren(parsed.itemBody, context);
+
+    for (const modalFeedback of parsed.modalFeedbacks) {
+      fragment.appendChild(transformNode(modalFeedback, context));
+    }
+
+    const unmountDom = renderToContainer(container, fragment);
+
+    for (const cb of mountCallbacks) cb();
+
+    teardownCurrentRender = () => {
       itemState.clear();
       styleManager.cleanup();
       unmountDom();
+    };
+  }
+
+  // Initial render
+  doRender(itemTemplateXml);
+
+  return {
+    unmount: () => {
+      teardownCurrentRender?.();
+      teardownCurrentRender = null;
+      currentItemState = null;
+      for (const cb of cleanupCallbacks) cb();
+      cleanupCallbacks.length = 0;
+      state.clear();
     },
-    collectResponses: () => itemState.collectAll(),
-    setInteractionsEnabled: (enabled: boolean) => itemState.setInteractionsEnabled(enabled),
-    getResponseIdentifiers: () => itemState.getResponseIdentifiers(),
+    update: (xml: string) => {
+      teardownCurrentRender?.();
+      teardownCurrentRender = null;
+      doRender(xml);
+    },
+    collectResponses: () => currentItemState?.collectAll() ?? {},
+    setInteractionsEnabled: (enabled: boolean) => {
+      currentItemState?.setInteractionsEnabled(enabled);
+    },
+    getResponseIdentifiers: () => currentItemState?.getResponseIdentifiers() ?? [],
   };
 }

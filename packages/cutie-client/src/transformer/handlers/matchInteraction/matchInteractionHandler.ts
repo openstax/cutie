@@ -87,16 +87,10 @@ export class MatchInteractionHandler implements ElementHandler {
     const layoutContainer = document.createElement('div');
     layoutContainer.className = 'qti-match-layout qti-match-source-left';
 
-    // Create live region for announcements
-    const liveRegion = document.createElement('div');
-    liveRegion.className = 'qti-match-live';
-    liveRegion.setAttribute('aria-live', 'polite');
-    liveRegion.setAttribute('aria-atomic', 'true');
-
     // Create the controller
     const controller = new MatchController(
       responseIdentifier,
-      liveRegion,
+      context,
       container,
       maxAssociations
     );
@@ -113,7 +107,6 @@ export class MatchInteractionHandler implements ElementHandler {
     );
 
     container.appendChild(layoutContainer);
-    container.appendChild(liveRegion);
 
     // Initialize controller after all choices are registered
     controller.initialize(sourceSetElement, targetSetElement);

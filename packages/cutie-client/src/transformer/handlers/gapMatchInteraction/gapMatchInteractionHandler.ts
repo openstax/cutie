@@ -98,13 +98,6 @@ export class GapMatchInteractionHandler implements ElementHandler {
 
     container.appendChild(choicesContainer);
 
-    // Create live region for announcements
-    const liveRegion = document.createElement('div');
-    liveRegion.className = 'qti-gap-match-live';
-    liveRegion.setAttribute('aria-live', 'polite');
-    liveRegion.setAttribute('aria-atomic', 'true');
-    container.appendChild(liveRegion);
-
     // Create content container and transform remaining children (which includes gaps)
     const contentContainer = document.createElement('div');
     contentContainer.className = 'qti-gap-match-content';
@@ -126,7 +119,7 @@ export class GapMatchInteractionHandler implements ElementHandler {
     container.appendChild(contentContainer);
 
     // Create the controller
-    const controller = new GapMatchController(responseIdentifier, choicesContainer, liveRegion, container);
+    const controller = new GapMatchController(responseIdentifier, choicesContainer, context, container);
 
     // Create and register choice elements
     let isFirst = true;

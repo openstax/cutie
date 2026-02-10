@@ -32,32 +32,45 @@ export function PreviewTab({ attemptState, sanitizedTemplate, responses, onSubmi
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const previewRef = useRef<HTMLDivElement>(null);
   const mountedItemRef = useRef<MountedItem | null>(null);
+  const prevCompletionStatusRef = useRef<string | undefined>(undefined);
 
   // Derived - no state needed
   const interactionsEnabled = !isSubmitting && attemptState?.completionStatus !== 'completed';
 
-  // Mount/unmount item when sanitizedTemplate or attemptState changes
-  // Including attemptState ensures the item remounts on reset (even if template is same)
+  // Mount/update item when sanitizedTemplate or attemptState changes
+  // Uses update() on submit transitions to preserve announcement state,
+  // and fresh mountItem() on reset or new item load
   useEffect(() => {
-    if (previewRef.current && sanitizedTemplate) {
-      const mountedItem = mountItem(previewRef.current, sanitizedTemplate);
-      mountedItemRef.current = mountedItem;
-      // Apply current interaction state to newly mounted item
-      mountedItem.setInteractionsEnabled(interactionsEnabled);
+    if (!previewRef.current || !sanitizedTemplate) return;
 
-      return () => {
-        mountedItem.unmount();
-        mountedItemRef.current = null;
-      };
+    const prevStatus = prevCompletionStatusRef.current;
+    prevCompletionStatusRef.current = attemptState?.completionStatus;
+
+    // Use update() when transitioning to 'completed' (submit with feedback)
+    const isSubmitTransition = mountedItemRef.current
+      && attemptState?.completionStatus === 'completed'
+      && prevStatus !== 'completed';
+
+    if (isSubmitTransition) {
+      mountedItemRef.current!.update(sanitizedTemplate);
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    // Fresh mount: initial, reset, or new item
+    mountedItemRef.current?.unmount();
+    mountedItemRef.current = mountItem(previewRef.current, sanitizedTemplate);
   }, [sanitizedTemplate, attemptState]);
 
+  // Sync interaction enabled state
   useEffect(() => {
-    if (mountedItemRef.current) {
-      mountedItemRef.current.setInteractionsEnabled(interactionsEnabled);
-    }
+    mountedItemRef.current?.setInteractionsEnabled(interactionsEnabled);
   }, [interactionsEnabled]);
+
+  // Cleanup on component unmount
+  useEffect(() => () => {
+    mountedItemRef.current?.unmount();
+    mountedItemRef.current = null;
+  }, []);
 
   const handleSubmit = async () => {
     if (!mountedItemRef.current) return;

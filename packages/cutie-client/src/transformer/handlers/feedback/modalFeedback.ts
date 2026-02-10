@@ -35,6 +35,11 @@ class ModalFeedbackHandler implements ElementHandler {
       dialog.dataset.identifier = identifier;
     }
 
+    const outcomeIdentifier = element.getAttribute('outcome-identifier');
+    if (outcomeIdentifier) {
+      dialog.dataset.outcomeIdentifier = outcomeIdentifier;
+    }
+
     const feedbackType = element.getAttribute('data-feedback-type');
     if (feedbackType) {
       dialog.dataset.feedbackType = feedbackType;

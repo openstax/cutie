@@ -5,6 +5,7 @@ import {
   focusPrev,
   highlightDropTargets,
 } from '../../../utils';
+import type { TransformContext } from '../../types';
 
 /**
  * Controller for managing gap match interaction state and behavior.
@@ -21,7 +22,7 @@ export class GapMatchController {
   choiceElements = new Map<string, HTMLElement>();
   gapElements = new Map<string, HTMLElement>();
   choicesContainer: HTMLElement;
-  liveRegion: HTMLElement;
+  private context: TransformContext;
   container: HTMLElement;
   private enabled = true;
   private choiceMatchGroups = new Map<string, Set<string>>(); // choice-id -> set of group names
@@ -31,12 +32,12 @@ export class GapMatchController {
   constructor(
     responseIdentifier: string,
     choicesContainer: HTMLElement,
-    liveRegion: HTMLElement,
+    context: TransformContext,
     container: HTMLElement
   ) {
     this.responseIdentifier = responseIdentifier;
     this.choicesContainer = choicesContainer;
-    this.liveRegion = liveRegion;
+    this.context = context;
     this.container = container;
 
     // Wire up the choices container as a drop target for returning choices
@@ -412,9 +413,9 @@ export class GapMatchController {
 
     const content = this.choiceContents.get(choiceId) ?? '';
     if (fromGapId) {
-      announce(this.liveRegion,`${content} picked up from gap. Click on another gap to move it, or click the word bank to return it.`);
+      announce(this.context,`${content} picked up from gap. Click on another gap to move it, or click the word bank to return it.`);
     } else {
-      announce(this.liveRegion,`${content} selected. Click or press Enter on a gap to place it.`);
+      announce(this.context,`${content} selected. Click or press Enter on a gap to place it.`);
     }
   }
 
@@ -493,7 +494,7 @@ export class GapMatchController {
     this.updateChoiceExhaustion(choiceId);
 
     const content = this.choiceContents.get(choiceId) ?? '';
-    announce(this.liveRegion,`${content} placed in gap.`);
+    announce(this.context,`${content} placed in gap.`);
   }
 
   /**
@@ -534,7 +535,7 @@ export class GapMatchController {
 
     if (!silent) {
       const content = this.choiceContents.get(choiceId) ?? '';
-      announce(this.liveRegion,`${content} returned to word bank.`);
+      announce(this.context,`${content} returned to word bank.`);
     }
   }
 
