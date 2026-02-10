@@ -49,9 +49,11 @@ class ExtendedTextInteractionHandler implements ElementHandler {
 
     // Process qti-prompt if present
     const promptElement = element.querySelector('qti-prompt');
+    const promptId = `prompt-${responseIdentifier}`;
     if (promptElement && context.transformChildren) {
       const promptContainer = document.createElement('div');
       promptContainer.className = 'qti-prompt';
+      promptContainer.id = promptId;
       const promptFragment = context.transformChildren(promptElement);
       promptContainer.appendChild(promptFragment);
       container.appendChild(promptContainer);
@@ -60,7 +62,11 @@ class ExtendedTextInteractionHandler implements ElementHandler {
     // Create textarea for response input
     const textarea = document.createElement('textarea');
     textarea.className = 'qti-extended-text-response';
-    textarea.setAttribute('aria-label', 'Response input');
+    if (promptElement) {
+      textarea.setAttribute('aria-labelledby', promptId);
+    } else {
+      textarea.setAttribute('aria-label', 'Response input');
+    }
     textarea.setAttribute('data-response-identifier', responseIdentifier);
 
     // Optional: Use expected-lines hint for sizing if provided

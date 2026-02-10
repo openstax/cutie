@@ -42,6 +42,7 @@ export class GapMatchInteractionHandler implements ElementHandler {
     const container = document.createElement('div');
     container.className = 'qti-gap-match-interaction';
     container.setAttribute('data-response-identifier', responseIdentifier);
+    container.setAttribute('role', 'group');
 
     // Find prompt element
     const children = Array.from(element.children);
@@ -57,11 +58,16 @@ export class GapMatchInteractionHandler implements ElementHandler {
     );
 
     // Transform prompt if present
+    const promptId = `prompt-${responseIdentifier}`;
     if (promptElement && context.transformChildren) {
       const promptDiv = document.createElement('div');
       promptDiv.className = 'qti-prompt';
+      promptDiv.id = promptId;
       promptDiv.appendChild(context.transformChildren(promptElement));
       container.appendChild(promptDiv);
+      container.setAttribute('aria-labelledby', promptId);
+    } else {
+      container.setAttribute('aria-label', 'Gap match interaction');
     }
 
     // Create choices container
