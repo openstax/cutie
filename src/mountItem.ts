@@ -97,6 +97,7 @@ export function mountItem(
 
   // Initial render
   doRender(itemTemplateXml);
+  state.set('isUpdate', true);
 
   return {
     unmount: () => {
