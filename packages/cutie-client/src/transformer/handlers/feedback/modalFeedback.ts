@@ -1,5 +1,6 @@
-import { registry } from '../registry';
-import type { ElementHandler, TransformContext } from '../types';
+import { registry } from '../../registry';
+import type { ElementHandler, TransformContext } from '../../types';
+import { createFeedbackIcon, FEEDBACK_ICON_STYLES, isFeedbackType } from './feedbackIcons';
 
 /**
  * Handler for qti-modal-feedback elements.
@@ -15,10 +16,13 @@ class ModalFeedbackHandler implements ElementHandler {
 
   transform(element: Element, context: TransformContext): DocumentFragment {
     const fragment = document.createDocumentFragment();
-    
+
     // Register styles once
-    if (context.styleManager && !context.styleManager.hasStyle('qti-feedback-block')) {
+    if (context.styleManager && !context.styleManager.hasStyle('qti-modal-feedback')) {
       context.styleManager.addStyle('qti-modal-feedback', MODAL_FEEDBACK_STYLES);
+    }
+    if (context.styleManager && !context.styleManager.hasStyle('qti-feedback-icon')) {
+      context.styleManager.addStyle('qti-feedback-icon', FEEDBACK_ICON_STYLES);
     }
 
     const dialog = document.createElement('dialog');
@@ -36,6 +40,14 @@ class ModalFeedbackHandler implements ElementHandler {
       dialog.dataset.feedbackType = feedbackType;
     }
 
+    // Add icon header if feedback type is valid
+    if (feedbackType && isFeedbackType(feedbackType)) {
+      const header = document.createElement('div');
+      header.className = 'qti-modal-feedback__header';
+      header.appendChild(createFeedbackIcon(feedbackType));
+      dialog.appendChild(header);
+    }
+
     // Create content container
     const contentDiv = document.createElement('div');
     contentDiv.className = 'qti-modal-feedback__content';
@@ -51,7 +63,7 @@ class ModalFeedbackHandler implements ElementHandler {
     const closeButton = document.createElement('button');
     closeButton.className = 'qti-modal-feedback__close-button';
     closeButton.innerText = 'OK';
-    
+
     form.appendChild(closeButton);
 
     // Assemble dialog
@@ -85,6 +97,15 @@ const MODAL_FEEDBACK_STYLES = `
 
   .qti-modal-feedback[data-feedback-type="info"] {
     border: 3px solid #4a90e2;
+  }
+
+  .qti-modal-feedback__header {
+    margin-bottom: 0.5rem;
+  }
+
+  .qti-modal-feedback__header .qti-feedback-icon__svg {
+    width: 1.5em;
+    height: 1.5em;
   }
 
   .qti-modal-feedback__form {
