@@ -1,5 +1,6 @@
-import { registry } from '../registry';
-import type { ElementHandler, TransformContext } from '../types';
+import { registry } from '../../registry';
+import type { ElementHandler, TransformContext } from '../../types';
+import { createFeedbackIcon, FEEDBACK_ICON_STYLES, isFeedbackType } from './feedbackIcons';
 
 /**
  * Handler for qti-feedback-block elements.
@@ -20,6 +21,9 @@ class FeedbackBlockHandler implements ElementHandler {
     if (context.styleManager && !context.styleManager.hasStyle('qti-feedback-block')) {
       context.styleManager.addStyle('qti-feedback-block', FEEDBACK_BLOCK_STYLES);
     }
+    if (context.styleManager && !context.styleManager.hasStyle('qti-feedback-icon')) {
+      context.styleManager.addStyle('qti-feedback-icon', FEEDBACK_ICON_STYLES);
+    }
 
     const div = document.createElement('div');
     div.className = 'qti-feedback-block';
@@ -34,10 +38,13 @@ class FeedbackBlockHandler implements ElementHandler {
       div.dataset.feedbackType = feedbackType;
     }
 
+    if (feedbackType && isFeedbackType(feedbackType)) {
+      div.appendChild(createFeedbackIcon(feedbackType));
+    }
+
     if (context.transformChildren) {
       div.appendChild(context.transformChildren(element));
     }
-
     fragment.appendChild(div);
     return fragment;
   }
@@ -50,11 +57,18 @@ const FEEDBACK_BLOCK_STYLES = `
   .qti-feedback-block[data-feedback-type="incorrect"],
   .qti-feedback-block[data-feedback-type="info"] {
     display: block;
+    position: relative;
     margin: 0.75em 0;
-    padding: 0.75em 1em;
+    padding: 0.75em 1em 0.75em 2.25em;
     background-color: #f3f4f6;
     color: #374151;
     font-style: italic;
+  }
+
+  .qti-feedback-block .qti-feedback-icon {
+    position: absolute;
+    left: 0.625em;
+    top: 0.75em;
   }
 
   .qti-feedback-block[data-feedback-type="correct"] {

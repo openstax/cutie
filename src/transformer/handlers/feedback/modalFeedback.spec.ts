@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { StyleManager, TransformContext } from '../types';
+import type { StyleManager, TransformContext } from '../../types';
 
 /**
  * ModalFeedbackHandler class for testing (copied to avoid singleton registry issues)

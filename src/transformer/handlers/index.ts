@@ -13,9 +13,7 @@ import './matchInteraction'; // priority 50
 import './textEntryInteraction'; // priority 50
 
 // Feedback handlers (priority 50)
-import './feedbackInline'; // priority 50
-import './feedbackBlock'; // priority 50
-import './modalFeedback'; // priority 50
+import './feedback';
 import './contentBody'; // priority 50 - transparent container for feedback content
 
 // Unsupported qti-* catch-all (priority 500)

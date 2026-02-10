@@ -1,5 +1,6 @@
-import { registry } from '../registry';
-import type { ElementHandler, TransformContext } from '../types';
+import { registry } from '../../registry';
+import type { ElementHandler, TransformContext } from '../../types';
+import { createFeedbackIcon, FEEDBACK_ICON_STYLES, isFeedbackType } from './feedbackIcons';
 
 /**
  * Handler for qti-feedback-inline elements.
@@ -20,6 +21,9 @@ class FeedbackInlineHandler implements ElementHandler {
     if (context.styleManager && !context.styleManager.hasStyle('qti-feedback-inline')) {
       context.styleManager.addStyle('qti-feedback-inline', FEEDBACK_INLINE_STYLES);
     }
+    if (context.styleManager && !context.styleManager.hasStyle('qti-feedback-icon')) {
+      context.styleManager.addStyle('qti-feedback-icon', FEEDBACK_ICON_STYLES);
+    }
 
     const span = document.createElement('span');
     span.className = 'qti-feedback-inline';
@@ -32,6 +36,10 @@ class FeedbackInlineHandler implements ElementHandler {
     const feedbackType = element.getAttribute('data-feedback-type');
     if (feedbackType) {
       span.dataset.feedbackType = feedbackType;
+    }
+
+    if (feedbackType && isFeedbackType(feedbackType)) {
+      span.appendChild(createFeedbackIcon(feedbackType));
     }
 
     if (context.transformChildren) {
@@ -49,30 +57,17 @@ const FEEDBACK_INLINE_STYLES = `
   .qti-feedback-inline[data-feedback-type="correct"],
   .qti-feedback-inline[data-feedback-type="incorrect"],
   .qti-feedback-inline[data-feedback-type="info"] {
-    display: inline;
     font-style: italic;
     color: #374151;
-    padding: 0.15em 0.5em;
-    border-radius: 3px;
-    line-height: 1.6;
+    padding: 0.15em 0.25em;
   }
 
-  .qti-feedback-inline[data-feedback-type="correct"]::before,
-  .qti-feedback-inline[data-feedback-type="incorrect"]::before,
-  .qti-feedback-inline[data-feedback-type="info"]::before {
-    content: " ";
-    margin-right: 0.5em;
+  .qti-feedback-inline .qti-feedback-icon {
+    vertical-align: middle;
   }
 
-  .qti-feedback-inline[data-feedback-type="correct"]::before {
-    border-left: 0.5em solid #22c55e;
-  }
-
-  .qti-feedback-inline[data-feedback-type="incorrect"]::before {
-    border-left: 0.5em solid #ef4444;
-  }
-
-  .qti-feedback-inline[data-feedback-type="info"]::before {
-    border-left: 0.5em solid #4a90e2;
+  .qti-feedback-inline .qti-feedback-icon__svg {
+    width: 1.25em;
+    height: 1.25em;
   }
 `;
