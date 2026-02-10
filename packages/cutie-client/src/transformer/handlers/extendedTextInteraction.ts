@@ -130,10 +130,20 @@ const EXTENDED_TEXT_INTERACTION_STYLES = `
   box-sizing: border-box;
 }
 
+.qti-extended-text-interaction textarea:focus {
+  outline: 2px solid #2196f3;
+  outline-offset: 1px;
+  border-color: #2196f3;
+}
+
 .qti-extended-text-interaction textarea:disabled {
   background-color: #f5f5f5;
   cursor: not-allowed;
   opacity: 0.6;
+}
+
+.qti-extended-text-interaction textarea:disabled:focus {
+  outline: none;
 }
 `.trim();
 
