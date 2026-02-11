@@ -27,7 +27,18 @@ class ModalFeedbackHandler implements ElementHandler {
 
     const dialog = document.createElement('dialog');
     dialog.className = 'qti-modal-feedback';
-    context.onMount?.(() => { dialog.showModal(); });
+    context.onMount?.(() => {
+      dialog.showModal();
+      dialog.addEventListener('close', () => {
+        const container = context.containerElement;
+        if (!container) return;
+        if (!container.hasAttribute('tabindex')) {
+          container.setAttribute('tabindex', '-1');
+          container.style.outline = 'none';
+        }
+        container.focus();
+      });
+    });
 
     // Preserve identifier
     const identifier = element.getAttribute('identifier');
@@ -44,6 +55,13 @@ class ModalFeedbackHandler implements ElementHandler {
     if (feedbackType) {
       dialog.dataset.feedbackType = feedbackType;
     }
+
+    const feedbackLabels: Record<string, string> = {
+      correct: 'Correct feedback',
+      incorrect: 'Incorrect feedback',
+      info: 'Feedback information',
+    };
+    dialog.setAttribute('aria-label', feedbackLabels[feedbackType ?? ''] ?? 'Feedback');
 
     // Add icon header if feedback type is valid
     if (feedbackType && isFeedbackType(feedbackType)) {

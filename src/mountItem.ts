@@ -75,6 +75,7 @@ export function mountItem(
       styleManager,
       onMount: (cb) => mountCallbacks.push(cb),
       onCleanup: (cb) => cleanupCallbacks.push(cb),
+      containerElement: container,
       state,
     });
 
