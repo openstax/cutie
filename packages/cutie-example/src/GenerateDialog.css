@@ -40,9 +40,9 @@
 }
 
 .topic-input:focus {
-  outline: 2px solid #4a90e2;
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
-  border-color: #4a90e2;
+  border-color: var(--color-primary);
 }
 
 .topic-input:disabled {
@@ -73,6 +73,7 @@
   border: 1px solid #ccc;
   border-radius: 3px;
   font-size: 14px;
+  font-weight: 700;
   cursor: pointer;
   color: #666;
 }
@@ -100,7 +101,7 @@
   display: block;
   height: 3.2rem;
   width: 3.2rem;
-  background-color: #4a90e2;
+  background-color: var(--color-primary);
   background-clip: text;
   font-size: 2rem;
   overflow: hidden;
@@ -113,7 +114,7 @@
 
 .generate-button:hover:not(:disabled),
 .generate-button:focus-visible {
-  outline: 2px solid #4a90e2;
+  outline: 2px solid var(--color-primary);
 }
 
 .generate-button:disabled {
@@ -138,6 +139,7 @@
   border-radius: 4px;
   cursor: pointer;
   font-size: 14px;
+  font-weight: 700;
   color: #666;
   transition: all 0.2s ease;
 }
@@ -147,9 +149,9 @@
 }
 
 .mode-option.active {
-  background-color: #4a90e2;
-  border-color: #4a90e2;
-  color: white;
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-primary-fg);
 }
 
 .mode-option input[type="radio"] {
@@ -184,9 +186,9 @@
 }
 
 .model-select select:focus {
-  outline: 2px solid #4a90e2;
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
-  border-color: #4a90e2;
+  border-color: var(--color-primary);
 }
 
 .model-select select:disabled {

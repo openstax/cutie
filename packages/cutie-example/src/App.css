@@ -1,4 +1,9 @@
 html {
+  --color-primary: #3577B9;
+  --color-primary-hover: #2B619E;
+  --color-primary-fg: #fff;
+  --color-disabled: #767676;
+  --color-disabled-fg: #fff;
   font-family: "Neue Helvetica W01", Helvetica, Arial, sans-serif;
   font-size: 62.5%;
   text-size-adjust: 100%; /* Prevent font scaling in landscape while allowing user zoom */
@@ -55,7 +60,7 @@ body, html, #root {
   color: #666;
   cursor: pointer;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 700;
   transition: all 0.2s;
   border-right: 1px solid #ddd;
 }
@@ -65,9 +70,9 @@ body, html, #root {
 }
 
 .tab.active {
-  background: #2b5e91;
-  color: white;
-  border-right: 1px solid #2b5e91;
+  background: var(--color-primary);
+  color: var(--color-primary-fg);
+  border-right: 1px solid var(--color-primary);
 }
 
 .tab:last-child {
@@ -232,9 +237,9 @@ h2 {
 }
 
 .example-select:focus {
-  outline: 2px solid #4a90e2;
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
-  border-color: #4a90e2;
+  border-color: var(--color-primary);
 }
 
 
@@ -251,31 +256,31 @@ h2 {
 }
 
 .xml-input:focus {
-  outline: 2px solid #4a90e2;
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
-  border-color: #4a90e2;
+  border-color: var(--color-primary);
   background: #fff;
 }
 
 .process-button {
   padding: 0.8rem 1.6rem;
-  background-color: #4a90e2;
-  color: white;
+  background-color: var(--color-primary);
+  color: var(--color-primary-fg);
   border: none;
   border-radius: 3px;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 1.4rem;
+  font-weight: 700;
   cursor: pointer;
   transition: background-color 0.2s;
 }
 
 .process-button:hover:not(:disabled) {
-  background-color: #357abd;
+  background-color: var(--color-primary-hover);
 }
 
 .process-button:disabled {
-  background-color: #767676;
-  color: white;
+  background-color: var(--color-disabled);
+  color: var(--color-disabled-fg);
   cursor: not-allowed;
 }
 
@@ -398,7 +403,7 @@ h2 {
   width: 40px;
   height: 40px;
   border: 3px solid #e0e0e0;
-  border-top-color: #4a90e2;
+  border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 1.5rem;
@@ -467,7 +472,7 @@ main {
 }
 
 .app-footer a {
-  color: #4a90e2;
+  color: var(--color-primary);
   text-decoration: none;
 }
 
@@ -500,7 +505,7 @@ main {
   }
 
   .tab.active:last-child {
-    border-right: 1px solid #2b5e91;
+    border-right: 1px solid var(--color-primary);
   }
 
   .tabs-right {
