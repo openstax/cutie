@@ -1,7 +1,6 @@
 import { createMissingAttributeError } from '../../errors/errorDisplay';
 import { registry } from '../registry';
 import type { ElementHandler, TransformContext } from '../types';
-import { buildInlineInteractionLabel } from './inlineInteractionLabel';
 import { getDefaultValue } from './responseUtils';
 
 /**
@@ -63,7 +62,6 @@ class TextEntryInteractionHandler implements ElementHandler {
 
     // Set data attribute for identification
     input.dataset.responseIdentifier = responseIdentifier;
-    input.setAttribute('aria-label', buildInlineInteractionLabel(element));
 
     // Optional: Use expected-length as a sizing hint (not required for Basic level)
     const expectedLength = element.getAttribute('expected-length');
