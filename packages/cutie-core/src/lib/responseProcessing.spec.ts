@@ -1522,6 +1522,58 @@ describe('Response Processing Operators and Expressions', () => {
       expect(newState.variables.SCORE).toBe(1);
     });
 
+    test('matches multiple cardinality via qti-correct (order-independent)', () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+                     identifier="match-multiple-correct">
+  <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="identifier">
+    <qti-correct-response>
+      <qti-value>A</qti-value>
+      <qti-value>C</qti-value>
+    </qti-correct-response>
+  </qti-response-declaration>
+
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value>
+      <qti-value>0</qti-value>
+    </qti-default-value>
+  </qti-outcome-declaration>
+
+  <qti-item-body>
+    <qti-choice-interaction response-identifier="RESPONSE" max-choices="0">
+      <qti-simple-choice identifier="A">A</qti-simple-choice>
+      <qti-simple-choice identifier="B">B</qti-simple-choice>
+      <qti-simple-choice identifier="C">C</qti-simple-choice>
+    </qti-choice-interaction>
+  </qti-item-body>
+
+  <qti-response-processing>
+    <qti-response-condition>
+      <qti-response-if>
+        <qti-match>
+          <qti-variable identifier="RESPONSE"/>
+          <qti-correct identifier="RESPONSE"/>
+        </qti-match>
+        <qti-set-outcome-value identifier="SCORE">
+          <qti-base-value base-type="float">1</qti-base-value>
+        </qti-set-outcome-value>
+      </qti-response-if>
+    </qti-response-condition>
+  </qti-response-processing>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const currentState = {
+        variables: { SCORE: 0 },
+        completionStatus: 'not_attempted' as const,
+        score: null,
+      };
+
+      // Submit in reverse order — should still match since cardinality="multiple" is unordered
+      const newState = processResponse(itemDoc, { RESPONSE: ['C', 'A'] }, currentState);
+      expect(newState.variables.SCORE).toBe(1);
+    });
+
     test('does not match ordered when order is wrong', () => {
       const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
 <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
