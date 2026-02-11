@@ -1,5 +1,10 @@
 import { registry } from '../registry';
 import type { ElementHandler, TransformContext } from '../types';
+import {
+  annotateInlineInteractions,
+  BLOCK_TAGS,
+  SR_ONLY_STYLES,
+} from './inlineInteractionAnnotator';
 
 /**
  * Handler for standard HTML/XHTML elements
@@ -29,6 +34,22 @@ class HtmlPassthroughHandler implements ElementHandler {
     if (context.transformChildren) {
       const childrenFragment = context.transformChildren(element);
       cloned.appendChild(childrenFragment);
+    }
+
+    // After building the output for a block-level element, annotate any
+    // inline interactions with aria-labelledby referencing surrounding text.
+    // Inner blocks are processed first (via recursion above), so nested
+    // interactions are already annotated and get skipped.
+    if (BLOCK_TAGS.has(element.tagName.toLowerCase())) {
+      const wrapperFragment = document.createDocumentFragment();
+      wrapperFragment.appendChild(cloned);
+      if (annotateInlineInteractions(wrapperFragment)) {
+        if (context.styleManager && !context.styleManager.hasStyle('qti-sr-only')) {
+          context.styleManager.addStyle('qti-sr-only', SR_ONLY_STYLES);
+        }
+      }
+      fragment.appendChild(wrapperFragment);
+      return fragment;
     }
 
     fragment.appendChild(cloned);
