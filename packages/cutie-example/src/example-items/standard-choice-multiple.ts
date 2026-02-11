@@ -2,7 +2,7 @@
 // All responses must be correct for SCORE=1, otherwise SCORE=0.
 // See README.md "allCorrect Mode" for full pattern documentation.
 
-// Multiple Choice with Per-Choice Block Feedback
+// Multiple Choice with Correct Feedback + Per-Wrong-Choice Feedback
 
 export const name = "Multiple Choice";
 
@@ -42,17 +42,14 @@ adaptive="false" time-dependent="false" xml:lang="en">
       <qti-simple-choice identifier="choiceD">Wrong answer D text</qti-simple-choice>
     </qti-choice-interaction>
 
-    <!-- Block feedback for each choice - shown when that choice is selected -->
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceA" show-hide="show" data-feedback-type="correct">
-      <p><strong>Choice A:</strong> This is one of the valid answers. It meets the criteria specified in the question by demonstrating the required characteristic.</p>
+    <!-- Correct answer feedback - shown when all correct choices are selected -->
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_correct" show-hide="show" data-feedback-type="correct">
+      <p>Correct! You identified both valid answers.</p>
     </qti-feedback-block>
 
+    <!-- Per-choice feedback for incorrect choices - explains why each wrong answer is wrong -->
     <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceB" show-hide="show" data-feedback-type="incorrect">
       <p><strong>Choice B:</strong> This option does not meet the criteria. While it may appear related, it lacks the key characteristic that defines a correct answer for this question.</p>
-    </qti-feedback-block>
-
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceC" show-hide="show" data-feedback-type="correct">
-      <p><strong>Choice C:</strong> This is one of the valid answers. It satisfies the requirements outlined in the question through its essential properties.</p>
     </qti-feedback-block>
 
     <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceD" show-hide="show" data-feedback-type="incorrect">
@@ -79,23 +76,23 @@ adaptive="false" time-dependent="false" xml:lang="en">
       </qti-response-else>
     </qti-response-condition>
 
-    <!-- Per-choice feedback using qti-member (multiple cardinality) -->
+    <!-- Correct feedback when score is 1 -->
     <qti-response-condition>
       <qti-response-if>
-        <qti-member>
-          <qti-base-value base-type="identifier">choiceA</qti-base-value>
-          <qti-variable identifier="RESPONSE"/>
-        </qti-member>
+        <qti-match>
+          <qti-variable identifier="SCORE"/>
+          <qti-base-value base-type="float">1</qti-base-value>
+        </qti-match>
         <qti-set-outcome-value identifier="FEEDBACK">
           <qti-multiple>
             <qti-variable identifier="FEEDBACK"/>
-            <qti-base-value base-type="identifier">RESPONSE_choice_choiceA</qti-base-value>
+            <qti-base-value base-type="identifier">RESPONSE_correct</qti-base-value>
           </qti-multiple>
         </qti-set-outcome-value>
       </qti-response-if>
     </qti-response-condition>
 
-    <!-- Set feedback for choiceB if selected -->
+    <!-- Per-choice feedback for wrong answers when selected -->
     <qti-response-condition>
       <qti-response-if>
         <qti-member>
@@ -111,23 +108,6 @@ adaptive="false" time-dependent="false" xml:lang="en">
       </qti-response-if>
     </qti-response-condition>
 
-    <!-- Set feedback for choiceC if selected -->
-    <qti-response-condition>
-      <qti-response-if>
-        <qti-member>
-          <qti-base-value base-type="identifier">choiceC</qti-base-value>
-          <qti-variable identifier="RESPONSE"/>
-        </qti-member>
-        <qti-set-outcome-value identifier="FEEDBACK">
-          <qti-multiple>
-            <qti-variable identifier="FEEDBACK"/>
-            <qti-base-value base-type="identifier">RESPONSE_choice_choiceC</qti-base-value>
-          </qti-multiple>
-        </qti-set-outcome-value>
-      </qti-response-if>
-    </qti-response-condition>
-
-    <!-- Set feedback for choiceD if selected -->
     <qti-response-condition>
       <qti-response-if>
         <qti-member>
