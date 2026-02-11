@@ -16,7 +16,7 @@ export const GAP_STYLES = `
   }
 
   .qti-gap:focus {
-    outline: 3px solid #2196f3;
+    outline: 3px solid var(--cutie-primary);
     outline-offset: 2px;
   }
 
@@ -27,31 +27,29 @@ export const GAP_STYLES = `
 
   /* Filled gaps match word bank item styling */
   .qti-gap--filled {
-    border-color: #1976d2;
+    border-color: var(--cutie-primary);
     background-color: #fff;
     cursor: grab;
   }
 
   .qti-gap--filled:hover {
-    border-color: #1565c0;
-    background-color: #e3f2fd;
+    border-color: var(--cutie-primary);
+    background-color: #f5f5f5;
   }
 
   .qti-gap--selected {
-    border-color: #0d47a1;
-    background-color: #bbdefb;
-    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.3);
+    border-color: var(--cutie-primary);
+    background-color: #ebebeb;
   }
 
-  /* Drop target uses blue theme instead of green */
   .qti-gap--drop-target {
-    border: 2px dashed #1976d2;
-    background-color: #e3f2fd;
+    border: 2px dashed var(--cutie-primary);
+    background-color: #f5f5f5;
   }
 
   .qti-gap--drag-over {
-    border: 2px dashed #0d47a1;
-    background-color: #bbdefb;
+    border: 2px dashed var(--cutie-primary);
+    background-color: #ebebeb;
     transform: scale(1.05);
   }
 
@@ -66,7 +64,7 @@ export const GAP_STYLES = `
   }
 
   .qti-gap-content {
-    font-weight: 500;
+    font-weight: 600;
   }
 
   .qti-gap--error {
@@ -126,25 +124,24 @@ export const GAP_MATCH_INTERACTION_STYLES = `
     transition: border-color 0.2s, background-color 0.2s, border-style 0.2s;
   }
 
-  /* Word bank drop target uses blue theme */
+  /* Word bank drop target — border only, no fill (contains child elements) */
   .qti-gap-match-choices--drop-target {
-    border: 2px dashed #1976d2;
-    background-color: #e3f2fd;
+    border: 2px dashed var(--cutie-primary);
   }
 
   .qti-gap-match-choices--drag-over {
-    border: 2px dashed #0d47a1;
-    background-color: #bbdefb;
+    border: 2px dashed var(--cutie-primary);
   }
 
   .qti-gap-text {
     display: inline-flex;
     align-items: center;
     padding: 0.5em 0.75em;
-    border: 2px solid #1976d2;
+    border: 2px solid var(--cutie-primary);
     border-radius: 4px;
     background-color: #fff;
     color: #333;
+    font-weight: 600;
     font-size: inherit;
     font-family: inherit;
     cursor: grab;
@@ -152,19 +149,20 @@ export const GAP_MATCH_INTERACTION_STYLES = `
   }
 
   .qti-gap-text:hover {
-    background-color: #e3f2fd;
-    border-color: #1565c0;
+    background-color: #f5f5f5;
+    border-color: #bbb;
+    color: #333;
   }
 
   .qti-gap-text:focus {
-    outline: 3px solid #2196f3;
+    outline: 3px solid var(--cutie-primary);
     outline-offset: 2px;
   }
 
   .qti-gap-text--selected {
-    background-color: #bbdefb;
-    border-color: #0d47a1;
-    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.3);
+    background-color: #ebebeb;
+    border-color: var(--cutie-primary);
+    color: #333;
   }
 
   .qti-gap-text--dragging {
@@ -192,7 +190,7 @@ export const GAP_MATCH_INTERACTION_STYLES = `
 
   .qti-gap-text[disabled]:hover {
     background-color: #f5f5f5;
-    border-color: #1976d2;
+    border-color: var(--cutie-primary);
   }
 
   .qti-gap-text[disabled]:focus {

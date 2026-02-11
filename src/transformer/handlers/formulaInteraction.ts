@@ -219,8 +219,8 @@ const FORMULA_INTERACTION_STYLES = `
 }
 
 .qti-formula-field:focus-within {
-  border-color: #4a90d9;
-  box-shadow: 0 0 0 2px rgba(74, 144, 217, 0.2);
+  border-color: var(--cutie-primary);
+  box-shadow: none;
 }
 
 .qti-formula-field[disabled] {

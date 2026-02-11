@@ -3,5 +3,5 @@
 
 export { mountItem } from './mountItem';
 export type { ParsedQtiItem } from './types';
-export type { MountedItem } from './mountItem';
+export type { MountedItem, MountItemOptions } from './mountItem';
 export type { ResponseData, ItemState, ResponseAccessor, StateObserver } from './transformer/types';

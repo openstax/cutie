@@ -9,6 +9,12 @@ export class ItemStateImpl implements ItemState {
   private observers: Set<StateObserver> = new Set();
   private _interactionsEnabled = true;
 
+  constructor(previousState?: ItemState) {
+    if (previousState) {
+      this._interactionsEnabled = previousState.interactionsEnabled;
+    }
+  }
+
   /**
    * Register a response accessor for a given response identifier
    */

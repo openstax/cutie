@@ -131,9 +131,9 @@ const EXTENDED_TEXT_INTERACTION_STYLES = `
 }
 
 .qti-extended-text-interaction textarea:focus {
-  outline: 2px solid #2196f3;
+  outline: 2px solid var(--cutie-primary);
   outline-offset: 1px;
-  border-color: #2196f3;
+  border-color: var(--cutie-primary);
 }
 
 .qti-extended-text-interaction textarea:disabled {

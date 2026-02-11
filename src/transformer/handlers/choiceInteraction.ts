@@ -241,7 +241,7 @@ const CHOICE_INTERACTION_STYLES = `
     align-items: flex-start;
     gap: 0.5em;
     padding: 0.5em;
-    border: 1px solid #ddd;
+    border: 2px solid #ddd;
     border-radius: 4px;
     background-color: #fff;
     cursor: pointer;
@@ -253,15 +253,13 @@ const CHOICE_INTERACTION_STYLES = `
     border-color: #bbb;
   }
 
-  /* Selected state using :has() */
+  /* Selected state — outline mode (border only, no colored background) */
   .qti-choice-interaction .qti-simple-choice:has(input:checked) {
-    background-color: #e3f2fd;
-    border-color: #2196f3;
+    border-color: var(--cutie-primary);
   }
 
   .qti-choice-interaction .qti-simple-choice:has(input:checked):hover {
-    background-color: #e3f2fd;
-    border-color: #2196f3;
+    border-color: var(--cutie-primary);
   }
 
   /* Disabled state using :has() */
@@ -293,7 +291,7 @@ const CHOICE_INTERACTION_STYLES = `
 
   /* Focus-within styling for keyboard navigation */
   .qti-choice-interaction .qti-simple-choice:focus-within {
-    outline: 2px solid #2196f3;
+    outline: 2px solid var(--cutie-primary);
     outline-offset: 2px;
   }
 
@@ -301,6 +299,7 @@ const CHOICE_INTERACTION_STYLES = `
     flex: 1;
     cursor: pointer;
     line-height: 1.5;
+    font-weight: 600;
   }
 
   .qti-choice-interaction .qti-simple-choice:has(input:disabled) .qti-simple-choice-content {
