@@ -208,5 +208,114 @@ describe('ModalFeedbackHandler', () => {
       expect(dialog).not.toBeNull();
       expect(dialog?.open).toBe(false);
     });
+
+    describe('aria-label', () => {
+      it.each([
+        ['correct', 'Correct feedback'],
+        ['incorrect', 'Incorrect feedback'],
+        ['info', 'Feedback information'],
+      ])('should set aria-label to "%s" for feedback type "%s"', (type, expectedLabel) => {
+        const element = document.createElement('qti-modal-feedback');
+        element.setAttribute('data-feedback-type', type);
+        const context: TransformContext = { styleManager: mockStyleManager };
+
+        const fragment = transform(element, context);
+        const dialog = fragment.querySelector('dialog');
+
+        expect(dialog?.getAttribute('aria-label')).toBe(expectedLabel);
+      });
+
+      it('should default aria-label to "Feedback" when no feedback type is present', () => {
+        const element = document.createElement('qti-modal-feedback');
+        const context: TransformContext = { styleManager: mockStyleManager };
+
+        const fragment = transform(element, context);
+        const dialog = fragment.querySelector('dialog');
+
+        expect(dialog?.getAttribute('aria-label')).toBe('Feedback');
+      });
+    });
+
+    describe('focus restoration on close', () => {
+      it('should register a close event handler on the dialog', () => {
+        const element = document.createElement('qti-modal-feedback');
+        const onMount = vi.fn();
+        const container = document.createElement('div');
+        const context: TransformContext = {
+          styleManager: mockStyleManager, onMount, containerElement: container,
+        };
+
+        const fragment = transform(element, context);
+        const dialog = fragment.querySelector('dialog') as HTMLDialogElement;
+
+        dialog.showModal = vi.fn();
+        const addEventListenerSpy = vi.spyOn(dialog, 'addEventListener');
+
+        document.body.appendChild(dialog);
+        const mountCallback = onMount.mock.calls[0][0] as () => void;
+        mountCallback();
+
+        expect(addEventListenerSpy).toHaveBeenCalledWith('close', expect.any(Function));
+
+        dialog.remove();
+      });
+
+      it('should set tabindex="-1" and outline: none on containerElement, and focus it on close', () => {
+        const element = document.createElement('qti-modal-feedback');
+        const onMount = vi.fn();
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        const context: TransformContext = {
+          styleManager: mockStyleManager, onMount, containerElement: container,
+        };
+
+        const fragment = transform(element, context);
+        const dialog = fragment.querySelector('dialog') as HTMLDialogElement;
+
+        container.appendChild(dialog);
+        dialog.showModal = vi.fn();
+        const focusSpy = vi.spyOn(container, 'focus');
+
+        const mountCallback = onMount.mock.calls[0][0] as () => void;
+        mountCallback();
+
+        // Dispatch the close event
+        dialog.dispatchEvent(new Event('close'));
+
+        expect(container.getAttribute('tabindex')).toBe('-1');
+        expect(container.style.outline).toBe('none');
+        expect(focusSpy).toHaveBeenCalled();
+
+        container.remove();
+      });
+
+      it('should not overwrite existing tabindex on the containerElement', () => {
+        const element = document.createElement('qti-modal-feedback');
+        const onMount = vi.fn();
+        const container = document.createElement('div');
+        container.setAttribute('tabindex', '0');
+        document.body.appendChild(container);
+        const context: TransformContext = {
+          styleManager: mockStyleManager, onMount, containerElement: container,
+        };
+
+        const fragment = transform(element, context);
+        const dialog = fragment.querySelector('dialog') as HTMLDialogElement;
+
+        container.appendChild(dialog);
+        dialog.showModal = vi.fn();
+        const focusSpy = vi.spyOn(container, 'focus');
+
+        const mountCallback = onMount.mock.calls[0][0] as () => void;
+        mountCallback();
+
+        dialog.dispatchEvent(new Event('close'));
+
+        expect(container.getAttribute('tabindex')).toBe('0');
+        expect(focusSpy).toHaveBeenCalled();
+
+        container.remove();
+      });
+    });
   });
 });

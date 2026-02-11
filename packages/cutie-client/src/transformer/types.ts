@@ -87,6 +87,12 @@ export interface TransformContext {
   onCleanup?: (callback: () => void) => void;
 
   /**
+   * The top-level container element that the item is rendered into.
+   * Useful for focus management (e.g., restoring focus after a modal closes).
+   */
+  containerElement?: HTMLElement;
+
+  /**
    * Persistent state bag that survives across update() calls.
    * Handlers can read/write arbitrary keyed data. Cleared on unmount().
    */
