@@ -114,7 +114,7 @@ const TEXT_ENTRY_INTERACTION_STYLES = `
     display: inline-block;
     margin: 0 0.25em;
     padding: 0.25em 0.5em;
-    border: 1px solid #ccc;
+    border: 1px solid var(--cutie-border);
     border-radius: 3px;
     font-size: inherit;
     font-family: inherit;

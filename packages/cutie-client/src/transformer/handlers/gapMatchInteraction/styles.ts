@@ -7,7 +7,7 @@ export const GAP_STYLES = `
     min-height: 1.5em;
     padding: 0.125em 0.5em;
     margin: 0 0.25em;
-    border: 2px solid #999;
+    border: 2px solid var(--cutie-border);
     border-radius: 4px;
     background-color: #f9f9f9;
     cursor: pointer;
@@ -21,7 +21,7 @@ export const GAP_STYLES = `
   }
 
   .qti-gap:hover {
-    border-color: #666;
+    border-color: var(--cutie-border-hover);
     background-color: #f0f0f0;
   }
 
@@ -95,7 +95,7 @@ export const GAP_STYLES = `
   }
 
   .qti-gap-match-interaction--disabled .qti-gap:not(.qti-gap--filled):hover {
-    border-color: #999;
+    border-color: var(--cutie-border);
     background-color: #f9f9f9;
   }
 `;
@@ -118,7 +118,7 @@ export const GAP_MATCH_INTERACTION_STYLES = `
     gap: 0.5em;
     padding: 0.75em;
     margin-bottom: 1em;
-    border: 2px solid #ddd;
+    border: 2px solid var(--cutie-border);
     border-radius: 4px;
     background-color: #fafafa;
     transition: border-color 0.2s, background-color 0.2s, border-style 0.2s;
@@ -150,7 +150,7 @@ export const GAP_MATCH_INTERACTION_STYLES = `
 
   .qti-gap-text:hover {
     background-color: #f5f5f5;
-    border-color: #bbb;
+    border-color: var(--cutie-primary);
     color: #333;
   }
 
