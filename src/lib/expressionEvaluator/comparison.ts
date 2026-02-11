@@ -22,6 +22,20 @@ function findResponseIdentifier(children: Element[]): string | null {
 }
 
 /**
+ * Get the cardinality of a response declaration
+ */
+function getResponseCardinality(itemDoc: Document, identifier: string): string {
+  const declarations = itemDoc.getElementsByTagName('qti-response-declaration');
+  for (let i = 0; i < declarations.length; i++) {
+    const decl = declarations[i];
+    if (decl.getAttribute('identifier') === identifier) {
+      return decl.getAttribute('cardinality') || 'single';
+    }
+  }
+  return 'single';
+}
+
+/**
  * Get formula comparison mode from response declaration if it's a formula response
  */
 function getFormulaMode(itemDoc: Document, identifier: string): MathComparisonMode | null {
@@ -214,6 +228,11 @@ export function evaluateMatch(
           String(values[1] ?? ''),
           formulaMode
         );
+      }
+
+      // Multiple cardinality responses are unordered sets per QTI spec
+      if (getResponseCardinality(itemDoc, responseId) === 'multiple') {
+        return deepEqualUnordered(values[0], values[1]);
       }
     }
 
