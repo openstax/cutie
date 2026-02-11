@@ -66,6 +66,10 @@ yarn ci:spelling
 yarn ci:versions
 ```
 
+#### Spellcheck
+
+If the spellcheck fails, fix the typos or add spellcheck ignore comments to the top of the files. ONLY update cspell.json for terms used in many files, such as domain-specific terminology or commonly used abbreviations.
+
 ## Repository Structure
 
 - **`packages/cutie-core/`**: Server-side QTI processing engine (`@openstax/cutie-core`)
