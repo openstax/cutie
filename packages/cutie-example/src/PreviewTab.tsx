@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { AttemptState } from '@openstax/cutie-core';
 import { mountItem } from '@openstax/cutie-client';
-import type { MountedItem, ResponseData } from '@openstax/cutie-client';
+import type { MountedItem, MountItemOptions, ResponseData } from '@openstax/cutie-client';
 import { isEffectivelyEmptyTemplate } from './utils/qtiUtils';
 
 const MenuIcon = () => (
@@ -25,9 +25,10 @@ interface PreviewTabProps {
   isLoading?: boolean;
   onOpenGenerateDialog?: () => void;
   quizMode?: QuizModeProps;
+  themeOptions?: MountItemOptions;
 }
 
-export function PreviewTab({ attemptState, sanitizedTemplate, responses, onSubmitResponses, onResetAttempt, isLoading, onOpenGenerateDialog, quizMode }: PreviewTabProps) {
+export function PreviewTab({ attemptState, sanitizedTemplate, responses, onSubmitResponses, onResetAttempt, isLoading, onOpenGenerateDialog, quizMode, themeOptions }: PreviewTabProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const previewRef = useRef<HTMLDivElement>(null);
@@ -58,8 +59,8 @@ export function PreviewTab({ attemptState, sanitizedTemplate, responses, onSubmi
 
     // Fresh mount: initial, reset, or new item
     mountedItemRef.current?.unmount();
-    mountedItemRef.current = mountItem(previewRef.current, sanitizedTemplate);
-  }, [sanitizedTemplate, attemptState]);
+    mountedItemRef.current = mountItem(previewRef.current, sanitizedTemplate, themeOptions);
+  }, [sanitizedTemplate, attemptState, themeOptions]);
 
   // Sync interaction enabled state
   useEffect(() => {
@@ -157,6 +158,16 @@ export function PreviewTab({ attemptState, sanitizedTemplate, responses, onSubmi
         ) : (
           <div className="preview-card">
             <div className="preview-item" ref={previewRef} />
+            {attemptState?.completionStatus === 'completed' && attemptState.score && (
+              <div className="score-display">
+                <span>Score: {attemptState.score.raw} / {attemptState.score.max}</span>
+                {attemptState.comments && (
+                  <div className="scoring-rationale">
+                    <strong>Scoring Rationale:</strong> {attemptState.comments}
+                  </div>
+                )}
+              </div>
+            )}
             <div className="preview-buttons">
               <button
                 className="process-button"

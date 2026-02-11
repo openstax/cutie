@@ -129,9 +129,9 @@ const INLINE_CHOICE_INTERACTION_STYLES = `
   }
 
   .qti-inline-choice-interaction:focus {
-    outline: 2px solid #2196f3;
+    outline: 2px solid var(--cutie-primary);
     outline-offset: 1px;
-    border-color: #2196f3;
+    border-color: var(--cutie-primary);
   }
 
   .qti-inline-choice-interaction:disabled {

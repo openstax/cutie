@@ -344,6 +344,18 @@ h2 {
   display: none;
 }
 
+.score-display {
+  margin-top: 1.5rem;
+  padding: 1rem 0;
+  font-size: 1.4rem;
+  color: #333;
+}
+
+.score-display .scoring-rationale {
+  margin-top: 0.5rem;
+  color: #666;
+}
+
 .preview-buttons {
   display: flex;
   gap: 0.8rem;
