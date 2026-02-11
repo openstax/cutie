@@ -19,7 +19,9 @@ import type { ResponseData } from './transformer/types';
  * **Consumer contrast contract:**
  * 1. `primaryColor` must have >= 3:1 contrast against white (used as
  *    border / accent text on white backgrounds).
- * 2. `primaryFgColor` and `primaryHoverColor` are reserved for future use.
+ * 2. `borderColor` must have >= 3:1 contrast against white and any
+ *    interaction background (e.g. `#f5f5f5`, `#f9f9f9`).
+ * 3. `primaryFgColor` and `primaryHoverColor` are reserved for future use.
  */
 export interface MountItemOptions {
   /** Brand accent color (default `#1976d2`). Focus outlines, borders, chip text. */
@@ -28,6 +30,10 @@ export interface MountItemOptions {
   primaryFgColor?: string;
   /** Hover shade of primary (default `#1e88e5`). Reserved for future button components. */
   primaryHoverColor?: string;
+  /** Form control border color (default `#767676`). Must meet WCAG 1.4.11 3:1 contrast. */
+  borderColor?: string;
+  /** Form control border hover color (default `#595959`). */
+  borderHoverColor?: string;
 }
 
 /**
@@ -88,6 +94,8 @@ export function mountItem(
     ['primaryColor', '--cutie-primary'],
     ['primaryFgColor', '--cutie-primary-fg'],
     ['primaryHoverColor', '--cutie-primary-hover'],
+    ['borderColor', '--cutie-border'],
+    ['borderHoverColor', '--cutie-border-hover'],
   ];
 
   function applyThemeVars(): void {

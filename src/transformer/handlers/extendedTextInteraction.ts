@@ -124,7 +124,7 @@ const EXTENDED_TEXT_INTERACTION_STYLES = `
   padding: 8px;
   font-size: 14px;
   font-family: inherit;
-  border: 1px solid #ccc;
+  border: 1px solid var(--cutie-border);
   border-radius: 4px;
   resize: vertical;
   box-sizing: border-box;

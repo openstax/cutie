@@ -7,6 +7,8 @@ const BASE_STYLES = `
     --cutie-primary: #1976d2;
     --cutie-primary-fg: #fff;
     --cutie-primary-hover: #1e88e5;
+    --cutie-border: #767676;
+    --cutie-border-hover: #595959;
   }
 
   .qti-item-container img {

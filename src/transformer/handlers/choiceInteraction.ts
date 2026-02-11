@@ -241,7 +241,7 @@ const CHOICE_INTERACTION_STYLES = `
     align-items: flex-start;
     gap: 0.5em;
     padding: 0.5em;
-    border: 2px solid #ddd;
+    border: 2px solid var(--cutie-border);
     border-radius: 4px;
     background-color: #fff;
     cursor: pointer;
@@ -250,7 +250,7 @@ const CHOICE_INTERACTION_STYLES = `
 
   .qti-choice-interaction .qti-simple-choice:hover {
     background-color: #f5f5f5;
-    border-color: #bbb;
+    border-color: var(--cutie-border-hover);
   }
 
   /* Selected state — outline mode (border only, no colored background) */
@@ -265,13 +265,13 @@ const CHOICE_INTERACTION_STYLES = `
   /* Disabled state using :has() */
   .qti-choice-interaction .qti-simple-choice:has(input:disabled) {
     background-color: #f5f5f5;
-    border-color: #ddd;
+    border-color: var(--cutie-border);
     cursor: not-allowed;
   }
 
   .qti-choice-interaction .qti-simple-choice:has(input:disabled):hover {
     background-color: #f5f5f5;
-    border-color: #ddd;
+    border-color: var(--cutie-border);
   }
 
   .qti-choice-interaction .qti-simple-choice input {

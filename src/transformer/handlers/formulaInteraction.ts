@@ -213,7 +213,7 @@ const FORMULA_INTERACTION_STYLES = `
   min-height: 50px;
   padding: 8px;
   font-size: 18px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--cutie-border);
   border-radius: 4px;
   box-sizing: border-box;
 }
@@ -234,7 +234,7 @@ const FORMULA_INTERACTION_STYLES = `
   color: #666;
   font-style: italic;
   background-color: #f9f9f9;
-  border: 1px solid #ddd;
+  border: 1px solid var(--cutie-border);
   border-radius: 4px;
 }
 
@@ -253,7 +253,7 @@ const FORMULA_INTERACTION_STYLES = `
   padding: 8px;
   font-family: 'Courier New', monospace;
   font-size: 14px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--cutie-border);
   border-radius: 4px;
   resize: vertical;
   box-sizing: border-box;
