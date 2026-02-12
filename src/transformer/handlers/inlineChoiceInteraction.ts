@@ -1,4 +1,8 @@
 import { createMissingAttributeError } from '../../errors/errorDisplay';
+import {
+  type ConstraintMessage,
+  createInlineRequiredIndicator,
+} from '../../errors/validationDisplay';
 import { registry } from '../registry';
 import type { ElementHandler, TransformContext } from '../types';
 import { getDefaultValue } from './responseUtils';
@@ -87,11 +91,37 @@ class InlineChoiceInteractionHandler implements ElementHandler {
       select.value = defaultValue;
     }
 
+    // Determine if constrained: required="true" or min-choices >= 1
+    const requiredAttr = element.getAttribute('required');
+    const minChoices = parseInt(element.getAttribute('min-choices') ?? '0', 10) || 0;
+    const isConstrained = requiredAttr === 'true' || minChoices >= 1;
+
+    // Add inline indicator if constrained
+    let indicator: ConstraintMessage | undefined;
+    if (isConstrained) {
+      select.setAttribute('aria-required', 'true');
+
+      indicator = createInlineRequiredIndicator(
+        `constraint-${responseIdentifier}`,
+        'Selection required',
+        context.styleManager,
+      );
+    }
+
     // Register response accessor with itemState if available
     if (context.itemState) {
       const responseAccessor = () => {
         const value = select.value;
-        // Return null if no selection or empty value
+        const isValid = !isConstrained || value !== '';
+
+        if (!isValid) {
+          select.setAttribute('aria-invalid', 'true');
+          indicator?.setError(true);
+          return { value: null, valid: false };
+        }
+
+        select.removeAttribute('aria-invalid');
+        indicator?.setError(false);
         return { value: value === '' ? null : value, valid: true };
       };
 
@@ -109,6 +139,10 @@ class InlineChoiceInteractionHandler implements ElementHandler {
     }
 
     fragment.appendChild(select);
+    if (indicator) {
+      fragment.appendChild(indicator.element);
+    }
+
     return fragment;
   }
 }

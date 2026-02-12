@@ -1,8 +1,22 @@
 import { createMissingAttributeError } from '../../../errors/errorDisplay';
+import {
+  type ConstraintMessage,
+  createConstraintMessage,
+} from '../../../errors/validationDisplay';
 import type { ElementHandler, TransformContext } from '../../types';
 import { getDefaultValue } from '../responseUtils';
 import { GapMatchController } from './controller';
 import { GAP_MATCH_INTERACTION_STYLES } from './styles';
+
+function buildGapMatchConstraintText(min: number, max: number): string | null {
+  if (min > 0 && max > 0 && min !== max) {
+    return `Fill between ${min} and ${max} gaps.`;
+  }
+  if (min > 0) {
+    return `Fill at least ${min} gap${min === 1 ? '' : 's'}.`;
+  }
+  return null;
+}
 
 interface ChoiceData {
   identifier: string;
@@ -118,6 +132,30 @@ export class GapMatchInteractionHandler implements ElementHandler {
 
     container.appendChild(contentContainer);
 
+    // Parse optional association constraints
+    const minAssociations = parseInt(element.getAttribute('min-associations') ?? '0', 10) || 0;
+    const maxAssociations = parseInt(element.getAttribute('max-associations') ?? '0', 10) || 0;
+
+    // Add constraint message if min-associations > 0
+    let constraint: ConstraintMessage | undefined;
+    const constraintText = buildGapMatchConstraintText(minAssociations, maxAssociations);
+    if (constraintText) {
+      constraint = createConstraintMessage(
+        `constraint-${responseIdentifier}`,
+        constraintText,
+        context.styleManager,
+      );
+      container.appendChild(constraint.element);
+
+      const existingDescribedBy = container.getAttribute('aria-describedby');
+      container.setAttribute(
+        'aria-describedby',
+        existingDescribedBy
+          ? `${existingDescribedBy} ${constraint.element.id}`
+          : constraint.element.id
+      );
+    }
+
     // Create the controller
     const controller = new GapMatchController(responseIdentifier, choicesContainer, context, container);
 
@@ -183,6 +221,16 @@ export class GapMatchInteractionHandler implements ElementHandler {
     if (context.itemState) {
       context.itemState.registerResponse(responseIdentifier, () => {
         const response = controller.getResponse();
+        const isValid = minAssociations <= 0 || response.length >= minAssociations;
+
+        if (!isValid) {
+          container.setAttribute('aria-invalid', 'true');
+          constraint?.setError(true);
+          return { value: response.length > 0 ? response : null, valid: false };
+        }
+
+        container.removeAttribute('aria-invalid');
+        constraint?.setError(false);
         return { value: response.length > 0 ? response : null, valid: true };
       });
 

@@ -1,4 +1,8 @@
 import { createMissingAttributeError } from '../../errors/errorDisplay';
+import {
+  type ConstraintMessage,
+  createConstraintMessage,
+} from '../../errors/validationDisplay';
 import { registry } from '../registry';
 import type { ElementHandler, TransformContext } from '../types';
 import { getDefaultValue } from './responseUtils';
@@ -87,10 +91,45 @@ class ExtendedTextInteractionHandler implements ElementHandler {
 
     container.appendChild(textarea);
 
+    // Parse optional min-strings attribute
+    const minStrings = parseInt(element.getAttribute('min-strings') ?? '0', 10) || 0;
+
+    // Add constraint message if min-strings > 0
+    let constraint: ConstraintMessage | undefined;
+    if (minStrings > 0) {
+      const constraintText = minStrings === 1
+        ? 'Enter a response.'
+        : `Enter at least ${minStrings} responses.`;
+      constraint = createConstraintMessage(
+        `constraint-${responseIdentifier}`,
+        constraintText,
+        context.styleManager,
+      );
+      container.appendChild(constraint.element);
+
+      const existingDescribedBy = textarea.getAttribute('aria-describedby');
+      textarea.setAttribute(
+        'aria-describedby',
+        existingDescribedBy
+          ? `${existingDescribedBy} ${constraint.element.id}`
+          : constraint.element.id
+      );
+    }
+
     // Register response accessor with itemState
     if (context.itemState) {
       context.itemState.registerResponse(responseIdentifier, () => {
         const value = textarea.value.trim();
+        const isValid = minStrings <= 0 || value.length > 0;
+
+        if (!isValid) {
+          textarea.setAttribute('aria-invalid', 'true');
+          constraint?.setError(true);
+          return { value: value === '' ? null : value, valid: false };
+        }
+
+        textarea.removeAttribute('aria-invalid');
+        constraint?.setError(false);
         return { value: value === '' ? null : value, valid: true };
       });
 

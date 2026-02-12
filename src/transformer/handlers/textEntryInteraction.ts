@@ -1,4 +1,8 @@
 import { createMissingAttributeError } from '../../errors/errorDisplay';
+import {
+  type ConstraintMessage,
+  createInlineRequiredIndicator,
+} from '../../errors/validationDisplay';
 import { registry } from '../registry';
 import type { ElementHandler, TransformContext } from '../types';
 import { getDefaultValue } from './responseUtils';
@@ -82,12 +86,39 @@ class TextEntryInteractionHandler implements ElementHandler {
       input.value = defaultValue;
     }
 
+    // Read pattern-mask constraint
+    const patternMask = element.getAttribute('pattern-mask');
+    const patternMessage = element.getAttribute('data-patternmask-message');
+    const hasConstraint = patternMask !== null;
+
+    // Add inline indicator if pattern-mask is present
+    let indicator: ConstraintMessage | undefined;
+    if (hasConstraint) {
+      indicator = createInlineRequiredIndicator(
+        `constraint-${responseIdentifier}`,
+        patternMessage ?? 'Required format',
+        context.styleManager,
+      );
+    }
+
     // Register response accessor with itemState if available
     if (context.itemState) {
       const responseAccessor = () => {
         const value = input.value.trim();
-        // Return empty string as null to match QTI convention for no response
-        // Server is responsible for parsing string values to appropriate types
+
+        if (hasConstraint) {
+          const isValid = new RegExp(patternMask).test(input.value);
+
+          if (!isValid) {
+            input.setAttribute('aria-invalid', 'true');
+            indicator?.setError(true);
+            return { value: value === '' ? null : value, valid: false };
+          }
+
+          input.removeAttribute('aria-invalid');
+          indicator?.setError(false);
+        }
+
         return { value: value === '' ? null : value, valid: true };
       };
 
@@ -105,6 +136,10 @@ class TextEntryInteractionHandler implements ElementHandler {
     }
 
     fragment.appendChild(input);
+    if (indicator) {
+      fragment.appendChild(indicator.element);
+    }
+
     return fragment;
   }
 }

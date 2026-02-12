@@ -9,6 +9,21 @@ const WARNING_ICON_PATH =
 
 const CONSTRAINT_ERROR_CLASS = 'cutie-constraint-error';
 
+const INLINE_REQUIRED_INDICATOR_STYLE_ID = 'cutie-inline-required-indicator';
+
+const INLINE_REQUIRED_INDICATOR_STYLES = `
+  .cutie-required-indicator {
+    font-size: 0.75em;
+    vertical-align: super;
+    color: #666;
+    cursor: default;
+  }
+
+  .cutie-required-indicator.${CONSTRAINT_ERROR_CLASS} {
+    color: #d32f2f;
+  }
+`;
+
 const VALIDATION_DISPLAY_STYLE_ID = 'cutie-validation-display';
 
 const VALIDATION_DISPLAY_STYLES = `
@@ -36,6 +51,7 @@ const VALIDATION_DISPLAY_STYLES = `
   .cutie-constraint-text.${CONSTRAINT_ERROR_CLASS} .cutie-constraint-icon {
     visibility: visible;
   }
+
 `;
 
 /**
@@ -92,4 +108,39 @@ export function createConstraintMessage(
   };
 
   return { element: container, setError };
+}
+
+/**
+ * Create an inline required indicator for inline interactions (text entry, inline choice).
+ * Renders a superscript asterisk placed as a sibling after the input/select element.
+ *
+ * @param id - Unique ID for the element (used for aria-describedby linking)
+ * @param title - Tooltip text (e.g., "Selection required" or custom pattern message)
+ * @param styleManager - Optional style manager for registering shared styles
+ */
+export function createInlineRequiredIndicator(
+  id: string,
+  title: string,
+  styleManager?: StyleManager
+): ConstraintMessage {
+  if (styleManager && !styleManager.hasStyle(INLINE_REQUIRED_INDICATOR_STYLE_ID)) {
+    styleManager.addStyle(INLINE_REQUIRED_INDICATOR_STYLE_ID, INLINE_REQUIRED_INDICATOR_STYLES);
+  }
+
+  const span = document.createElement('span');
+  span.className = 'cutie-required-indicator';
+  span.id = id;
+  span.textContent = '*';
+  span.setAttribute('aria-hidden', 'true');
+  span.title = title;
+
+  const setError = (isError: boolean) => {
+    if (isError) {
+      span.classList.add(CONSTRAINT_ERROR_CLASS);
+    } else {
+      span.classList.remove(CONSTRAINT_ERROR_CLASS);
+    }
+  };
+
+  return { element: span, setError };
 }

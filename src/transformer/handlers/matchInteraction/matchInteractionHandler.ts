@@ -1,9 +1,23 @@
 // cspell:ignore draggables
 import { createMissingAttributeError } from '../../../errors/errorDisplay';
+import {
+  type ConstraintMessage,
+  createConstraintMessage,
+} from '../../../errors/validationDisplay';
 import type { ElementHandler, TransformContext } from '../../types';
 import { getDefaultValue } from '../responseUtils';
 import { MatchController } from './controller';
 import { MATCH_INTERACTION_STYLES } from './styles';
+
+function buildMatchConstraintText(min: number, max: number): string | null {
+  if (min > 0 && max > 0 && min !== max) {
+    return `Make between ${min} and ${max} matches.`;
+  }
+  if (min > 0) {
+    return `Make at least ${min} match${min === 1 ? '' : 'es'}.`;
+  }
+  return null;
+}
 
 interface ChoiceData {
   identifier: string;
@@ -47,6 +61,7 @@ export class MatchInteractionHandler implements ElementHandler {
 
     // Get optional attributes
     const maxAssociations = parseInt(element.getAttribute('max-associations') ?? '0', 10);
+    const minAssociations = parseInt(element.getAttribute('min-associations') ?? '0', 10) || 0;
 
     // Create main container
     const container = document.createElement('div');
@@ -108,6 +123,26 @@ export class MatchInteractionHandler implements ElementHandler {
 
     container.appendChild(layoutContainer);
 
+    // Add constraint message if min-associations > 0
+    let constraint: ConstraintMessage | undefined;
+    const constraintText = buildMatchConstraintText(minAssociations, maxAssociations);
+    if (constraintText) {
+      constraint = createConstraintMessage(
+        `constraint-${responseIdentifier}`,
+        constraintText,
+        context.styleManager,
+      );
+      container.appendChild(constraint.element);
+
+      const existingDescribedBy = container.getAttribute('aria-describedby');
+      container.setAttribute(
+        'aria-describedby',
+        existingDescribedBy
+          ? `${existingDescribedBy} ${constraint.element.id}`
+          : constraint.element.id
+      );
+    }
+
     // Initialize controller after all choices are registered
     controller.initialize(sourceSetElement, targetSetElement);
 
@@ -122,6 +157,16 @@ export class MatchInteractionHandler implements ElementHandler {
     if (context.itemState) {
       context.itemState.registerResponse(responseIdentifier, () => {
         const response = controller.getResponse();
+        const isValid = minAssociations <= 0 || response.length >= minAssociations;
+
+        if (!isValid) {
+          container.setAttribute('aria-invalid', 'true');
+          constraint?.setError(true);
+          return { value: response.length > 0 ? response : null, valid: false };
+        }
+
+        container.removeAttribute('aria-invalid');
+        constraint?.setError(false);
         return { value: response.length > 0 ? response : null, valid: true };
       });
 
