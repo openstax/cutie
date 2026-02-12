@@ -55,11 +55,7 @@ class ChoiceInteractionHandler implements ElementHandler {
       return fragment;
     }
 
-    const maxChoicesAttr = element.getAttribute('max-choices');
-    if (!maxChoicesAttr) {
-      fragment.appendChild(createMissingAttributeError('qti-choice-interaction', 'max-choices'));
-      return fragment;
-    }
+    const maxChoicesAttr = element.getAttribute('max-choices') ?? '1';
 
     const maxChoices = parseInt(maxChoicesAttr, 10);
     if (isNaN(maxChoices)) {
@@ -78,7 +74,10 @@ class ChoiceInteractionHandler implements ElementHandler {
 
     // Create container for the interaction
     const container = document.createElement('div');
-    container.className = 'cutie-choice-interaction';
+    const sourceClasses = element.getAttribute('class');
+    container.className = sourceClasses
+      ? `cutie-choice-interaction ${sourceClasses}`
+      : 'cutie-choice-interaction';
     container.setAttribute('data-response-identifier', responseIdentifier);
     container.setAttribute('data-max-choices', maxChoicesAttr);
 
@@ -94,6 +93,11 @@ class ChoiceInteractionHandler implements ElementHandler {
     // Use fieldset for better accessibility (groups related form controls)
     const choicesContainer = document.createElement('fieldset');
     choicesContainer.className = 'cutie-simple-choice-group';
+
+    const orientation = element.getAttribute('orientation');
+    if (orientation === 'horizontal') {
+      choicesContainer.classList.add('cutie-orientation-horizontal');
+    }
 
     // Add legend if prompt is present
     if (promptElement && context.transformChildren) {
@@ -115,7 +119,10 @@ class ChoiceInteractionHandler implements ElementHandler {
 
       // Create choice container as a label (makes entire row clickable)
       const choiceLabel = document.createElement('label');
-      choiceLabel.className = 'cutie-simple-choice';
+      const choiceClasses = choiceElement.getAttribute('class');
+      choiceLabel.className = choiceClasses
+        ? `cutie-simple-choice ${choiceClasses}`
+        : 'cutie-simple-choice';
 
       // Create input element
       const input = document.createElement('input');
@@ -144,7 +151,10 @@ class ChoiceInteractionHandler implements ElementHandler {
 
     // Add constraint text if applicable
     let constraint: ConstraintMessage | undefined;
-    const constraintText = buildConstraintText(minChoices, maxChoices, isSingleSelect);
+    const customMessage =
+      element.getAttribute('data-min-selections-message') ??
+      element.getAttribute('data-max-selections-message');
+    const constraintText = customMessage ?? buildConstraintText(minChoices, maxChoices, isSingleSelect);
     if (constraintText) {
       constraint = createConstraintMessage(
         `constraint-${responseIdentifier}`,
@@ -285,6 +295,11 @@ const CHOICE_INTERACTION_STYLES = `
     gap: 0.5em;
   }
 
+  .cutie-choice-interaction .cutie-simple-choice-group.cutie-orientation-horizontal {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
   /* Remove default fieldset styling for clean appearance */
   .cutie-choice-interaction fieldset.cutie-simple-choice-group {
     border: none;
@@ -304,7 +319,7 @@ const CHOICE_INTERACTION_STYLES = `
     display: flex;
     align-items: flex-start;
     gap: 0.5em;
-    padding: 0.7em 0.5em;
+    padding: 0.7em 1em 0.7em 0.5em;
     border: 2px solid var(--cutie-border);
     border-radius: 4px;
     background-color: var(--cutie-bg);
@@ -344,7 +359,7 @@ const CHOICE_INTERACTION_STYLES = `
   }
 
   /* Hide default focus ring on input since label handles focus styling */
-  .cutie-choice-interaction .cutie-simple-choice input:focus {
+  .cutie-choice-interaction .cutie-simple-choice input:focus-visible {
     outline: none;
   }
 

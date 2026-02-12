@@ -275,6 +275,30 @@ describe('choiceInteraction validation', () => {
       expect(constraintEl.classList.contains('cutie-constraint-error')).toBe(true);
     });
 
+    it('returns valid:true for single-select when max-choices is omitted (defaults to 1)', () => {
+      const doc = createQtiDocument(`
+        <qti-choice-interaction response-identifier="R1">
+          <qti-simple-choice identifier="A">A</qti-simple-choice>
+          <qti-simple-choice identifier="B">B</qti-simple-choice>
+        </qti-choice-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      // Should render as radio buttons (single-select)
+      const radios = container.querySelectorAll<HTMLInputElement>('input[type="radio"]');
+      expect(radios.length).toBe(2);
+
+      // Should not render an error
+      expect(container.querySelector('.cutie-error')).toBeNull();
+
+      // data-max-choices should be "1"
+      const interactionDiv = container.querySelector('.cutie-choice-interaction')!;
+      expect(interactionDiv.getAttribute('data-max-choices')).toBe('1');
+    });
+
     it('returns valid:true when no min-choices constraint', () => {
       const doc = createQtiDocument(`
         <qti-choice-interaction response-identifier="R1" max-choices="2">
@@ -291,6 +315,113 @@ describe('choiceInteraction validation', () => {
       const result = itemState.collectAll();
       expect(result.valid).toBe(true);
       expect(result.responses).toEqual({ R1: null });
+    });
+  });
+
+  describe('QTI conformance', () => {
+    it('forwards QTI shared vocabulary classes to the container', () => {
+      const doc = createQtiDocument(`
+        <qti-choice-interaction response-identifier="R1" max-choices="1"
+          class="qti-labels-none qti-choices-stacking-2">
+          <qti-simple-choice identifier="A">A</qti-simple-choice>
+          <qti-simple-choice identifier="B">B</qti-simple-choice>
+        </qti-choice-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const interaction = container.querySelector('.cutie-choice-interaction')!;
+      expect(interaction.classList.contains('qti-labels-none')).toBe(true);
+      expect(interaction.classList.contains('qti-choices-stacking-2')).toBe(true);
+    });
+
+    it('forwards QTI classes on simple-choice elements to labels', () => {
+      const doc = createQtiDocument(`
+        <qti-choice-interaction response-identifier="R1" max-choices="1">
+          <qti-simple-choice identifier="A" class="qti-choice-highlight">A</qti-simple-choice>
+          <qti-simple-choice identifier="B">B</qti-simple-choice>
+        </qti-choice-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const labels = container.querySelectorAll('.cutie-simple-choice');
+      expect(labels[0]!.classList.contains('qti-choice-highlight')).toBe(true);
+      expect(labels[1]!.classList.contains('qti-choice-highlight')).toBe(false);
+    });
+
+    it('applies horizontal orientation class when orientation="horizontal"', () => {
+      const doc = createQtiDocument(`
+        <qti-choice-interaction response-identifier="R1" max-choices="1" orientation="horizontal">
+          <qti-simple-choice identifier="A">A</qti-simple-choice>
+          <qti-simple-choice identifier="B">B</qti-simple-choice>
+        </qti-choice-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const fieldset = container.querySelector('fieldset')!;
+      expect(fieldset.classList.contains('cutie-orientation-horizontal')).toBe(true);
+    });
+
+    it('does not apply orientation class when orientation is vertical (default)', () => {
+      const doc = createQtiDocument(`
+        <qti-choice-interaction response-identifier="R1" max-choices="1">
+          <qti-simple-choice identifier="A">A</qti-simple-choice>
+          <qti-simple-choice identifier="B">B</qti-simple-choice>
+        </qti-choice-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const fieldset = container.querySelector('fieldset')!;
+      expect(fieldset.classList.contains('cutie-orientation-horizontal')).toBe(false);
+    });
+
+    it('uses custom data-min-selections-message instead of generated text', () => {
+      const doc = createQtiDocument(`
+        <qti-choice-interaction response-identifier="R1" max-choices="3" min-choices="2"
+          data-min-selections-message="Pick at least two">
+          <qti-simple-choice identifier="A">A</qti-simple-choice>
+          <qti-simple-choice identifier="B">B</qti-simple-choice>
+          <qti-simple-choice identifier="C">C</qti-simple-choice>
+        </qti-choice-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const constraintEl = container.querySelector('.cutie-constraint-text');
+      expect(constraintEl).not.toBeNull();
+      expect(constraintEl!.textContent).toBe('Pick at least two');
+    });
+
+    it('uses custom data-max-selections-message instead of generated text', () => {
+      const doc = createQtiDocument(`
+        <qti-choice-interaction response-identifier="R1" max-choices="2"
+          data-max-selections-message="No more than two please">
+          <qti-simple-choice identifier="A">A</qti-simple-choice>
+          <qti-simple-choice identifier="B">B</qti-simple-choice>
+          <qti-simple-choice identifier="C">C</qti-simple-choice>
+        </qti-choice-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const constraintEl = container.querySelector('.cutie-constraint-text');
+      expect(constraintEl).not.toBeNull();
+      expect(constraintEl!.textContent).toBe('No more than two please');
     });
   });
 });
