@@ -1,4 +1,8 @@
 import { createMissingAttributeError } from '../../errors/errorDisplay';
+import {
+  type ConstraintMessage,
+  createConstraintMessage,
+} from '../../errors/validationDisplay';
 import { registry } from '../registry';
 import type { ElementHandler, TransformContext } from '../types';
 import { loadMathLive } from './mathFieldLoader';
@@ -83,6 +87,24 @@ class FormulaInteractionHandler implements ElementHandler {
     mathFieldWrapper.appendChild(loadingPlaceholder);
 
     container.appendChild(mathFieldWrapper);
+
+    // Parse optional min-strings attribute
+    const minStrings = parseInt(element.getAttribute('min-strings') ?? '0', 10) || 0;
+
+    // Add constraint message if min-strings > 0
+    let constraint: ConstraintMessage | undefined;
+    if (minStrings > 0) {
+      const constraintText = minStrings === 1
+        ? 'Enter a response.'
+        : `Enter at least ${minStrings} responses.`;
+      constraint = createConstraintMessage(
+        `constraint-${responseIdentifier}`,
+        constraintText,
+        context.styleManager,
+      );
+      container.appendChild(constraint.element);
+    }
+
     fragment.appendChild(container);
 
     // Get default value
@@ -92,10 +114,23 @@ class FormulaInteractionHandler implements ElementHandler {
     // Track current value for response accessor
     let currentValue = initialValue;
 
+    // Track active input element for aria-describedby/aria-invalid
+    let activeInputElement: HTMLElement | null = null;
+
     // Register response accessor immediately (returns current value)
     if (context.itemState) {
       context.itemState.registerResponse(responseIdentifier, () => {
         const trimmed = currentValue.trim();
+        const isValid = minStrings <= 0 || trimmed.length > 0;
+
+        if (!isValid) {
+          activeInputElement?.setAttribute('aria-invalid', 'true');
+          constraint?.setError(true);
+          return { value: trimmed === '' ? null : trimmed, valid: false };
+        }
+
+        activeInputElement?.removeAttribute('aria-invalid');
+        constraint?.setError(false);
         return { value: trimmed === '' ? null : trimmed, valid: true };
       });
     }
@@ -136,6 +171,18 @@ class FormulaInteractionHandler implements ElementHandler {
             mathField.disabled = !state.interactionsEnabled;
           });
           mathField.disabled = !context.itemState.interactionsEnabled;
+        }
+
+        // Wire up constraint linkage
+        activeInputElement = mathField;
+        if (constraint) {
+          const existingDescribedBy = mathField.getAttribute('aria-describedby');
+          mathField.setAttribute(
+            'aria-describedby',
+            existingDescribedBy
+              ? `${existingDescribedBy} ${constraint.element.id}`
+              : constraint.element.id
+          );
         }
 
         mathFieldWrapper.appendChild(mathField);
@@ -179,6 +226,18 @@ class FormulaInteractionHandler implements ElementHandler {
         textarea.addEventListener('input', () => {
           currentValue = textarea.value;
         });
+
+        // Wire up constraint linkage
+        activeInputElement = textarea;
+        if (constraint) {
+          const existingDescribedBy = textarea.getAttribute('aria-describedby');
+          textarea.setAttribute(
+            'aria-describedby',
+            existingDescribedBy
+              ? `${existingDescribedBy} ${constraint.element.id}`
+              : constraint.element.id
+          );
+        }
 
         if (context.itemState) {
           context.itemState.addObserver((state) => {

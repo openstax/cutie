@@ -36,7 +36,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
   <qti-outcome-declaration identifier="FEEDBACK" cardinality="multiple" base-type="identifier"/>
 
   <qti-item-body>
-    <qti-gap-match-interaction response-identifier="RESPONSE" shuffle="true">
+    <qti-gap-match-interaction response-identifier="RESPONSE" shuffle="true" min-associations="3">
       <qti-prompt>Drag the words to fill in the blanks in the sentence below.</qti-prompt>
       <qti-gap-text identifier="wordA" match-max="1">word A</qti-gap-text>
       <qti-gap-text identifier="wordB" match-max="1">word B</qti-gap-text>

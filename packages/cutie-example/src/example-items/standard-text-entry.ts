@@ -44,7 +44,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
 
   <qti-item-body>
     <p>Question prompt goes here. Enter your answer in the text field below.</p>
-    <p>The expected answer is: <qti-text-entry-interaction response-identifier="RESPONSE" expected-length="15"/></p>
+    <p>The expected answer is: <qti-text-entry-interaction response-identifier="RESPONSE" expected-length="15" pattern-mask=".+" data-patternmask-message="Response required"/></p>
 
     <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_correct" show-hide="show" data-feedback-type="correct">
       <p><strong>Correct!</strong> Your answer matches the expected value. You've demonstrated understanding of this concept.</p>

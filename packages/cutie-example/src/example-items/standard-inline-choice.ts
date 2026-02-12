@@ -36,7 +36,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
     <p>Complete the sentence by selecting the correct word from the dropdown.</p>
     <p>
       The sentence begins here and the missing word is
-      <qti-inline-choice-interaction response-identifier="RESPONSE" shuffle="true">
+      <qti-inline-choice-interaction response-identifier="RESPONSE" shuffle="true" required="true">
         <qti-inline-choice identifier="optionA">wrong option A</qti-inline-choice>
         <qti-inline-choice identifier="optionB">correct option</qti-inline-choice>
         <qti-inline-choice identifier="optionC">wrong option C</qti-inline-choice>

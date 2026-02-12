@@ -35,7 +35,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
   <qti-outcome-declaration identifier="FEEDBACK" cardinality="multiple" base-type="identifier"/>
 
   <qti-item-body>
-    <qti-match-interaction response-identifier="RESPONSE" shuffle="true" max-associations="3">
+    <qti-match-interaction response-identifier="RESPONSE" shuffle="true" min-associations="3" max-associations="3">
       <qti-prompt>Match each item to its corresponding target.</qti-prompt>
       <qti-simple-match-set>
         <qti-simple-associable-choice identifier="itemA" match-max="1">Item A text</qti-simple-associable-choice>

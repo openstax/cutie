@@ -34,7 +34,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
     <p><strong>Algebraic Mode:</strong> Any mathematically equivalent expression is accepted.</p>
     <p>Factor or expand: What is the difference of squares for <code>(x+1)(x-1)</code>?</p>
     <p>Enter your answer:</p>
-    <qti-extended-text-interaction response-identifier="RESPONSE"/>
+    <qti-extended-text-interaction response-identifier="RESPONSE" min-strings="1"/>
 
     <p><em>Hint: All of these are accepted: <code>x^2-1</code>, <code>(x+1)(x-1)</code>, <code>(x-1)(x+1)</code>, <code>-1+x^2</code></em></p>
 

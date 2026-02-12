@@ -34,7 +34,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
     <p><strong>Canonical Mode:</strong> Your answer is normalized before comparison. Order of terms doesn't matter, but the expression must be in the same form (not simplified).</p>
     <p>What is 5 times x?</p>
     <p>Enter your answer:</p>
-    <qti-extended-text-interaction response-identifier="RESPONSE"/>
+    <qti-extended-text-interaction response-identifier="RESPONSE" min-strings="1"/>
 
     <p><em>Hint: Both <code>5x</code> and <code>x*5</code> are accepted. However, <code>2x+3x</code> would be incorrect because it's not simplified to the canonical form.</em></p>
 

@@ -34,7 +34,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
     <p><strong>Strict Mode:</strong> Your answer must match the exact structure. Order and form matter.</p>
     <p>Simplify the expression: <code>x + x + 3</code></p>
     <p>Enter your answer:</p>
-    <qti-extended-text-interaction response-identifier="RESPONSE"/>
+    <qti-extended-text-interaction response-identifier="RESPONSE" min-strings="1"/>
 
     <p><em>Hint: The expected answer is <code>2x+3</code>. In strict mode, <code>3+2x</code> would be incorrect because the order is different.</em></p>
 

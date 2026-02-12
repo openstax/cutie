@@ -80,7 +80,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
     <hr/>
 
     <p><strong>Part 2:</strong> Question prompt for the text entry interaction.</p>
-    <p>Enter the expected word: <qti-text-entry-interaction response-identifier="RESPONSE2" expected-length="10"/></p>
+    <p>Enter the expected word: <qti-text-entry-interaction response-identifier="RESPONSE2" expected-length="10" pattern-mask=".+" data-patternmask-message="Response required"/></p>
 
     <p>
       <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE2_correct" show-hide="show" data-feedback-type="correct">
@@ -96,7 +96,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
     <p><strong>Part 3:</strong> Question prompt for the inline choice interaction.</p>
     <p>
       Complete the sentence: The correct option is
-      <qti-inline-choice-interaction response-identifier="RESPONSE3" shuffle="true">
+      <qti-inline-choice-interaction response-identifier="RESPONSE3" shuffle="true" required="true">
         <qti-inline-choice identifier="optionA">wrong A</qti-inline-choice>
         <qti-inline-choice identifier="optionB">correct</qti-inline-choice>
         <qti-inline-choice identifier="optionC">wrong C</qti-inline-choice>

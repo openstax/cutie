@@ -45,7 +45,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
 
   <qti-item-body>
     <p>What is the capital of Pennsylvania?</p>
-    <p>Answer: <qti-text-entry-interaction response-identifier="RESPONSE" expected-length="15"/></p>
+    <p>Answer: <qti-text-entry-interaction response-identifier="RESPONSE" expected-length="15" pattern-mask=".+" data-patternmask-message="Response required"/></p>
 
     <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_correct" show-hide="show" data-feedback-type="correct">
       <p><strong>Correct!</strong> Harrisburg is the capital of Pennsylvania. It has served as the state capital since 1812.</p>
