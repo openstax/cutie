@@ -44,7 +44,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
   <qti-outcome-declaration identifier="FEEDBACK" cardinality="multiple" base-type="identifier"/>
 
   <qti-item-body>
-    <qti-choice-interaction response-identifier="RESPONSE" shuffle="true" max-choices="1">
+    <qti-choice-interaction response-identifier="RESPONSE" shuffle="true" min-choices="1" max-choices="1">
       <qti-prompt>Which of the following best describes the primary function of mitochondria in a cell?</qti-prompt>
       <qti-simple-choice identifier="choiceA">They generate most of the cell's supply of ATP through oxidative phosphorylation</qti-simple-choice>
       <qti-simple-choice identifier="choiceB">They produce energy for the cell through cellular respiration</qti-simple-choice>

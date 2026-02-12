@@ -31,7 +31,7 @@ adaptive="false" time-dependent="false" xml:lang="en" >
 
   <qti-item-body>
     <!-- The response variable RESPONSE will hold the candidate's input-->
-    <qti-choice-interaction response-identifier="RESPONSE" shuffle="false" max-choices="1">
+    <qti-choice-interaction response-identifier="RESPONSE" shuffle="false" min-choices="1" max-choices="1">
         <qti-prompt>Sigmund Freud and Carl Jung both belong to the psychoanalytic school of
             psychology.</qti-prompt>
         <qti-simple-choice identifier="true" fixed="true">True

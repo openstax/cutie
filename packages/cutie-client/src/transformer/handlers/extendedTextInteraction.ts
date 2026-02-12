@@ -91,7 +91,7 @@ class ExtendedTextInteractionHandler implements ElementHandler {
     if (context.itemState) {
       context.itemState.registerResponse(responseIdentifier, () => {
         const value = textarea.value.trim();
-        return value === '' ? null : value;
+        return { value: value === '' ? null : value, valid: true };
       });
 
       // Observe interaction state changes to enable/disable textarea

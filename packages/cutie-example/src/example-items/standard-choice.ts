@@ -33,7 +33,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
   <qti-outcome-declaration identifier="FEEDBACK" cardinality="multiple" base-type="identifier"/>
 
   <qti-item-body>
-    <qti-choice-interaction response-identifier="RESPONSE" shuffle="true" max-choices="1">
+    <qti-choice-interaction response-identifier="RESPONSE" shuffle="true" min-choices="1" max-choices="1">
       <qti-prompt>Question prompt goes here. Select the best answer.</qti-prompt>
       <qti-simple-choice identifier="choiceA">
         Correct answer text

@@ -34,7 +34,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
   <qti-outcome-declaration identifier="FEEDBACK" cardinality="multiple" base-type="identifier"/>
 
   <qti-item-body>
-    <qti-choice-interaction response-identifier="RESPONSE" shuffle="true" max-choices="0">
+    <qti-choice-interaction response-identifier="RESPONSE" shuffle="true" min-choices="1" max-choices="0">
       <qti-prompt>Question prompt goes here. Select all that apply.</qti-prompt>
       <qti-simple-choice identifier="choiceA">Correct answer A text</qti-simple-choice>
       <qti-simple-choice identifier="choiceB">Wrong answer B text</qti-simple-choice>

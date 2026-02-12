@@ -1,0 +1,94 @@
+import type { StyleManager } from '../transformer/types';
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+// SVG path from Material Symbols Outlined "warning"
+// https://raw.githubusercontent.com/google/material-design-icons/master/symbols/web/warning/materialsymbolsoutlined/warning_24px.svg
+const WARNING_ICON_PATH =
+  'm40-120 440-760 440 760H40Zm138-80h604L480-720 178-200Zm302-40q17 0 28.5-11.5T520-280q0-17-11.5-28.5T480-320q-17 0-28.5 11.5T440-280q0 17 11.5 28.5T480-240Zm-40-120h80v-200h-80v200Zm40-100Z';
+
+const CONSTRAINT_ERROR_CLASS = 'qti-constraint-error';
+
+const VALIDATION_DISPLAY_STYLE_ID = 'qti-validation-display';
+
+const VALIDATION_DISPLAY_STYLES = `
+  .qti-constraint-text {
+    display: flex;
+    align-items: center;
+    gap: 0.3em;
+    font-size: 0.85em;
+    color: #666;
+    margin-top: 0.5em;
+  }
+
+  .qti-constraint-icon {
+    visibility: hidden;
+    width: 1em;
+    height: 1em;
+    flex-shrink: 0;
+  }
+
+  /* Error state — icon provides non-color signal per WCAG 1.4.1 */
+  .qti-constraint-text.${CONSTRAINT_ERROR_CLASS} {
+    color: #d32f2f;
+  }
+
+  .qti-constraint-text.${CONSTRAINT_ERROR_CLASS} .qti-constraint-icon {
+    visibility: visible;
+  }
+`;
+
+/**
+ * Create a constraint message element with a warning icon.
+ * The icon is hidden by default and shown when the element has the error class.
+ *
+ * Registers shared validation display styles via the provided StyleManager (idempotent).
+ *
+ * @param id - Unique ID for the element (used for aria-describedby linking)
+ * @param text - Informational constraint text (e.g., "Select at least 2 choices.")
+ * @param styleManager - Optional style manager for registering shared styles
+ */
+export interface ConstraintMessage {
+  element: HTMLElement;
+  setError: (isError: boolean) => void;
+}
+
+export function createConstraintMessage(
+  id: string,
+  text: string,
+  styleManager?: StyleManager
+): ConstraintMessage {
+  if (styleManager && !styleManager.hasStyle(VALIDATION_DISPLAY_STYLE_ID)) {
+    styleManager.addStyle(VALIDATION_DISPLAY_STYLE_ID, VALIDATION_DISPLAY_STYLES);
+  }
+
+  const container = document.createElement('div');
+  container.className = 'qti-constraint-text';
+  container.id = id;
+
+  // Warning icon — hidden by default, shown via CSS in error state
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('class', 'qti-constraint-icon');
+  svg.setAttribute('viewBox', '0 -960 960 960');
+  svg.setAttribute('fill', 'currentColor');
+
+  const path = document.createElementNS(SVG_NS, 'path');
+  path.setAttribute('d', WARNING_ICON_PATH);
+  svg.appendChild(path);
+  container.appendChild(svg);
+
+  const textSpan = document.createElement('span');
+  textSpan.textContent = text;
+  container.appendChild(textSpan);
+
+  const setError = (isError: boolean) => {
+    if (isError) {
+      container.classList.add(CONSTRAINT_ERROR_CLASS);
+    } else {
+      container.classList.remove(CONSTRAINT_ERROR_CLASS);
+    }
+  };
+
+  return { element: container, setError };
+}

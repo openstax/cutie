@@ -51,9 +51,10 @@ export interface MountedItem {
   update: (itemTemplateXml: string) => void;
 
   /**
-   * Collect all response data from registered interactions
+   * Collect all response data from registered interactions.
+   * Returns undefined if any interaction has invalid responses.
    */
-  collectResponses: () => ResponseData;
+  collectResponses: () => ResponseData | undefined;
 
   /**
    * Enable or disable all interactions
@@ -171,7 +172,7 @@ export function mountItem(
       teardownCurrentRender = null;
       doRender(xml);
     },
-    collectResponses: () => currentItemState?.collectAll() ?? {},
+    collectResponses: () => currentItemState?.collectAll(),
     setInteractionsEnabled: (enabled: boolean) => {
       currentItemState?.setInteractionsEnabled(enabled);
     },

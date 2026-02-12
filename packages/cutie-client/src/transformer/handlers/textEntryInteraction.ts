@@ -88,7 +88,7 @@ class TextEntryInteractionHandler implements ElementHandler {
         const value = input.value.trim();
         // Return empty string as null to match QTI convention for no response
         // Server is responsible for parsing string values to appropriate types
-        return value === '' ? null : value;
+        return { value: value === '' ? null : value, valid: true };
       };
 
       context.itemState.registerResponse(responseIdentifier, responseAccessor);

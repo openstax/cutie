@@ -2,9 +2,33 @@ import {
   createInvalidAttributeError,
   createMissingAttributeError,
 } from '../../errors/errorDisplay';
+import {
+  type ConstraintMessage,
+  createConstraintMessage,
+} from '../../errors/validationDisplay';
 import { registry } from '../registry';
-import type { ElementHandler, TransformContext } from '../types';
+import type { ElementHandler, ResponseAccessorResult, TransformContext } from '../types';
 import { getDefaultValue } from './responseUtils';
+
+/**
+ * Build constraint text describing the selection requirements.
+ * Returns null when no instructional text is needed (e.g., single-select radio).
+ */
+function buildConstraintText(minChoices: number, maxChoices: number, isSingleSelect: boolean): string | null {
+  if (isSingleSelect) {
+    return minChoices > 0 ? 'Select an answer.' : null;
+  }
+  if (minChoices > 0 && maxChoices > 0 && minChoices !== maxChoices) {
+    return `Select between ${minChoices} and ${maxChoices} choices.`;
+  }
+  if (minChoices > 0) {
+    return `Select at least ${minChoices} choice${minChoices === 1 ? '' : 's'}.`;
+  }
+  if (maxChoices > 0) {
+    return `Select up to ${maxChoices} choice${maxChoices === 1 ? '' : 's'}.`;
+  }
+  return null;
+}
 
 /**
  * Handler for qti-choice-interaction elements
@@ -42,6 +66,10 @@ class ChoiceInteractionHandler implements ElementHandler {
       fragment.appendChild(createInvalidAttributeError('qti-choice-interaction', 'max-choices', maxChoicesAttr, 'Value must be a number'));
       return fragment;
     }
+
+    // Parse optional min-choices attribute
+    const minChoicesAttr = element.getAttribute('min-choices');
+    const minChoices = minChoicesAttr ? parseInt(minChoicesAttr, 10) : 0;
 
     // Determine if this is single-select (radio) or multi-select (checkbox)
     const isSingleSelect = maxChoices === 1;
@@ -114,6 +142,27 @@ class ChoiceInteractionHandler implements ElementHandler {
 
     container.appendChild(choicesContainer);
 
+    // Add constraint text if applicable
+    let constraint: ConstraintMessage | undefined;
+    const constraintText = buildConstraintText(minChoices, maxChoices, isSingleSelect);
+    if (constraintText) {
+      constraint = createConstraintMessage(
+        `constraint-${responseIdentifier}`,
+        constraintText,
+        context.styleManager,
+      );
+      container.appendChild(constraint.element);
+
+      // Link fieldset to constraint text for screen readers
+      const existingDescribedBy = choicesContainer.getAttribute('aria-describedby');
+      choicesContainer.setAttribute(
+        'aria-describedby',
+        existingDescribedBy
+          ? `${existingDescribedBy} ${constraint.element.id}`
+          : constraint.element.id
+      );
+    }
+
     // Initialize with default value(s) from response declaration if present
     const defaultValue = getDefaultValue(element.ownerDocument, responseIdentifier);
     if (defaultValue !== null) {
@@ -161,15 +210,30 @@ class ChoiceInteractionHandler implements ElementHandler {
           return null;
         }
         if (isSingleSelect) {
-          // For single-select, return single identifier string
           return checked[0]?.value ?? null;
         } else {
-          // For multi-select, return array of identifiers
           return checked.map((input) => input.value);
         }
       };
 
-      context.itemState.registerResponse(responseIdentifier, getResponse);
+      const accessor = (): ResponseAccessorResult => {
+        const value = getResponse();
+        const checkedCount = inputElements.filter((input) => input.checked).length;
+        const isValid = minChoices <= 0 || checkedCount >= minChoices;
+
+        if (!isValid) {
+          choicesContainer.setAttribute('aria-invalid', 'true');
+          constraint?.setError(true);
+          return { value, valid: false, errorElement: constraint?.element };
+        }
+
+        // Clear error state if previously set
+        choicesContainer.removeAttribute('aria-invalid');
+        constraint?.setError(false);
+        return { value, valid: true };
+      };
+
+      context.itemState.registerResponse(responseIdentifier, accessor);
 
       // Observe interaction enabled state changes
       const updateInteractionState = (state: { interactionsEnabled: boolean }) => {

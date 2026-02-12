@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import type { AttemptState } from './types';
-import { setScore, submitResponse } from './index';
+import { ResponseValidationError, setScore, submitResponse } from './index';
 
 const externalScoredItem = `<?xml version="1.0" encoding="UTF-8"?>
 <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
@@ -63,6 +63,43 @@ describe('submitResponse - external scoring', () => {
     expect(result.state.score).not.toBeNull();
     expect(result.state.score!.raw).toBe(1);
     expect(result.state.score!.max).toBe(1);
+  });
+});
+
+describe('submitResponse - response validation', () => {
+  const minChoicesItem = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+                     identifier="multi" title="Multi" adaptive="false" time-dependent="false">
+  <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="identifier">
+    <qti-correct-response>
+      <qti-value>A</qti-value>
+      <qti-value>B</qti-value>
+    </qti-correct-response>
+  </qti-response-declaration>
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/>
+  <qti-item-body>
+    <qti-choice-interaction response-identifier="RESPONSE" shuffle="false" max-choices="3" min-choices="2">
+      <qti-simple-choice identifier="A">A</qti-simple-choice>
+      <qti-simple-choice identifier="B">B</qti-simple-choice>
+      <qti-simple-choice identifier="C">C</qti-simple-choice>
+    </qti-choice-interaction>
+  </qti-item-body>
+  <qti-response-processing template="https://example.com/match_correct.xml"/>
+</qti-assessment-item>`;
+
+  test('throws ResponseValidationError when min-choices violated', async () => {
+    await expect(
+      submitResponse({ RESPONSE: ['A'] }, baseState, minChoicesItem)
+    ).rejects.toThrow(ResponseValidationError);
+  });
+
+  test('passes validation when min-choices satisfied', async () => {
+    const result = await submitResponse(
+      { RESPONSE: ['A', 'B'] },
+      baseState,
+      minChoicesItem,
+    );
+    expect(result.state).toBeDefined();
   });
 });
 

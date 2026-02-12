@@ -76,9 +76,10 @@ export function PreviewTab({ attemptState, sanitizedTemplate, responses, onSubmi
   const handleSubmit = async () => {
     if (!mountedItemRef.current) return;
 
-    setIsSubmitting(true);
     const collectedResponses = mountedItemRef.current.collectResponses();
+    if (!collectedResponses) return; // validation failed, handlers decorated their UI
 
+    setIsSubmitting(true);
     try {
       await onSubmitResponses(collectedResponses);
     } finally {

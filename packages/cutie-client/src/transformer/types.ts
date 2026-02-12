@@ -1,7 +1,17 @@
 /**
+ * Result returned by a response accessor, including the value and validation state
+ */
+export interface ResponseAccessorResult {
+  value: unknown;
+  valid: boolean;
+  /** Reference to constraint text element for alert coordination */
+  errorElement?: HTMLElement;
+}
+
+/**
  * Function that retrieves current response value from an interaction
  */
-export type ResponseAccessor = () => unknown;
+export type ResponseAccessor = () => ResponseAccessorResult;
 
 /**
  * Response data format expected by cutie-core
@@ -41,7 +51,7 @@ export interface ItemState {
   // Response collection
   registerResponse(responseIdentifier: string, accessor: ResponseAccessor): void;
   getResponse(responseIdentifier: string): unknown;
-  collectAll(): ResponseData;
+  collectAll(): ResponseData | undefined;
   getResponseIdentifiers(): string[];
   unregisterResponse(responseIdentifier: string): void;
 
