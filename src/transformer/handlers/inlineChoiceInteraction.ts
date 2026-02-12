@@ -68,7 +68,10 @@ class InlineChoiceInteractionHandler implements ElementHandler {
     // Add placeholder option for initial unselected state
     const placeholder = document.createElement('option');
     placeholder.value = '';
-    placeholder.textContent = '';
+    placeholder.textContent = 'Select\u2026';
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    placeholder.hidden = true;
     select.appendChild(placeholder);
 
     // Create option elements from pre-shuffled choices (order comes from server via renderTemplate)
