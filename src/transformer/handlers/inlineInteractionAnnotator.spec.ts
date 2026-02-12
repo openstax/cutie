@@ -36,7 +36,7 @@ describe('annotateInlineInteractions', () => {
   describe('Example 1: Simple text, single interaction', () => {
     it('wraps surrounding text in labeled spans and sets aria-labelledby', () => {
       const fragment = fragmentFromHtml(
-        '<p>The year was <input class="qti-text-entry-interaction"/>.</p>'
+        '<p>The year was <input class="cutie-text-entry-interaction"/>.</p>'
       );
 
       const result = annotateInlineInteractions(fragment, testIdGenerator);
@@ -72,7 +72,7 @@ describe('annotateInlineInteractions', () => {
   describe('Example 2: Multiple interactions, shared region', () => {
     it('shares span between interactions and adds aria-describedby', () => {
       const fragment = fragmentFromHtml(
-        '<p>The year was <input class="qti-text-entry-interaction"/> and the city was <input class="qti-text-entry-interaction"/>.</p>'
+        '<p>The year was <input class="cutie-text-entry-interaction"/> and the city was <input class="cutie-text-entry-interaction"/>.</p>'
       );
 
       annotateInlineInteractions(fragment, testIdGenerator);
@@ -91,7 +91,7 @@ describe('annotateInlineInteractions', () => {
       // The shared span " and the city was " should be referenced by both
       // Find all context spans (not description spans)
       const contextSpans = Array.from(p.querySelectorAll('span[id]')).filter(
-        (s) => !s.classList.contains('qti-sr-only')
+        (s) => !s.classList.contains('cutie-sr-only')
       );
       expect(contextSpans.length).toBe(3); // before, shared, after
 
@@ -111,7 +111,7 @@ describe('annotateInlineInteractions', () => {
 
       expect(descSpan1.textContent).toBe('blank 1 of 2');
       expect(descSpan2.textContent).toBe('blank 2 of 2');
-      expect(descSpan1.classList.contains('qti-sr-only')).toBe(true);
+      expect(descSpan1.classList.contains('cutie-sr-only')).toBe(true);
       expect(descSpan1.getAttribute('aria-hidden')).toBe('true');
     });
   });
@@ -119,7 +119,7 @@ describe('annotateInlineInteractions', () => {
   describe('Example 3: Formatting that does NOT cross boundary', () => {
     it('wraps whole inline element with surrounding text in one span', () => {
       const fragment = fragmentFromHtml(
-        '<p>The <strong>Declaration of Independence</strong> was signed in <input class="qti-text-entry-interaction"/>.</p>'
+        '<p>The <strong>Declaration of Independence</strong> was signed in <input class="cutie-text-entry-interaction"/>.</p>'
       );
 
       annotateInlineInteractions(fragment, testIdGenerator);
@@ -128,7 +128,7 @@ describe('annotateInlineInteractions', () => {
 
       // The <strong> should be inside the before span along with surrounding text
       const contextSpans = Array.from(p.querySelectorAll('span[id]')).filter(
-        (s) => !s.classList.contains('qti-sr-only')
+        (s) => !s.classList.contains('cutie-sr-only')
       );
 
       const beforeSpan = contextSpans[0]!;
@@ -142,7 +142,7 @@ describe('annotateInlineInteractions', () => {
   describe('Example 4: Formatting containing the interaction', () => {
     it('recurses into inline element when it contains an interaction', () => {
       const fragment = fragmentFromHtml(
-        '<p>The <strong>color is <input class="qti-text-entry-interaction"/> and bright</strong>.</p>'
+        '<p>The <strong>color is <input class="cutie-text-entry-interaction"/> and bright</strong>.</p>'
       );
 
       annotateInlineInteractions(fragment, testIdGenerator);
@@ -156,7 +156,7 @@ describe('annotateInlineInteractions', () => {
         (el) =>
           el.tagName === 'SPAN' &&
           el.hasAttribute('id') &&
-          !el.classList.contains('qti-sr-only')
+          !el.classList.contains('cutie-sr-only')
       );
       const outerBeforeSpan = pSpans[0]!;
       expect(normalizeHtml(outerBeforeSpan.textContent!)).toBe('The');
@@ -188,7 +188,7 @@ describe('annotateInlineInteractions', () => {
   describe('Example 5: Sentence boundary in text', () => {
     it('splits text at sentence boundary and only labels with immediate sentence', () => {
       const fragment = fragmentFromHtml(
-        '<p>First sentence. Second sentence has <input class="qti-text-entry-interaction"/> in it.</p>'
+        '<p>First sentence. Second sentence has <input class="cutie-text-entry-interaction"/> in it.</p>'
       );
 
       annotateInlineInteractions(fragment, testIdGenerator);
@@ -197,7 +197,7 @@ describe('annotateInlineInteractions', () => {
       const input = p.querySelector('input')!;
 
       const contextSpans = Array.from(p.querySelectorAll('span[id]')).filter(
-        (s) => !s.classList.contains('qti-sr-only')
+        (s) => !s.classList.contains('cutie-sr-only')
       );
 
       // "First sentence. " is across a sentence boundary — orphan span unwrapped
@@ -221,7 +221,7 @@ describe('annotateInlineInteractions', () => {
   describe('Example 6: Sentence boundary inside formatting element', () => {
     it('recurses into formatting element and only labels with immediate sentence', () => {
       const fragment = fragmentFromHtml(
-        '<p><em>First sent. Second sent</em> has <input class="qti-text-entry-interaction"/>.</p>'
+        '<p><em>First sent. Second sent</em> has <input class="cutie-text-entry-interaction"/>.</p>'
       );
 
       annotateInlineInteractions(fragment, testIdGenerator);
@@ -245,7 +245,7 @@ describe('annotateInlineInteractions', () => {
         (el) =>
           el.tagName === 'SPAN' &&
           el.hasAttribute('id') &&
-          !el.classList.contains('qti-sr-only') &&
+          !el.classList.contains('cutie-sr-only') &&
           el.parentElement === p
       );
       const hasSpan = pLevelSpans.find((s) =>
@@ -264,7 +264,7 @@ describe('annotateInlineInteractions', () => {
   describe('Example 7: MathML - atomic wrapping', () => {
     it('wraps math element atomically with surrounding text', () => {
       const fragment = fragmentFromHtml(
-        '<p>Solve <math><mi>x</mi><mo>+</mo><mn>2</mn></math> = <input class="qti-text-entry-interaction"/>.</p>'
+        '<p>Solve <math><mi>x</mi><mo>+</mo><mn>2</mn></math> = <input class="cutie-text-entry-interaction"/>.</p>'
       );
 
       annotateInlineInteractions(fragment, testIdGenerator);
@@ -273,7 +273,7 @@ describe('annotateInlineInteractions', () => {
 
       // The math element should be inside a span along with surrounding text
       const contextSpans = Array.from(p.querySelectorAll(':scope > span[id]')).filter(
-        (s) => !s.classList.contains('qti-sr-only')
+        (s) => !s.classList.contains('cutie-sr-only')
       );
 
       const beforeSpan = contextSpans[0]!;
@@ -285,7 +285,7 @@ describe('annotateInlineInteractions', () => {
   describe('Example 8: Mixed interaction types', () => {
     it('handles both select and input interactions', () => {
       const fragment = fragmentFromHtml(
-        '<p>Choose <select class="qti-inline-choice-interaction"><option>A</option></select> and type <input class="qti-text-entry-interaction"/>.</p>'
+        '<p>Choose <select class="cutie-inline-choice-interaction"><option>A</option></select> and type <input class="cutie-text-entry-interaction"/>.</p>'
       );
 
       annotateInlineInteractions(fragment, testIdGenerator);
@@ -316,7 +316,7 @@ describe('annotateInlineInteractions', () => {
       // input1's after-label should stop at "." and NOT include the next sentence.
       // input2's before-label should start at the next sentence, not reach back to input1's before.
       const fragment = fragmentFromHtml(
-        '<p>The year was <input class="qti-text-entry-interaction"/>. The city was <input class="qti-text-entry-interaction"/>, Pennsylvania.</p>'
+        '<p>The year was <input class="cutie-text-entry-interaction"/>. The city was <input class="cutie-text-entry-interaction"/>, Pennsylvania.</p>'
       );
 
       annotateInlineInteractions(fragment, testIdGenerator);
@@ -327,7 +327,7 @@ describe('annotateInlineInteractions', () => {
       const input2 = inputs[1]!;
 
       const contextSpans = Array.from(p.querySelectorAll('span[id]')).filter(
-        (s) => !s.classList.contains('qti-sr-only')
+        (s) => !s.classList.contains('cutie-sr-only')
       );
 
       // Expected spans:
@@ -369,7 +369,7 @@ describe('annotateInlineInteractions', () => {
 
     it('limits labels to immediate context with 3+ interactions across sentences', () => {
       const fragment = fragmentFromHtml(
-        '<p>Year <input class="qti-text-entry-interaction"/>. City <input class="qti-text-entry-interaction"/>. Count <input class="qti-text-entry-interaction"/> total.</p>'
+        '<p>Year <input class="cutie-text-entry-interaction"/>. City <input class="cutie-text-entry-interaction"/>. Count <input class="cutie-text-entry-interaction"/> total.</p>'
       );
 
       annotateInlineInteractions(fragment, testIdGenerator);
@@ -406,7 +406,7 @@ describe('annotateInlineInteractions', () => {
 
     it('falls back to aria-label for bare interaction with no text', () => {
       const fragment = fragmentFromHtml(
-        '<p><input class="qti-text-entry-interaction"/></p>'
+        '<p><input class="cutie-text-entry-interaction"/></p>'
       );
 
       annotateInlineInteractions(fragment, testIdGenerator);
@@ -419,7 +419,7 @@ describe('annotateInlineInteractions', () => {
 
     it('falls back to aria-label with positional info for multiple bare interactions', () => {
       const fragment = fragmentFromHtml(
-        '<p><input class="qti-text-entry-interaction"/><input class="qti-text-entry-interaction"/></p>'
+        '<p><input class="cutie-text-entry-interaction"/><input class="cutie-text-entry-interaction"/></p>'
       );
 
       annotateInlineInteractions(fragment, testIdGenerator);
@@ -431,7 +431,7 @@ describe('annotateInlineInteractions', () => {
 
     it('skips already-annotated interactions (has aria-labelledby)', () => {
       const fragment = fragmentFromHtml(
-        '<p>Text <input class="qti-text-entry-interaction" aria-labelledby="existing"/> more.</p>'
+        '<p>Text <input class="cutie-text-entry-interaction" aria-labelledby="existing"/> more.</p>'
       );
 
       const result = annotateInlineInteractions(fragment, testIdGenerator);
@@ -444,7 +444,7 @@ describe('annotateInlineInteractions', () => {
 
     it('does not wrap already-annotated interactions in a span', () => {
       const fragment = fragmentFromHtml(
-        '<p>Before <input class="qti-text-entry-interaction" aria-labelledby="existing"/> after <input class="qti-text-entry-interaction"/>.</p>'
+        '<p>Before <input class="cutie-text-entry-interaction" aria-labelledby="existing"/> after <input class="cutie-text-entry-interaction"/>.</p>'
       );
 
       annotateInlineInteractions(fragment, testIdGenerator);
@@ -464,7 +464,7 @@ describe('annotateInlineInteractions', () => {
 
     it('treats <br> as a span boundary', () => {
       const fragment = fragmentFromHtml(
-        '<p>Before break<br/>after break has <input class="qti-text-entry-interaction"/>.</p>'
+        '<p>Before break<br/>after break has <input class="cutie-text-entry-interaction"/>.</p>'
       );
 
       annotateInlineInteractions(fragment, testIdGenerator);
@@ -476,7 +476,7 @@ describe('annotateInlineInteractions', () => {
       // "Before break" is across a region boundary (br), so it should NOT be
       // in the label. Only "after break has" and "." should be referenced.
       const contextSpans = Array.from(p.querySelectorAll('span[id]')).filter(
-        (s) => !s.classList.contains('qti-sr-only')
+        (s) => !s.classList.contains('cutie-sr-only')
       );
 
       // "Before break" span should be unwrapped (orphan), leaving 2 context spans
@@ -492,7 +492,7 @@ describe('annotateInlineInteractions', () => {
 
     it('skips whitespace-only groups', () => {
       const fragment = fragmentFromHtml(
-        '<p>   <input class="qti-text-entry-interaction"/>   </p>'
+        '<p>   <input class="cutie-text-entry-interaction"/>   </p>'
       );
 
       annotateInlineInteractions(fragment, testIdGenerator);
@@ -502,7 +502,7 @@ describe('annotateInlineInteractions', () => {
 
       // No context spans should be created for whitespace-only groups
       const contextSpans = Array.from(p.querySelectorAll('span[id]')).filter(
-        (s) => !s.classList.contains('qti-sr-only')
+        (s) => !s.classList.contains('cutie-sr-only')
       );
       expect(contextSpans.length).toBe(0);
 
@@ -512,7 +512,7 @@ describe('annotateInlineInteractions', () => {
 
     it('unwraps orphan context spans after last interaction', () => {
       const fragment = fragmentFromHtml(
-        '<p><input class="qti-text-entry-interaction"/> first. second. third.</p>'
+        '<p><input class="cutie-text-entry-interaction"/> first. second. third.</p>'
       );
 
       annotateInlineInteractions(fragment, testIdGenerator);
@@ -525,7 +525,7 @@ describe('annotateInlineInteractions', () => {
 
       // All context spans in the DOM should be referenced by some aria-labelledby
       const contextSpans = Array.from(p.querySelectorAll('span[id]')).filter(
-        (s) => !s.classList.contains('qti-sr-only')
+        (s) => !s.classList.contains('cutie-sr-only')
       );
       for (const span of contextSpans) {
         expect(labelledBy).toContain(span.id);
@@ -538,7 +538,7 @@ describe('annotateInlineInteractions', () => {
 
     it('handles interaction at start of block (no before text)', () => {
       const fragment = fragmentFromHtml(
-        '<p><input class="qti-text-entry-interaction"/> was the year.</p>'
+        '<p><input class="cutie-text-entry-interaction"/> was the year.</p>'
       );
 
       annotateInlineInteractions(fragment, testIdGenerator);
@@ -553,7 +553,7 @@ describe('annotateInlineInteractions', () => {
 
     it('handles interaction at end of block (no after text)', () => {
       const fragment = fragmentFromHtml(
-        '<p>The year was <input class="qti-text-entry-interaction"/></p>'
+        '<p>The year was <input class="cutie-text-entry-interaction"/></p>'
       );
 
       annotateInlineInteractions(fragment, testIdGenerator);
@@ -568,7 +568,7 @@ describe('annotateInlineInteractions', () => {
 
     it('processes multiple block elements independently', () => {
       const fragment = fragmentFromHtml(
-        '<p>First <input class="qti-text-entry-interaction"/>.</p><p>Second <input class="qti-text-entry-interaction"/>.</p>'
+        '<p>First <input class="cutie-text-entry-interaction"/>.</p><p>Second <input class="cutie-text-entry-interaction"/>.</p>'
       );
 
       annotateInlineInteractions(fragment, testIdGenerator);
@@ -587,7 +587,7 @@ describe('annotateInlineInteractions', () => {
 
     it('handles img as atomic element', () => {
       const fragment = fragmentFromHtml(
-        '<p>Look at <img alt="diagram" src="x.png"/> then answer <input class="qti-text-entry-interaction"/>.</p>'
+        '<p>Look at <img alt="diagram" src="x.png"/> then answer <input class="cutie-text-entry-interaction"/>.</p>'
       );
 
       annotateInlineInteractions(fragment, testIdGenerator);
@@ -597,7 +597,7 @@ describe('annotateInlineInteractions', () => {
 
       // img should be inside a span with surrounding text
       const contextSpans = Array.from(p.querySelectorAll(':scope > span[id]')).filter(
-        (s) => !s.classList.contains('qti-sr-only')
+        (s) => !s.classList.contains('cutie-sr-only')
       );
       const beforeSpan = contextSpans[0]!;
       expect(beforeSpan.querySelector('img')).not.toBeNull();
@@ -632,7 +632,7 @@ describe('Integration: htmlPassthrough pipeline', () => {
         const frag = document.createDocumentFragment();
         frag.appendChild(document.createTextNode('The year was '));
         const input = document.createElement('input');
-        input.className = 'qti-text-entry-interaction';
+        input.className = 'cutie-text-entry-interaction';
         frag.appendChild(input);
         frag.appendChild(document.createTextNode('.'));
         return frag;
@@ -648,9 +648,9 @@ describe('Integration: htmlPassthrough pipeline', () => {
     // aria-labelledby should be set on the interaction
     expect(input.getAttribute('aria-labelledby')).toBeTruthy();
 
-    // styleManager.addStyle should have been called with 'qti-sr-only'
+    // styleManager.addStyle should have been called with 'cutie-sr-only'
     expect(styleManager.addStyle).toHaveBeenCalledWith(
-      'qti-sr-only',
+      'cutie-sr-only',
       expect.any(String)
     );
   });
@@ -674,9 +674,9 @@ describe('Integration: htmlPassthrough pipeline', () => {
     const p = result.querySelector('p')!;
     expect(p.querySelectorAll('span[id]').length).toBe(0);
 
-    // styleManager.addStyle should NOT have been called with 'qti-sr-only'
+    // styleManager.addStyle should NOT have been called with 'cutie-sr-only'
     expect(styleManager.addStyle).not.toHaveBeenCalledWith(
-      'qti-sr-only',
+      'cutie-sr-only',
       expect.any(String)
     );
   });

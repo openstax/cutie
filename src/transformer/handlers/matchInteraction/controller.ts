@@ -65,8 +65,8 @@ export class MatchController {
       if (!this.enabled || !this.selection) return;
 
       const target = e.target as HTMLElement;
-      const isChoice = target.closest('.qti-match-choice');
-      const isChip = target.closest('.qti-match-chip');
+      const isChoice = target.closest('.cutie-match-choice');
+      const isChip = target.closest('.cutie-match-chip');
 
       if (!isChoice && !isChip) {
         this.clearSelection();
@@ -111,7 +111,7 @@ export class MatchController {
     element.addEventListener('click', (e) => {
       if (!this.enabled) return;
       // Ignore clicks on chips
-      if ((e.target as HTMLElement).closest('.qti-match-chip')) return;
+      if ((e.target as HTMLElement).closest('.cutie-match-chip')) return;
 
       this.handleChoiceClick(id);
     });
@@ -168,11 +168,11 @@ export class MatchController {
       this.select(id);
 
       e.dataTransfer?.setData('text/plain', `${set}:${id}`);
-      element.classList.add('qti-match-choice--dragging');
+      element.classList.add('cutie-match-choice--dragging');
     });
 
     element.addEventListener('dragend', () => {
-      element.classList.remove('qti-match-choice--dragging');
+      element.classList.remove('cutie-match-choice--dragging');
       this.clearSelection();
     });
 
@@ -184,17 +184,17 @@ export class MatchController {
       if (!data) return;
 
       e.preventDefault();
-      element.classList.add('qti-match-choice--drag-over');
+      element.classList.add('cutie-match-choice--drag-over');
     });
 
     element.addEventListener('dragleave', () => {
-      element.classList.remove('qti-match-choice--drag-over');
+      element.classList.remove('cutie-match-choice--drag-over');
     });
 
     element.addEventListener('drop', (e) => {
       if (!this.enabled) return;
       e.preventDefault();
-      element.classList.remove('qti-match-choice--drag-over');
+      element.classList.remove('cutie-match-choice--drag-over');
 
       // Selection is already set up by dragstart - let handleChoiceClick complete the action
       if (!this.selection) return;
@@ -279,11 +279,11 @@ export class MatchController {
 
     this.selection = { originId, originSet: choice.set, existingAssociation };
 
-    choice.element.classList.add('qti-match-choice--selected');
+    choice.element.classList.add('cutie-match-choice--selected');
 
     // If selecting via chip, also highlight the chip
     if (chipElement) {
-      chipElement.classList.add('qti-match-chip--selected');
+      chipElement.classList.add('cutie-match-chip--selected');
     }
 
     // Highlight valid targets in the opposite set
@@ -294,7 +294,7 @@ export class MatchController {
 
     highlightDropTargets(
       this.getChoiceElementsArray(oppositeSet),
-      'qti-match-choice--drop-target',
+      'cutie-match-choice--drop-target',
       (el) => {
         const elId = el.getAttribute('data-identifier');
         if (!elId) return false;
@@ -333,21 +333,21 @@ export class MatchController {
       const choice = this.choices.get(this.selection.originId);
 
       if (choice) {
-        choice.element.classList.remove('qti-match-choice--selected');
+        choice.element.classList.remove('cutie-match-choice--selected');
       }
 
       this.selection = null;
     }
 
     // Clear all chip highlight styling
-    const allChips = this.container.querySelectorAll('.qti-match-chip--selected');
+    const allChips = this.container.querySelectorAll('.cutie-match-chip--selected');
     for (const chip of allChips) {
-      chip.classList.remove('qti-match-chip--selected');
+      chip.classList.remove('cutie-match-chip--selected');
     }
 
     clearDropTargetHighlights(
       this.getAllChoiceElements(),
-      'qti-match-choice--drop-target'
+      'cutie-match-choice--drop-target'
     );
   }
 
@@ -467,7 +467,7 @@ export class MatchController {
 
     // Chips container is a sibling in the wrapper, not inside the choice element
     const wrapper = choice.element.parentElement;
-    const chipsContainer = wrapper?.querySelector('.qti-match-choice-chips');
+    const chipsContainer = wrapper?.querySelector('.cutie-match-choice-chips');
     if (!chipsContainer) return;
 
     // Clear existing chips
@@ -487,7 +487,7 @@ export class MatchController {
 
       const chip = document.createElement('button');
       chip.type = 'button';
-      chip.className = 'qti-match-chip';
+      chip.className = 'cutie-match-chip';
       chip.setAttribute('data-source-id', sourceId);
       chip.setAttribute('data-target-id', targetId);
       chip.setAttribute('data-connected-id', connectedId);
@@ -538,11 +538,11 @@ export class MatchController {
 
         e.dataTransfer?.setData('text/plain', `chip:${sourceId}:${targetId}:${connectedSet}`);
         e.dataTransfer!.effectAllowed = 'move';
-        chip.classList.add('qti-match-chip--dragging');
+        chip.classList.add('cutie-match-chip--dragging');
       });
 
       chip.addEventListener('dragend', () => {
-        chip.classList.remove('qti-match-chip--dragging');
+        chip.classList.remove('cutie-match-chip--dragging');
         this.clearSelection();
 
         // If pendingChipDrag is still set, the drop wasn't handled - remove the association
@@ -572,11 +572,11 @@ export class MatchController {
     if (!choice) return;
 
     if (this.isChoiceExhausted(choiceId)) {
-      choice.element.classList.add('qti-match-choice--exhausted');
+      choice.element.classList.add('cutie-match-choice--exhausted');
       choice.element.setAttribute('aria-disabled', 'true');
       choice.element.setAttribute('draggable', 'false');
     } else {
-      choice.element.classList.remove('qti-match-choice--exhausted');
+      choice.element.classList.remove('cutie-match-choice--exhausted');
       choice.element.setAttribute('aria-disabled', 'false');
       choice.element.setAttribute('draggable', 'true');
     }
@@ -637,9 +637,9 @@ export class MatchController {
     this.enabled = enabled;
 
     if (enabled) {
-      this.container.classList.remove('qti-match-interaction--disabled');
+      this.container.classList.remove('cutie-match-interaction--disabled');
     } else {
-      this.container.classList.add('qti-match-interaction--disabled');
+      this.container.classList.add('cutie-match-interaction--disabled');
       this.clearSelection();
     }
 

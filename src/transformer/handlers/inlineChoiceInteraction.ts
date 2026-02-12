@@ -28,10 +28,10 @@ class InlineChoiceInteractionHandler implements ElementHandler {
     // Register styles once
     if (
       context.styleManager &&
-      !context.styleManager.hasStyle('qti-inline-choice-interaction')
+      !context.styleManager.hasStyle('cutie-inline-choice-interaction')
     ) {
       context.styleManager.addStyle(
-        'qti-inline-choice-interaction',
+        'cutie-inline-choice-interaction',
         INLINE_CHOICE_INTERACTION_STYLES
       );
     }
@@ -53,7 +53,7 @@ class InlineChoiceInteractionHandler implements ElementHandler {
 
     // Create select element
     const select = document.createElement('select');
-    select.className = 'qti-inline-choice-interaction';
+    select.className = 'cutie-inline-choice-interaction';
     select.dataset.responseIdentifier = responseIdentifier;
 
     // Collect choices from qti-inline-choice children
@@ -114,7 +114,7 @@ class InlineChoiceInteractionHandler implements ElementHandler {
 }
 
 const INLINE_CHOICE_INTERACTION_STYLES = `
-  .qti-inline-choice-interaction {
+  .cutie-inline-choice-interaction {
     display: inline-block;
     margin: 0 0.25em;
     padding: 0.25em 0.5em;
@@ -128,13 +128,13 @@ const INLINE_CHOICE_INTERACTION_STYLES = `
     min-width: 8ch;
   }
 
-  .qti-inline-choice-interaction:focus {
+  .cutie-inline-choice-interaction:focus {
     outline: 2px solid var(--cutie-primary);
     outline-offset: 1px;
     border-color: var(--cutie-primary);
   }
 
-  .qti-inline-choice-interaction:disabled {
+  .cutie-inline-choice-interaction:disabled {
     background-color: #f5f5f5;
     cursor: not-allowed;
     opacity: 0.6;

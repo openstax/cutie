@@ -7,12 +7,12 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
 const WARNING_ICON_PATH =
   'm40-120 440-760 440 760H40Zm138-80h604L480-720 178-200Zm302-40q17 0 28.5-11.5T520-280q0-17-11.5-28.5T480-320q-17 0-28.5 11.5T440-280q0 17 11.5 28.5T480-240Zm-40-120h80v-200h-80v200Zm40-100Z';
 
-const CONSTRAINT_ERROR_CLASS = 'qti-constraint-error';
+const CONSTRAINT_ERROR_CLASS = 'cutie-constraint-error';
 
-const VALIDATION_DISPLAY_STYLE_ID = 'qti-validation-display';
+const VALIDATION_DISPLAY_STYLE_ID = 'cutie-validation-display';
 
 const VALIDATION_DISPLAY_STYLES = `
-  .qti-constraint-text {
+  .cutie-constraint-text {
     display: flex;
     align-items: center;
     gap: 0.3em;
@@ -21,7 +21,7 @@ const VALIDATION_DISPLAY_STYLES = `
     margin-top: 0.5em;
   }
 
-  .qti-constraint-icon {
+  .cutie-constraint-icon {
     visibility: hidden;
     width: 1em;
     height: 1em;
@@ -29,11 +29,11 @@ const VALIDATION_DISPLAY_STYLES = `
   }
 
   /* Error state — icon provides non-color signal per WCAG 1.4.1 */
-  .qti-constraint-text.${CONSTRAINT_ERROR_CLASS} {
+  .cutie-constraint-text.${CONSTRAINT_ERROR_CLASS} {
     color: #d32f2f;
   }
 
-  .qti-constraint-text.${CONSTRAINT_ERROR_CLASS} .qti-constraint-icon {
+  .cutie-constraint-text.${CONSTRAINT_ERROR_CLASS} .cutie-constraint-icon {
     visibility: visible;
   }
 `;
@@ -63,13 +63,13 @@ export function createConstraintMessage(
   }
 
   const container = document.createElement('div');
-  container.className = 'qti-constraint-text';
+  container.className = 'cutie-constraint-text';
   container.id = id;
 
   // Warning icon — hidden by default, shown via CSS in error state
   const svg = document.createElementNS(SVG_NS, 'svg');
   svg.setAttribute('aria-hidden', 'true');
-  svg.setAttribute('class', 'qti-constraint-icon');
+  svg.setAttribute('class', 'cutie-constraint-icon');
   svg.setAttribute('viewBox', '0 -960 960 960');
   svg.setAttribute('fill', 'currentColor');
 

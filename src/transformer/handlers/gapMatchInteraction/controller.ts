@@ -50,8 +50,8 @@ export class GapMatchController {
       const target = e.target as HTMLElement;
 
       // Check if click is on a valid target (choice, gap, or choices container)
-      const isChoice = target.closest('.qti-gap-text');
-      const isGap = target.closest('.qti-gap');
+      const isChoice = target.closest('.cutie-gap-text');
+      const isGap = target.closest('.cutie-gap');
       const isChoicesContainer = target === this.choicesContainer;
 
       // If click is outside all valid targets, deselect
@@ -70,20 +70,20 @@ export class GapMatchController {
       if (!this.enabled) return;
       // Only accept drops from filled gaps
       e.preventDefault();
-      this.choicesContainer.classList.add('qti-gap-match-choices--drag-over');
+      this.choicesContainer.classList.add('cutie-gap-match-choices--drag-over');
     });
 
     this.choicesContainer.addEventListener('dragleave', (e) => {
       // Only remove class if we're actually leaving the container
       if (!this.choicesContainer.contains(e.relatedTarget as Node)) {
-        this.choicesContainer.classList.remove('qti-gap-match-choices--drag-over');
+        this.choicesContainer.classList.remove('cutie-gap-match-choices--drag-over');
       }
     });
 
     this.choicesContainer.addEventListener('drop', (e) => {
       if (!this.enabled) return;
       e.preventDefault();
-      this.choicesContainer.classList.remove('qti-gap-match-choices--drag-over');
+      this.choicesContainer.classList.remove('cutie-gap-match-choices--drag-over');
 
       const data = e.dataTransfer?.getData('text/plain');
       if (data?.startsWith('gap:')) {
@@ -188,12 +188,12 @@ export class GapMatchController {
       }
 
       e.dataTransfer?.setData('text/plain', `choice:${choiceId}`);
-      element.classList.add('qti-gap-text--dragging');
+      element.classList.add('cutie-gap-text--dragging');
 
       // Highlight valid drop targets
       highlightDropTargets(
         this.gapElements.values(),
-        'qti-gap--drop-target',
+        'cutie-gap--drop-target',
         (el) => {
           const gapId = el.getAttribute('data-identifier');
           return gapId ? this.canPlaceInGap(gapId, choiceId) : false;
@@ -202,8 +202,8 @@ export class GapMatchController {
     });
 
     element.addEventListener('dragend', () => {
-      element.classList.remove('qti-gap-text--dragging');
-      clearDropTargetHighlights(this.gapElements.values(), 'qti-gap--drop-target');
+      element.classList.remove('cutie-gap-text--dragging');
+      clearDropTargetHighlights(this.gapElements.values(), 'cutie-gap--drop-target');
     });
   }
 
@@ -283,25 +283,25 @@ export class GapMatchController {
       }
 
       e.dataTransfer?.setData('text/plain', `gap:${gapId}`);
-      element.classList.add('qti-gap--dragging');
+      element.classList.add('cutie-gap--dragging');
 
       // Highlight valid drop targets (other gaps and the word bank)
       highlightDropTargets(
         this.gapElements.values(),
-        'qti-gap--drop-target',
+        'cutie-gap--drop-target',
         (el) => {
           const gapIdFromEl = el.getAttribute('data-identifier');
           return gapIdFromEl ? this.canPlaceInGap(gapIdFromEl, currentChoiceInGap) : false;
         }
       );
-      this.choicesContainer.classList.add('qti-gap-match-choices--drop-target');
+      this.choicesContainer.classList.add('cutie-gap-match-choices--drop-target');
     });
 
     element.addEventListener('dragend', () => {
-      element.classList.remove('qti-gap--dragging');
-      clearDropTargetHighlights(this.gapElements.values(), 'qti-gap--drop-target');
-      this.choicesContainer.classList.remove('qti-gap-match-choices--drop-target');
-      this.choicesContainer.classList.remove('qti-gap-match-choices--drag-over');
+      element.classList.remove('cutie-gap--dragging');
+      clearDropTargetHighlights(this.gapElements.values(), 'cutie-gap--drop-target');
+      this.choicesContainer.classList.remove('cutie-gap-match-choices--drop-target');
+      this.choicesContainer.classList.remove('cutie-gap-match-choices--drag-over');
     });
 
     // Drag over - accept drops
@@ -312,17 +312,17 @@ export class GapMatchController {
       if (!data) return;
 
       e.preventDefault();
-      element.classList.add('qti-gap--drag-over');
+      element.classList.add('cutie-gap--drag-over');
     });
 
     element.addEventListener('dragleave', () => {
-      element.classList.remove('qti-gap--drag-over');
+      element.classList.remove('cutie-gap--drag-over');
     });
 
     element.addEventListener('drop', (e) => {
       if (!this.enabled) return;
       e.preventDefault();
-      element.classList.remove('qti-gap--drag-over');
+      element.classList.remove('cutie-gap--drag-over');
 
       const data = e.dataTransfer?.getData('text/plain');
       if (!data) return;
@@ -381,12 +381,12 @@ export class GapMatchController {
     if (fromGapId) {
       const gapElement = this.gapElements.get(fromGapId);
       if (gapElement) {
-        gapElement.classList.add('qti-gap--selected');
+        gapElement.classList.add('cutie-gap--selected');
       }
     } else {
       const element = this.choiceElements.get(choiceId);
       if (element) {
-        element.classList.add('qti-gap-text--selected');
+        element.classList.add('cutie-gap-text--selected');
         element.setAttribute('aria-pressed', 'true');
       }
     }
@@ -394,7 +394,7 @@ export class GapMatchController {
     // Highlight valid drop targets
     highlightDropTargets(
         this.gapElements.values(),
-        'qti-gap--drop-target',
+        'cutie-gap--drop-target',
         (el) => {
           const gapId = el.getAttribute('data-identifier');
           return gapId ? this.canPlaceInGap(gapId, choiceId) : false;
@@ -403,7 +403,7 @@ export class GapMatchController {
 
     // Show word bank as drop target when moving from a gap
     if (fromGapId) {
-      this.choicesContainer.classList.add('qti-gap-match-choices--drop-target');
+      this.choicesContainer.classList.add('cutie-gap-match-choices--drop-target');
     }
 
     // Make gaps focusable when a choice is selected
@@ -428,12 +428,12 @@ export class GapMatchController {
       if (this.selectedFromGap) {
         const gapElement = this.gapElements.get(this.selectedFromGap);
         if (gapElement) {
-          gapElement.classList.remove('qti-gap--selected');
+          gapElement.classList.remove('cutie-gap--selected');
         }
       } else {
         const element = this.choiceElements.get(this.selectedChoice);
         if (element) {
-          element.classList.remove('qti-gap-text--selected');
+          element.classList.remove('cutie-gap-text--selected');
           element.setAttribute('aria-pressed', 'false');
         }
       }
@@ -442,8 +442,8 @@ export class GapMatchController {
       this.selectedFromGap = null;
 
       // Clear drop target highlights
-      clearDropTargetHighlights(this.gapElements.values(), 'qti-gap--drop-target');
-      this.choicesContainer.classList.remove('qti-gap-match-choices--drop-target');
+      clearDropTargetHighlights(this.gapElements.values(), 'cutie-gap--drop-target');
+      this.choicesContainer.classList.remove('cutie-gap-match-choices--drop-target');
 
       // Remove tabindex from gaps when no selection
       for (const gapElement of this.gapElements.values()) {
@@ -469,7 +469,7 @@ export class GapMatchController {
     // Update gap visual state
     const gapElement = this.gapElements.get(gapId);
     if (gapElement) {
-      gapElement.classList.add('qti-gap--filled');
+      gapElement.classList.add('cutie-gap--filled');
       gapElement.setAttribute('data-choice-identifier', choiceId);
       gapElement.setAttribute('draggable', 'true');
 
@@ -480,8 +480,8 @@ export class GapMatchController {
       gapElement.setAttribute('aria-label', `Gap ${gapIndex}, contains: ${content}. Drag or click to move.`);
 
       // Update gap content
-      const contentSpan = gapElement.querySelector('.qti-gap-content');
-      const placeholderSpan = gapElement.querySelector('.qti-gap-placeholder');
+      const contentSpan = gapElement.querySelector('.cutie-gap-content');
+      const placeholderSpan = gapElement.querySelector('.cutie-gap-placeholder');
 
       if (contentSpan && placeholderSpan) {
         contentSpan.textContent = content;
@@ -512,7 +512,7 @@ export class GapMatchController {
     // Update gap visual state
     const gapElement = this.gapElements.get(gapId);
     if (gapElement) {
-      gapElement.classList.remove('qti-gap--filled');
+      gapElement.classList.remove('cutie-gap--filled');
       gapElement.removeAttribute('data-choice-identifier');
       gapElement.setAttribute('draggable', 'false');
 
@@ -520,8 +520,8 @@ export class GapMatchController {
       gapElement.setAttribute('aria-label', `Gap ${gapIndex}, empty`);
 
       // Update gap content
-      const contentSpan = gapElement.querySelector('.qti-gap-content');
-      const placeholderSpan = gapElement.querySelector('.qti-gap-placeholder');
+      const contentSpan = gapElement.querySelector('.cutie-gap-content');
+      const placeholderSpan = gapElement.querySelector('.cutie-gap-placeholder');
 
       if (contentSpan && placeholderSpan) {
         contentSpan.textContent = '';
@@ -559,11 +559,11 @@ export class GapMatchController {
     if (!element) return;
 
     if (this.isChoiceExhausted(choiceId)) {
-      element.classList.add('qti-gap-text--exhausted');
+      element.classList.add('cutie-gap-text--exhausted');
       element.setAttribute('aria-disabled', 'true');
       element.setAttribute('draggable', 'false');
     } else {
-      element.classList.remove('qti-gap-text--exhausted');
+      element.classList.remove('cutie-gap-text--exhausted');
       element.setAttribute('aria-disabled', 'false');
       element.setAttribute('draggable', 'true');
     }
@@ -577,9 +577,9 @@ export class GapMatchController {
 
     // Update container state
     if (enabled) {
-      this.container.classList.remove('qti-gap-match-interaction--disabled');
+      this.container.classList.remove('cutie-gap-match-interaction--disabled');
     } else {
-      this.container.classList.add('qti-gap-match-interaction--disabled');
+      this.container.classList.add('cutie-gap-match-interaction--disabled');
     }
 
     // Update choice elements

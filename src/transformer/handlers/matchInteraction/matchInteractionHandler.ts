@@ -32,8 +32,8 @@ export class MatchInteractionHandler implements ElementHandler {
     const fragment = document.createDocumentFragment();
 
     // Register styles once
-    if (context.styleManager && !context.styleManager.hasStyle('qti-match-interaction')) {
-      context.styleManager.addStyle('qti-match-interaction', MATCH_INTERACTION_STYLES);
+    if (context.styleManager && !context.styleManager.hasStyle('cutie-match-interaction')) {
+      context.styleManager.addStyle('cutie-match-interaction', MATCH_INTERACTION_STYLES);
     }
 
     // Get required response-identifier
@@ -50,7 +50,7 @@ export class MatchInteractionHandler implements ElementHandler {
 
     // Create main container
     const container = document.createElement('div');
-    container.className = 'qti-match-interaction';
+    container.className = 'cutie-match-interaction';
     container.setAttribute('data-response-identifier', responseIdentifier);
     container.setAttribute('role', 'group');
 
@@ -73,7 +73,7 @@ export class MatchInteractionHandler implements ElementHandler {
     const promptId = `prompt-${responseIdentifier}`;
     if (promptElement && context.transformChildren) {
       const promptDiv = document.createElement('div');
-      promptDiv.className = 'qti-prompt';
+      promptDiv.className = 'cutie-prompt';
       promptDiv.id = promptId;
       promptDiv.appendChild(context.transformChildren(promptElement));
       container.appendChild(promptDiv);
@@ -85,7 +85,7 @@ export class MatchInteractionHandler implements ElementHandler {
     // Create layout container
     // Default to source-left orientation; later we can read this from QTI class attribute
     const layoutContainer = document.createElement('div');
-    layoutContainer.className = 'qti-match-layout qti-match-source-left';
+    layoutContainer.className = 'cutie-match-layout cutie-match-source-left';
 
     // Create the controller
     const controller = new MatchController(
@@ -151,7 +151,7 @@ export class MatchInteractionHandler implements ElementHandler {
     _context: TransformContext
   ): HTMLElement {
     const setContainer = document.createElement('div');
-    setContainer.className = `qti-match-set qti-match-set--${setType}`;
+    setContainer.className = `cutie-match-set cutie-match-set--${setType}`;
     setContainer.setAttribute('role', 'listbox');
     setContainer.setAttribute('aria-label', `${setType === 'source' ? 'Source' : 'Target'} choices`);
 
@@ -183,10 +183,10 @@ export class MatchInteractionHandler implements ElementHandler {
     for (const choice of choices) {
       // Create wrapper to hold choice and chips as siblings (avoids nested draggables)
       const wrapperDiv = document.createElement('div');
-      wrapperDiv.className = 'qti-match-choice-wrapper';
+      wrapperDiv.className = 'cutie-match-choice-wrapper';
 
       const choiceDiv = document.createElement('div');
-      choiceDiv.className = 'qti-match-choice';
+      choiceDiv.className = 'cutie-match-choice';
       choiceDiv.setAttribute('role', 'option');
       choiceDiv.setAttribute('data-identifier', choice.identifier);
       choiceDiv.setAttribute('data-match-max', String(choice.matchMax));
@@ -195,7 +195,7 @@ export class MatchInteractionHandler implements ElementHandler {
 
       // Label
       const labelSpan = document.createElement('span');
-      labelSpan.className = 'qti-match-choice-label';
+      labelSpan.className = 'cutie-match-choice-label';
       labelSpan.textContent = choice.content;
       choiceDiv.appendChild(labelSpan);
 
@@ -203,7 +203,7 @@ export class MatchInteractionHandler implements ElementHandler {
 
       // Chips container as sibling (not inside choice)
       const chipsContainer = document.createElement('div');
-      chipsContainer.className = 'qti-match-choice-chips';
+      chipsContainer.className = 'cutie-match-choice-chips';
       wrapperDiv.appendChild(chipsContainer);
 
       setContainer.appendChild(wrapperDiv);

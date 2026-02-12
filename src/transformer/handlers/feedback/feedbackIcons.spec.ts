@@ -23,12 +23,12 @@ describe('createFeedbackIcon', () => {
       const icon = createFeedbackIcon(type);
 
       expect(icon.tagName.toLowerCase()).toBe('span');
-      expect(icon.className).toBe('qti-feedback-icon');
+      expect(icon.className).toBe('cutie-feedback-icon');
 
       const svg = icon.querySelector('svg');
       expect(svg).not.toBeNull();
       expect(svg?.getAttribute('aria-hidden')).toBe('true');
-      expect(svg?.getAttribute('class')).toBe('qti-feedback-icon__svg');
+      expect(svg?.getAttribute('class')).toBe('cutie-feedback-icon__svg');
       expect(svg?.getAttribute('fill')).toBe(color);
       expect(svg?.getAttribute('viewBox')).toBe('0 -960 960 960');
 
@@ -36,7 +36,7 @@ describe('createFeedbackIcon', () => {
       expect(path).not.toBeNull();
       expect(path?.getAttribute('d')).toBeTruthy();
 
-      const srText = icon.querySelector('.qti-feedback-sr-text');
+      const srText = icon.querySelector('.cutie-feedback-sr-text');
       expect(srText).not.toBeNull();
       expect(srText?.textContent).toBe(label);
     },

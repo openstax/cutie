@@ -27,8 +27,8 @@ class TextEntryInteractionHandler implements ElementHandler {
     const fragment = document.createDocumentFragment();
 
     // Register styles once
-    if (context.styleManager && !context.styleManager.hasStyle('qti-text-entry-interaction')) {
-      context.styleManager.addStyle('qti-text-entry-interaction', TEXT_ENTRY_INTERACTION_STYLES);
+    if (context.styleManager && !context.styleManager.hasStyle('cutie-text-entry-interaction')) {
+      context.styleManager.addStyle('cutie-text-entry-interaction', TEXT_ENTRY_INTERACTION_STYLES);
     }
 
     // Extract required response-identifier attribute
@@ -58,7 +58,7 @@ class TextEntryInteractionHandler implements ElementHandler {
     } else {
       input.type = 'text';
     }
-    input.className = 'qti-text-entry-interaction';
+    input.className = 'cutie-text-entry-interaction';
 
     // Set data attribute for identification
     input.dataset.responseIdentifier = responseIdentifier;
@@ -110,7 +110,7 @@ class TextEntryInteractionHandler implements ElementHandler {
 }
 
 const TEXT_ENTRY_INTERACTION_STYLES = `
-  .qti-text-entry-interaction {
+  .cutie-text-entry-interaction {
     display: inline-block;
     margin: 0 0.25em;
     padding: 0.25em 0.5em;
@@ -121,19 +121,19 @@ const TEXT_ENTRY_INTERACTION_STYLES = `
     vertical-align: baseline;
   }
 
-  .qti-text-entry-interaction:focus {
+  .cutie-text-entry-interaction:focus {
     outline: 2px solid var(--cutie-primary);
     outline-offset: 1px;
     border-color: var(--cutie-primary);
   }
 
-  .qti-text-entry-interaction:disabled {
+  .cutie-text-entry-interaction:disabled {
     background-color: #f5f5f5;
     cursor: not-allowed;
     opacity: 0.6;
   }
 
-  .qti-text-entry-interaction:disabled:focus {
+  .cutie-text-entry-interaction:disabled:focus {
     outline: none;
   }
 `;

@@ -44,8 +44,8 @@ class HtmlPassthroughHandler implements ElementHandler {
       const wrapperFragment = document.createDocumentFragment();
       wrapperFragment.appendChild(cloned);
       if (annotateInlineInteractions(wrapperFragment)) {
-        if (context.styleManager && !context.styleManager.hasStyle('qti-sr-only')) {
-          context.styleManager.addStyle('qti-sr-only', SR_ONLY_STYLES);
+        if (context.styleManager && !context.styleManager.hasStyle('cutie-sr-only')) {
+          context.styleManager.addStyle('cutie-sr-only', SR_ONLY_STYLES);
         }
       }
       fragment.appendChild(wrapperFragment);

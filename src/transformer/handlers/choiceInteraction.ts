@@ -44,8 +44,8 @@ class ChoiceInteractionHandler implements ElementHandler {
     const fragment = document.createDocumentFragment();
 
     // Register styles once
-    if (context.styleManager && !context.styleManager.hasStyle('qti-choice-interaction')) {
-      context.styleManager.addStyle('qti-choice-interaction', CHOICE_INTERACTION_STYLES);
+    if (context.styleManager && !context.styleManager.hasStyle('cutie-choice-interaction')) {
+      context.styleManager.addStyle('cutie-choice-interaction', CHOICE_INTERACTION_STYLES);
     }
 
     // Get required attributes
@@ -78,7 +78,7 @@ class ChoiceInteractionHandler implements ElementHandler {
 
     // Create container for the interaction
     const container = document.createElement('div');
-    container.className = 'qti-choice-interaction';
+    container.className = 'cutie-choice-interaction';
     container.setAttribute('data-response-identifier', responseIdentifier);
     container.setAttribute('data-max-choices', maxChoicesAttr);
 
@@ -93,12 +93,12 @@ class ChoiceInteractionHandler implements ElementHandler {
 
     // Use fieldset for better accessibility (groups related form controls)
     const choicesContainer = document.createElement('fieldset');
-    choicesContainer.className = 'qti-simple-choice-group';
+    choicesContainer.className = 'cutie-simple-choice-group';
 
     // Add legend if prompt is present
     if (promptElement && context.transformChildren) {
       const legend = document.createElement('legend');
-      legend.className = 'qti-prompt';
+      legend.className = 'cutie-prompt';
       const promptContent = context.transformChildren(promptElement);
       legend.appendChild(promptContent);
       choicesContainer.appendChild(legend);
@@ -115,7 +115,7 @@ class ChoiceInteractionHandler implements ElementHandler {
 
       // Create choice container as a label (makes entire row clickable)
       const choiceLabel = document.createElement('label');
-      choiceLabel.className = 'qti-simple-choice';
+      choiceLabel.className = 'cutie-simple-choice';
 
       // Create input element
       const input = document.createElement('input');
@@ -126,7 +126,7 @@ class ChoiceInteractionHandler implements ElementHandler {
 
       // Create span for choice content
       const contentSpan = document.createElement('span');
-      contentSpan.className = 'qti-simple-choice-content';
+      contentSpan.className = 'cutie-simple-choice-content';
 
       // Transform choice content
       if (context.transformChildren) {
@@ -268,39 +268,39 @@ registry.register('choice-interaction', new ChoiceInteractionHandler(), 50);
  * Uses fieldset/legend for accessible grouping of related form controls
  */
 const CHOICE_INTERACTION_STYLES = `
-  .qti-choice-interaction {
+  .cutie-choice-interaction {
     margin: 1em 0;
     font-family: system-ui, -apple-system, sans-serif;
   }
 
-  .qti-choice-interaction .qti-prompt {
+  .cutie-choice-interaction .cutie-prompt {
     font-weight: 600;
     margin-bottom: 0.75em;
     color: #333;
   }
 
-  .qti-choice-interaction .qti-simple-choice-group {
+  .cutie-choice-interaction .cutie-simple-choice-group {
     display: flex;
     flex-direction: column;
     gap: 0.5em;
   }
 
   /* Remove default fieldset styling for clean appearance */
-  .qti-choice-interaction fieldset.qti-simple-choice-group {
+  .cutie-choice-interaction fieldset.cutie-simple-choice-group {
     border: none;
     padding: 0;
     margin: 0;
     min-width: 0;
   }
 
-  .qti-choice-interaction fieldset.qti-simple-choice-group legend.qti-prompt {
+  .cutie-choice-interaction fieldset.cutie-simple-choice-group legend.cutie-prompt {
     padding: 0;
     margin-bottom: 0.75em;
     font-weight: 600;
     color: #333;
   }
 
-  .qti-choice-interaction .qti-simple-choice {
+  .cutie-choice-interaction .cutie-simple-choice {
     display: flex;
     align-items: flex-start;
     gap: 0.5em;
@@ -312,61 +312,61 @@ const CHOICE_INTERACTION_STYLES = `
     transition: background-color 0.2s, border-color 0.2s;
   }
 
-  .qti-choice-interaction .qti-simple-choice:hover {
+  .cutie-choice-interaction .cutie-simple-choice:hover {
     background-color: #f5f5f5;
     border-color: var(--cutie-border-hover);
   }
 
   /* Selected state — outline mode (border only, no colored background) */
-  .qti-choice-interaction .qti-simple-choice:has(input:checked) {
+  .cutie-choice-interaction .cutie-simple-choice:has(input:checked) {
     border-color: var(--cutie-primary);
   }
 
-  .qti-choice-interaction .qti-simple-choice:has(input:checked):hover {
+  .cutie-choice-interaction .cutie-simple-choice:has(input:checked):hover {
     border-color: var(--cutie-primary);
   }
 
   /* Disabled state using :has() */
-  .qti-choice-interaction .qti-simple-choice:has(input:disabled) {
+  .cutie-choice-interaction .cutie-simple-choice:has(input:disabled) {
     background-color: #f5f5f5;
     border-color: var(--cutie-border);
     cursor: not-allowed;
   }
 
-  .qti-choice-interaction .qti-simple-choice:has(input:disabled):hover {
+  .cutie-choice-interaction .cutie-simple-choice:has(input:disabled):hover {
     background-color: #f5f5f5;
     border-color: var(--cutie-border);
   }
 
-  .qti-choice-interaction .qti-simple-choice input {
+  .cutie-choice-interaction .cutie-simple-choice input {
     margin-top: 0.25em;
     flex-shrink: 0;
     cursor: pointer;
   }
 
   /* Hide default focus ring on input since label handles focus styling */
-  .qti-choice-interaction .qti-simple-choice input:focus {
+  .cutie-choice-interaction .cutie-simple-choice input:focus {
     outline: none;
   }
 
-  .qti-choice-interaction .qti-simple-choice:has(input:disabled) input {
+  .cutie-choice-interaction .cutie-simple-choice:has(input:disabled) input {
     cursor: not-allowed;
   }
 
   /* Focus-within styling for keyboard navigation */
-  .qti-choice-interaction .qti-simple-choice:focus-within {
+  .cutie-choice-interaction .cutie-simple-choice:focus-within {
     outline: 2px solid var(--cutie-primary);
     outline-offset: 2px;
   }
 
-  .qti-choice-interaction .qti-simple-choice-content {
+  .cutie-choice-interaction .cutie-simple-choice-content {
     flex: 1;
     cursor: pointer;
     line-height: 1.5;
     font-weight: 600;
   }
 
-  .qti-choice-interaction .qti-simple-choice:has(input:disabled) .qti-simple-choice-content {
+  .cutie-choice-interaction .cutie-simple-choice:has(input:disabled) .cutie-simple-choice-content {
     cursor: not-allowed;
   }
 `;

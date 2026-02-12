@@ -25,8 +25,8 @@ export class GapMatchInteractionHandler implements ElementHandler {
     const fragment = document.createDocumentFragment();
 
     // Register styles once
-    if (context.styleManager && !context.styleManager.hasStyle('qti-gap-match-interaction')) {
-      context.styleManager.addStyle('qti-gap-match-interaction', GAP_MATCH_INTERACTION_STYLES);
+    if (context.styleManager && !context.styleManager.hasStyle('cutie-gap-match-interaction')) {
+      context.styleManager.addStyle('cutie-gap-match-interaction', GAP_MATCH_INTERACTION_STYLES);
     }
 
     // Get required response-identifier
@@ -40,7 +40,7 @@ export class GapMatchInteractionHandler implements ElementHandler {
 
     // Create main container
     const container = document.createElement('div');
-    container.className = 'qti-gap-match-interaction';
+    container.className = 'cutie-gap-match-interaction';
     container.setAttribute('data-response-identifier', responseIdentifier);
     container.setAttribute('role', 'group');
 
@@ -61,7 +61,7 @@ export class GapMatchInteractionHandler implements ElementHandler {
     const promptId = `prompt-${responseIdentifier}`;
     if (promptElement && context.transformChildren) {
       const promptDiv = document.createElement('div');
-      promptDiv.className = 'qti-prompt';
+      promptDiv.className = 'cutie-prompt';
       promptDiv.id = promptId;
       promptDiv.appendChild(context.transformChildren(promptElement));
       container.appendChild(promptDiv);
@@ -72,7 +72,7 @@ export class GapMatchInteractionHandler implements ElementHandler {
 
     // Create choices container
     const choicesContainer = document.createElement('div');
-    choicesContainer.className = 'qti-gap-match-choices';
+    choicesContainer.className = 'cutie-gap-match-choices';
     choicesContainer.setAttribute('role', 'listbox');
     choicesContainer.setAttribute('aria-label', 'Available choices');
 
@@ -100,7 +100,7 @@ export class GapMatchInteractionHandler implements ElementHandler {
 
     // Create content container and transform remaining children (which includes gaps)
     const contentContainer = document.createElement('div');
-    contentContainer.className = 'qti-gap-match-content';
+    contentContainer.className = 'cutie-gap-match-content';
 
     // Transform all non-choice, non-prompt children
     for (const child of children) {
@@ -125,7 +125,7 @@ export class GapMatchInteractionHandler implements ElementHandler {
     let isFirst = true;
     for (const choice of choices) {
       const choiceBtn = document.createElement('button');
-      choiceBtn.className = 'qti-gap-text';
+      choiceBtn.className = 'cutie-gap-text';
       choiceBtn.type = 'button';
       choiceBtn.setAttribute('role', 'option');
       choiceBtn.setAttribute('data-identifier', choice.identifier);
@@ -142,7 +142,7 @@ export class GapMatchInteractionHandler implements ElementHandler {
         const img = document.createElement('img');
         img.src = imgSrc;
         img.alt = imgAlt;
-        img.className = 'qti-gap-img-content';
+        img.className = 'cutie-gap-img-content';
         choiceBtn.appendChild(img);
         content = imgAlt || 'image option';
       } else {
@@ -159,7 +159,7 @@ export class GapMatchInteractionHandler implements ElementHandler {
     }
 
     // Find and register all gap elements in the transformed content
-    const gapElements = contentContainer.querySelectorAll('.qti-gap');
+    const gapElements = contentContainer.querySelectorAll('.cutie-gap');
     let gapIndex = 1;
     for (const gapElement of gapElements) {
       const gapId = gapElement.getAttribute('data-identifier');
