@@ -240,7 +240,7 @@ const CHOICE_INTERACTION_STYLES = `
     display: flex;
     align-items: flex-start;
     gap: 0.5em;
-    padding: 0.5em;
+    padding: 0.7em 0.5em;
     border: 2px solid var(--cutie-border);
     border-radius: 4px;
     background-color: #fff;

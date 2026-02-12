@@ -264,6 +264,7 @@ h2 {
 
 .process-button {
   padding: 0.8rem 1.6rem;
+  min-height: 44px;
   background-color: var(--color-primary);
   color: var(--color-primary-fg);
   border: none;
