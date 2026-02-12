@@ -9,6 +9,7 @@ const BASE_STYLES = `
     --cutie-primary-hover: #1e88e5;
     --cutie-border: #767676;
     --cutie-border-hover: #595959;
+    line-height: 1.5;
   }
 
   .qti-item-container img {
