@@ -45,23 +45,23 @@ adaptive="false" time-dependent="false" xml:lang="en">
 
   <qti-item-body>
     <qti-choice-interaction response-identifier="RESPONSE" shuffle="true" min-choices="1" max-choices="1">
-      <qti-prompt>Which of the following best describes the primary function of mitochondria in a cell?</qti-prompt>
-      <qti-simple-choice identifier="choiceA">They generate most of the cell's supply of ATP through oxidative phosphorylation</qti-simple-choice>
-      <qti-simple-choice identifier="choiceB">They produce energy for the cell through cellular respiration</qti-simple-choice>
-      <qti-simple-choice identifier="choiceC">They store genetic information for the cell</qti-simple-choice>
-      <qti-simple-choice identifier="choiceD">They synthesize proteins for export outside the cell</qti-simple-choice>
+      <qti-prompt>Question prompt goes here. Select the best answer.</qti-prompt>
+      <qti-simple-choice identifier="choiceA">Best answer (full credit)</qti-simple-choice>
+      <qti-simple-choice identifier="choiceB">Partially correct answer (half credit)</qti-simple-choice>
+      <qti-simple-choice identifier="choiceC">Wrong answer C (no credit)</qti-simple-choice>
+      <qti-simple-choice identifier="choiceD">Wrong answer D (no credit)</qti-simple-choice>
     </qti-choice-interaction>
 
     <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_correct" show-hide="show" data-feedback-type="correct">
-      <p><strong>Correct!</strong> Mitochondria generate most of the cell's ATP through oxidative phosphorylation. This is the most precise description of their primary function.</p>
+      <p><strong>Correct!</strong> This is the most precise and complete answer to the question.</p>
     </qti-feedback-block>
 
     <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_partial" show-hide="show" data-feedback-type="info">
-      <p><strong>Partially correct.</strong> While mitochondria are involved in cellular respiration, the more precise answer is that they generate ATP specifically through oxidative phosphorylation. "Producing energy" is a common simplification.</p>
+      <p><strong>Partially correct.</strong> This answer is on the right track but lacks precision. Consider what would make the answer more specific.</p>
     </qti-feedback-block>
 
     <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_incorrect" show-hide="show" data-feedback-type="incorrect">
-      <p><strong>Incorrect.</strong> Mitochondria are often called the "powerhouse of the cell" because they generate ATP. Genetic information is stored in the nucleus, and protein synthesis for export occurs at the rough endoplasmic reticulum.</p>
+      <p><strong>Incorrect.</strong> This answer reflects a common misconception. Review the key concepts and try again.</p>
     </qti-feedback-block>
   </qti-item-body>
 
