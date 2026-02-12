@@ -39,11 +39,246 @@ function transformInteraction(
   return handler!.handler.transform(interaction, context);
 }
 
-describe('textEntryInteraction validation', () => {
+describe('textEntryInteraction', () => {
   let itemState: ItemStateImpl;
 
   beforeEach(() => {
     itemState = new ItemStateImpl();
+  });
+
+  describe('missing response-identifier', () => {
+    it('renders error element when response-identifier is absent', () => {
+      const doc = createQtiDocument(`
+        <qti-text-entry-interaction></qti-text-entry-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      expect(container.querySelector('input')).toBeNull();
+      expect(container.querySelector('.cutie-error-display')).not.toBeNull();
+    });
+  });
+
+  describe('input type switching', () => {
+    it('renders type="number" step="1" for integer base-type', () => {
+      const doc = createQtiDocument(`
+        <qti-response-declaration identifier="R1" cardinality="single" base-type="integer" />
+        <qti-text-entry-interaction response-identifier="R1"></qti-text-entry-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const input = container.querySelector('input')!;
+      expect(input.type).toBe('number');
+      expect(input.step).toBe('1');
+    });
+
+    it('renders type="number" step="any" for float base-type', () => {
+      const doc = createQtiDocument(`
+        <qti-response-declaration identifier="R1" cardinality="single" base-type="float" />
+        <qti-text-entry-interaction response-identifier="R1"></qti-text-entry-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const input = container.querySelector('input')!;
+      expect(input.type).toBe('number');
+      expect(input.step).toBe('any');
+    });
+
+    it('renders type="text" for string base-type', () => {
+      const doc = createQtiDocument(`
+        <qti-response-declaration identifier="R1" cardinality="single" base-type="string" />
+        <qti-text-entry-interaction response-identifier="R1"></qti-text-entry-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const input = container.querySelector('input')!;
+      expect(input.type).toBe('text');
+    });
+
+    it('renders type="text" when no response declaration exists', () => {
+      const doc = createQtiDocument(`
+        <qti-text-entry-interaction response-identifier="R1"></qti-text-entry-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const input = container.querySelector('input')!;
+      expect(input.type).toBe('text');
+    });
+  });
+
+  describe('expected-length sizing', () => {
+    it('sets width based on expected-length attribute', () => {
+      const doc = createQtiDocument(`
+        <qti-text-entry-interaction response-identifier="R1" expected-length="5"></qti-text-entry-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const input = container.querySelector('input')!;
+      expect(input.style.width).toBe('7ch');
+    });
+
+    it('defaults to 10ch when expected-length is absent', () => {
+      const doc = createQtiDocument(`
+        <qti-text-entry-interaction response-identifier="R1"></qti-text-entry-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const input = container.querySelector('input')!;
+      expect(input.style.width).toBe('10ch');
+    });
+  });
+
+  describe('default value', () => {
+    it('pre-populates input from qti-default-value', () => {
+      const doc = createQtiDocument(`
+        <qti-response-declaration identifier="R1" cardinality="single" base-type="string">
+          <qti-default-value>
+            <qti-value>hello</qti-value>
+          </qti-default-value>
+        </qti-response-declaration>
+        <qti-text-entry-interaction response-identifier="R1"></qti-text-entry-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const input = container.querySelector('input')!;
+      expect(input.value).toBe('hello');
+    });
+  });
+
+  describe('response accessor', () => {
+    it('trims whitespace from response value', () => {
+      const doc = createQtiDocument(`
+        <qti-text-entry-interaction response-identifier="R1"></qti-text-entry-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const input = container.querySelector('input')!;
+      input.value = '  trimmed  ';
+
+      const result = itemState.collectAll();
+      expect(result.responses.R1).toBe('trimmed');
+    });
+
+    it('returns null for empty string', () => {
+      const doc = createQtiDocument(`
+        <qti-text-entry-interaction response-identifier="R1"></qti-text-entry-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const input = container.querySelector('input')!;
+      input.value = '';
+
+      const result = itemState.collectAll();
+      expect(result.responses.R1).toBeNull();
+    });
+
+    it('returns null for whitespace-only input', () => {
+      const doc = createQtiDocument(`
+        <qti-text-entry-interaction response-identifier="R1"></qti-text-entry-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const input = container.querySelector('input')!;
+      input.value = '   ';
+
+      const result = itemState.collectAll();
+      expect(result.responses.R1).toBeNull();
+    });
+  });
+
+  describe('disabled state', () => {
+    it('disables input when interactions are disabled', () => {
+      const doc = createQtiDocument(`
+        <qti-text-entry-interaction response-identifier="R1"></qti-text-entry-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const input = container.querySelector('input')!;
+      expect(input.disabled).toBe(false);
+
+      itemState.setInteractionsEnabled(false);
+      expect(input.disabled).toBe(true);
+    });
+
+    it('re-enables input when interactions are re-enabled', () => {
+      const doc = createQtiDocument(`
+        <qti-text-entry-interaction response-identifier="R1"></qti-text-entry-interaction>
+      `);
+
+      itemState.setInteractionsEnabled(false);
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const input = container.querySelector('input')!;
+      expect(input.disabled).toBe(true);
+
+      itemState.setInteractionsEnabled(true);
+      expect(input.disabled).toBe(false);
+    });
+  });
+
+  describe('placeholder-text', () => {
+    it('sets placeholder from placeholder-text attribute', () => {
+      const doc = createQtiDocument(`
+        <qti-text-entry-interaction response-identifier="R1" placeholder-text="Enter answer"></qti-text-entry-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const input = container.querySelector('input')!;
+      expect(input.placeholder).toBe('Enter answer');
+    });
+
+    it('has no placeholder when attribute is absent', () => {
+      const doc = createQtiDocument(`
+        <qti-text-entry-interaction response-identifier="R1"></qti-text-entry-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const input = container.querySelector('input')!;
+      expect(input.placeholder).toBe('');
+    });
   });
 
   describe('constraint rendering', () => {
