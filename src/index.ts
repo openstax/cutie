@@ -4,6 +4,7 @@ import { initializeState } from './lib/initializeState';
 import { renderTemplate } from './lib/renderTemplate';
 import { processResponse } from './lib/responseProcessing';
 import { buildScore } from './lib/scoreUtils';
+import { validateSubmission } from './lib/validateResponses';
 import { AttemptState, ProcessingOptions, ResponseData } from './types';
 
 /**
@@ -91,6 +92,9 @@ export async function submitResponse(
   const parser = new DOMParser();
   const itemDoc = parser.parseFromString(itemXml.trim(), 'text/xml');
 
+  // Validate response constraints before processing
+  validateSubmission(submission, itemDoc);
+
   // Process the response submission to update state
   const updatedState = processResponse(itemDoc, submission, state);
 
@@ -142,6 +146,8 @@ export async function setScore(
 
   return { state: updatedState, template };
 }
+
+export { ResponseValidationError } from './lib/validateResponses';
 
 // Re-export types for convenience
 export type {
