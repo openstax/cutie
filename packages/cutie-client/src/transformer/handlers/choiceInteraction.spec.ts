@@ -60,7 +60,7 @@ describe('choiceInteraction validation', () => {
       const container = document.createElement('div');
       container.appendChild(fragment);
 
-      const constraintEl = container.querySelector('.qti-constraint-text');
+      const constraintEl = container.querySelector('.cutie-constraint-text');
       expect(constraintEl).not.toBeNull();
       expect(constraintEl!.textContent).toBe('Select between 2 and 3 choices.');
     });
@@ -78,7 +78,7 @@ describe('choiceInteraction validation', () => {
       const container = document.createElement('div');
       container.appendChild(fragment);
 
-      const constraintEl = container.querySelector('.qti-constraint-text');
+      const constraintEl = container.querySelector('.cutie-constraint-text');
       expect(constraintEl).not.toBeNull();
       expect(constraintEl!.textContent).toBe('Select at least 2 choices.');
     });
@@ -96,7 +96,7 @@ describe('choiceInteraction validation', () => {
       const container = document.createElement('div');
       container.appendChild(fragment);
 
-      const constraintEl = container.querySelector('.qti-constraint-text');
+      const constraintEl = container.querySelector('.cutie-constraint-text');
       expect(constraintEl).not.toBeNull();
       expect(constraintEl!.textContent).toBe('Select up to 2 choices.');
     });
@@ -113,7 +113,7 @@ describe('choiceInteraction validation', () => {
       const container = document.createElement('div');
       container.appendChild(fragment);
 
-      const constraintEl = container.querySelector('.qti-constraint-text');
+      const constraintEl = container.querySelector('.cutie-constraint-text');
       expect(constraintEl).not.toBeNull();
       expect(constraintEl!.textContent).toBe('Select an answer.');
     });
@@ -130,7 +130,7 @@ describe('choiceInteraction validation', () => {
       const container = document.createElement('div');
       container.appendChild(fragment);
 
-      expect(container.querySelector('.qti-constraint-text')).toBeNull();
+      expect(container.querySelector('.cutie-constraint-text')).toBeNull();
     });
 
     it('sets aria-describedby on fieldset linking to constraint text', () => {
@@ -147,7 +147,7 @@ describe('choiceInteraction validation', () => {
       container.appendChild(fragment);
 
       const fieldset = container.querySelector('fieldset')!;
-      const constraintEl = container.querySelector('.qti-constraint-text')!;
+      const constraintEl = container.querySelector('.cutie-constraint-text')!;
       expect(fieldset.getAttribute('aria-describedby')).toBe(constraintEl.id);
     });
   });
@@ -218,8 +218,8 @@ describe('choiceInteraction validation', () => {
       const fieldset = container.querySelector('fieldset')!;
       expect(fieldset.getAttribute('aria-invalid')).toBe('true');
 
-      const constraintEl = container.querySelector('.qti-constraint-text')!;
-      expect(constraintEl.classList.contains('qti-constraint-error')).toBe(true);
+      const constraintEl = container.querySelector('.cutie-constraint-text')!;
+      expect(constraintEl.classList.contains('cutie-constraint-error')).toBe(true);
     });
 
     it('clears error state when selections become valid', () => {
@@ -268,8 +268,8 @@ describe('choiceInteraction validation', () => {
       const fieldset = container.querySelector('fieldset')!;
       expect(fieldset.getAttribute('aria-invalid')).toBe('true');
 
-      const constraintEl = container.querySelector('.qti-constraint-text')!;
-      expect(constraintEl.classList.contains('qti-constraint-error')).toBe(true);
+      const constraintEl = container.querySelector('.cutie-constraint-text')!;
+      expect(constraintEl.classList.contains('cutie-constraint-error')).toBe(true);
     });
 
     it('returns valid:true when no min-choices constraint', () => {

@@ -15,7 +15,7 @@
  */
 
 const INTERACTION_SELECTOR =
-  'input.qti-text-entry-interaction, select.qti-inline-choice-interaction';
+  'input.cutie-text-entry-interaction, select.cutie-inline-choice-interaction';
 
 const SENTENCE_BOUNDARY = /[.!?]\s+/;
 
@@ -40,15 +40,15 @@ let idCounter = 0;
 
 /** Default ID generator for production use */
 export function defaultGenerateId(): string {
-  return `qti-ctx-${++idCounter}`;
+  return `cutie-ctx-${++idCounter}`;
 }
 
 function isInteraction(node: Node): node is HTMLElement {
   if (node.nodeType !== Node.ELEMENT_NODE) return false;
   const el = node as HTMLElement;
   return (
-    (el.tagName === 'INPUT' && el.classList.contains('qti-text-entry-interaction')) ||
-    (el.tagName === 'SELECT' && el.classList.contains('qti-inline-choice-interaction'))
+    (el.tagName === 'INPUT' && el.classList.contains('cutie-text-entry-interaction')) ||
+    (el.tagName === 'SELECT' && el.classList.contains('cutie-inline-choice-interaction'))
   );
 }
 
@@ -478,7 +478,7 @@ export function annotateInlineInteractions(
         for (const id of record.beforeSpanIds) referencedSpanIds.add(id);
         for (const id of record.afterSpanIds) referencedSpanIds.add(id);
       } else {
-        // Fallback: no surrounding text — no qti-sr-only spans created,
+        // Fallback: no surrounding text — no cutie-sr-only spans created,
         // so don't set annotated (avoids unnecessary style injection)
         if (interactions.length > 1) {
           el.setAttribute('aria-label', `blank ${i + 1} of ${interactions.length}`);
@@ -514,7 +514,7 @@ export function annotateInlineInteractions(
 
         const descSpan = document.createElement('span');
         descSpan.id = generateId();
-        descSpan.className = 'qti-sr-only';
+        descSpan.className = 'cutie-sr-only';
         descSpan.setAttribute('aria-hidden', 'true');
         descSpan.textContent = `blank ${i + 1} of ${interactions.length}`;
 
@@ -529,7 +529,7 @@ export function annotateInlineInteractions(
 
 /** CSS for visually-hidden description spans */
 export const SR_ONLY_STYLES = `
-  .qti-sr-only {
+  .cutie-sr-only {
     position: absolute;
     width: 1px;
     height: 1px;

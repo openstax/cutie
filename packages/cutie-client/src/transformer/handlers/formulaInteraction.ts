@@ -51,13 +51,13 @@ class FormulaInteractionHandler implements ElementHandler {
     }
 
     // Register styles once
-    if (context.styleManager && !context.styleManager.hasStyle('qti-formula-interaction')) {
-      context.styleManager.addStyle('qti-formula-interaction', FORMULA_INTERACTION_STYLES);
+    if (context.styleManager && !context.styleManager.hasStyle('cutie-formula-interaction')) {
+      context.styleManager.addStyle('cutie-formula-interaction', FORMULA_INTERACTION_STYLES);
     }
 
     // Create container for the interaction
     const container = document.createElement('div');
-    container.className = 'qti-formula-interaction';
+    container.className = 'cutie-formula-interaction';
     container.setAttribute('data-response-identifier', responseIdentifier);
 
     // Process qti-prompt if present
@@ -65,7 +65,7 @@ class FormulaInteractionHandler implements ElementHandler {
     const promptId = `prompt-${responseIdentifier}`;
     if (promptElement && context.transformChildren) {
       const promptContainer = document.createElement('div');
-      promptContainer.className = 'qti-prompt';
+      promptContainer.className = 'cutie-prompt';
       promptContainer.id = promptId;
       const promptFragment = context.transformChildren(promptElement);
       promptContainer.appendChild(promptFragment);
@@ -74,11 +74,11 @@ class FormulaInteractionHandler implements ElementHandler {
 
     // Create a wrapper for the math field
     const mathFieldWrapper = document.createElement('div');
-    mathFieldWrapper.className = 'qti-formula-field-wrapper';
+    mathFieldWrapper.className = 'cutie-formula-field-wrapper';
 
     // Create loading placeholder
     const loadingPlaceholder = document.createElement('div');
-    loadingPlaceholder.className = 'qti-formula-loading';
+    loadingPlaceholder.className = 'cutie-formula-loading';
     loadingPlaceholder.textContent = 'Loading math input...';
     mathFieldWrapper.appendChild(loadingPlaceholder);
 
@@ -111,7 +111,7 @@ class FormulaInteractionHandler implements ElementHandler {
           value: string;
           disabled: boolean;
         };
-        mathField.className = 'qti-formula-field';
+        mathField.className = 'cutie-formula-field';
         mathField.setAttribute('data-response-identifier', responseIdentifier);
         if (promptElement) {
           mathField.setAttribute('aria-labelledby', promptId);
@@ -158,12 +158,12 @@ class FormulaInteractionHandler implements ElementHandler {
 
         // Fall back to a textarea with error message
         const errorMsg = document.createElement('div');
-        errorMsg.className = 'qti-formula-error';
+        errorMsg.className = 'cutie-formula-error';
         errorMsg.textContent = 'Math input unavailable. Please enter LaTeX formula:';
         mathFieldWrapper.appendChild(errorMsg);
 
         const textarea = document.createElement('textarea');
-        textarea.className = 'qti-formula-fallback';
+        textarea.className = 'cutie-formula-fallback';
         textarea.setAttribute('data-response-identifier', responseIdentifier);
         if (promptElement) {
           textarea.setAttribute('aria-labelledby', promptId);
@@ -195,20 +195,20 @@ class FormulaInteractionHandler implements ElementHandler {
 }
 
 const FORMULA_INTERACTION_STYLES = `
-.qti-formula-interaction {
+.cutie-formula-interaction {
   display: block;
   margin: 8px 0;
 }
 
-.qti-formula-interaction .qti-prompt {
+.cutie-formula-interaction .cutie-prompt {
   margin-bottom: 8px;
 }
 
-.qti-formula-field-wrapper {
+.cutie-formula-field-wrapper {
   width: 100%;
 }
 
-.qti-formula-field {
+.cutie-formula-field {
   width: 100%;
   min-height: 50px;
   padding: 8px;
@@ -218,18 +218,18 @@ const FORMULA_INTERACTION_STYLES = `
   box-sizing: border-box;
 }
 
-.qti-formula-field:focus-within {
+.cutie-formula-field:focus-within {
   border-color: var(--cutie-primary);
   box-shadow: none;
 }
 
-.qti-formula-field[disabled] {
+.cutie-formula-field[disabled] {
   background-color: #f5f5f5;
   cursor: not-allowed;
   opacity: 0.6;
 }
 
-.qti-formula-loading {
+.cutie-formula-loading {
   padding: 12px;
   color: #666;
   font-style: italic;
@@ -238,7 +238,7 @@ const FORMULA_INTERACTION_STYLES = `
   border-radius: 4px;
 }
 
-.qti-formula-error {
+.cutie-formula-error {
   color: #856404;
   background-color: #fff3cd;
   padding: 8px;
@@ -247,7 +247,7 @@ const FORMULA_INTERACTION_STYLES = `
   font-size: 14px;
 }
 
-.qti-formula-fallback {
+.cutie-formula-fallback {
   width: 100%;
   min-height: 60px;
   padding: 8px;
@@ -259,7 +259,7 @@ const FORMULA_INTERACTION_STYLES = `
   box-sizing: border-box;
 }
 
-.qti-formula-fallback:disabled {
+.cutie-formula-fallback:disabled {
   background-color: #f5f5f5;
   cursor: not-allowed;
   opacity: 0.6;

@@ -9,7 +9,7 @@ export function renderToContainer(
   container.innerHTML = '';
 
   // Add base CSS class
-  container.classList.add('qti-item-container');
+  container.classList.add('cutie-item-container');
 
   // Append transformed content
   container.appendChild(content);
@@ -17,6 +17,6 @@ export function renderToContainer(
   // Return cleanup function
   return () => {
     container.innerHTML = '';
-    container.classList.remove('qti-item-container');
+    container.classList.remove('cutie-item-container');
   };
 }

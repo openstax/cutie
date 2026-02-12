@@ -38,13 +38,13 @@ class ExtendedTextInteractionHandler implements ElementHandler {
     }
 
     // Register styles once
-    if (context.styleManager && !context.styleManager.hasStyle('qti-extended-text-interaction')) {
-      context.styleManager.addStyle('qti-extended-text-interaction', EXTENDED_TEXT_INTERACTION_STYLES);
+    if (context.styleManager && !context.styleManager.hasStyle('cutie-extended-text-interaction')) {
+      context.styleManager.addStyle('cutie-extended-text-interaction', EXTENDED_TEXT_INTERACTION_STYLES);
     }
 
     // Create container for the interaction
     const container = document.createElement('div');
-    container.className = 'qti-extended-text-interaction';
+    container.className = 'cutie-extended-text-interaction';
     container.setAttribute('data-response-identifier', responseIdentifier);
 
     // Process qti-prompt if present
@@ -52,7 +52,7 @@ class ExtendedTextInteractionHandler implements ElementHandler {
     const promptId = `prompt-${responseIdentifier}`;
     if (promptElement && context.transformChildren) {
       const promptContainer = document.createElement('div');
-      promptContainer.className = 'qti-prompt';
+      promptContainer.className = 'cutie-prompt';
       promptContainer.id = promptId;
       const promptFragment = context.transformChildren(promptElement);
       promptContainer.appendChild(promptFragment);
@@ -61,7 +61,7 @@ class ExtendedTextInteractionHandler implements ElementHandler {
 
     // Create textarea for response input
     const textarea = document.createElement('textarea');
-    textarea.className = 'qti-extended-text-response';
+    textarea.className = 'cutie-extended-text-response';
     if (promptElement) {
       textarea.setAttribute('aria-labelledby', promptId);
     } else {
@@ -109,16 +109,16 @@ class ExtendedTextInteractionHandler implements ElementHandler {
 }
 
 const EXTENDED_TEXT_INTERACTION_STYLES = `
-.qti-extended-text-interaction {
+.cutie-extended-text-interaction {
   display: block;
   margin: 8px 0;
 }
 
-.qti-extended-text-interaction .qti-prompt {
+.cutie-extended-text-interaction .cutie-prompt {
   margin-bottom: 8px;
 }
 
-.qti-extended-text-interaction textarea {
+.cutie-extended-text-interaction textarea {
   width: 100%;
   min-height: 120px;
   padding: 8px;
@@ -130,19 +130,19 @@ const EXTENDED_TEXT_INTERACTION_STYLES = `
   box-sizing: border-box;
 }
 
-.qti-extended-text-interaction textarea:focus {
+.cutie-extended-text-interaction textarea:focus {
   outline: 2px solid var(--cutie-primary);
   outline-offset: 1px;
   border-color: var(--cutie-primary);
 }
 
-.qti-extended-text-interaction textarea:disabled {
+.cutie-extended-text-interaction textarea:disabled {
   background-color: #f5f5f5;
   cursor: not-allowed;
   opacity: 0.6;
 }
 
-.qti-extended-text-interaction textarea:disabled:focus {
+.cutie-extended-text-interaction textarea:disabled:focus {
   outline: none;
 }
 `.trim();

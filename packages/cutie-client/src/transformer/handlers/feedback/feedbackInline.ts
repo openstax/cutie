@@ -19,15 +19,15 @@ class FeedbackInlineHandler implements ElementHandler {
     const fragment = document.createDocumentFragment();
 
     // Register styles once
-    if (context.styleManager && !context.styleManager.hasStyle('qti-feedback-inline')) {
-      context.styleManager.addStyle('qti-feedback-inline', FEEDBACK_INLINE_STYLES);
+    if (context.styleManager && !context.styleManager.hasStyle('cutie-feedback-inline')) {
+      context.styleManager.addStyle('cutie-feedback-inline', FEEDBACK_INLINE_STYLES);
     }
-    if (context.styleManager && !context.styleManager.hasStyle('qti-feedback-icon')) {
-      context.styleManager.addStyle('qti-feedback-icon', FEEDBACK_ICON_STYLES);
+    if (context.styleManager && !context.styleManager.hasStyle('cutie-feedback-icon')) {
+      context.styleManager.addStyle('cutie-feedback-icon', FEEDBACK_ICON_STYLES);
     }
 
     const span = document.createElement('span');
-    span.className = 'qti-feedback-inline';
+    span.className = 'cutie-feedback-inline';
 
     const identifier = element.getAttribute('identifier');
     if (identifier) {
@@ -62,19 +62,19 @@ class FeedbackInlineHandler implements ElementHandler {
 registry.register('feedback-inline', new FeedbackInlineHandler(), 50);
 
 const FEEDBACK_INLINE_STYLES = `
-  .qti-feedback-inline[data-feedback-type="correct"],
-  .qti-feedback-inline[data-feedback-type="incorrect"],
-  .qti-feedback-inline[data-feedback-type="info"] {
+  .cutie-feedback-inline[data-feedback-type="correct"],
+  .cutie-feedback-inline[data-feedback-type="incorrect"],
+  .cutie-feedback-inline[data-feedback-type="info"] {
     font-style: italic;
     color: #374151;
     padding: 0.15em 0.25em;
   }
 
-  .qti-feedback-inline .qti-feedback-icon {
+  .cutie-feedback-inline .cutie-feedback-icon {
     vertical-align: middle;
   }
 
-  .qti-feedback-inline .qti-feedback-icon__svg {
+  .cutie-feedback-inline .cutie-feedback-icon__svg {
     width: 1.25em;
     height: 1.25em;
   }

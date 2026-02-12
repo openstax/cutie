@@ -32,11 +32,11 @@ export function createFeedbackIcon(type: FeedbackType): HTMLSpanElement {
   const config = ICON_CONFIG[type];
 
   const wrapper = document.createElement('span');
-  wrapper.className = 'qti-feedback-icon';
+  wrapper.className = 'cutie-feedback-icon';
 
   const svg = document.createElementNS(SVG_NS, 'svg');
   svg.setAttribute('aria-hidden', 'true');
-  svg.setAttribute('class', 'qti-feedback-icon__svg');
+  svg.setAttribute('class', 'cutie-feedback-icon__svg');
   svg.setAttribute('fill', config.color);
   svg.setAttribute('viewBox', '0 -960 960 960');
 
@@ -45,7 +45,7 @@ export function createFeedbackIcon(type: FeedbackType): HTMLSpanElement {
   svg.appendChild(path);
 
   const srText = document.createElement('span');
-  srText.className = 'qti-feedback-sr-text';
+  srText.className = 'cutie-feedback-sr-text';
   srText.textContent = config.label;
 
   wrapper.appendChild(svg);
@@ -55,17 +55,17 @@ export function createFeedbackIcon(type: FeedbackType): HTMLSpanElement {
 }
 
 export const FEEDBACK_ICON_STYLES = `
-  .qti-feedback-icon {
+  .cutie-feedback-icon {
     display: inline-flex;
     align-items: center;
   }
 
-  .qti-feedback-icon__svg {
+  .cutie-feedback-icon__svg {
     width: 1em;
     height: 1em;
   }
 
-  .qti-feedback-sr-text {
+  .cutie-feedback-sr-text {
     position: absolute;
     width: 1px;
     height: 1px;

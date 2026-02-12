@@ -53,7 +53,7 @@ describe('ModalFeedbackHandler', () => {
       const dialog = fragment.querySelector('dialog');
 
       expect(dialog).not.toBeNull();
-      expect(dialog?.className).toBe('qti-modal-feedback');
+      expect(dialog?.className).toBe('cutie-modal-feedback');
     });
 
     it('should preserve identifier as data-identifier attribute', () => {
@@ -94,7 +94,7 @@ describe('ModalFeedbackHandler', () => {
       const context: TransformContext = { styleManager: mockStyleManager };
 
       const fragment = transform(element, context);
-      const header = fragment.querySelector('.qti-modal-feedback__header');
+      const header = fragment.querySelector('.cutie-modal-feedback__header');
 
       expect(header).not.toBeNull();
     });
@@ -104,8 +104,8 @@ describe('ModalFeedbackHandler', () => {
       const context: TransformContext = { styleManager: mockStyleManager };
 
       const fragment = transform(element, context);
-      const form = fragment.querySelector('.qti-modal-feedback__form') as HTMLFormElement;
-      const closeButton = fragment.querySelector('.qti-modal-feedback__close-button');
+      const form = fragment.querySelector('.cutie-modal-feedback__form') as HTMLFormElement;
+      const closeButton = fragment.querySelector('.cutie-modal-feedback__close-button');
 
       expect(form).not.toBeNull();
       expect(form?.method).toBe('dialog');
@@ -128,7 +128,7 @@ describe('ModalFeedbackHandler', () => {
       };
 
       const fragment = transform(element, context);
-      const contentDiv = fragment.querySelector('.qti-modal-feedback__content');
+      const contentDiv = fragment.querySelector('.cutie-modal-feedback__content');
 
       expect(transformChildren).toHaveBeenCalledWith(element);
       expect(contentDiv).not.toBeNull();
@@ -141,8 +141,8 @@ describe('ModalFeedbackHandler', () => {
 
       transform(element, context);
 
-      expect(mockStyleManager.hasStyle).toHaveBeenCalledWith('qti-modal-feedback');
-      expect(mockStyleManager.addStyle).toHaveBeenCalledWith('qti-modal-feedback', expect.any(String));
+      expect(mockStyleManager.hasStyle).toHaveBeenCalledWith('cutie-modal-feedback');
+      expect(mockStyleManager.addStyle).toHaveBeenCalledWith('cutie-modal-feedback', expect.any(String));
 
       // Second call should not add styles again
       mockStyleManager.hasStyle = vi.fn().mockReturnValue(true);

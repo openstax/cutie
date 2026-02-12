@@ -18,15 +18,15 @@ class ModalFeedbackHandler implements ElementHandler {
     const fragment = document.createDocumentFragment();
 
     // Register styles once
-    if (context.styleManager && !context.styleManager.hasStyle('qti-modal-feedback')) {
-      context.styleManager.addStyle('qti-modal-feedback', MODAL_FEEDBACK_STYLES);
+    if (context.styleManager && !context.styleManager.hasStyle('cutie-modal-feedback')) {
+      context.styleManager.addStyle('cutie-modal-feedback', MODAL_FEEDBACK_STYLES);
     }
-    if (context.styleManager && !context.styleManager.hasStyle('qti-feedback-icon')) {
-      context.styleManager.addStyle('qti-feedback-icon', FEEDBACK_ICON_STYLES);
+    if (context.styleManager && !context.styleManager.hasStyle('cutie-feedback-icon')) {
+      context.styleManager.addStyle('cutie-feedback-icon', FEEDBACK_ICON_STYLES);
     }
 
     const dialog = document.createElement('dialog');
-    dialog.className = 'qti-modal-feedback';
+    dialog.className = 'cutie-modal-feedback';
     context.onMount?.(() => {
       dialog.showModal();
       dialog.addEventListener('close', () => {
@@ -66,14 +66,14 @@ class ModalFeedbackHandler implements ElementHandler {
     // Add icon header if feedback type is valid
     if (feedbackType && isFeedbackType(feedbackType)) {
       const header = document.createElement('div');
-      header.className = 'qti-modal-feedback__header';
+      header.className = 'cutie-modal-feedback__header';
       header.appendChild(createFeedbackIcon(feedbackType));
       dialog.appendChild(header);
     }
 
     // Create content container
     const contentDiv = document.createElement('div');
-    contentDiv.className = 'qti-modal-feedback__content';
+    contentDiv.className = 'cutie-modal-feedback__content';
 
     if (context.transformChildren) {
       contentDiv.appendChild(context.transformChildren(element));
@@ -81,10 +81,10 @@ class ModalFeedbackHandler implements ElementHandler {
 
     const form = document.createElement('form');
     form.method = 'dialog';
-    form.className = 'qti-modal-feedback__form';
+    form.className = 'cutie-modal-feedback__form';
 
     const closeButton = document.createElement('button');
-    closeButton.className = 'qti-modal-feedback__close-button';
+    closeButton.className = 'cutie-modal-feedback__close-button';
     closeButton.textContent = 'OK';
 
     form.appendChild(closeButton);
@@ -99,38 +99,38 @@ class ModalFeedbackHandler implements ElementHandler {
 }
 
 const MODAL_FEEDBACK_STYLES = `
-  .qti-modal-feedback {
+  .cutie-modal-feedback {
     min-width: 15rem;
     max-width: calc(100vw - 4rem);
     max-height: calc(100vh - 4rem);
   }
 
-  .qti-modal-feedback::backdrop {
+  .cutie-modal-feedback::backdrop {
     background-color: rgba(0, 0, 0, 0.5);
   }
 
-  .qti-modal-feedback[data-feedback-type="correct"] {
+  .cutie-modal-feedback[data-feedback-type="correct"] {
     border: 3px solid #22c55e;
   }
 
-  .qti-modal-feedback[data-feedback-type="incorrect"] {
+  .cutie-modal-feedback[data-feedback-type="incorrect"] {
     border: 3px solid #ef4444;
   }
 
-  .qti-modal-feedback[data-feedback-type="info"] {
+  .cutie-modal-feedback[data-feedback-type="info"] {
     border: 3px solid #4a90e2;
   }
 
-  .qti-modal-feedback__header {
+  .cutie-modal-feedback__header {
     margin-bottom: 0.5rem;
   }
 
-  .qti-modal-feedback__header .qti-feedback-icon__svg {
+  .cutie-modal-feedback__header .cutie-feedback-icon__svg {
     width: 1.5em;
     height: 1.5em;
   }
 
-  .qti-modal-feedback__form {
+  .cutie-modal-feedback__form {
     text-align: right;
     margin-top: 1rem;
   }
