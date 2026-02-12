@@ -6,14 +6,71 @@ function parseItem(xml: string): Document {
   return new DOMParser().parseFromString(xml.trim(), 'text/xml');
 }
 
+const NS = 'http://www.imsglobal.org/xsd/imsqtiasi_v3p0';
+
 const makeItem = (interactionAttrs: string) => `
-  <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0">
+  <qti-assessment-item xmlns="${NS}">
     <qti-item-body>
       <qti-choice-interaction response-identifier="RESPONSE" ${interactionAttrs}>
         <qti-simple-choice identifier="A">A</qti-simple-choice>
         <qti-simple-choice identifier="B">B</qti-simple-choice>
         <qti-simple-choice identifier="C">C</qti-simple-choice>
       </qti-choice-interaction>
+    </qti-item-body>
+  </qti-assessment-item>
+`;
+
+const makeTextEntryItem = (attrs: string) => `
+  <qti-assessment-item xmlns="${NS}">
+    <qti-item-body>
+      <qti-text-entry-interaction response-identifier="RESPONSE" ${attrs} />
+    </qti-item-body>
+  </qti-assessment-item>
+`;
+
+const makeExtendedTextItem = (attrs: string) => `
+  <qti-assessment-item xmlns="${NS}">
+    <qti-item-body>
+      <qti-extended-text-interaction response-identifier="RESPONSE" ${attrs} />
+    </qti-item-body>
+  </qti-assessment-item>
+`;
+
+const makeInlineChoiceItem = (attrs: string) => `
+  <qti-assessment-item xmlns="${NS}">
+    <qti-item-body>
+      <p>
+        <qti-inline-choice-interaction response-identifier="RESPONSE" ${attrs}>
+          <qti-inline-choice identifier="A">A</qti-inline-choice>
+          <qti-inline-choice identifier="B">B</qti-inline-choice>
+        </qti-inline-choice-interaction>
+      </p>
+    </qti-item-body>
+  </qti-assessment-item>
+`;
+
+const makeGapMatchItem = (attrs: string) => `
+  <qti-assessment-item xmlns="${NS}">
+    <qti-item-body>
+      <qti-gap-match-interaction response-identifier="RESPONSE" ${attrs}>
+        <qti-gap-text identifier="G1" match-max="1">Word1</qti-gap-text>
+        <qti-gap-text identifier="G2" match-max="1">Word2</qti-gap-text>
+      </qti-gap-match-interaction>
+    </qti-item-body>
+  </qti-assessment-item>
+`;
+
+const makeMatchItem = (attrs: string) => `
+  <qti-assessment-item xmlns="${NS}">
+    <qti-item-body>
+      <qti-match-interaction response-identifier="RESPONSE" ${attrs}>
+        <qti-simple-match-set>
+          <qti-simple-associable-choice identifier="S1" match-max="1">S1</qti-simple-associable-choice>
+        </qti-simple-match-set>
+        <qti-simple-match-set>
+          <qti-simple-associable-choice identifier="T1" match-max="1">T1</qti-simple-associable-choice>
+        </qti-simple-match-set>
+      </qti-match-interaction>
     </qti-item-body>
   </qti-assessment-item>
 `;
@@ -98,5 +155,204 @@ describe('validateSubmission', () => {
   it('passes when single-select max-choices="1" with one selection', () => {
     const doc = parseItem(makeItem('max-choices="1"'));
     expect(() => validateSubmission({ RESPONSE: 'A' }, doc)).not.toThrow();
+  });
+});
+
+describe('validateTextEntryInteractions', () => {
+  it('passes when value matches pattern-mask', () => {
+    const doc = parseItem(makeTextEntryItem('pattern-mask="^\\d{3}$"'));
+    expect(() => validateSubmission({ RESPONSE: '123' }, doc)).not.toThrow();
+  });
+
+  it('fails when value does not match pattern-mask', () => {
+    const doc = parseItem(makeTextEntryItem('pattern-mask="^\\d{3}$"'));
+    expect(() => validateSubmission({ RESPONSE: 'abc' }, doc)).toThrow(ResponseValidationError);
+
+    try {
+      validateSubmission({ RESPONSE: 'abc' }, doc);
+    } catch (e) {
+      const err = e as ResponseValidationError;
+      expect(err.errors).toHaveLength(1);
+      expect(err.errors[0]!.constraint).toBe('pattern-mask');
+    }
+  });
+
+  it('fails when null response does not match pattern-mask', () => {
+    const doc = parseItem(makeTextEntryItem('pattern-mask="^\\d{3}$"'));
+    expect(() => validateSubmission({ RESPONSE: null }, doc)).toThrow(ResponseValidationError);
+  });
+
+  it('passes when no pattern-mask is set', () => {
+    const doc = parseItem(makeTextEntryItem(''));
+    expect(() => validateSubmission({ RESPONSE: 'anything' }, doc)).not.toThrow();
+  });
+});
+
+describe('validateExtendedTextInteractions', () => {
+  it('passes when min-strings is satisfied', () => {
+    const doc = parseItem(makeExtendedTextItem('min-strings="1"'));
+    expect(() => validateSubmission({ RESPONSE: 'Some text' }, doc)).not.toThrow();
+  });
+
+  it('fails when value is empty and min-strings requires input', () => {
+    const doc = parseItem(makeExtendedTextItem('min-strings="1"'));
+    expect(() => validateSubmission({ RESPONSE: '' }, doc)).toThrow(ResponseValidationError);
+
+    try {
+      validateSubmission({ RESPONSE: '' }, doc);
+    } catch (e) {
+      const err = e as ResponseValidationError;
+      expect(err.errors).toHaveLength(1);
+      expect(err.errors[0]!.constraint).toBe('min-strings');
+    }
+  });
+
+  it('fails when value is whitespace only', () => {
+    const doc = parseItem(makeExtendedTextItem('min-strings="1"'));
+    expect(() => validateSubmission({ RESPONSE: '   ' }, doc)).toThrow(ResponseValidationError);
+  });
+
+  it('fails when response is null', () => {
+    const doc = parseItem(makeExtendedTextItem('min-strings="1"'));
+    expect(() => validateSubmission({ RESPONSE: null }, doc)).toThrow(ResponseValidationError);
+  });
+
+  it('passes when no min-strings is set', () => {
+    const doc = parseItem(makeExtendedTextItem(''));
+    expect(() => validateSubmission({ RESPONSE: '' }, doc)).not.toThrow();
+  });
+});
+
+describe('validateInlineChoiceInteractions', () => {
+  it('passes when required and value is provided', () => {
+    const doc = parseItem(makeInlineChoiceItem('required="true"'));
+    expect(() => validateSubmission({ RESPONSE: 'A' }, doc)).not.toThrow();
+  });
+
+  it('fails when required and value is null', () => {
+    const doc = parseItem(makeInlineChoiceItem('required="true"'));
+    expect(() => validateSubmission({ RESPONSE: null }, doc)).toThrow(ResponseValidationError);
+
+    try {
+      validateSubmission({ RESPONSE: null }, doc);
+    } catch (e) {
+      const err = e as ResponseValidationError;
+      expect(err.errors).toHaveLength(1);
+      expect(err.errors[0]!.constraint).toBe('required');
+    }
+  });
+
+  it('fails when required and value is empty string', () => {
+    const doc = parseItem(makeInlineChoiceItem('required="true"'));
+    expect(() => validateSubmission({ RESPONSE: '' }, doc)).toThrow(ResponseValidationError);
+  });
+
+  it('fails when min-choices >= 1 and no value', () => {
+    const doc = parseItem(makeInlineChoiceItem('min-choices="1"'));
+    expect(() => validateSubmission({ RESPONSE: null }, doc)).toThrow(ResponseValidationError);
+
+    try {
+      validateSubmission({ RESPONSE: null }, doc);
+    } catch (e) {
+      const err = e as ResponseValidationError;
+      expect(err.errors[0]!.constraint).toBe('min-choices');
+    }
+  });
+
+  it('passes when not required and no value', () => {
+    const doc = parseItem(makeInlineChoiceItem(''));
+    expect(() => validateSubmission({ RESPONSE: null }, doc)).not.toThrow();
+  });
+});
+
+describe('validateGapMatchInteractions', () => {
+  it('passes when min-associations is satisfied', () => {
+    const doc = parseItem(makeGapMatchItem('min-associations="1" max-associations="2"'));
+    expect(() => validateSubmission({ RESPONSE: ['G1 gap1'] }, doc)).not.toThrow();
+  });
+
+  it('fails when too few associations', () => {
+    const doc = parseItem(makeGapMatchItem('min-associations="2" max-associations="3"'));
+    expect(() => validateSubmission({ RESPONSE: ['G1 gap1'] }, doc)).toThrow(
+      ResponseValidationError
+    );
+
+    try {
+      validateSubmission({ RESPONSE: ['G1 gap1'] }, doc);
+    } catch (e) {
+      const err = e as ResponseValidationError;
+      expect(err.errors).toHaveLength(1);
+      expect(err.errors[0]!.constraint).toBe('min-associations');
+    }
+  });
+
+  it('fails when too many associations', () => {
+    const doc = parseItem(makeGapMatchItem('max-associations="1"'));
+    expect(() =>
+      validateSubmission({ RESPONSE: ['G1 gap1', 'G2 gap2'] }, doc)
+    ).toThrow(ResponseValidationError);
+
+    try {
+      validateSubmission({ RESPONSE: ['G1 gap1', 'G2 gap2'] }, doc);
+    } catch (e) {
+      const err = e as ResponseValidationError;
+      expect(err.errors[0]!.constraint).toBe('max-associations');
+    }
+  });
+
+  it('fails when null response violates min-associations', () => {
+    const doc = parseItem(makeGapMatchItem('min-associations="1"'));
+    expect(() => validateSubmission({ RESPONSE: null }, doc)).toThrow(ResponseValidationError);
+  });
+
+  it('passes with no constraints', () => {
+    const doc = parseItem(makeGapMatchItem(''));
+    expect(() => validateSubmission({ RESPONSE: [] }, doc)).not.toThrow();
+  });
+});
+
+describe('validateMatchInteractions', () => {
+  it('passes when min-associations is satisfied', () => {
+    const doc = parseItem(makeMatchItem('min-associations="1" max-associations="2"'));
+    expect(() => validateSubmission({ RESPONSE: ['S1 T1'] }, doc)).not.toThrow();
+  });
+
+  it('fails when too few associations', () => {
+    const doc = parseItem(makeMatchItem('min-associations="2" max-associations="3"'));
+    expect(() => validateSubmission({ RESPONSE: ['S1 T1'] }, doc)).toThrow(
+      ResponseValidationError
+    );
+
+    try {
+      validateSubmission({ RESPONSE: ['S1 T1'] }, doc);
+    } catch (e) {
+      const err = e as ResponseValidationError;
+      expect(err.errors).toHaveLength(1);
+      expect(err.errors[0]!.constraint).toBe('min-associations');
+    }
+  });
+
+  it('fails when too many associations', () => {
+    const doc = parseItem(makeMatchItem('max-associations="1"'));
+    expect(() =>
+      validateSubmission({ RESPONSE: ['S1 T1', 'S1 T2'] }, doc)
+    ).toThrow(ResponseValidationError);
+
+    try {
+      validateSubmission({ RESPONSE: ['S1 T1', 'S1 T2'] }, doc);
+    } catch (e) {
+      const err = e as ResponseValidationError;
+      expect(err.errors[0]!.constraint).toBe('max-associations');
+    }
+  });
+
+  it('fails when null response violates min-associations', () => {
+    const doc = parseItem(makeMatchItem('min-associations="1"'));
+    expect(() => validateSubmission({ RESPONSE: null }, doc)).toThrow(ResponseValidationError);
+  });
+
+  it('passes with no constraints', () => {
+    const doc = parseItem(makeMatchItem(''));
+    expect(() => validateSubmission({ RESPONSE: [] }, doc)).not.toThrow();
   });
 });
