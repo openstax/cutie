@@ -110,15 +110,15 @@ const MODAL_FEEDBACK_STYLES = `
   }
 
   .cutie-modal-feedback[data-feedback-type="correct"] {
-    border: 3px solid #22c55e;
+    border: 3px solid var(--cutie-feedback-correct);
   }
 
   .cutie-modal-feedback[data-feedback-type="incorrect"] {
-    border: 3px solid #ef4444;
+    border: 3px solid var(--cutie-feedback-incorrect);
   }
 
   .cutie-modal-feedback[data-feedback-type="info"] {
-    border: 3px solid #4a90e2;
+    border: 3px solid var(--cutie-feedback-info);
   }
 
   .cutie-modal-feedback__header {

@@ -163,7 +163,7 @@ const TEXT_ENTRY_INTERACTION_STYLES = `
   }
 
   .cutie-text-entry-interaction:disabled {
-    background-color: #f5f5f5;
+    background-color: var(--cutie-bg-alt);
     cursor: not-allowed;
     opacity: 0.6;
   }

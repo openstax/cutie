@@ -10,31 +10,44 @@ import { announce } from './utils/liveRegion';
 /**
  * Theming options for a mounted QTI item.
  *
- * `primaryColor` is the main brand accent used for borders, outlines, focus
- * rings, and chip accent text. Interactive hover/selected states use neutral
- * greys — the primary color only appears in borders and outlines.
+ * All colors are exposed as CSS custom properties on `.cutie-item-container`
+ * so consumers can override them for branding or dark mode.
  *
- * `primaryFgColor` and `primaryHoverColor` are reserved for future button
- * components and are not currently referenced by interaction CSS.
+ * **Consumer contrast contract (WCAG 2.1 AA):**
  *
- * **Consumer contrast contract:**
- * 1. `primaryColor` must have >= 3:1 contrast against white (used as
- *    border / accent text on white backgrounds).
- * 2. `borderColor` must have >= 3:1 contrast against white and any
- *    interaction background (e.g. `#f5f5f5`, `#f9f9f9`).
- * 3. `primaryFgColor` and `primaryHoverColor` are reserved for future use.
+ * | Variable | Used as | Min contrast | Against |
+ * |---|---|---|---|
+ * | `textColor` | Body text | 4.5:1 (AA) | `bgColor`, `bgAltColor` |
+ * | `textMutedColor` | Secondary text | 4.5:1 (AA) | `bgColor` |
+ * | `borderColor` | Non-text UI | 3:1 (1.4.11) | `bgColor`, `bgAltColor` |
+ * | `primaryColor` | Non-text UI + accent text | 3:1 (1.4.11) | `bgColor` |
+ * | `feedbackCorrectColor` | Icons, borders | 3:1 (1.4.11) | `bgColor` |
+ * | `feedbackIncorrectColor` | Icons, borders, error text | 4.5:1 (AA) | `bgColor`, `bgAltColor` |
+ * | `feedbackInfoColor` | Icons, borders | 3:1 (1.4.11) | `bgColor` |
  */
 export interface MountItemOptions {
-  /** Brand accent color (default `#1976d2`). Focus outlines, borders, chip text. */
-  primaryColor?: string;
-  /** Text on primary backgrounds (default `#fff`). Reserved for future button components. */
-  primaryFgColor?: string;
-  /** Hover shade of primary (default `#1e88e5`). Reserved for future button components. */
-  primaryHoverColor?: string;
-  /** Form control border color (default `#767676`). Must meet WCAG 1.4.11 3:1 contrast. */
+  /** Primary content text (default `#333`). Must meet 4.5:1 against `bgColor` and `bgAltColor`. */
+  textColor?: string;
+  /** Secondary/hint text, labels (default `#666`). Must meet 4.5:1 against `bgColor`. */
+  textMutedColor?: string;
+  /** Default surface color (default `#fff`). */
+  bgColor?: string;
+  /** Secondary surfaces, hover, disabled, containers (default `#f5f5f5`). */
+  bgAltColor?: string;
+  /** Form control border color (default `#767676`). Must meet 3:1 against `bgColor` and `bgAltColor`. */
   borderColor?: string;
-  /** Form control border hover color (default `#595959`). */
-  borderHoverColor?: string;
+  /** Brand accent color (default `#1976d2`). Must meet 3:1 against `bgColor`. */
+  primaryColor?: string;
+  /** Text on primary backgrounds (default `#fff`). */
+  primaryFgColor?: string;
+  /** Hover shade of primary (default `#1e88e5`). */
+  primaryHoverColor?: string;
+  /** Correct feedback icon and border color (default `#22c55e`). Must meet 3:1 against `bgColor`. */
+  feedbackCorrectColor?: string;
+  /** Incorrect/error icon, border, and text color (default `#d32f2f`). Must meet 4.5:1 against `bgColor` and `bgAltColor`. */
+  feedbackIncorrectColor?: string;
+  /** Info feedback icon and border color (default `#4a90e2`). Must meet 3:1 against `bgColor`. */
+  feedbackInfoColor?: string;
 }
 
 /**
@@ -94,11 +107,17 @@ export function mountItem(
   let teardownCurrentRender: (() => void) | null = null;
 
   const CSS_VAR_MAP: Array<[keyof MountItemOptions, string]> = [
+    ['textColor', '--cutie-text'],
+    ['textMutedColor', '--cutie-text-muted'],
+    ['bgColor', '--cutie-bg'],
+    ['bgAltColor', '--cutie-bg-alt'],
+    ['borderColor', '--cutie-border'],
     ['primaryColor', '--cutie-primary'],
     ['primaryFgColor', '--cutie-primary-fg'],
     ['primaryHoverColor', '--cutie-primary-hover'],
-    ['borderColor', '--cutie-border'],
-    ['borderHoverColor', '--cutie-border-hover'],
+    ['feedbackCorrectColor', '--cutie-feedback-correct'],
+    ['feedbackIncorrectColor', '--cutie-feedback-incorrect'],
+    ['feedbackInfoColor', '--cutie-feedback-info'],
   ];
 
   function applyThemeVars(): void {

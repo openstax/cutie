@@ -1,4 +1,31 @@
 /**
+ * CSS styles for error display elements.
+ * Registered as part of base styles so they are always available.
+ */
+export const ERROR_DISPLAY_STYLES = `
+  .cutie-error-display {
+    display: inline-block;
+    background-color: var(--cutie-bg-alt);
+    border: 2px solid var(--cutie-feedback-incorrect);
+    border-radius: 4px;
+    padding: 12px 16px;
+    margin: 8px 0;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+
+  .cutie-error-display__title {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--cutie-feedback-incorrect);
+  }
+
+  .cutie-error-display__message {
+    color: var(--cutie-feedback-incorrect);
+    font-size: 14px;
+  }
+`;
+
+/**
  * Create a generic error display element
  *
  * @param title - The error title text
@@ -7,30 +34,17 @@
  */
 export function createErrorElement(title: string, message: string): HTMLElement {
   const container = document.createElement('span');
-
-  // Apply inline styles for consistent appearance
-  Object.assign(container.style, {
-    display: 'inline-block',
-    backgroundColor: '#fff3cd',
-    border: '2px solid #ffc107',
-    borderRadius: '4px',
-    padding: '12px 16px',
-    margin: '8px 0',
-    fontFamily: 'system-ui, -apple-system, sans-serif',
-  });
+  container.className = 'cutie-error-display';
 
   // Create title
   const titleEl = document.createElement('strong');
+  titleEl.className = 'cutie-error-display__title';
   titleEl.textContent = title;
-  titleEl.style.display = 'block';
-  titleEl.style.marginBottom = '4px';
-  titleEl.style.color = '#856404';
 
   // Create message
   const messageEl = document.createElement('div');
+  messageEl.className = 'cutie-error-display__message';
   messageEl.textContent = message;
-  messageEl.style.color = '#856404';
-  messageEl.style.fontSize = '14px';
 
   container.appendChild(titleEl);
   container.appendChild(messageEl);

@@ -66,7 +66,7 @@ const FEEDBACK_INLINE_STYLES = `
   .cutie-feedback-inline[data-feedback-type="incorrect"],
   .cutie-feedback-inline[data-feedback-type="info"] {
     font-style: italic;
-    color: #374151;
+    color: var(--cutie-text);
     padding: 0.15em 0.25em;
   }
 

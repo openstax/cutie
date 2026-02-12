@@ -15,12 +15,12 @@ const INLINE_REQUIRED_INDICATOR_STYLES = `
   .cutie-required-indicator {
     font-size: 0.75em;
     vertical-align: super;
-    color: #666;
+    color: var(--cutie-text-muted);
     cursor: default;
   }
 
   .cutie-required-indicator.${CONSTRAINT_ERROR_CLASS} {
-    color: #d32f2f;
+    color: var(--cutie-feedback-incorrect);
   }
 `;
 
@@ -32,7 +32,7 @@ const VALIDATION_DISPLAY_STYLES = `
     align-items: center;
     gap: 0.3em;
     font-size: 0.85em;
-    color: #666;
+    color: var(--cutie-text-muted);
     margin-top: 0.5em;
   }
 
@@ -45,7 +45,7 @@ const VALIDATION_DISPLAY_STYLES = `
 
   /* Error state — icon provides non-color signal per WCAG 1.4.1 */
   .cutie-constraint-text.${CONSTRAINT_ERROR_CLASS} {
-    color: #d32f2f;
+    color: var(--cutie-feedback-incorrect);
   }
 
   .cutie-constraint-text.${CONSTRAINT_ERROR_CLASS} .cutie-constraint-icon {
