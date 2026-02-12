@@ -7,7 +7,7 @@ import {
   createConstraintMessage,
 } from '../../errors/validationDisplay';
 import { registry } from '../registry';
-import type { ElementHandler, ResponseAccessorResult, TransformContext } from '../types';
+import type { ElementHandler, TransformContext } from '../types';
 import { getDefaultValue } from './responseUtils';
 
 /**
@@ -216,7 +216,7 @@ class ChoiceInteractionHandler implements ElementHandler {
         }
       };
 
-      const accessor = (): ResponseAccessorResult => {
+      const accessor = () => {
         const value = getResponse();
         const checkedCount = inputElements.filter((input) => input.checked).length;
         const isValid = minChoices <= 0 || checkedCount >= minChoices;
@@ -224,7 +224,7 @@ class ChoiceInteractionHandler implements ElementHandler {
         if (!isValid) {
           choicesContainer.setAttribute('aria-invalid', 'true');
           constraint?.setError(true);
-          return { value, valid: false, errorElement: constraint?.element };
+          return { value, valid: false };
         }
 
         // Clear error state if previously set

@@ -4,7 +4,8 @@ import { ItemStateImpl } from './state/itemState';
 import { registerBaseStyles } from './styles';
 import { createTransformContext, transformChildren, transformNode } from './transformer/elementTransformer';
 import { DefaultStyleManager } from './transformer/styleManager';
-import type { ResponseData } from './transformer/types';
+import type { ResponseData, TransformContext } from './transformer/types';
+import { announce } from './utils/liveRegion';
 
 /**
  * Theming options for a mounted QTI item.
@@ -85,8 +86,9 @@ export function mountItem(
   // Cleanup callbacks — accumulated across renders, all called on unmount()
   const cleanupCallbacks: Array<() => void> = [];
 
-  // Mutable reference to current render's itemState
+  // Mutable reference to current render's itemState and context
   let currentItemState: ItemStateImpl | null = null;
+  let currentContext: TransformContext | null = null;
 
   // Current render's teardown — called on update() and unmount()
   let teardownCurrentRender: (() => void) | null = null;
@@ -135,6 +137,7 @@ export function mountItem(
       containerElement: container,
       state,
     });
+    currentContext = context;
 
     const fragment = transformChildren(parsed.itemBody, context);
 
@@ -162,6 +165,7 @@ export function mountItem(
       teardownCurrentRender?.();
       teardownCurrentRender = null;
       currentItemState = null;
+      currentContext = null;
       for (const cb of cleanupCallbacks) cb();
       cleanupCallbacks.length = 0;
       state.clear();
@@ -172,7 +176,16 @@ export function mountItem(
       teardownCurrentRender = null;
       doRender(xml);
     },
-    collectResponses: () => currentItemState?.collectAll(),
+    collectResponses: () => {
+      const result = currentItemState?.collectAll();
+      if (!result) return undefined;
+      if (!result.valid && currentContext) {
+        const plural = result.invalidCount === 1 ? 'problem' : 'problems';
+        announce(currentContext, `${result.invalidCount} ${plural} with submission. Please review the highlighted fields.`, 'assertive');
+        return undefined;
+      }
+      return result.valid ? result.responses : undefined;
+    },
     setInteractionsEnabled: (enabled: boolean) => {
       currentItemState?.setInteractionsEnabled(enabled);
     },

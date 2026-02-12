@@ -65,6 +65,7 @@ export function createConstraintMessage(
   const container = document.createElement('div');
   container.className = 'cutie-constraint-text';
   container.id = id;
+  container.setAttribute('aria-hidden', 'true');
 
   // Warning icon — hidden by default, shown via CSS in error state
   const svg = document.createElementNS(SVG_NS, 'svg');
