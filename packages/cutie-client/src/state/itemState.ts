@@ -1,4 +1,4 @@
-import type { ItemState, ResponseAccessor, ResponseData, StateObserver } from '../transformer/types';
+import type { CollectResult, ItemState, ResponseAccessor, ResponseData, StateObserver } from '../transformer/types';
 
 /**
  * Implementation of ItemState interface.
@@ -8,7 +8,6 @@ export class ItemStateImpl implements ItemState {
   private responseAccessors: Map<string, ResponseAccessor> = new Map();
   private observers: Set<StateObserver> = new Set();
   private _interactionsEnabled = true;
-  private previousAlertElement: HTMLElement | null = null;
 
   constructor(previousState?: ItemState) {
     if (previousState) {
@@ -41,41 +40,21 @@ export class ItemStateImpl implements ItemState {
 
   /**
    * Collect all responses from registered accessors.
-   * Returns undefined if any accessor reports invalid state.
-   * Adds role="alert" to the first invalid handler's errorElement for screen readers.
+   * Pure getter — returns a struct with responses, validity, and invalid count.
    */
-  collectAll(): ResponseData | undefined {
+  collectAll(): CollectResult {
     const responses: ResponseData = {};
-    let firstInvalidErrorElement: HTMLElement | undefined;
-    let allValid = true;
+    let invalidCount = 0;
 
     for (const [identifier, accessor] of this.responseAccessors) {
       const result = accessor();
       responses[identifier] = result.value;
       if (!result.valid) {
-        allValid = false;
-        if (!firstInvalidErrorElement && result.errorElement) {
-          firstInvalidErrorElement = result.errorElement;
-        }
+        invalidCount++;
       }
     }
 
-    // Clean up previous alert
-    if (this.previousAlertElement) {
-      this.previousAlertElement.removeAttribute('role');
-      this.previousAlertElement = null;
-    }
-
-    if (!allValid) {
-      // Add role="alert" only to the first invalid errorElement
-      if (firstInvalidErrorElement) {
-        firstInvalidErrorElement.setAttribute('role', 'alert');
-        this.previousAlertElement = firstInvalidErrorElement;
-      }
-      return undefined;
-    }
-
-    return responses;
+    return { responses, valid: invalidCount === 0, invalidCount };
   }
 
   /**

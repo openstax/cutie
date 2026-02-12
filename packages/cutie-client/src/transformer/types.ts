@@ -4,8 +4,15 @@
 export interface ResponseAccessorResult {
   value: unknown;
   valid: boolean;
-  /** Reference to constraint text element for alert coordination */
-  errorElement?: HTMLElement;
+}
+
+/**
+ * Result of collecting all responses, including validation summary
+ */
+export interface CollectResult {
+  responses: ResponseData;
+  valid: boolean;
+  invalidCount: number;
 }
 
 /**
@@ -51,7 +58,7 @@ export interface ItemState {
   // Response collection
   registerResponse(responseIdentifier: string, accessor: ResponseAccessor): void;
   getResponse(responseIdentifier: string): unknown;
-  collectAll(): ResponseData | undefined;
+  collectAll(): CollectResult;
   getResponseIdentifiers(): string[];
   unregisterResponse(responseIdentifier: string): void;
 

@@ -172,10 +172,11 @@ describe('choiceInteraction validation', () => {
       inputs[1]!.checked = true;
 
       const result = itemState.collectAll();
-      expect(result).toEqual({ R1: ['A', 'B'] });
+      expect(result.valid).toBe(true);
+      expect(result.responses).toEqual({ R1: ['A', 'B'] });
     });
 
-    it('returns undefined from collectAll when too few selected', () => {
+    it('returns invalid result from collectAll when too few selected', () => {
       const doc = createQtiDocument(`
         <qti-choice-interaction response-identifier="R1" max-choices="3" min-choices="2">
           <qti-simple-choice identifier="A">A</qti-simple-choice>
@@ -193,7 +194,8 @@ describe('choiceInteraction validation', () => {
       inputs[0]!.checked = true;
 
       const result = itemState.collectAll();
-      expect(result).toBeUndefined();
+      expect(result.valid).toBe(false);
+      expect(result.invalidCount).toBe(1);
     });
 
     it('sets aria-invalid and error class on constraint text when invalid', () => {
@@ -246,7 +248,8 @@ describe('choiceInteraction validation', () => {
       // Second: valid (two checked)
       inputs[1]!.checked = true;
       const result = itemState.collectAll();
-      expect(result).toEqual({ R1: ['A', 'B'] });
+      expect(result.valid).toBe(true);
+      expect(result.responses).toEqual({ R1: ['A', 'B'] });
       expect(fieldset.hasAttribute('aria-invalid')).toBe(false);
     });
 
@@ -286,7 +289,8 @@ describe('choiceInteraction validation', () => {
 
       // No selections — should still be valid (no min constraint)
       const result = itemState.collectAll();
-      expect(result).toEqual({ R1: null });
+      expect(result.valid).toBe(true);
+      expect(result.responses).toEqual({ R1: null });
     });
   });
 });

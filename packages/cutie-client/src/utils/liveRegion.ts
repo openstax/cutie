@@ -1,48 +1,72 @@
 import type { TransformContext } from '../transformer/types';
 
-let pendingMessages: string[] = [];
-let flushScheduled = false;
-let flushCtx: TransformContext | null = null;
-let liveRegion: HTMLElement | null = null;
+type Urgency = 'polite' | 'assertive';
 
-function getOrCreateLiveRegion(ctx: TransformContext): HTMLElement {
-  if (!liveRegion) {
-    liveRegion = document.createElement('div');
-    liveRegion.setAttribute('aria-live', 'polite');
-    liveRegion.setAttribute('aria-atomic', 'true');
-    liveRegion.style.cssText = LIVE_REGION_STYLES;
-    document.body.appendChild(liveRegion);
+interface LiveRegionState {
+  element: HTMLElement | null;
+  pendingMessages: string[];
+  flushScheduled: boolean;
+  flushCtx: TransformContext | null;
+}
+
+const regions: Record<Urgency, LiveRegionState> = {
+  polite: { element: null, pendingMessages: [], flushScheduled: false, flushCtx: null },
+  assertive: { element: null, pendingMessages: [], flushScheduled: false, flushCtx: null },
+};
+
+function getOrCreateLiveRegion(ctx: TransformContext, urgency: Urgency): HTMLElement {
+  const state = regions[urgency];
+  if (!state.element) {
+    state.element = document.createElement('div');
+    state.element.setAttribute('aria-live', urgency);
+    state.element.setAttribute('aria-atomic', 'true');
+    state.element.style.cssText = LIVE_REGION_STYLES;
+    document.body.appendChild(state.element);
     ctx.onCleanup?.(() => {
-      liveRegion?.remove();
-      liveRegion = null;
+      state.element?.remove();
+      state.element = null;
     });
   }
-  return liveRegion;
+  return state.element;
 }
 
-function flush(): void {
-  const ctx = flushCtx;
-  const messages = pendingMessages;
-  pendingMessages = [];
-  flushScheduled = false;
-  flushCtx = null;
+function createFlush(urgency: Urgency): () => void {
+  return () => {
+    const state = regions[urgency];
+    const ctx = state.flushCtx;
+    const messages = state.pendingMessages;
+    state.pendingMessages = [];
+    state.flushScheduled = false;
+    state.flushCtx = null;
 
-  if (!ctx || messages.length === 0) return;
+    if (!ctx || messages.length === 0) return;
 
-  getOrCreateLiveRegion(ctx).textContent = messages.join(' ');
+    getOrCreateLiveRegion(ctx, urgency).textContent = messages.join(' ');
+  };
 }
+
+const flushPolite = createFlush('polite');
+const flushAssertive = createFlush('assertive');
 
 /**
  * Announces a message to screen readers via a shared live region.
  * Messages within the same microtask are batched and concatenated.
+ *
+ * @param urgency - `'polite'` (default) waits for the user to be idle;
+ *                  `'assertive'` interrupts immediately.
  */
-export function announce(ctx: TransformContext, message: string): void {
-  pendingMessages.push(message);
-  flushCtx = ctx;
+export function announce(
+  ctx: TransformContext,
+  message: string,
+  urgency: Urgency = 'polite'
+): void {
+  const state = regions[urgency];
+  state.pendingMessages.push(message);
+  state.flushCtx = ctx;
 
-  if (!flushScheduled) {
-    flushScheduled = true;
-    queueMicrotask(flush);
+  if (!state.flushScheduled) {
+    state.flushScheduled = true;
+    queueMicrotask(urgency === 'assertive' ? flushAssertive : flushPolite);
   }
 }
 

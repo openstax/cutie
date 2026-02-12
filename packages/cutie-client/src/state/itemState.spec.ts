@@ -2,94 +2,48 @@ import { describe, expect, it } from 'vitest';
 import { ItemStateImpl } from './itemState';
 
 describe('ItemStateImpl.collectAll', () => {
-  it('returns response data when all accessors are valid', () => {
+  it('returns valid result with response data when all accessors are valid', () => {
     const state = new ItemStateImpl();
     state.registerResponse('R1', () => ({ value: 'A', valid: true }));
     state.registerResponse('R2', () => ({ value: ['B', 'C'], valid: true }));
 
     const result = state.collectAll();
-    expect(result).toEqual({ R1: 'A', R2: ['B', 'C'] });
+    expect(result).toEqual({
+      responses: { R1: 'A', R2: ['B', 'C'] },
+      valid: true,
+      invalidCount: 0,
+    });
   });
 
-  it('returns undefined when any accessor is invalid', () => {
+  it('returns invalid result with invalidCount when any accessor is invalid', () => {
     const state = new ItemStateImpl();
     state.registerResponse('R1', () => ({ value: 'A', valid: true }));
     state.registerResponse('R2', () => ({ value: null, valid: false }));
 
     const result = state.collectAll();
-    expect(result).toBeUndefined();
+    expect(result.valid).toBe(false);
+    expect(result.invalidCount).toBe(1);
+    expect(result.responses).toEqual({ R1: 'A', R2: null });
   });
 
-  it('adds role="alert" only to first invalid errorElement', () => {
-    const errorEl1 = document.createElement('div');
-    const errorEl2 = document.createElement('div');
-
+  it('counts all invalid accessors in invalidCount', () => {
     const state = new ItemStateImpl();
-    state.registerResponse('R1', () => ({
-      value: null,
-      valid: false,
-      errorElement: errorEl1,
-    }));
-    state.registerResponse('R2', () => ({
-      value: null,
-      valid: false,
-      errorElement: errorEl2,
-    }));
+    state.registerResponse('R1', () => ({ value: null, valid: false }));
+    state.registerResponse('R2', () => ({ value: null, valid: false }));
+    state.registerResponse('R3', () => ({ value: 'ok', valid: true }));
 
-    state.collectAll();
-
-    expect(errorEl1.getAttribute('role')).toBe('alert');
-    expect(errorEl2.hasAttribute('role')).toBe(false);
-  });
-
-  it('cleans up previous alert role on subsequent successful collect', () => {
-    const errorEl = document.createElement('div');
-    let isValid = false;
-
-    const state = new ItemStateImpl();
-    state.registerResponse('R1', () => ({
-      value: isValid ? 'A' : null,
-      valid: isValid,
-      errorElement: errorEl,
-    }));
-
-    // First call: invalid
-    state.collectAll();
-    expect(errorEl.getAttribute('role')).toBe('alert');
-
-    // Second call: valid
-    isValid = true;
     const result = state.collectAll();
-    expect(result).toEqual({ R1: 'A' });
-    expect(errorEl.hasAttribute('role')).toBe(false);
+    expect(result.valid).toBe(false);
+    expect(result.invalidCount).toBe(2);
   });
 
-  it('cleans up previous alert role on subsequent invalid collect', () => {
-    const errorEl1 = document.createElement('div');
-    const errorEl2 = document.createElement('div');
-    let firstInvalid = true;
-
+  it('always includes all responses regardless of validity', () => {
     const state = new ItemStateImpl();
-    state.registerResponse('R1', () => ({
-      value: null,
-      valid: !firstInvalid,
-      errorElement: errorEl1,
-    }));
-    state.registerResponse('R2', () => ({
-      value: null,
-      valid: false,
-      errorElement: errorEl2,
-    }));
+    state.registerResponse('R1', () => ({ value: 'A', valid: true }));
+    state.registerResponse('R2', () => ({ value: null, valid: false }));
 
-    // First call: R1 is first invalid
-    state.collectAll();
-    expect(errorEl1.getAttribute('role')).toBe('alert');
-
-    // Second call: R1 is now valid, R2 is first invalid
-    firstInvalid = false;
-    state.collectAll();
-    expect(errorEl1.hasAttribute('role')).toBe(false);
-    expect(errorEl2.getAttribute('role')).toBe('alert');
+    const result = state.collectAll();
+    expect(result.responses).toEqual({ R1: 'A', R2: null });
   });
 
   it('getResponse returns value from accessor result', () => {
