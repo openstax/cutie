@@ -73,13 +73,18 @@ class ExtendedTextInteractionHandler implements ElementHandler {
     }
     textarea.setAttribute('data-response-identifier', responseIdentifier);
 
+    // Set placeholder text if provided
+    const placeholderText = element.getAttribute('placeholder-text');
+    if (placeholderText) {
+      textarea.placeholder = placeholderText;
+    }
+
     // Optional: Use expected-lines hint for sizing if provided
     const expectedLines = element.getAttribute('expected-lines');
     if (expectedLines) {
       const lines = parseInt(expectedLines, 10);
       if (!isNaN(lines) && lines > 0) {
-        // Approximate height based on line count (roughly 20px per line)
-        textarea.style.minHeight = `${Math.max(lines * 20, 60)}px`;
+        textarea.style.minHeight = `${Math.max(lines * 1.4, 3)}em`;
       }
     }
 
@@ -159,9 +164,9 @@ const EXTENDED_TEXT_INTERACTION_STYLES = `
 
 .cutie-extended-text-interaction textarea {
   width: 100%;
-  min-height: 120px;
+  min-height: 7.5em;
   padding: 8px;
-  font-size: 14px;
+  font-size: 1.6rem;
   font-family: inherit;
   border: 1px solid var(--cutie-border);
   border-radius: 4px;
