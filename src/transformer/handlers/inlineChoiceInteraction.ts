@@ -92,7 +92,7 @@ class InlineChoiceInteractionHandler implements ElementHandler {
       const responseAccessor = () => {
         const value = select.value;
         // Return null if no selection or empty value
-        return value === '' ? null : value;
+        return { value: value === '' ? null : value, valid: true };
       };
 
       context.itemState.registerResponse(responseIdentifier, responseAccessor);

@@ -183,7 +183,7 @@ export class GapMatchInteractionHandler implements ElementHandler {
     if (context.itemState) {
       context.itemState.registerResponse(responseIdentifier, () => {
         const response = controller.getResponse();
-        return response.length > 0 ? response : null;
+        return { value: response.length > 0 ? response : null, valid: true };
       });
 
       // Observe interaction enabled state

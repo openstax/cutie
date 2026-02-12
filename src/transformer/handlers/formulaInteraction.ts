@@ -96,7 +96,7 @@ class FormulaInteractionHandler implements ElementHandler {
     if (context.itemState) {
       context.itemState.registerResponse(responseIdentifier, () => {
         const trimmed = currentValue.trim();
-        return trimmed === '' ? null : trimmed;
+        return { value: trimmed === '' ? null : trimmed, valid: true };
       });
     }
 
