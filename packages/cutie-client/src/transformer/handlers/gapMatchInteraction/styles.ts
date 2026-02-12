@@ -9,7 +9,7 @@ export const GAP_STYLES = `
     margin: 0 0.25em;
     border: 2px solid var(--cutie-border);
     border-radius: 4px;
-    background-color: #f9f9f9;
+    background-color: var(--cutie-bg-alt);
     cursor: pointer;
     vertical-align: middle;
     transition: border-color 0.2s, background-color 0.2s, border-style 0.2s;
@@ -21,35 +21,34 @@ export const GAP_STYLES = `
   }
 
   .cutie-gap:hover {
-    border-color: var(--cutie-border-hover);
-    background-color: #f0f0f0;
+    background-color: var(--cutie-bg-alt);
   }
 
   /* Filled gaps match word bank item styling */
   .cutie-gap--filled {
     border-color: var(--cutie-primary);
-    background-color: #fff;
+    background-color: var(--cutie-bg);
     cursor: grab;
   }
 
   .cutie-gap--filled:hover {
     border-color: var(--cutie-primary);
-    background-color: #f5f5f5;
+    background-color: var(--cutie-bg-alt);
   }
 
   .cutie-gap--selected {
     border-color: var(--cutie-primary);
-    background-color: #ebebeb;
+    background-color: var(--cutie-bg-alt);
   }
 
   .cutie-gap--drop-target {
     border: 2px dashed var(--cutie-primary);
-    background-color: #f5f5f5;
+    background-color: var(--cutie-bg);
   }
 
   .cutie-gap--drag-over {
     border: 2px dashed var(--cutie-primary);
-    background-color: #ebebeb;
+    background-color: var(--cutie-bg-alt);
     transform: scale(1.05);
   }
 
@@ -68,22 +67,22 @@ export const GAP_STYLES = `
   }
 
   .cutie-gap--error {
-    border-color: #f44336;
-    background-color: #ffebee;
-    color: #c62828;
+    border-color: var(--cutie-feedback-incorrect);
+    background-color: var(--cutie-bg);
+    color: var(--cutie-feedback-incorrect);
   }
 
   /* Disabled state for filled gaps */
   .cutie-gap-match-interaction--disabled .cutie-gap--filled {
-    background-color: #e0e0e0;
-    border-color: #9e9e9e;
+    background-color: var(--cutie-bg-alt);
+    border-color: var(--cutie-border);
     cursor: default;
     opacity: 0.8;
   }
 
   .cutie-gap-match-interaction--disabled .cutie-gap--filled:hover {
-    background-color: #e0e0e0;
-    border-color: #9e9e9e;
+    background-color: var(--cutie-bg-alt);
+    border-color: var(--cutie-border);
   }
 
   .cutie-gap-match-interaction--disabled .cutie-gap:focus {
@@ -96,7 +95,7 @@ export const GAP_STYLES = `
 
   .cutie-gap-match-interaction--disabled .cutie-gap:not(.cutie-gap--filled):hover {
     border-color: var(--cutie-border);
-    background-color: #f9f9f9;
+    background-color: var(--cutie-bg-alt);
   }
 `;
 
@@ -109,7 +108,7 @@ export const GAP_MATCH_INTERACTION_STYLES = `
   .cutie-gap-match-interaction .cutie-prompt {
     font-weight: 600;
     margin-bottom: 0.75em;
-    color: #333;
+    color: var(--cutie-text);
   }
 
   .cutie-gap-match-choices {
@@ -120,7 +119,7 @@ export const GAP_MATCH_INTERACTION_STYLES = `
     margin-bottom: 1em;
     border: 2px solid var(--cutie-border);
     border-radius: 4px;
-    background-color: #fafafa;
+    background-color: var(--cutie-bg-alt);
     transition: border-color 0.2s, background-color 0.2s, border-style 0.2s;
   }
 
@@ -139,8 +138,8 @@ export const GAP_MATCH_INTERACTION_STYLES = `
     padding: 0.5em 0.75em;
     border: 2px solid var(--cutie-primary);
     border-radius: 4px;
-    background-color: #fff;
-    color: #333;
+    background-color: var(--cutie-bg);
+    color: var(--cutie-text);
     font-weight: 600;
     font-size: inherit;
     font-family: inherit;
@@ -149,9 +148,9 @@ export const GAP_MATCH_INTERACTION_STYLES = `
   }
 
   .cutie-gap-text:hover {
-    background-color: #f5f5f5;
+    background-color: var(--cutie-bg-alt);
     border-color: var(--cutie-primary);
-    color: #333;
+    color: var(--cutie-text);
   }
 
   .cutie-gap-text:focus {
@@ -160,9 +159,9 @@ export const GAP_MATCH_INTERACTION_STYLES = `
   }
 
   .cutie-gap-text--selected {
-    background-color: #ebebeb;
+    background-color: var(--cutie-bg-alt);
     border-color: var(--cutie-primary);
-    color: #333;
+    color: var(--cutie-text);
   }
 
   .cutie-gap-text--dragging {
@@ -173,23 +172,23 @@ export const GAP_MATCH_INTERACTION_STYLES = `
   .cutie-gap-text--exhausted {
     opacity: 0.5;
     cursor: not-allowed;
-    background-color: #f5f5f5;
-    border-color: #bdbdbd;
+    background-color: var(--cutie-bg-alt);
+    border-color: var(--cutie-border);
   }
 
   .cutie-gap-text--exhausted:hover {
-    background-color: #f5f5f5;
-    border-color: #bdbdbd;
+    background-color: var(--cutie-bg-alt);
+    border-color: var(--cutie-border);
   }
 
   .cutie-gap-text[disabled] {
     opacity: 0.6;
     cursor: not-allowed;
-    background-color: #f5f5f5;
+    background-color: var(--cutie-bg-alt);
   }
 
   .cutie-gap-text[disabled]:hover {
-    background-color: #f5f5f5;
+    background-color: var(--cutie-bg-alt);
     border-color: var(--cutie-primary);
   }
 

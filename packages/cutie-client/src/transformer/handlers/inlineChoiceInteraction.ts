@@ -157,7 +157,7 @@ const INLINE_CHOICE_INTERACTION_STYLES = `
     font-size: inherit;
     font-family: inherit;
     vertical-align: baseline;
-    background-color: #fff;
+    background-color: var(--cutie-bg);
     cursor: pointer;
     min-width: 8ch;
   }
@@ -169,7 +169,7 @@ const INLINE_CHOICE_INTERACTION_STYLES = `
   }
 
   .cutie-inline-choice-interaction:disabled {
-    background-color: #f5f5f5;
+    background-color: var(--cutie-bg-alt);
     cursor: not-allowed;
     opacity: 0.6;
   }

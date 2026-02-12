@@ -283,23 +283,23 @@ const FORMULA_INTERACTION_STYLES = `
 }
 
 .cutie-formula-field[disabled] {
-  background-color: #f5f5f5;
+  background-color: var(--cutie-bg-alt);
   cursor: not-allowed;
   opacity: 0.6;
 }
 
 .cutie-formula-loading {
   padding: 12px;
-  color: #666;
+  color: var(--cutie-text-muted);
   font-style: italic;
-  background-color: #f9f9f9;
+  background-color: var(--cutie-bg-alt);
   border: 1px solid var(--cutie-border);
   border-radius: 4px;
 }
 
 .cutie-formula-error {
-  color: #856404;
-  background-color: #fff3cd;
+  color: var(--cutie-feedback-incorrect);
+  background-color: var(--cutie-bg-alt);
   padding: 8px;
   margin-bottom: 8px;
   border-radius: 4px;
@@ -319,7 +319,7 @@ const FORMULA_INTERACTION_STYLES = `
 }
 
 .cutie-formula-fallback:disabled {
-  background-color: #f5f5f5;
+  background-color: var(--cutie-bg-alt);
   cursor: not-allowed;
   opacity: 0.6;
 }

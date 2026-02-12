@@ -69,8 +69,8 @@ const FEEDBACK_BLOCK_STYLES = `
     position: relative;
     margin: 0.75em 0;
     padding: 0.75em 1em 0.75em 2.25em;
-    background-color: #f3f4f6;
-    color: #374151;
+    background-color: var(--cutie-bg-alt);
+    color: var(--cutie-text);
     font-style: italic;
   }
 
@@ -81,14 +81,14 @@ const FEEDBACK_BLOCK_STYLES = `
   }
 
   .cutie-feedback-block[data-feedback-type="correct"] {
-    border-left: 0.5em solid #22c55e;
+    border-left: 0.5em solid var(--cutie-feedback-correct);
   }
 
   .cutie-feedback-block[data-feedback-type="incorrect"] {
-    border-left: 0.5em solid #ef4444;
+    border-left: 0.5em solid var(--cutie-feedback-incorrect);
   }
 
   .cutie-feedback-block[data-feedback-type="info"] {
-    border-left: 0.5em solid #4a90e2;
+    border-left: 0.5em solid var(--cutie-feedback-info);
   }
 `;

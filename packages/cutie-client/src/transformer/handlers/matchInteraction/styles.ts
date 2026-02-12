@@ -7,7 +7,7 @@ export const MATCH_INTERACTION_STYLES = `
   .cutie-match-interaction .cutie-prompt {
     font-weight: 600;
     margin-bottom: 0.75em;
-    color: #333;
+    color: var(--cutie-text);
   }
 
   .cutie-match-layout {
@@ -40,7 +40,7 @@ export const MATCH_INTERACTION_STYLES = `
   .cutie-match-layout.cutie-match-source-top > .cutie-match-set--target,
   .cutie-match-layout.cutie-match-source-bottom > .cutie-match-set--source {
     padding-top: 1.5em;
-    border-top: 1px solid #ccc;
+    border-top: 1px solid var(--cutie-border);
   }
 
   /* Mobile: force vertical stack regardless of orientation preference */
@@ -61,7 +61,7 @@ export const MATCH_INTERACTION_STYLES = `
     /* Divider on second set (target comes after source in DOM) */
     .cutie-match-set--target {
       padding-top: 1.5em;
-      border-top: 1px solid #ccc;
+      border-top: 1px solid var(--cutie-border);
     }
   }
 
@@ -75,7 +75,7 @@ export const MATCH_INTERACTION_STYLES = `
   .cutie-match-set-label {
     font-weight: 500;
     font-size: 0.875em;
-    color: #666;
+    color: var(--cutie-text-muted);
     margin-bottom: 0.25em;
   }
 
@@ -90,15 +90,15 @@ export const MATCH_INTERACTION_STYLES = `
     padding: 0.5em 0.75em;
     border: 2px solid var(--cutie-primary);
     border-radius: 4px;
-    background-color: #fff;
-    color: #333;
+    background-color: var(--cutie-bg);
+    color: var(--cutie-text);
     font-weight: 600;
     cursor: pointer;
     transition: transform 0.1s, box-shadow 0.2s, border-color 0.2s, background-color 0.2s;
   }
 
   .cutie-match-choice:hover {
-    background-color: #f5f5f5;
+    background-color: var(--cutie-bg-alt);
   }
 
   .cutie-match-choice:focus {
@@ -107,21 +107,20 @@ export const MATCH_INTERACTION_STYLES = `
   }
 
   .cutie-match-choice--selected {
-    background-color: #ebebeb;
+    background-color: var(--cutie-bg-alt);
     border-color: var(--cutie-primary);
-    color: #333;
+    color: var(--cutie-text);
   }
 
   .cutie-match-choice--drop-target {
     border: 2px dashed var(--cutie-primary);
-    background-color: #f5f5f5;
-    color: #333;
+    color: var(--cutie-text);
   }
 
   .cutie-match-choice--drag-over {
     border: 2px dashed var(--cutie-primary);
-    background-color: #ebebeb;
-    color: #333;
+    background-color: var(--cutie-bg-alt);
+    color: var(--cutie-text);
     transform: scale(1.02);
   }
 
@@ -133,19 +132,19 @@ export const MATCH_INTERACTION_STYLES = `
   .cutie-match-choice--exhausted {
     opacity: 0.5;
     cursor: not-allowed;
-    background-color: #f5f5f5;
-    border-color: #bdbdbd;
+    background-color: var(--cutie-bg-alt);
+    border-color: var(--cutie-border);
   }
 
   .cutie-match-choice--exhausted:hover {
-    background-color: #f5f5f5;
-    border-color: #bdbdbd;
+    background-color: var(--cutie-bg-alt);
+    border-color: var(--cutie-border);
   }
 
   .cutie-match-choice[aria-disabled="true"] {
     opacity: 0.6;
     cursor: not-allowed;
-    background-color: #f5f5f5;
+    background-color: var(--cutie-bg-alt);
   }
 
   .cutie-match-choice-label {
@@ -190,7 +189,7 @@ export const MATCH_INTERACTION_STYLES = `
   .cutie-match-chip--selected {
     background-color: var(--cutie-primary);
     border-color: var(--cutie-primary);
-    color: #fff;
+    color: var(--cutie-primary-fg);
   }
 
   .cutie-match-chip--dragging {
@@ -204,7 +203,7 @@ export const MATCH_INTERACTION_STYLES = `
   }
 
   .cutie-match-interaction--disabled .cutie-match-choice:hover {
-    background-color: #fff;
+    background-color: var(--cutie-bg);
     border-color: var(--cutie-primary);
   }
 

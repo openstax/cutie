@@ -176,7 +176,7 @@ const EXTENDED_TEXT_INTERACTION_STYLES = `
 }
 
 .cutie-extended-text-interaction textarea:disabled {
-  background-color: #f5f5f5;
+  background-color: var(--cutie-bg-alt);
   cursor: not-allowed;
   opacity: 0.6;
 }

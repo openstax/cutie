@@ -276,7 +276,7 @@ const CHOICE_INTERACTION_STYLES = `
   .cutie-choice-interaction .cutie-prompt {
     font-weight: 600;
     margin-bottom: 0.75em;
-    color: #333;
+    color: var(--cutie-text);
   }
 
   .cutie-choice-interaction .cutie-simple-choice-group {
@@ -297,7 +297,7 @@ const CHOICE_INTERACTION_STYLES = `
     padding: 0;
     margin-bottom: 0.75em;
     font-weight: 600;
-    color: #333;
+    color: var(--cutie-text);
   }
 
   .cutie-choice-interaction .cutie-simple-choice {
@@ -307,14 +307,13 @@ const CHOICE_INTERACTION_STYLES = `
     padding: 0.7em 0.5em;
     border: 2px solid var(--cutie-border);
     border-radius: 4px;
-    background-color: #fff;
+    background-color: var(--cutie-bg);
     cursor: pointer;
     transition: background-color 0.2s, border-color 0.2s;
   }
 
   .cutie-choice-interaction .cutie-simple-choice:hover {
-    background-color: #f5f5f5;
-    border-color: var(--cutie-border-hover);
+    background-color: var(--cutie-bg-alt);
   }
 
   /* Selected state — outline mode (border only, no colored background) */
@@ -328,13 +327,13 @@ const CHOICE_INTERACTION_STYLES = `
 
   /* Disabled state using :has() */
   .cutie-choice-interaction .cutie-simple-choice:has(input:disabled) {
-    background-color: #f5f5f5;
+    background-color: var(--cutie-bg-alt);
     border-color: var(--cutie-border);
     cursor: not-allowed;
   }
 
   .cutie-choice-interaction .cutie-simple-choice:has(input:disabled):hover {
-    background-color: #f5f5f5;
+    background-color: var(--cutie-bg-alt);
     border-color: var(--cutie-border);
   }
 
