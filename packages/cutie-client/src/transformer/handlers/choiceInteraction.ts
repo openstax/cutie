@@ -6,6 +6,7 @@ import {
   type ConstraintMessage,
   createConstraintMessage,
 } from '../../errors/validationDisplay';
+import { initializeRovingTabindex, updateRovingTabindex } from '../../utils/rovingTabindex';
 import { registry } from '../registry';
 import type { ElementHandler, TransformContext } from '../types';
 import { getDefaultValue } from './responseUtils';
@@ -184,6 +185,25 @@ class ChoiceInteractionHandler implements ElementHandler {
       }
     }
 
+    // For single-select (radio), use roving tabindex to ensure Tab always
+    // enters the group at the correct radio. Without this, browsers remember
+    // a previously-focused radio position and return to it even across DOM
+    // rebuilds, which can cause Tab to land on the wrong choice.
+    if (isSingleSelect) {
+      const radioMap = new Map(inputElements.map((input) => [input.value, input]));
+      const checkedRadio = inputElements.find((input) => input.checked);
+      if (checkedRadio) {
+        updateRovingTabindex(radioMap, checkedRadio);
+      } else {
+        initializeRovingTabindex(radioMap);
+      }
+      inputElements.forEach((input) => {
+        input.addEventListener('change', () => {
+          if (input.checked) updateRovingTabindex(radioMap, input);
+        });
+      });
+    }
+
     // Enforce max-choices constraint for multi-select
     if (!isSingleSelect && maxChoices > 0) {
       const enforceMaxChoices = () => {
@@ -226,24 +246,37 @@ class ChoiceInteractionHandler implements ElementHandler {
         }
       };
 
-      const accessor = () => {
-        const value = getResponse();
+      const checkValidity = () => {
         const checkedCount = inputElements.filter((input) => input.checked).length;
-        const isValid = minChoices <= 0 || checkedCount >= minChoices;
+        return (minChoices <= 0 || checkedCount >= minChoices) &&
+               (maxChoices <= 0 || isSingleSelect || checkedCount <= maxChoices);
+      };
 
-        if (!isValid) {
-          choicesContainer.setAttribute('aria-invalid', 'true');
-          constraint?.setError(true);
-          return { value, valid: false };
-        }
-
-        // Clear error state if previously set
+      const clearErrors = () => {
         choicesContainer.removeAttribute('aria-invalid');
         constraint?.setError(false);
-        return { value, valid: true };
+      };
+
+      const showErrors = () => {
+        choicesContainer.setAttribute('aria-invalid', 'true');
+        constraint?.setError(true);
+      };
+
+      const accessor = () => {
+        const value = getResponse();
+        const valid = checkValidity();
+        if (valid) { clearErrors(); } else { showErrors(); }
+        return { value, valid };
       };
 
       context.itemState.registerResponse(responseIdentifier, accessor);
+
+      // Clear validation errors when user interaction makes the state valid
+      inputElements.forEach((input) => {
+        input.addEventListener('change', () => {
+          if (checkValidity()) clearErrors();
+        });
+      });
 
       // Observe interaction enabled state changes
       const updateInteractionState = (state: { interactionsEnabled: boolean }) => {

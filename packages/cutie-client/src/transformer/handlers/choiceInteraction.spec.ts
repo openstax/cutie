@@ -318,6 +318,100 @@ describe('choiceInteraction validation', () => {
     });
   });
 
+  describe('interactive validation clearing', () => {
+    it('clears error on radio selection', () => {
+      const doc = createQtiDocument(`
+        <qti-choice-interaction response-identifier="R1" max-choices="1" min-choices="1">
+          <qti-simple-choice identifier="A">A</qti-simple-choice>
+          <qti-simple-choice identifier="B">B</qti-simple-choice>
+        </qti-choice-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const fieldset = container.querySelector('fieldset')!;
+      const inputs = container.querySelectorAll<HTMLInputElement>('input[type="radio"]');
+
+      // Trigger validation error via collectAll with nothing selected
+      itemState.collectAll();
+      expect(fieldset.getAttribute('aria-invalid')).toBe('true');
+
+      // Select a radio and dispatch change event
+      inputs[0]!.checked = true;
+      inputs[0]!.dispatchEvent(new Event('change', { bubbles: true }));
+
+      // Error should be cleared immediately
+      expect(fieldset.hasAttribute('aria-invalid')).toBe(false);
+      const constraintEl = container.querySelector('.cutie-constraint-text')!;
+      expect(constraintEl.classList.contains('cutie-constraint-error')).toBe(false);
+    });
+
+    it('clears error on checkbox selection when minChoices met', () => {
+      const doc = createQtiDocument(`
+        <qti-choice-interaction response-identifier="R1" max-choices="0" min-choices="2">
+          <qti-simple-choice identifier="A">A</qti-simple-choice>
+          <qti-simple-choice identifier="B">B</qti-simple-choice>
+          <qti-simple-choice identifier="C">C</qti-simple-choice>
+        </qti-choice-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const fieldset = container.querySelector('fieldset')!;
+      const inputs = container.querySelectorAll<HTMLInputElement>('input[type="checkbox"]');
+
+      // Check one (below min), trigger error
+      inputs[0]!.checked = true;
+      itemState.collectAll();
+      expect(fieldset.getAttribute('aria-invalid')).toBe('true');
+
+      // Check a second (meets min) and dispatch change
+      inputs[1]!.checked = true;
+      inputs[1]!.dispatchEvent(new Event('change', { bubbles: true }));
+
+      // Error should be cleared
+      expect(fieldset.hasAttribute('aria-invalid')).toBe(false);
+      const constraintEl = container.querySelector('.cutie-constraint-text')!;
+      expect(constraintEl.classList.contains('cutie-constraint-error')).toBe(false);
+    });
+
+    it('keeps error when checkbox count still below minChoices', () => {
+      const doc = createQtiDocument(`
+        <qti-choice-interaction response-identifier="R1" max-choices="0" min-choices="3">
+          <qti-simple-choice identifier="A">A</qti-simple-choice>
+          <qti-simple-choice identifier="B">B</qti-simple-choice>
+          <qti-simple-choice identifier="C">C</qti-simple-choice>
+          <qti-simple-choice identifier="D">D</qti-simple-choice>
+        </qti-choice-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const fieldset = container.querySelector('fieldset')!;
+      const inputs = container.querySelectorAll<HTMLInputElement>('input[type="checkbox"]');
+
+      // Check one (below min of 3), trigger error
+      inputs[0]!.checked = true;
+      itemState.collectAll();
+      expect(fieldset.getAttribute('aria-invalid')).toBe('true');
+
+      // Check a second (still below min of 3) and dispatch change
+      inputs[1]!.checked = true;
+      inputs[1]!.dispatchEvent(new Event('change', { bubbles: true }));
+
+      // Error should persist
+      expect(fieldset.getAttribute('aria-invalid')).toBe('true');
+      const constraintEl = container.querySelector('.cutie-constraint-text')!;
+      expect(constraintEl.classList.contains('cutie-constraint-error')).toBe(true);
+    });
+  });
+
   describe('QTI conformance', () => {
     it('forwards QTI shared vocabulary classes to the container', () => {
       const doc = createQtiDocument(`
