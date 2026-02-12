@@ -103,3 +103,7 @@ You may, and it is encouraged, to report any additional findings you encounter d
 - Don't skip checks — mark them as SKIP with a reason if you truly can't verify
 - Be precise in your pass/fail assessments — if behavior is ambiguous, note it
 - Check the browser console for errors after interactions using `list_console_messages`
+
+## Testing Notes
+
+- the constraint text warning icon is hidden with visibility=hidden; this is intentional to avoid layout shifts when it appears. it still shows up in the page snapshot, but it won't be visible to accessibility tools or users.
