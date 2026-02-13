@@ -94,7 +94,6 @@ class FormulaInteractionHandler implements ElementHandler {
     // Read extended-text attributes
     const placeholderText = element.getAttribute('placeholder-text')
       ?? 'Enter LaTeX formula (e.g., 5x or \\frac{1}{2})';
-    const expectedLines = element.getAttribute('expected-lines');
 
     // Add constraint message if min-strings > 0
     let constraint: ConstraintMessage | undefined;
@@ -206,61 +205,12 @@ class FormulaInteractionHandler implements ElementHandler {
       })
       .catch((error) => {
         console.error('Failed to load MathLive:', error);
-
-        // Remove loading placeholder
         loadingPlaceholder.remove();
 
-        // Fall back to a textarea with error message
         const errorMsg = document.createElement('div');
         errorMsg.className = 'cutie-formula-error';
-        errorMsg.textContent = 'Math input unavailable. Please enter LaTeX formula:';
+        errorMsg.textContent = 'Math input failed to load. Please check that MathLive is installed.';
         mathFieldWrapper.appendChild(errorMsg);
-
-        const textarea = document.createElement('textarea');
-        textarea.className = 'cutie-formula-fallback';
-        textarea.setAttribute('data-response-identifier', responseIdentifier);
-        if (promptElement) {
-          textarea.setAttribute('aria-labelledby', promptId);
-        } else {
-          textarea.setAttribute('aria-label', 'Formula input');
-        }
-        textarea.placeholder = placeholderText;
-
-        if (expectedLines) {
-          const lines = parseInt(expectedLines, 10);
-          if (!isNaN(lines) && lines > 0) {
-            textarea.style.minHeight = `${Math.max(lines * 1.4, 3)}em`;
-          }
-        }
-
-        if (initialValue) {
-          textarea.value = initialValue;
-        }
-
-        textarea.addEventListener('input', () => {
-          currentValue = textarea.value;
-        });
-
-        // Wire up constraint linkage
-        activeInputElement = textarea;
-        if (constraint) {
-          const existingDescribedBy = textarea.getAttribute('aria-describedby');
-          textarea.setAttribute(
-            'aria-describedby',
-            existingDescribedBy
-              ? `${existingDescribedBy} ${constraint.element.id}`
-              : constraint.element.id
-          );
-        }
-
-        if (context.itemState) {
-          context.itemState.addObserver((state) => {
-            textarea.disabled = !state.interactionsEnabled;
-          });
-          textarea.disabled = !context.itemState.interactionsEnabled;
-        }
-
-        mathFieldWrapper.appendChild(textarea);
       });
 
     return fragment;
@@ -320,23 +270,7 @@ const FORMULA_INTERACTION_STYLES = `
   font-size: 14px;
 }
 
-.cutie-formula-fallback {
-  width: 100%;
-  min-height: 60px;
-  padding: 8px;
-  font-family: 'Courier New', monospace;
-  font-size: 14px;
-  border: 1px solid var(--cutie-border);
-  border-radius: 4px;
-  resize: vertical;
-  box-sizing: border-box;
-}
 
-.cutie-formula-fallback:disabled {
-  background-color: var(--cutie-bg-alt);
-  cursor: not-allowed;
-  opacity: 0.6;
-}
 `.trim();
 
 // Register with priority 40 (before generic extended-text at 50)
