@@ -481,6 +481,181 @@ describe('extendedTextInteraction', () => {
     });
   });
 
+  describe('character counter', () => {
+    it('does not render counter when expected-length is absent (even with counter class)', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" class="qti-counter-up">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      expect(container.querySelector('.cutie-character-counter')).toBeNull();
+    });
+
+    it('does not render counter when no counter class (even with expected-length)', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" expected-length="200">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      expect(container.querySelector('.cutie-character-counter')).toBeNull();
+    });
+
+    it('counter-up renders with initial "0 / 200 suggested characters"', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1"
+          expected-length="200" class="qti-counter-up">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const counter = container.querySelector('.cutie-character-counter')!;
+      expect(counter).not.toBeNull();
+      expect(counter.textContent).toBe('0 / 200 suggested characters');
+    });
+
+    it('counter-down renders with initial "200 suggested characters remaining"', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1"
+          expected-length="200" class="qti-counter-down">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const counter = container.querySelector('.cutie-character-counter')!;
+      expect(counter).not.toBeNull();
+      expect(counter.textContent).toBe('200 suggested characters remaining');
+    });
+
+    it('counter-up updates on textarea input event', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1"
+          expected-length="200" class="qti-counter-up">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const textarea = container.querySelector('textarea')!;
+      textarea.value = 'hello';
+      textarea.dispatchEvent(new Event('input'));
+
+      const counter = container.querySelector('.cutie-character-counter')!;
+      expect(counter.textContent).toBe('5 / 200 suggested characters');
+    });
+
+    it('counter-down updates on textarea input event', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1"
+          expected-length="200" class="qti-counter-down">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const textarea = container.querySelector('textarea')!;
+      textarea.value = 'hello';
+      textarea.dispatchEvent(new Event('input'));
+
+      const counter = container.querySelector('.cutie-character-counter')!;
+      expect(counter.textContent).toBe('195 suggested characters remaining');
+    });
+
+    it('counter-down shows over-limit text and cutie-counter-over class', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1"
+          expected-length="5" class="qti-counter-down">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const textarea = container.querySelector('textarea')!;
+      textarea.value = 'hello world';
+      textarea.dispatchEvent(new Event('input'));
+
+      const counter = container.querySelector('.cutie-character-counter')!;
+      expect(counter.textContent).toBe('6 characters over suggested size');
+      expect(counter.classList.contains('cutie-counter-over')).toBe(true);
+    });
+
+    it('has aria-live="polite" and aria-atomic="true"', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1"
+          expected-length="200" class="qti-counter-up">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const counter = container.querySelector('.cutie-character-counter')!;
+      expect(counter.getAttribute('aria-live')).toBe('polite');
+      expect(counter.getAttribute('aria-atomic')).toBe('true');
+    });
+
+    it('initializes counter with default value length', () => {
+      const doc = createQtiDocument(`
+        <qti-response-declaration identifier="R1" cardinality="single" base-type="string">
+          <qti-default-value>
+            <qti-value>Pre-filled</qti-value>
+          </qti-default-value>
+        </qti-response-declaration>
+        <qti-extended-text-interaction response-identifier="R1"
+          expected-length="200" class="qti-counter-up">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const counter = container.querySelector('.cutie-character-counter')!;
+      expect(counter.textContent).toBe('10 / 200 suggested characters');
+    });
+
+    it('DOM order: textarea > counter > constraint', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1"
+          expected-length="200" class="qti-counter-up" min-strings="1">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const interaction = container.querySelector('.cutie-extended-text-interaction')!;
+      const children = Array.from(interaction.children);
+      const textareaIdx = children.findIndex(c => c.tagName === 'TEXTAREA');
+      const counterIdx = children.findIndex(c => c.classList.contains('cutie-character-counter'));
+      const constraintIdx = children.findIndex(c => c.classList.contains('cutie-constraint-text'));
+
+      expect(textareaIdx).toBeLessThan(counterIdx);
+      expect(counterIdx).toBeLessThan(constraintIdx);
+    });
+  });
+
   describe('pattern-mask rendering', () => {
     it('creates constraint message when pattern-mask is present (no min-strings)', () => {
       const doc = createQtiDocument(`

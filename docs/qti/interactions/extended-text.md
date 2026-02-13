@@ -13,7 +13,7 @@
 | expected-lines | basic | :white_check_mark: | sets minHeight in em units |
 | placeholder-text | not in checklist | :white_check_mark: | |
 | min-strings | not in checklist | :white_check_mark: | validated with constraint messages |
-| expected-length | not in checklist | :white_check_mark: | tracked but not used for sizing |
+| expected-length | not in checklist | :white_check_mark: | used with counter vocab classes for character counter |
 | format | advanced | :white_check_mark: | plain (textarea) and xhtml (Quill rich text editor) |
 | pattern-mask | advanced | :white_check_mark: | regex validation with constraint message |
 | max-strings | not in checklist | :x: | max number of response strings |
@@ -34,8 +34,8 @@
 
 | class | cutie | notes |
 |---|---|---|
-| qti-counter-up | :x: | character/word count up |
-| qti-counter-down | :x: | character/word count down from expected-length |
+| qti-counter-up | :white_check_mark: | character count up (e.g. "25 / 200 characters") |
+| qti-counter-down | :white_check_mark: | character count down from expected-length (e.g. "175 characters remaining") |
 
 ### data attributes — advanced cert
 

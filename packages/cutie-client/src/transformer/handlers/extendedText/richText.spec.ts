@@ -9,7 +9,7 @@ interface MockQuillInstance {
   clipboard: { dangerouslyPasteHTML: ReturnType<typeof vi.fn> };
   on: ReturnType<typeof vi.fn>;
   enable: ReturnType<typeof vi.fn>;
-  textChangeCallback: (() => void) | null;
+  textChangeCallbacks: (() => void)[];
 }
 
 let mockQuillInstance: MockQuillInstance;
@@ -28,7 +28,7 @@ function createMockQuillInstance(container: HTMLElement): MockQuillInstance {
     },
     on: vi.fn(),
     enable: vi.fn(),
-    textChangeCallback: null,
+    textChangeCallbacks: [],
   };
 
   // Wire up implementations that reference the instance
@@ -37,7 +37,7 @@ function createMockQuillInstance(container: HTMLElement): MockQuillInstance {
   });
   instance.on.mockImplementation((event: string, callback: () => void) => {
     if (event === 'text-change') {
-      instance.textChangeCallback = callback;
+      instance.textChangeCallbacks.push(callback);
     }
   });
 
@@ -93,7 +93,9 @@ function transformInteraction(
 
 /** Simulate a text-change event from Quill */
 function simulateTextChange(): void {
-  mockQuillInstance.textChangeCallback?.();
+  for (const cb of mockQuillInstance.textChangeCallbacks) {
+    cb();
+  }
 }
 
 /** Wait for async Quill loading to settle */
@@ -458,6 +460,92 @@ describe('richTextInteraction', () => {
       const result = itemState.collectAll();
       expect(result.valid).toBe(true);
       expect(mockQuillInstance.root.hasAttribute('aria-invalid')).toBe(false);
+    });
+  });
+
+  describe('character counter', () => {
+    it('does not render counter when expected-length is absent', async () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" format="xhtml" class="qti-counter-up">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+      await waitForQuill();
+
+      expect(container.querySelector('.cutie-character-counter')).toBeNull();
+    });
+
+    it('does not render counter when no counter class', async () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" format="xhtml" expected-length="200">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+      await waitForQuill();
+
+      expect(container.querySelector('.cutie-character-counter')).toBeNull();
+    });
+
+    it('counter-up renders initial state', async () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" format="xhtml"
+          expected-length="200" class="qti-counter-up">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+      await waitForQuill();
+
+      const counter = container.querySelector('.cutie-character-counter')!;
+      expect(counter).not.toBeNull();
+      expect(counter.textContent).toBe('0 / 200 suggested characters');
+    });
+
+    it('counter updates on Quill text-change', async () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" format="xhtml"
+          expected-length="200" class="qti-counter-up">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+      await waitForQuill();
+
+      mockQuillInstance.root.innerHTML = '<p>Hello</p>';
+      simulateTextChange();
+
+      const counter = container.querySelector('.cutie-character-counter')!;
+      expect(counter.textContent).toBe('5 / 200 suggested characters');
+    });
+
+    it('counter-down shows over-limit state', async () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" format="xhtml"
+          expected-length="5" class="qti-counter-down">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+      await waitForQuill();
+
+      mockQuillInstance.root.innerHTML = '<p>Hello world</p>';
+      simulateTextChange();
+
+      const counter = container.querySelector('.cutie-character-counter')!;
+      expect(counter.textContent).toBe('6 characters over suggested size');
+      expect(counter.classList.contains('cutie-counter-over')).toBe(true);
     });
   });
 

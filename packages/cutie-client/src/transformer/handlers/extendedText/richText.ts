@@ -5,9 +5,13 @@ import type { ElementHandler, TransformContext } from '../../types';
 import { getDefaultValue } from '../responseUtils';
 import { loadQuill } from './quillLoader';
 import {
+  type CharacterCounter,
+  createCharacterCounter,
   createConstraintElements,
   createInteractionContainer,
   parseConstraints,
+  parseCounterDirection,
+  parseExpectedLength,
   processPrompt,
   wireConstraintDescribedBy,
 } from './utils';
@@ -90,6 +94,17 @@ class RichTextInteractionHandler implements ElementHandler {
     editorWrapper.appendChild(loadingPlaceholder);
 
     container.appendChild(editorWrapper);
+
+    // Character counter (requires both expected-length and a counter direction class)
+    const expectedLength = parseExpectedLength(element);
+    const counterDirection = parseCounterDirection(element);
+    let counter: CharacterCounter | null = null;
+    if (expectedLength !== null && counterDirection !== null) {
+      counter = createCharacterCounter(
+        expectedLength, counterDirection, responseIdentifier, context.styleManager,
+      );
+      container.appendChild(counter.element);
+    }
 
     // Parse constraints — skip pattern-mask for xhtml (regex on HTML is meaningless)
     const constraints = parseConstraints(element);
@@ -176,6 +191,14 @@ class RichTextInteractionHandler implements ElementHandler {
         quill.on('text-change', () => {
           currentHtml = DOMPurify.sanitize(quill.root.innerHTML);
         });
+
+        // Wire counter to text-change events
+        if (counter) {
+          counter.update(stripHtml(quill.root.innerHTML).length);
+          quill.on('text-change', () => {
+            counter!.update(stripHtml(quill.root.innerHTML).length);
+          });
+        }
 
         // Wire up aria attributes on the editor root
         activeEditorRoot = quill.root;

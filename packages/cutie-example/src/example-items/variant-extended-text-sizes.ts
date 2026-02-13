@@ -17,6 +17,9 @@ adaptive="false" time-dependent="false" xml:lang="en">
   <qti-response-declaration identifier="R5" cardinality="single" base-type="string"/>
   <qti-response-declaration identifier="R6" cardinality="single" base-type="string"/>
   <qti-response-declaration identifier="R7" cardinality="single" base-type="string"/>
+  <qti-response-declaration identifier="R8" cardinality="single" base-type="string"/>
+  <qti-response-declaration identifier="R9" cardinality="single" base-type="string"/>
+  <qti-response-declaration identifier="R10" cardinality="single" base-type="string"/>
 
   <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
     <qti-default-value><qti-value>0</qti-value></qti-default-value>
@@ -60,6 +63,21 @@ adaptive="false" time-dependent="false" xml:lang="en">
     <!-- Rich text (format="xhtml") with qti-height-lines-15 for tall editor -->
     <qti-extended-text-interaction response-identifier="R7" format="xhtml" class="qti-height-lines-15">
       <qti-prompt>Rich text editor — qti-height-lines-15 (21em, essay-length)</qti-prompt>
+    </qti-extended-text-interaction>
+
+    <!-- Character counter: count up -->
+    <qti-extended-text-interaction response-identifier="R8" expected-length="200" class="qti-counter-up qti-height-lines-3">
+      <qti-prompt>Counter up — shows "N / 200 characters"</qti-prompt>
+    </qti-extended-text-interaction>
+
+    <!-- Character counter: count down (short limit to easily demo over-limit) -->
+    <qti-extended-text-interaction response-identifier="R9" expected-length="50" class="qti-counter-down qti-height-lines-3">
+      <qti-prompt>Counter down — shows remaining, turns red when over 50 chars</qti-prompt>
+    </qti-extended-text-interaction>
+
+    <!-- Character counter on rich text editor -->
+    <qti-extended-text-interaction response-identifier="R10" format="xhtml" expected-length="300" class="qti-counter-up">
+      <qti-prompt>Rich text with counter up — shows "N / 300 characters"</qti-prompt>
     </qti-extended-text-interaction>
 
   </qti-item-body>
