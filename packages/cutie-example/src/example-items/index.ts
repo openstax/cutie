@@ -46,6 +46,7 @@ import * as formulaCanonical from './formula-canonical';
 import * as formulaAlgebraic from './formula-algebraic';
 import * as extendedTextScored from './extended-text-scored';
 import * as variantChoiceLabels from './variant-choice-labels';
+import * as variantChoiceLayout from './variant-choice-layout';
 
 /* these examples are copied exactly from examples in the spec
  * documents, they are used for verification that cutie works
@@ -91,6 +92,7 @@ export const formulaExamples = [
 /* variant testing examples for visual verification of CSS/layout features */
 export const variantExamples = [
   variantChoiceLabels,
+  variantChoiceLayout,
 ];
 
 /* these examples were made for each interaction type to show editor-supported

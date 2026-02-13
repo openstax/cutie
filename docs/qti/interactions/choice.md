@@ -47,15 +47,15 @@
 
 | class | cutie | notes |
 |---|---|---|
-| qti-orientation-horizontal | :white_check_mark: | `orientation` attr works, vocab class just forwarded |
-| qti-orientation-vertical | :x: | default layout is vertical but class not handled |
+| qti-orientation-horizontal | :white_check_mark: | both `orientation` attr and vocab class handled on container |
+| qti-orientation-vertical | :white_check_mark: | no-op; default layout is vertical |
 
 ### layout — advanced cert
 
 | class | cutie | notes |
 |---|---|---|
-| qti-choices-stacking-{1-5} | :x: | forwarded but no CSS |
-| qti-input-control-hidden | :x: | forwarded but no CSS; should hide radio/checkbox widget |
+| qti-choices-stacking-{1-5} | :white_check_mark: | CSS Grid columns; column-major (vertical) or row-major (horizontal) |
+| qti-input-control-hidden | :white_check_mark: | visually hidden input; stays in DOM for a11y |
 
 ### data attributes — advanced cert
 
