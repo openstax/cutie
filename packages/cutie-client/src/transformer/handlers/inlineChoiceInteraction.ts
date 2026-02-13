@@ -6,14 +6,8 @@ import {
 } from '../../errors/validationDisplay';
 import { registry } from '../registry';
 import type { ElementHandler, TransformContext } from '../types';
+import { parseInputWidth } from '../vocabUtils';
 import { getDefaultValue } from './responseUtils';
-
-function parseInputWidth(element: Element): number | null {
-  const match = element.getAttribute('class')?.match(/\bqti-input-width-(\d+)\b/);
-  if (!match) return null;
-  const width = parseInt(match[1], 10);
-  return isNaN(width) || width <= 0 ? null : width;
-}
 
 /**
  * Handler for qti-inline-choice-interaction elements.

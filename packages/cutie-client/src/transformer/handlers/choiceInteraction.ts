@@ -6,6 +6,7 @@ import {
   type ConstraintMessage,
   createConstraintMessage,
 } from '../../errors/validationDisplay';
+import { announce } from '../../utils/liveRegion';
 import { initializeRovingTabindex, updateRovingTabindex } from '../../utils/rovingTabindex';
 import { registry } from '../registry';
 import type { ElementHandler, TransformContext } from '../types';
@@ -180,14 +181,13 @@ class ChoiceInteractionHandler implements ElementHandler {
 
     // Add constraint text if applicable
     let constraint: ConstraintMessage | undefined;
-    const customMessage =
-      element.getAttribute('data-min-selections-message') ??
-      element.getAttribute('data-max-selections-message');
-    const constraintText = customMessage ?? buildConstraintText(minChoices, maxChoices, isSingleSelect);
-    if (constraintText) {
+    const minSelectionsMessage = element.getAttribute('data-min-selections-message');
+    const maxSelectionsMessage = element.getAttribute('data-max-selections-message');
+    const hintText = buildConstraintText(minChoices, maxChoices, isSingleSelect);
+    if (hintText) {
       constraint = createConstraintMessage(
         `constraint-${responseIdentifier}`,
-        constraintText,
+        hintText,
         context.styleManager,
       );
       container.appendChild(constraint.element);
@@ -232,34 +232,6 @@ class ChoiceInteractionHandler implements ElementHandler {
       });
     }
 
-    // Enforce max-choices constraint for multi-select
-    if (!isSingleSelect && maxChoices > 0) {
-      const enforceMaxChoices = () => {
-        const checkedCount = inputElements.filter((input) => input.checked).length;
-        if (checkedCount >= maxChoices) {
-          // Disable unchecked inputs when max is reached
-          inputElements.forEach((input) => {
-            if (!input.checked) {
-              input.disabled = true;
-            }
-          });
-        } else {
-          // Re-enable all inputs when below max (respect interaction enabled state)
-          const isEnabled = context.itemState?.interactionsEnabled ?? true;
-          inputElements.forEach((input) => {
-            input.disabled = !isEnabled;
-          });
-        }
-      };
-
-      inputElements.forEach((input) => {
-        input.addEventListener('change', enforceMaxChoices);
-      });
-
-      // Apply initial constraint in case default values already hit max
-      enforceMaxChoices();
-    }
-
     // Register response accessor with itemState
     if (context.itemState) {
       const getResponse = (): string | string[] | null => {
@@ -283,11 +255,21 @@ class ChoiceInteractionHandler implements ElementHandler {
       const clearErrors = () => {
         choicesContainer.removeAttribute('aria-invalid');
         constraint?.setError(false);
+        if (hintText) constraint?.setText(hintText);
       };
 
       const showErrors = () => {
         choicesContainer.setAttribute('aria-invalid', 'true');
         constraint?.setError(true);
+
+        const checkedCount = inputElements.filter((inp) => inp.checked).length;
+        if (!isSingleSelect && maxChoices > 0 && checkedCount > maxChoices) {
+          const msg = maxSelectionsMessage ?? hintText;
+          if (msg) constraint?.setText(msg);
+        } else if (minChoices > 0 && checkedCount < minChoices) {
+          const msg = minSelectionsMessage ?? hintText;
+          if (msg) constraint?.setText(msg);
+        }
       };
 
       const accessor = () => {
@@ -299,10 +281,20 @@ class ChoiceInteractionHandler implements ElementHandler {
 
       context.itemState.registerResponse(responseIdentifier, accessor);
 
-      // Clear validation errors when user interaction makes the state valid
+      // Real-time validation on user interaction
       inputElements.forEach((input) => {
         input.addEventListener('change', () => {
-          if (checkValidity()) clearErrors();
+          if (checkValidity()) {
+            clearErrors();
+          } else {
+            // Show max error in real-time when over-selecting
+            const checkedCount = inputElements.filter((inp) => inp.checked).length;
+            if (!isSingleSelect && maxChoices > 0 && checkedCount > maxChoices) {
+              showErrors();
+              const msg = maxSelectionsMessage ?? hintText;
+              if (msg) announce(context, msg, 'assertive');
+            }
+          }
         });
       });
 
@@ -310,13 +302,7 @@ class ChoiceInteractionHandler implements ElementHandler {
       const updateInteractionState = (state: { interactionsEnabled: boolean }) => {
         const isEnabled = state.interactionsEnabled;
         inputElements.forEach((input) => {
-          // For multi-select with max-choices enforcement, check if we're at max
-          if (!isSingleSelect && maxChoices > 0 && !input.checked) {
-            const checkedCount = inputElements.filter((inp) => inp.checked).length;
-            input.disabled = !isEnabled || checkedCount >= maxChoices;
-          } else {
-            input.disabled = !isEnabled;
-          }
+          input.disabled = !isEnabled;
         });
       };
 

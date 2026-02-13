@@ -67,21 +67,11 @@ Aria-live annoucments are hard to test, always execute a script at the beginning
 
 ## Reporting Results
 
-After completing all steps in a test flow section, output a summary table:
+After completing all steps in a test flow section output a summary:
 
 ```
-## Section Name — Results
+# [name of my test flow] Results
 
-| # | Check | Result | Notes |
-|---|-------|--------|-------|
-| 1 | Question prompt is visible | PASS | |
-| 2 | Choices displayed as vertical list | PASS | |
-| 3 | Each choice has a radio button | FAIL | Missing radio role on choice C |
-```
-
-At the end of the full test flow, provide an overall summary:
-
-```
 ## Overall Summary
 
 - Total checks: 25
@@ -94,6 +84,8 @@ At the end of the full test flow, provide an overall summary:
 ```
 
 You may, and it is encouraged, to report any additional findings you encounter during testing that are not explicitly called out in the test flow, but may be relevant to the quality and correctness of the implementation. this may include accessibility conformance issues, visual bugs, or console errors.
+
+To reduce noise, do not list all passing checks in your reponse.
 
 ## Important Notes
 

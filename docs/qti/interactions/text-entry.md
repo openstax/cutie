@@ -22,7 +22,7 @@
 
 | class | cutie | notes |
 |---|---|---|
-| qti-input-width-{1,2,3,4,5,6,10,15,20,25,30,35,40,45,50,72} | :x: | forwarded but no CSS |
+| qti-input-width-{1,2,3,4,5,6,10,15,20,25,30,35,40,45,50,72} | :white_check_mark: | sets input width in ch units; overrides expected-length |
 
 ### data attributes — basic cert
 
