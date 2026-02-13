@@ -327,6 +327,158 @@ describe('renderTemplate', () => {
     });
   });
 
+  describe('3b. Show-hide / template-identifier on choice elements', () => {
+    test('qti-simple-choice with show-hide="show" hides non-matching choice', async () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier"/>
+  <qti-item-body>
+    <qti-choice-interaction response-identifier="RESPONSE" max-choices="1">
+      <qti-simple-choice identifier="A" template-identifier="choiceA" show-hide="show">Choice A</qti-simple-choice>
+      <qti-simple-choice identifier="B" template-identifier="choiceB" show-hide="show">Choice B</qti-simple-choice>
+      <qti-simple-choice identifier="C">Choice C</qti-simple-choice>
+    </qti-choice-interaction>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = await renderTemplate(itemDoc, {
+        variables: { VARIANT: 'choiceA' },
+        completionStatus: 'not_attempted',
+        score: null,
+      });
+
+      expect(template).toContain('Choice A');
+      expect(template).not.toContain('Choice B');
+      expect(template).toContain('Choice C');
+    });
+
+    test('qti-inline-choice with show-hide="hide" removes matching choice', async () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier"/>
+  <qti-item-body>
+    <p>Select:
+      <qti-inline-choice-interaction response-identifier="RESPONSE">
+        <qti-inline-choice identifier="X" template-identifier="optX" show-hide="hide">Option X</qti-inline-choice>
+        <qti-inline-choice identifier="Y">Option Y</qti-inline-choice>
+      </qti-inline-choice-interaction>
+    </p>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = await renderTemplate(itemDoc, {
+        variables: { HIDE_OPT: 'optX' },
+        completionStatus: 'not_attempted',
+        score: null,
+      });
+
+      expect(template).not.toContain('Option X');
+      expect(template).toContain('Option Y');
+    });
+
+    test('qti-simple-associable-choice with show-hide="show"', async () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
+  <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="directedPair"/>
+  <qti-item-body>
+    <qti-match-interaction response-identifier="RESPONSE">
+      <qti-simple-match-set>
+        <qti-simple-associable-choice identifier="S1" match-max="1" template-identifier="src1" show-hide="show">Source 1</qti-simple-associable-choice>
+        <qti-simple-associable-choice identifier="S2" match-max="1" template-identifier="src2" show-hide="show">Source 2</qti-simple-associable-choice>
+      </qti-simple-match-set>
+      <qti-simple-match-set>
+        <qti-simple-associable-choice identifier="T1" match-max="1">Target 1</qti-simple-associable-choice>
+      </qti-simple-match-set>
+    </qti-match-interaction>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = await renderTemplate(itemDoc, {
+        variables: { VARIANT: 'src1' },
+        completionStatus: 'not_attempted',
+        score: null,
+      });
+
+      expect(template).toContain('Source 1');
+      expect(template).not.toContain('Source 2');
+      expect(template).toContain('Target 1');
+    });
+
+    test('qti-gap-text with show-hide="show"', async () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
+  <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="directedPair"/>
+  <qti-item-body>
+    <qti-gap-match-interaction response-identifier="RESPONSE">
+      <qti-gap-text identifier="W1" match-max="1" template-identifier="word1" show-hide="show">Word1</qti-gap-text>
+      <qti-gap-text identifier="W2" match-max="1" template-identifier="word2" show-hide="show">Word2</qti-gap-text>
+      <p>Fill the <qti-gap identifier="G1"/></p>
+    </qti-gap-match-interaction>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = await renderTemplate(itemDoc, {
+        variables: { VARIANT: 'word1' },
+        completionStatus: 'not_attempted',
+        score: null,
+      });
+
+      expect(template).toContain('Word1');
+      expect(template).not.toContain('Word2');
+    });
+
+    test('qti-gap-img with show-hide="show"', async () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
+  <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="directedPair"/>
+  <qti-item-body>
+    <qti-gap-match-interaction response-identifier="RESPONSE">
+      <qti-gap-img identifier="I1" match-max="1" template-identifier="img1" show-hide="show"><img src="a.png" alt="A"/></qti-gap-img>
+      <qti-gap-img identifier="I2" match-max="1" template-identifier="img2" show-hide="show"><img src="b.png" alt="B"/></qti-gap-img>
+      <p>Fill the <qti-gap identifier="G1"/></p>
+    </qti-gap-match-interaction>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = await renderTemplate(itemDoc, {
+        variables: { VARIANT: ['img1', 'img2'] },
+        completionStatus: 'not_attempted',
+        score: null,
+      });
+
+      expect(template).toContain('identifier="I1"');
+      expect(template).toContain('identifier="I2"');
+    });
+
+    test('qti-gap with show-hide="hide"', async () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
+  <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="directedPair"/>
+  <qti-item-body>
+    <qti-gap-match-interaction response-identifier="RESPONSE">
+      <qti-gap-text identifier="W1" match-max="1">Word1</qti-gap-text>
+      <p>Fill <qti-gap identifier="G1" template-identifier="gap1" show-hide="hide"/> and <qti-gap identifier="G2"/></p>
+    </qti-gap-match-interaction>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = await renderTemplate(itemDoc, {
+        variables: { VARIANT: 'gap1' },
+        completionStatus: 'not_attempted',
+        score: null,
+      });
+
+      expect(template).not.toContain('identifier="G1"');
+      expect(template).toContain('identifier="G2"');
+    });
+  });
+
   describe('4. Feedback visibility based on outcome variables', () => {
     test('shows feedback-block when outcome variable contains the identifier (show-hide="show")', async () => {
       const itemXml = `<?xml version="1.0" encoding="UTF-8"?>

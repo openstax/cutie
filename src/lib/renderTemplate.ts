@@ -43,7 +43,7 @@ export async function renderTemplate(
   // Step 2: Substitute template variables into qti-printed-variable elements
   substituteVariables(root, state.variables);
 
-  // Step 3: Process conditional template blocks and inlines
+  // Step 3: Process conditional template elements (blocks, inlines, choices)
   processTemplateConditionals(root, state.variables);
 
   // Step 3.5: Apply shuffle orders to reorder interaction choices
@@ -143,7 +143,11 @@ function removeSensitiveElements(root: Element): void {
 }
 
 /**
- * Processes qti-template-block and qti-template-inline elements for conditional visibility.
+ * Processes elements with template-identifier/show-hide for conditional visibility.
+ *
+ * Applies to qti-template-block, qti-template-inline, and choice elements
+ * (qti-simple-choice, qti-inline-choice, qti-simple-associable-choice,
+ * qti-gap-text, qti-gap-img, qti-gap).
  *
  * These elements have a template-identifier attribute that should match values in template variables.
  * - If show-hide="show": element is visible only when template-identifier matches a variable value
@@ -151,15 +155,23 @@ function removeSensitiveElements(root: Element): void {
  *
  * The matching is done by finding a variable (any variable) that contains the template-identifier.
  * Variables can be single values or arrays (multiple cardinality).
+ *
+ * Elements without a template-identifier attribute are skipped, so normal choices are unaffected.
  */
 function processTemplateConditionals(
   root: Element,
   variables: Record<string, unknown>
 ): void {
-  // Process both template-block and template-inline elements
+  // Process template-block, template-inline, and choice elements
   const templateElements = [
     ...Array.from(root.getElementsByTagName('qti-template-block')),
     ...Array.from(root.getElementsByTagName('qti-template-inline')),
+    ...Array.from(root.getElementsByTagName('qti-simple-choice')),
+    ...Array.from(root.getElementsByTagName('qti-inline-choice')),
+    ...Array.from(root.getElementsByTagName('qti-simple-associable-choice')),
+    ...Array.from(root.getElementsByTagName('qti-gap-text')),
+    ...Array.from(root.getElementsByTagName('qti-gap-img')),
+    ...Array.from(root.getElementsByTagName('qti-gap')),
   ];
 
   for (const element of templateElements) {
