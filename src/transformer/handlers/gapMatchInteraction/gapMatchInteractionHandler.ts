@@ -157,7 +157,7 @@ export class GapMatchInteractionHandler implements ElementHandler {
     }
 
     // Create the controller
-    const controller = new GapMatchController(responseIdentifier, choicesContainer, context, container);
+    const controller = new GapMatchController(responseIdentifier, choicesContainer, context, container, maxAssociations);
 
     // Create and register choice elements
     let isFirst = true;
@@ -221,7 +221,9 @@ export class GapMatchInteractionHandler implements ElementHandler {
     if (context.itemState) {
       context.itemState.registerResponse(responseIdentifier, () => {
         const response = controller.getResponse();
-        const isValid = minAssociations <= 0 || response.length >= minAssociations;
+        const isValid =
+          (minAssociations <= 0 || response.length >= minAssociations) &&
+          (maxAssociations <= 0 || response.length <= maxAssociations);
 
         if (!isValid) {
           container.setAttribute('aria-invalid', 'true');

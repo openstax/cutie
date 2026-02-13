@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ItemStateImpl } from '../../../state/itemState';
 import { registry } from '../../registry';
 import type { TransformContext } from '../../types';
@@ -20,7 +20,8 @@ function createQtiDocument(interactionHtml: string): Document {
 
 function transformInteraction(
   doc: Document,
-  itemState: ItemStateImpl
+  itemState: ItemStateImpl,
+  contextOverrides?: Partial<TransformContext>
 ): DocumentFragment {
   const interaction = doc.querySelector('qti-gap-match-interaction')!;
 
@@ -43,6 +44,7 @@ function transformInteraction(
       }
       return frag;
     },
+    ...contextOverrides,
   };
 
   const handler = registry.getAll().find((r) => r.handler.canHandle(interaction));
@@ -57,11 +59,59 @@ const BASIC_GAP_MATCH_QTI = `
   </qti-gap-match-interaction>
 `;
 
-describe('gapMatchInteraction validation', () => {
+describe('gapMatchInteraction', () => {
   let itemState: ItemStateImpl;
 
   beforeEach(() => {
     itemState = new ItemStateImpl();
+  });
+
+  describe('error handling', () => {
+    it('renders error element when response-identifier is missing', () => {
+      const doc = createQtiDocument(`
+        <qti-gap-match-interaction>
+          <qti-gap-text identifier="C1" match-max="1">Choice 1</qti-gap-text>
+          <p>Fill in the <qti-gap identifier="G1"></qti-gap></p>
+        </qti-gap-match-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      expect(container.querySelector('.cutie-error-display')).not.toBeNull();
+      expect(container.querySelector('.cutie-gap-match-interaction')).toBeNull();
+    });
+  });
+
+  describe('basic rendering', () => {
+    it('creates container with choices and content areas', () => {
+      const doc = createQtiDocument(BASIC_GAP_MATCH_QTI);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const interaction = container.querySelector('.cutie-gap-match-interaction')!;
+      expect(interaction).not.toBeNull();
+      expect(interaction.getAttribute('data-response-identifier')).toBe('R1');
+      expect(interaction.getAttribute('role')).toBe('group');
+
+      const choicesContainer = container.querySelector('.cutie-gap-match-choices')!;
+      expect(choicesContainer).not.toBeNull();
+      expect(choicesContainer.getAttribute('role')).toBe('listbox');
+
+      const choices = choicesContainer.querySelectorAll('.cutie-gap-text');
+      expect(choices.length).toBe(2);
+      expect(choices[0].textContent).toBe('Choice 1');
+      expect(choices[1].textContent).toBe('Choice 2');
+
+      const gaps = container.querySelectorAll('.cutie-gap');
+      expect(gaps.length).toBe(2);
+
+      const contentContainer = container.querySelector('.cutie-gap-match-content')!;
+      expect(contentContainer).not.toBeNull();
+    });
   });
 
   describe('constraint text rendering', () => {
@@ -178,6 +228,48 @@ describe('gapMatchInteraction validation', () => {
 
       const constraintEl = container.querySelector('.cutie-constraint-text')!;
       expect(constraintEl.classList.contains('cutie-constraint-error')).toBe(true);
+    });
+  });
+
+  describe('cleanup', () => {
+    it('registers a cleanup callback via onCleanup', () => {
+      const doc = createQtiDocument(BASIC_GAP_MATCH_QTI);
+      const cleanupFn = vi.fn();
+
+      transformInteraction(doc, itemState, {
+        onCleanup: (cb) => cleanupFn(cb),
+      });
+
+      expect(cleanupFn).toHaveBeenCalledWith(expect.any(Function));
+    });
+  });
+
+  describe('disabled state', () => {
+    it('adds disabled class when interactions are disabled', () => {
+      const doc = createQtiDocument(BASIC_GAP_MATCH_QTI);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      itemState.setInteractionsEnabled(false);
+
+      const gapMatchContainer = container.querySelector('.cutie-gap-match-interaction')!;
+      expect(gapMatchContainer.classList.contains('cutie-gap-match-interaction--disabled')).toBe(true);
+    });
+
+    it('removes disabled class when interactions are re-enabled', () => {
+      const doc = createQtiDocument(BASIC_GAP_MATCH_QTI);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      itemState.setInteractionsEnabled(false);
+      itemState.setInteractionsEnabled(true);
+
+      const gapMatchContainer = container.querySelector('.cutie-gap-match-interaction')!;
+      expect(gapMatchContainer.classList.contains('cutie-gap-match-interaction--disabled')).toBe(false);
     });
   });
 });
