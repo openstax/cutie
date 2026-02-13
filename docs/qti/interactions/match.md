@@ -25,8 +25,8 @@ Note: match is entirely **advanced** cert (Q13 is Level 2).
 | fixed | advanced | :white_check_mark: | respected during shuffle |
 | match-min | not in checklist | :x: | |
 | match-group | not in checklist | :x: | restricts which choices can pair |
-| template-identifier | not in checklist | :x: | |
-| show-hide | not in checklist | :x: | |
+| template-identifier | not in checklist | :white_check_mark: | processed in processTemplateConditionals |
+| show-hide | not in checklist | :white_check_mark: | processed in processTemplateConditionals |
 
 ## vocabulary classes
 

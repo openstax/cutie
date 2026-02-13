@@ -23,8 +23,8 @@ Note: inline-choice is entirely **advanced** cert (Q12 is Level 2).
 |---|---|---|---|
 | identifier | advanced | :white_check_mark: | |
 | fixed | not in checklist | :white_check_mark: | respected during shuffle |
-| show-hide | not in checklist | :x: | conditional visibility on choices |
-| template-identifier | not in checklist | :x: | same gap as show-hide |
+| show-hide | not in checklist | :white_check_mark: | processed in processTemplateConditionals |
+| template-identifier | not in checklist | :white_check_mark: | processed in processTemplateConditionals |
 
 ## vocabulary classes
 

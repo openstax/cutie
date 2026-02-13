@@ -21,8 +21,8 @@
 |---|---|---|---|
 | identifier | basic | :white_check_mark: | |
 | fixed | none | :white_check_mark: | respected during shuffle |
-| show-hide | none | :x: | only processed on qti-template-block/inline, not on simple-choice |
-| template-identifier | none | :x: | same gap as show-hide |
+| show-hide | none | :white_check_mark: | processed in processTemplateConditionals |
+| template-identifier | none | :white_check_mark: | processed in processTemplateConditionals |
 
 ## vocabulary classes
 

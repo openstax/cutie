@@ -24,8 +24,8 @@ Note: gap-match is entirely **advanced** cert (Q6 is Level 2).
 | match-max | advanced | :white_check_mark: | 0 = unlimited reuse |
 | match-group | advanced | :white_check_mark: | constrains which gaps accept which choices |
 | match-min | not in checklist | :x: | |
-| template-identifier | not in checklist | :x: | |
-| show-hide | not in checklist | :x: | |
+| template-identifier | not in checklist | :white_check_mark: | processed in processTemplateConditionals |
+| show-hide | not in checklist | :white_check_mark: | processed in processTemplateConditionals |
 
 ## gap-img attributes (qti-gap-img)
 
@@ -38,8 +38,8 @@ Note: gap-match is entirely **advanced** cert (Q6 is Level 2).
 | object-label | not in checklist | :x: | alt text for the image |
 | top | not in checklist | :x: | CSS positioning |
 | left | not in checklist | :x: | CSS positioning |
-| template-identifier | not in checklist | :x: | |
-| show-hide | not in checklist | :x: | |
+| template-identifier | not in checklist | :white_check_mark: | processed in processTemplateConditionals |
+| show-hide | not in checklist | :white_check_mark: | processed in processTemplateConditionals |
 
 ## gap attributes (qti-gap)
 
@@ -48,8 +48,8 @@ Note: gap-match is entirely **advanced** cert (Q6 is Level 2).
 | identifier | advanced | :white_check_mark: | |
 | match-group | advanced | :white_check_mark: | |
 | required | not in checklist | :x: | |
-| template-identifier | not in checklist | :x: | |
-| show-hide | not in checklist | :x: | |
+| template-identifier | not in checklist | :white_check_mark: | processed in processTemplateConditionals |
+| show-hide | not in checklist | :white_check_mark: | processed in processTemplateConditionals |
 
 ## vocabulary classes
 
