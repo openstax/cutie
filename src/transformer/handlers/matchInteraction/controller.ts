@@ -73,6 +73,9 @@ export class MatchController {
       }
     };
     document.addEventListener('click', this.documentClickHandler);
+    this.context.onCleanup?.(() => {
+      document.removeEventListener('click', this.documentClickHandler);
+    });
   }
 
   /**
@@ -280,6 +283,7 @@ export class MatchController {
     this.selection = { originId, originSet: choice.set, existingAssociation };
 
     choice.element.classList.add('cutie-match-choice--selected');
+    choice.element.setAttribute('aria-selected', 'true');
 
     // If selecting via chip, also highlight the chip
     if (chipElement) {
@@ -334,6 +338,7 @@ export class MatchController {
 
       if (choice) {
         choice.element.classList.remove('cutie-match-choice--selected');
+        choice.element.setAttribute('aria-selected', 'false');
       }
 
       this.selection = null;

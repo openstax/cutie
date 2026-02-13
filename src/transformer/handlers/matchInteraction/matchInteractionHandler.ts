@@ -23,6 +23,7 @@ interface ChoiceData {
   identifier: string;
   content: string;
   matchMax: number;
+  element: Element;
 }
 
 /**
@@ -97,10 +98,20 @@ export class MatchInteractionHandler implements ElementHandler {
       container.setAttribute('aria-label', 'Match interaction');
     }
 
-    // Create layout container
-    // Default to source-left orientation; later we can read this from QTI class attribute
+    // Create layout container with orientation from QTI class attribute
     const layoutContainer = document.createElement('div');
-    layoutContainer.className = 'cutie-match-layout cutie-match-source-left';
+    layoutContainer.className = 'cutie-match-layout';
+
+    const qtiClass = element.getAttribute('class') ?? '';
+    if (qtiClass.includes('qti-match-source-right')) {
+      layoutContainer.classList.add('cutie-match-source-right');
+    } else if (qtiClass.includes('qti-match-source-top')) {
+      layoutContainer.classList.add('cutie-match-source-top');
+    } else if (qtiClass.includes('qti-match-source-bottom')) {
+      layoutContainer.classList.add('cutie-match-source-bottom');
+    } else {
+      layoutContainer.classList.add('cutie-match-source-left');
+    }
 
     // Create the controller
     const controller = new MatchController(
@@ -193,7 +204,7 @@ export class MatchInteractionHandler implements ElementHandler {
     matchSetElement: Element,
     setType: 'source' | 'target',
     controller: MatchController,
-    _context: TransformContext
+    context: TransformContext
   ): HTMLElement {
     const setContainer = document.createElement('div');
     setContainer.className = `cutie-match-set cutie-match-set--${setType}`;
@@ -220,6 +231,7 @@ export class MatchInteractionHandler implements ElementHandler {
         identifier,
         content: choiceElement.textContent ?? '',
         matchMax: isNaN(matchMax) ? 1 : matchMax,
+        element: choiceElement,
       });
     }
 
@@ -233,15 +245,20 @@ export class MatchInteractionHandler implements ElementHandler {
       const choiceDiv = document.createElement('div');
       choiceDiv.className = 'cutie-match-choice';
       choiceDiv.setAttribute('role', 'option');
+      choiceDiv.setAttribute('aria-selected', 'false');
       choiceDiv.setAttribute('data-identifier', choice.identifier);
       choiceDiv.setAttribute('data-match-max', String(choice.matchMax));
       choiceDiv.setAttribute('tabindex', isFirst ? '0' : '-1');
       choiceDiv.setAttribute('draggable', 'true');
 
-      // Label
+      // Label — use transformChildren for rich content (HTML/MathML)
       const labelSpan = document.createElement('span');
       labelSpan.className = 'cutie-match-choice-label';
-      labelSpan.textContent = choice.content;
+      if (context.transformChildren) {
+        labelSpan.appendChild(context.transformChildren(choice.element));
+      } else {
+        labelSpan.textContent = choice.content;
+      }
       choiceDiv.appendChild(labelSpan);
 
       wrapperDiv.appendChild(choiceDiv);
