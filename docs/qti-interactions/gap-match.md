@@ -78,5 +78,5 @@ Note: gap-match is entirely **advanced** cert (Q6 is Level 2).
 
 | attribute | cutie | notes |
 |---|---|---|
-| data-max-associations-message | :x: | custom message when max associations exceeded |
-| data-min-associations-message | :x: | custom message when min associations not met |
+| data-max-selections-message | :x: | custom message when max-associations violated |
+| data-min-selections-message | :x: | custom message when min-associations violated |
