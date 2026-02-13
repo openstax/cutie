@@ -517,5 +517,105 @@ describe('choiceInteraction validation', () => {
       expect(constraintEl).not.toBeNull();
       expect(constraintEl!.textContent).toBe('No more than two please');
     });
+
+    describe('label vocabulary classes', () => {
+      const labelClasses = [
+        'qti-labels-decimal',
+        'qti-labels-lower-alpha',
+        'qti-labels-upper-alpha',
+      ];
+
+      const suffixClasses = [
+        'qti-labels-suffix-period',
+        'qti-labels-suffix-parenthesis',
+      ];
+
+      for (const labelClass of labelClasses) {
+        it(`forwards ${labelClass} to the container`, () => {
+          const doc = createQtiDocument(`
+            <qti-choice-interaction response-identifier="R1" max-choices="1"
+              class="${labelClass}">
+              <qti-simple-choice identifier="A">A</qti-simple-choice>
+              <qti-simple-choice identifier="B">B</qti-simple-choice>
+            </qti-choice-interaction>
+          `);
+
+          const fragment = transformInteraction(doc, itemState);
+          const container = document.createElement('div');
+          container.appendChild(fragment);
+
+          const interaction = container.querySelector('.cutie-choice-interaction')!;
+          expect(interaction.classList.contains(labelClass)).toBe(true);
+        });
+      }
+
+      for (const suffixClass of suffixClasses) {
+        it(`forwards ${suffixClass} to the container`, () => {
+          const doc = createQtiDocument(`
+            <qti-choice-interaction response-identifier="R1" max-choices="1"
+              class="qti-labels-decimal ${suffixClass}">
+              <qti-simple-choice identifier="A">A</qti-simple-choice>
+              <qti-simple-choice identifier="B">B</qti-simple-choice>
+            </qti-choice-interaction>
+          `);
+
+          const fragment = transformInteraction(doc, itemState);
+          const container = document.createElement('div');
+          container.appendChild(fragment);
+
+          const interaction = container.querySelector('.cutie-choice-interaction')!;
+          expect(interaction.classList.contains(suffixClass)).toBe(true);
+          expect(interaction.classList.contains('qti-labels-decimal')).toBe(true);
+        });
+      }
+
+      it('forwards combined label and suffix classes', () => {
+        const doc = createQtiDocument(`
+          <qti-choice-interaction response-identifier="R1" max-choices="1"
+            class="qti-labels-upper-alpha qti-labels-suffix-parenthesis">
+            <qti-simple-choice identifier="A">A</qti-simple-choice>
+            <qti-simple-choice identifier="B">B</qti-simple-choice>
+            <qti-simple-choice identifier="C">C</qti-simple-choice>
+          </qti-choice-interaction>
+        `);
+
+        const fragment = transformInteraction(doc, itemState);
+        const container = document.createElement('div');
+        container.appendChild(fragment);
+
+        const interaction = container.querySelector('.cutie-choice-interaction')!;
+        expect(interaction.classList.contains('qti-labels-upper-alpha')).toBe(true);
+        expect(interaction.classList.contains('qti-labels-suffix-parenthesis')).toBe(true);
+      });
+
+      it('renders correct DOM structure for CSS counter labels', () => {
+        const doc = createQtiDocument(`
+          <qti-choice-interaction response-identifier="R1" max-choices="1"
+            class="qti-labels-decimal qti-labels-suffix-period">
+            <qti-simple-choice identifier="A">A</qti-simple-choice>
+            <qti-simple-choice identifier="B">B</qti-simple-choice>
+            <qti-simple-choice identifier="C">C</qti-simple-choice>
+          </qti-choice-interaction>
+        `);
+
+        const fragment = transformInteraction(doc, itemState);
+        const container = document.createElement('div');
+        container.appendChild(fragment);
+
+        // Verify structural prerequisites for CSS counters:
+        // 1. Container has the label class
+        const interaction = container.querySelector('.cutie-choice-interaction')!;
+        expect(interaction.classList.contains('qti-labels-decimal')).toBe(true);
+        expect(interaction.classList.contains('qti-labels-suffix-period')).toBe(true);
+
+        // 2. Choice group exists (counter-reset target)
+        const group = interaction.querySelector('.cutie-simple-choice-group');
+        expect(group).not.toBeNull();
+
+        // 3. Simple choices exist as direct children of group (counter-increment targets)
+        const choices = group!.querySelectorAll('.cutie-simple-choice');
+        expect(choices.length).toBe(3);
+      });
+    });
   });
 });
