@@ -100,11 +100,13 @@ class TextEntryInteractionHandler implements ElementHandler {
     // Add inline indicator if pattern-mask is present
     let indicator: ConstraintMessage | undefined;
     if (hasConstraint) {
+      const constraintId = `constraint-${responseIdentifier}`;
       indicator = createInlineRequiredIndicator(
-        `constraint-${responseIdentifier}`,
+        constraintId,
         patternMessage ?? 'Required format',
         context.styleManager,
       );
+      input.setAttribute('aria-describedby', constraintId);
     }
 
     // Register response accessor with itemState if available
