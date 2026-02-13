@@ -380,7 +380,7 @@ const CHOICE_INTERACTION_STYLES = `
     display: flex;
     align-items: flex-start;
     gap: 0.5em;
-    padding: 0.7em 1em 0.7em 0.5em;
+    padding: calc(0.7em + 2px) calc(1em + 2px) calc(0.7em + 2px) calc(1em + 2px);
     border: 2px solid var(--cutie-border);
     border-radius: 4px;
     background-color: var(--cutie-bg);
@@ -395,6 +395,8 @@ const CHOICE_INTERACTION_STYLES = `
   /* Selected state — outline mode (border only, no colored background) */
   .cutie-choice-interaction .cutie-simple-choice:has(input:checked) {
     border-color: var(--cutie-primary);
+    border-width: 4px;
+    padding: 0.7em 1em 0.7em 1em;
   }
 
   .cutie-choice-interaction .cutie-simple-choice:has(input:checked):hover {
@@ -417,6 +419,10 @@ const CHOICE_INTERACTION_STYLES = `
     margin-top: 0.25em;
     flex-shrink: 0;
     cursor: pointer;
+  }
+
+  .cutie-choice-interaction .cutie-simple-choice input:first-child {
+    margin-left: 0;
   }
 
   /* Hide default focus ring on input since label handles focus styling */
