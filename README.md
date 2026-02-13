@@ -8,6 +8,7 @@ Project Cutie is an implementation of the QTIv3 standard for displaying and scor
 
 ## QTI Documentation
 - https://www.imsglobal.org/spec/qti/v3p0/impl
+- [QTI spec coverage](docs/qti/README.md)
 
 ## Design
 

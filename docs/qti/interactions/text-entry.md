@@ -1,4 +1,3 @@
-<!-- spell-checker: ignore patternmask -->
 # qti-text-entry-interaction
 
 - spec: https://www.imsglobal.org/spec/qti/v3p0/impl#h.5bw8rpbotrcs
