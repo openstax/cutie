@@ -45,6 +45,7 @@ import * as formulaStrict from './formula-strict';
 import * as formulaCanonical from './formula-canonical';
 import * as formulaAlgebraic from './formula-algebraic';
 import * as extendedTextScored from './extended-text-scored';
+import * as extendedTextScoredRich from './extended-text-scored-rich';
 import * as variantChoiceLabels from './variant-choice-labels';
 import * as variantChoiceLayout from './variant-choice-layout';
 import * as variantExtendedTextSizes from './variant-extended-text-sizes';
@@ -82,6 +83,7 @@ export const feedbackTypes = [
 /* externally scored items that use AI for scoring */
 export const aiScoredExamples = [
   extendedTextScored,
+  extendedTextScoredRich,
 ];
 
 /* math formula entry examples demonstrating different comparison modes */

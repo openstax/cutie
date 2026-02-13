@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { ItemStateImpl } from '../../state/itemState';
-import { registry } from '../registry';
-import type { TransformContext } from '../types';
+import { ItemStateImpl } from '../../../state/itemState';
+import { registry } from '../../registry';
+import type { TransformContext } from '../../types';
 
 // Side-effect import to register the handler
-import './extendedTextInteraction';
+import './plainText';
 
 function createQtiDocument(interactionHtml: string): Document {
   const html = `

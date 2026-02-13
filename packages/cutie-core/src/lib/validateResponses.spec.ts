@@ -261,6 +261,45 @@ describe('validateExtendedTextInteractions', () => {
       expect(err.errors[1]!.constraint).toBe('pattern-mask');
     }
   });
+
+  describe('xhtml format', () => {
+    it('strips HTML tags for min-strings empty check', () => {
+      const doc = parseItem(makeExtendedTextItem('format="xhtml" min-strings="1"'));
+      // HTML with only tags and whitespace should be treated as empty
+      expect(() => validateSubmission({ RESPONSE: '<p><br></p>' }, doc)).toThrow(
+        ResponseValidationError
+      );
+    });
+
+    it('passes min-strings when HTML contains text content', () => {
+      const doc = parseItem(makeExtendedTextItem('format="xhtml" min-strings="1"'));
+      expect(() =>
+        validateSubmission({ RESPONSE: '<p>Some text</p>' }, doc)
+      ).not.toThrow();
+    });
+
+    it('skips pattern-mask validation for xhtml format', () => {
+      const doc = parseItem(makeExtendedTextItem('format="xhtml" pattern-mask="^\\d+$"'));
+      // This would fail pattern-mask for plain text, but xhtml skips it
+      expect(() =>
+        validateSubmission({ RESPONSE: '<p>not digits</p>' }, doc)
+      ).not.toThrow();
+    });
+
+    it('reports only min-strings error (not pattern-mask) for empty xhtml', () => {
+      const doc = parseItem(
+        makeExtendedTextItem('format="xhtml" min-strings="1" pattern-mask="^\\d+$"')
+      );
+      try {
+        validateSubmission({ RESPONSE: '<p></p>' }, doc);
+      } catch (e) {
+        const err = e as ResponseValidationError;
+        // Only min-strings error, pattern-mask is skipped for xhtml
+        expect(err.errors).toHaveLength(1);
+        expect(err.errors[0]!.constraint).toBe('min-strings');
+      }
+    });
+  });
 });
 
 describe('validateInlineChoiceInteractions', () => {

@@ -5,8 +5,7 @@
 
 // Specific qti-* interaction handlers (priority 10-100)
 import './choiceInteraction'; // priority 50
-import './extendedTextInteraction'; // priority 50
-import './formulaInteraction'; // priority 40 (before extended-text)
+import './extendedText'; // priorities 40-50
 import './gapMatchInteraction'; // priority 45 (gap), 50 (gap-match-interaction)
 import './inlineChoiceInteraction'; // priority 50
 import './matchInteraction'; // priority 50

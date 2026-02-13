@@ -14,7 +14,7 @@
 | placeholder-text | not in checklist | :white_check_mark: | |
 | min-strings | not in checklist | :white_check_mark: | validated with constraint messages |
 | expected-length | not in checklist | :white_check_mark: | tracked but not used for sizing |
-| format | advanced | :x: | plain and xhtml; we treat everything as plain text |
+| format | advanced | :white_check_mark: | plain (textarea) and xhtml (Quill rich text editor) |
 | pattern-mask | advanced | :white_check_mark: | regex validation with constraint message |
 | max-strings | not in checklist | :x: | max number of response strings |
 | base | not in checklist | :x: | numeric base for value interpretation |

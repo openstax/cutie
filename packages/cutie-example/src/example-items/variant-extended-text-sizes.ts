@@ -15,6 +15,8 @@ adaptive="false" time-dependent="false" xml:lang="en">
   <qti-response-declaration identifier="R3" cardinality="single" base-type="string"/>
   <qti-response-declaration identifier="R4" cardinality="single" base-type="string"/>
   <qti-response-declaration identifier="R5" cardinality="single" base-type="string"/>
+  <qti-response-declaration identifier="R6" cardinality="single" base-type="string"/>
+  <qti-response-declaration identifier="R7" cardinality="single" base-type="string"/>
 
   <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
     <qti-default-value><qti-value>0</qti-value></qti-default-value>
@@ -48,6 +50,16 @@ adaptive="false" time-dependent="false" xml:lang="en">
     <!-- expected-lines="10" attribute (inline style, overrides height-lines class) -->
     <qti-extended-text-interaction response-identifier="R5" expected-lines="10" class="qti-height-lines-3">
       <qti-prompt>expected-lines="10" with qti-height-lines-3 class (attribute wins, 14em)</qti-prompt>
+    </qti-extended-text-interaction>
+
+    <!-- Rich text (format="xhtml") with default height -->
+    <qti-extended-text-interaction response-identifier="R6" format="xhtml">
+      <qti-prompt>Rich text editor — default height (Quill, format="xhtml")</qti-prompt>
+    </qti-extended-text-interaction>
+
+    <!-- Rich text (format="xhtml") with qti-height-lines-15 for tall editor -->
+    <qti-extended-text-interaction response-identifier="R7" format="xhtml" class="qti-height-lines-15">
+      <qti-prompt>Rich text editor — qti-height-lines-15 (21em, essay-length)</qti-prompt>
     </qti-extended-text-interaction>
 
   </qti-item-body>

@@ -1,11 +1,14 @@
-import { createMissingAttributeError } from '../../errors/errorDisplay';
+import { createMissingAttributeError } from '../../../errors/errorDisplay';
+import { registry } from '../../registry';
+import type { ElementHandler, TransformContext } from '../../types';
+import { getDefaultValue } from '../responseUtils';
 import {
-  type ConstraintMessage,
-  createConstraintMessage,
-} from '../../errors/validationDisplay';
-import { registry } from '../registry';
-import type { ElementHandler, TransformContext } from '../types';
-import { getDefaultValue } from './responseUtils';
+  createConstraintElements,
+  createInteractionContainer,
+  parseConstraints,
+  processPrompt,
+  wireConstraintDescribedBy,
+} from './utils';
 
 /**
  * Handler for qti-extended-text-interaction elements
@@ -47,30 +50,19 @@ class ExtendedTextInteractionHandler implements ElementHandler {
     }
 
     // Create container for the interaction
-    const container = document.createElement('div');
-    const sourceClasses = element.getAttribute('class');
-    container.className = sourceClasses
-      ? `cutie-extended-text-interaction ${sourceClasses}`
-      : 'cutie-extended-text-interaction';
-    container.setAttribute('data-response-identifier', responseIdentifier);
+    const container = createInteractionContainer(element, 'cutie-extended-text-interaction', responseIdentifier);
 
     // Process qti-prompt if present
-    const promptElement = element.querySelector('qti-prompt');
-    const promptId = `prompt-${responseIdentifier}`;
-    if (promptElement && context.transformChildren) {
-      const promptContainer = document.createElement('div');
-      promptContainer.className = 'cutie-prompt';
-      promptContainer.id = promptId;
-      const promptFragment = context.transformChildren(promptElement);
-      promptContainer.appendChild(promptFragment);
-      container.appendChild(promptContainer);
+    const prompt = processPrompt(element, responseIdentifier, context);
+    if (prompt) {
+      container.appendChild(prompt.element);
     }
 
     // Create textarea for response input
     const textarea = document.createElement('textarea');
     textarea.className = 'cutie-extended-text-response';
-    if (promptElement) {
-      textarea.setAttribute('aria-labelledby', promptId);
+    if (prompt) {
+      textarea.setAttribute('aria-labelledby', prompt.id);
     } else {
       textarea.setAttribute('aria-label', 'Response input');
     }
@@ -99,36 +91,13 @@ class ExtendedTextInteractionHandler implements ElementHandler {
 
     container.appendChild(textarea);
 
-    // Parse optional constraint attributes
-    const minStrings = parseInt(element.getAttribute('min-strings') ?? '0', 10) || 0;
-    const patternMask = element.getAttribute('pattern-mask');
-    const patternMessage = element.getAttribute('data-patternmask-message');
+    // Parse and create constraint elements
+    const constraints = parseConstraints(element);
+    const constraintResult = createConstraintElements(constraints, responseIdentifier, context.styleManager);
 
-    // Build constraint text: min-strings message takes priority as initial hint
-    const minStringsText = minStrings === 1
-      ? 'Enter a response.'
-      : minStrings > 1
-        ? `Enter at least ${minStrings} responses.`
-        : null;
-    const patternText = patternMessage ?? (patternMask ? 'Required format' : null);
-
-    // Add constraint message if min-strings > 0 OR pattern-mask is present
-    let constraint: ConstraintMessage | undefined;
-    if (minStrings > 0 || patternMask) {
-      constraint = createConstraintMessage(
-        `constraint-${responseIdentifier}`,
-        minStringsText ?? patternText!,
-        context.styleManager,
-      );
-      container.appendChild(constraint.element);
-
-      const existingDescribedBy = textarea.getAttribute('aria-describedby');
-      textarea.setAttribute(
-        'aria-describedby',
-        existingDescribedBy
-          ? `${existingDescribedBy} ${constraint.element.id}`
-          : constraint.element.id
-      );
+    if (constraintResult) {
+      container.appendChild(constraintResult.constraint.element);
+      wireConstraintDescribedBy(textarea, constraintResult.constraint.element);
     }
 
     // Register response accessor with itemState
@@ -137,27 +106,27 @@ class ExtendedTextInteractionHandler implements ElementHandler {
         const value = textarea.value.trim();
 
         // Min-strings check: empty input when required
-        if (minStrings > 0 && value.length === 0) {
+        if (constraints.minStrings > 0 && value.length === 0) {
           textarea.setAttribute('aria-invalid', 'true');
-          if (constraint && minStringsText) {
-            constraint.setText(minStringsText);
+          if (constraintResult?.minStringsText) {
+            constraintResult.constraint.setText(constraintResult.minStringsText);
           }
-          constraint?.setError(true);
+          constraintResult?.constraint.setError(true);
           return { value: null, valid: false };
         }
 
         // Pattern-mask check: non-empty but wrong format
-        if (patternMask && !new RegExp(patternMask).test(textarea.value)) {
+        if (constraints.patternMask && !new RegExp(constraints.patternMask).test(textarea.value)) {
           textarea.setAttribute('aria-invalid', 'true');
-          if (constraint && patternText) {
-            constraint.setText(patternText);
+          if (constraintResult?.patternText) {
+            constraintResult.constraint.setText(constraintResult.patternText);
           }
-          constraint?.setError(true);
+          constraintResult?.constraint.setError(true);
           return { value: value === '' ? null : value, valid: false };
         }
 
         textarea.removeAttribute('aria-invalid');
-        constraint?.setError(false);
+        constraintResult?.constraint.setError(false);
         return { value: value === '' ? null : value, valid: true };
       });
 

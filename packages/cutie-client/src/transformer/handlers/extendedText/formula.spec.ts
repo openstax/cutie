@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ItemStateImpl } from '../../state/itemState';
-import { registry } from '../registry';
-import type { TransformContext } from '../types';
+import { ItemStateImpl } from '../../../state/itemState';
+import { registry } from '../../registry';
+import type { TransformContext } from '../../types';
 
 // Mock MathLive to resolve with a minimal mock
 vi.mock('./mathFieldLoader', () => ({
@@ -11,7 +11,7 @@ vi.mock('./mathFieldLoader', () => ({
 }));
 
 // Side-effect import to register the handler
-import './formulaInteraction';
+import './formula';
 
 function createQtiDocument(interactionHtml: string): Document {
   const html = `

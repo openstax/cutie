@@ -6,6 +6,7 @@
     "alignable",
     "blockquote",
     "canonicalization",
+    "contenteditable",
     "Jwks",
     "listbox",
     "MAXSCORE",
