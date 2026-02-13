@@ -28,17 +28,20 @@ export class GapMatchController {
   private choiceMatchGroups = new Map<string, Set<string>>(); // choice-id -> set of group names
   private gapMatchGroups = new Map<string, Set<string>>(); // gap-id -> set of group names
   private documentClickHandler: (e: MouseEvent) => void;
+  private maxAssociations: number;
 
   constructor(
     responseIdentifier: string,
     choicesContainer: HTMLElement,
     context: TransformContext,
-    container: HTMLElement
+    container: HTMLElement,
+    maxAssociations: number = 0
   ) {
     this.responseIdentifier = responseIdentifier;
     this.choicesContainer = choicesContainer;
     this.context = context;
     this.container = container;
+    this.maxAssociations = maxAssociations;
 
     // Wire up the choices container as a drop target for returning choices
     this.wireChoicesContainerEvents();
@@ -60,6 +63,9 @@ export class GapMatchController {
       }
     };
     document.addEventListener('click', this.documentClickHandler);
+    this.context.onCleanup?.(() => {
+      document.removeEventListener('click', this.documentClickHandler);
+    });
   }
 
   /**
@@ -351,6 +357,13 @@ export class GapMatchController {
    * Check if a choice can be placed in a gap (matchGroup compatibility)
    */
   private canPlaceInGap(gapId: string, choiceId: string): boolean {
+    // If max-associations reached and this gap isn't already filled, can't place
+    if (this.maxAssociations > 0
+        && this.gapAssignments.size >= this.maxAssociations
+        && !this.gapAssignments.has(gapId)) {
+      return false;
+    }
+
     const choiceGroups = this.choiceMatchGroups.get(choiceId);
     const gapGroups = this.gapMatchGroups.get(gapId);
 
@@ -459,6 +472,11 @@ export class GapMatchController {
     // If gap already has a choice, remove it first
     if (this.gapAssignments.has(gapId)) {
       this.removeChoiceFromGap(gapId, true);
+    }
+
+    // Enforce max-associations (0 means unlimited)
+    if (this.maxAssociations > 0 && this.gapAssignments.size >= this.maxAssociations) {
+      return;
     }
 
     // Update assignments and counts

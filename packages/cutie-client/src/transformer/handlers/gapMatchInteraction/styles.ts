@@ -102,7 +102,6 @@ export const GAP_STYLES = `
 export const GAP_MATCH_INTERACTION_STYLES = `
   .cutie-gap-match-interaction {
     margin: 1em 0;
-    font-family: system-ui, -apple-system, sans-serif;
   }
 
   .cutie-gap-match-interaction .cutie-prompt {
