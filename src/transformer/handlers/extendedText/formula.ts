@@ -1,12 +1,15 @@
-import { createMissingAttributeError } from '../../errors/errorDisplay';
-import {
-  type ConstraintMessage,
-  createConstraintMessage,
-} from '../../errors/validationDisplay';
-import { registry } from '../registry';
-import type { ElementHandler, TransformContext } from '../types';
+import { createMissingAttributeError } from '../../../errors/errorDisplay';
+import { registry } from '../../registry';
+import type { ElementHandler, TransformContext } from '../../types';
+import { getDefaultValue } from '../responseUtils';
 import { loadMathLive } from './mathFieldLoader';
-import { getDefaultValue } from './responseUtils';
+import {
+  createConstraintElements,
+  createInteractionContainer,
+  parseConstraints,
+  processPrompt,
+  wireConstraintDescribedBy,
+} from './utils';
 
 /**
  * Check if a response declaration is a formula type
@@ -60,20 +63,12 @@ class FormulaInteractionHandler implements ElementHandler {
     }
 
     // Create container for the interaction
-    const container = document.createElement('div');
-    container.className = 'cutie-formula-interaction';
-    container.setAttribute('data-response-identifier', responseIdentifier);
+    const container = createInteractionContainer(element, 'cutie-formula-interaction', responseIdentifier);
 
     // Process qti-prompt if present
-    const promptElement = element.querySelector('qti-prompt');
-    const promptId = `prompt-${responseIdentifier}`;
-    if (promptElement && context.transformChildren) {
-      const promptContainer = document.createElement('div');
-      promptContainer.className = 'cutie-prompt';
-      promptContainer.id = promptId;
-      const promptFragment = context.transformChildren(promptElement);
-      promptContainer.appendChild(promptFragment);
-      container.appendChild(promptContainer);
+    const prompt = processPrompt(element, responseIdentifier, context);
+    if (prompt) {
+      container.appendChild(prompt.element);
     }
 
     // Create a wrapper for the math field
@@ -88,28 +83,21 @@ class FormulaInteractionHandler implements ElementHandler {
 
     container.appendChild(mathFieldWrapper);
 
-    // Parse optional min-strings attribute
-    const minStrings = parseInt(element.getAttribute('min-strings') ?? '0', 10) || 0;
+    // Parse constraints and create constraint elements
+    const constraints = parseConstraints(element);
+    const constraintResult = constraints.minStrings > 0
+      ? createConstraintElements(constraints, responseIdentifier, context.styleManager)
+      : null;
+
+    if (constraintResult) {
+      container.appendChild(constraintResult.constraint.element);
+    }
+
+    fragment.appendChild(container);
 
     // Read extended-text attributes
     const placeholderText = element.getAttribute('placeholder-text')
       ?? 'Enter LaTeX formula (e.g., 5x or \\frac{1}{2})';
-
-    // Add constraint message if min-strings > 0
-    let constraint: ConstraintMessage | undefined;
-    if (minStrings > 0) {
-      const constraintText = minStrings === 1
-        ? 'Enter a response.'
-        : `Enter at least ${minStrings} responses.`;
-      constraint = createConstraintMessage(
-        `constraint-${responseIdentifier}`,
-        constraintText,
-        context.styleManager,
-      );
-      container.appendChild(constraint.element);
-    }
-
-    fragment.appendChild(container);
 
     // Get default value
     const defaultValue = getDefaultValue(element.ownerDocument, responseIdentifier);
@@ -125,16 +113,16 @@ class FormulaInteractionHandler implements ElementHandler {
     if (context.itemState) {
       context.itemState.registerResponse(responseIdentifier, () => {
         const trimmed = currentValue.trim();
-        const isValid = minStrings <= 0 || trimmed.length > 0;
+        const isValid = constraints.minStrings <= 0 || trimmed.length > 0;
 
         if (!isValid) {
           activeInputElement?.setAttribute('aria-invalid', 'true');
-          constraint?.setError(true);
+          constraintResult?.constraint.setError(true);
           return { value: trimmed === '' ? null : trimmed, valid: false };
         }
 
         activeInputElement?.removeAttribute('aria-invalid');
-        constraint?.setError(false);
+        constraintResult?.constraint.setError(false);
         return { value: trimmed === '' ? null : trimmed, valid: true };
       });
     }
@@ -152,8 +140,8 @@ class FormulaInteractionHandler implements ElementHandler {
         };
         mathField.className = 'cutie-formula-field';
         mathField.setAttribute('data-response-identifier', responseIdentifier);
-        if (promptElement) {
-          mathField.setAttribute('aria-labelledby', promptId);
+        if (prompt) {
+          mathField.setAttribute('aria-labelledby', prompt.id);
         } else {
           mathField.setAttribute('aria-label', 'Formula input');
         }
@@ -181,14 +169,8 @@ class FormulaInteractionHandler implements ElementHandler {
 
         // Wire up constraint linkage
         activeInputElement = mathField;
-        if (constraint) {
-          const existingDescribedBy = mathField.getAttribute('aria-describedby');
-          mathField.setAttribute(
-            'aria-describedby',
-            existingDescribedBy
-              ? `${existingDescribedBy} ${constraint.element.id}`
-              : constraint.element.id
-          );
+        if (constraintResult) {
+          wireConstraintDescribedBy(mathField, constraintResult.constraint.element);
         }
 
         mathFieldWrapper.appendChild(mathField);
