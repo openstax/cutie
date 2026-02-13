@@ -26,7 +26,8 @@ function createQtiDocument(interactionHtml: string): Document {
 
 function transformInteraction(
   doc: Document,
-  itemState: ItemStateImpl
+  itemState: ItemStateImpl,
+  contextOverrides?: Partial<TransformContext>
 ): DocumentFragment {
   const interaction = doc.querySelector('qti-extended-text-interaction')!;
 
@@ -39,6 +40,7 @@ function transformInteraction(
       }
       return frag;
     },
+    ...contextOverrides,
   };
 
   const handler = registry.getAll().find((r) => r.handler.canHandle(interaction));
@@ -104,6 +106,121 @@ describe('formulaInteraction validation', () => {
       const textarea = container.querySelector('.cutie-formula-fallback')!;
       const constraintEl = container.querySelector('.cutie-constraint-text')!;
       expect(textarea.getAttribute('aria-describedby')).toContain(constraintEl.id);
+    });
+  });
+
+  describe('placeholder-text attribute', () => {
+    it('uses custom placeholder-text on fallback textarea', async () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" placeholder-text="Type your formula here">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+      await waitForFallback();
+
+      const textarea = container.querySelector('.cutie-formula-fallback') as HTMLTextAreaElement;
+      expect(textarea.placeholder).toBe('Type your formula here');
+    });
+
+    it('uses default placeholder when placeholder-text is absent', async () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+      await waitForFallback();
+
+      const textarea = container.querySelector('.cutie-formula-fallback') as HTMLTextAreaElement;
+      expect(textarea.placeholder).toBe('Enter LaTeX formula (e.g., 5x or \\frac{1}{2})');
+    });
+  });
+
+  describe('expected-lines attribute', () => {
+    it('sets min-height on fallback textarea based on expected-lines', async () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" expected-lines="5">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+      await waitForFallback();
+
+      const textarea = container.querySelector('.cutie-formula-fallback') as HTMLTextAreaElement;
+      expect(textarea.style.minHeight).toBe('7em');
+    });
+
+    it('does not set min-height when expected-lines is absent', async () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+      await waitForFallback();
+
+      const textarea = container.querySelector('.cutie-formula-fallback') as HTMLTextAreaElement;
+      expect(textarea.style.minHeight).toBe('');
+    });
+  });
+
+  describe('error handling', () => {
+    it('renders error element when response-identifier is missing', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction>
+        </qti-extended-text-interaction>
+      `);
+
+      // Without response-identifier, canHandle returns false,
+      // so we call transform directly to test the error path
+      const interaction = doc.querySelector('qti-extended-text-interaction')!;
+      // Remove the attribute to ensure it's missing
+      interaction.removeAttribute('response-identifier');
+
+      const handler = registry.getAll().find((r) => r.name === 'formula-interaction');
+      const context: TransformContext = {
+        itemState,
+        transformChildren: (el: Element) => {
+          const frag = document.createDocumentFragment();
+          for (const child of Array.from(el.childNodes)) {
+            frag.appendChild(child.cloneNode(true));
+          }
+          return frag;
+        },
+      };
+
+      const fragment = handler!.handler.transform(interaction, context);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      expect(container.querySelector('.cutie-error-display')).not.toBeNull();
+    });
+  });
+
+  describe('disabled state', () => {
+    it('disables fallback textarea when interactionsEnabled is false', async () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1">
+        </qti-extended-text-interaction>
+      `);
+
+      itemState.setInteractionsEnabled(false);
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+      await waitForFallback();
+
+      const textarea = container.querySelector('.cutie-formula-fallback') as HTMLTextAreaElement;
+      expect(textarea.disabled).toBe(true);
     });
   });
 
