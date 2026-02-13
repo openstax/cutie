@@ -15,7 +15,7 @@ Note: inline-choice is entirely **advanced** cert (Q12 is Level 2).
 | required | advanced | :white_check_mark: | |
 | shuffle | not in checklist | :white_check_mark: | server-side in cutie-core |
 | min-choices | advanced | :white_check_mark: | |
-| data-min-selections-message | advanced | :white_check_mark: | |
+| data-min-selections-message | advanced | :white_check_mark: | tooltip on required indicator |
 
 ## inline choice attributes (qti-inline-choice)
 

@@ -519,7 +519,8 @@ export function annotateInlineInteractions(
         descSpan.textContent = `blank ${i + 1} of ${interactions.length}`;
 
         appendTarget.appendChild(descSpan);
-        el.setAttribute('aria-describedby', descSpan.id);
+        const existing = el.getAttribute('aria-describedby');
+        el.setAttribute('aria-describedby', existing ? `${existing} ${descSpan.id}` : descSpan.id);
       }
     }
   }

@@ -132,6 +132,7 @@ export function createInlineRequiredIndicator(
   span.id = id;
   span.textContent = '*';
   span.setAttribute('aria-hidden', 'true');
+  span.setAttribute('aria-label', title);
   span.title = title;
 
   const setError = (isError: boolean) => {

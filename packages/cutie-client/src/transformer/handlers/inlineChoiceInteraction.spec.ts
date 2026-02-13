@@ -184,6 +184,23 @@ describe('inlineChoiceInteraction', () => {
       expect(indicator!.getAttribute('title')).toBe('Selection required');
     });
 
+    it('uses data-min-selections-message as indicator title', () => {
+      const doc = createQtiDocument(`
+        <qti-inline-choice-interaction response-identifier="R1" required="true"
+          data-min-selections-message="Please choose an answer">
+          <qti-inline-choice identifier="A">Alpha</qti-inline-choice>
+          <qti-inline-choice identifier="B">Beta</qti-inline-choice>
+        </qti-inline-choice-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const indicator = container.querySelector('.cutie-required-indicator');
+      expect(indicator!.getAttribute('title')).toBe('Please choose an answer');
+    });
+
     it('renders indicator when min-choices >= 1', () => {
       const doc = createQtiDocument(`
         <qti-inline-choice-interaction response-identifier="R1" min-choices="1">
