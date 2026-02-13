@@ -95,9 +95,10 @@ class ChoiceInteractionHandler implements ElementHandler {
     const choicesContainer = document.createElement('fieldset');
     choicesContainer.className = 'cutie-simple-choice-group';
 
+    // Handle deprecated orientation attribute — only if no vocab class present
     const orientation = element.getAttribute('orientation');
-    if (orientation === 'horizontal') {
-      choicesContainer.classList.add('cutie-orientation-horizontal');
+    if (orientation === 'horizontal' && !sourceClasses?.includes('qti-orientation-')) {
+      container.classList.add('qti-orientation-horizontal');
     }
 
     // Add legend if prompt is present
@@ -146,6 +147,33 @@ class ChoiceInteractionHandler implements ElementHandler {
       choiceLabel.appendChild(input);
       choiceLabel.appendChild(contentSpan);
       choicesContainer.appendChild(choiceLabel);
+    }
+
+    // Apply grid layout for stacking classes (qti-choices-stacking-N where N=1-5)
+    const stackingMatch = sourceClasses?.match(/qti-choices-stacking-(\d)/);
+    if (stackingMatch) {
+      const cols = parseInt(stackingMatch[1], 10);
+      if (cols > 1) {
+        const isHorizontal =
+          sourceClasses?.includes('qti-orientation-horizontal') ||
+          (!sourceClasses?.includes('qti-orientation-') && orientation === 'horizontal');
+        const rows = Math.ceil(choiceElements.length / cols);
+
+        choicesContainer.style.display = 'grid';
+        choicesContainer.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+
+        if (!isHorizontal) {
+          // Vertical (default): column-major flow ("reverse N" reading order)
+          choicesContainer.style.gridTemplateRows = `repeat(${rows}, auto)`;
+          choicesContainer.style.gridAutoFlow = 'column';
+        }
+
+        // Legend (prompt) spans all columns
+        const legend = choicesContainer.querySelector('legend');
+        if (legend) {
+          legend.style.gridColumn = '1 / -1';
+        }
+      }
     }
 
     container.appendChild(choicesContainer);
@@ -328,7 +356,7 @@ const CHOICE_INTERACTION_STYLES = `
     gap: 0.5em;
   }
 
-  .cutie-choice-interaction .cutie-simple-choice-group.cutie-orientation-horizontal {
+  .cutie-choice-interaction.qti-orientation-horizontal .cutie-simple-choice-group {
     flex-direction: row;
     flex-wrap: wrap;
   }
@@ -469,5 +497,18 @@ const CHOICE_INTERACTION_STYLES = `
   }
   .cutie-choice-interaction.qti-labels-upper-alpha.qti-labels-suffix-parenthesis .cutie-simple-choice::before {
     content: counter(choice-label, upper-alpha) ")";
+  }
+
+  /* ── Hidden input control ──────────────────────────────── */
+
+  .cutie-choice-interaction.qti-input-control-hidden .cutie-simple-choice input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
   }
 `;

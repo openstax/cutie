@@ -448,7 +448,7 @@ describe('choiceInteraction validation', () => {
       expect(labels[1]!.classList.contains('qti-choice-highlight')).toBe(false);
     });
 
-    it('applies horizontal orientation class when orientation="horizontal"', () => {
+    it('applies horizontal orientation class to container from orientation attribute', () => {
       const doc = createQtiDocument(`
         <qti-choice-interaction response-identifier="R1" max-choices="1" orientation="horizontal">
           <qti-simple-choice identifier="A">A</qti-simple-choice>
@@ -460,8 +460,26 @@ describe('choiceInteraction validation', () => {
       const container = document.createElement('div');
       container.appendChild(fragment);
 
-      const fieldset = container.querySelector('fieldset')!;
-      expect(fieldset.classList.contains('cutie-orientation-horizontal')).toBe(true);
+      const interaction = container.querySelector('.cutie-choice-interaction')!;
+      expect(interaction.classList.contains('qti-orientation-horizontal')).toBe(true);
+    });
+
+    it('does not add orientation class from attribute when vocab class is present', () => {
+      const doc = createQtiDocument(`
+        <qti-choice-interaction response-identifier="R1" max-choices="1"
+          orientation="horizontal" class="qti-orientation-horizontal">
+          <qti-simple-choice identifier="A">A</qti-simple-choice>
+          <qti-simple-choice identifier="B">B</qti-simple-choice>
+        </qti-choice-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const interaction = container.querySelector('.cutie-choice-interaction')!;
+      // Should have exactly one instance from the forwarded vocab class
+      expect(interaction.classList.contains('qti-orientation-horizontal')).toBe(true);
     });
 
     it('does not apply orientation class when orientation is vertical (default)', () => {
@@ -476,8 +494,8 @@ describe('choiceInteraction validation', () => {
       const container = document.createElement('div');
       container.appendChild(fragment);
 
-      const fieldset = container.querySelector('fieldset')!;
-      expect(fieldset.classList.contains('cutie-orientation-horizontal')).toBe(false);
+      const interaction = container.querySelector('.cutie-choice-interaction')!;
+      expect(interaction.classList.contains('qti-orientation-horizontal')).toBe(false);
     });
 
     it('uses custom data-min-selections-message instead of generated text', () => {
@@ -615,6 +633,130 @@ describe('choiceInteraction validation', () => {
         // 3. Simple choices exist as direct children of group (counter-increment targets)
         const choices = group!.querySelectorAll('.cutie-simple-choice');
         expect(choices.length).toBe(3);
+      });
+    });
+
+    describe('stacking classes', () => {
+      it('applies CSS grid with row-major flow for horizontal + stacking', () => {
+        const doc = createQtiDocument(`
+          <qti-choice-interaction response-identifier="R1" max-choices="1"
+            class="qti-orientation-horizontal qti-choices-stacking-3">
+            <qti-simple-choice identifier="A">A</qti-simple-choice>
+            <qti-simple-choice identifier="B">B</qti-simple-choice>
+            <qti-simple-choice identifier="C">C</qti-simple-choice>
+            <qti-simple-choice identifier="D">D</qti-simple-choice>
+            <qti-simple-choice identifier="E">E</qti-simple-choice>
+            <qti-simple-choice identifier="F">F</qti-simple-choice>
+          </qti-choice-interaction>
+        `);
+
+        const fragment = transformInteraction(doc, itemState);
+        const container = document.createElement('div');
+        container.appendChild(fragment);
+
+        const fieldset = container.querySelector<HTMLFieldSetElement>('fieldset')!;
+        expect(fieldset.style.display).toBe('grid');
+        expect(fieldset.style.gridTemplateColumns).toBe('repeat(3, 1fr)');
+        // Horizontal: row-major (default grid flow), no gridAutoFlow override
+        expect(fieldset.style.gridAutoFlow).toBe('');
+      });
+
+      it('applies CSS grid with column-major flow for vertical + stacking', () => {
+        const doc = createQtiDocument(`
+          <qti-choice-interaction response-identifier="R1" max-choices="1"
+            class="qti-choices-stacking-2">
+            <qti-simple-choice identifier="A">A</qti-simple-choice>
+            <qti-simple-choice identifier="B">B</qti-simple-choice>
+            <qti-simple-choice identifier="C">C</qti-simple-choice>
+            <qti-simple-choice identifier="D">D</qti-simple-choice>
+          </qti-choice-interaction>
+        `);
+
+        const fragment = transformInteraction(doc, itemState);
+        const container = document.createElement('div');
+        container.appendChild(fragment);
+
+        const fieldset = container.querySelector<HTMLFieldSetElement>('fieldset')!;
+        expect(fieldset.style.display).toBe('grid');
+        expect(fieldset.style.gridTemplateColumns).toBe('repeat(2, 1fr)');
+        expect(fieldset.style.gridTemplateRows).toBe('repeat(2, auto)');
+        expect(fieldset.style.gridAutoFlow).toBe('column');
+      });
+
+      it('does not apply grid for stacking-1 (single column is default)', () => {
+        const doc = createQtiDocument(`
+          <qti-choice-interaction response-identifier="R1" max-choices="1"
+            class="qti-choices-stacking-1">
+            <qti-simple-choice identifier="A">A</qti-simple-choice>
+            <qti-simple-choice identifier="B">B</qti-simple-choice>
+          </qti-choice-interaction>
+        `);
+
+        const fragment = transformInteraction(doc, itemState);
+        const container = document.createElement('div');
+        container.appendChild(fragment);
+
+        const fieldset = container.querySelector<HTMLFieldSetElement>('fieldset')!;
+        expect(fieldset.style.display).toBe('');
+      });
+
+      it('makes legend span all columns when prompt is present', () => {
+        const doc = createQtiDocument(`
+          <qti-choice-interaction response-identifier="R1" max-choices="1"
+            class="qti-choices-stacking-3">
+            <qti-prompt>Pick one:</qti-prompt>
+            <qti-simple-choice identifier="A">A</qti-simple-choice>
+            <qti-simple-choice identifier="B">B</qti-simple-choice>
+            <qti-simple-choice identifier="C">C</qti-simple-choice>
+          </qti-choice-interaction>
+        `);
+
+        const fragment = transformInteraction(doc, itemState);
+        const container = document.createElement('div');
+        container.appendChild(fragment);
+
+        const legend = container.querySelector<HTMLLegendElement>('legend')!;
+        expect(legend.style.gridColumn).toBe('1 / -1');
+      });
+
+      it('uses attribute orientation fallback for stacking flow direction', () => {
+        const doc = createQtiDocument(`
+          <qti-choice-interaction response-identifier="R1" max-choices="1"
+            orientation="horizontal" class="qti-choices-stacking-2">
+            <qti-simple-choice identifier="A">A</qti-simple-choice>
+            <qti-simple-choice identifier="B">B</qti-simple-choice>
+            <qti-simple-choice identifier="C">C</qti-simple-choice>
+            <qti-simple-choice identifier="D">D</qti-simple-choice>
+          </qti-choice-interaction>
+        `);
+
+        const fragment = transformInteraction(doc, itemState);
+        const container = document.createElement('div');
+        container.appendChild(fragment);
+
+        const fieldset = container.querySelector<HTMLFieldSetElement>('fieldset')!;
+        expect(fieldset.style.display).toBe('grid');
+        // Horizontal via attribute: row-major, no column flow
+        expect(fieldset.style.gridAutoFlow).toBe('');
+      });
+    });
+
+    describe('hidden input control', () => {
+      it('forwards qti-input-control-hidden class to container', () => {
+        const doc = createQtiDocument(`
+          <qti-choice-interaction response-identifier="R1" max-choices="1"
+            class="qti-input-control-hidden">
+            <qti-simple-choice identifier="A">A</qti-simple-choice>
+            <qti-simple-choice identifier="B">B</qti-simple-choice>
+          </qti-choice-interaction>
+        `);
+
+        const fragment = transformInteraction(doc, itemState);
+        const container = document.createElement('div');
+        container.appendChild(fragment);
+
+        const interaction = container.querySelector('.cutie-choice-interaction')!;
+        expect(interaction.classList.contains('qti-input-control-hidden')).toBe(true);
       });
     });
   });
