@@ -48,7 +48,10 @@ class ExtendedTextInteractionHandler implements ElementHandler {
 
     // Create container for the interaction
     const container = document.createElement('div');
-    container.className = 'cutie-extended-text-interaction';
+    const sourceClasses = element.getAttribute('class');
+    container.className = sourceClasses
+      ? `cutie-extended-text-interaction ${sourceClasses}`
+      : 'cutie-extended-text-interaction';
     container.setAttribute('data-response-identifier', responseIdentifier);
 
     // Process qti-prompt if present
@@ -96,18 +99,25 @@ class ExtendedTextInteractionHandler implements ElementHandler {
 
     container.appendChild(textarea);
 
-    // Parse optional min-strings attribute
+    // Parse optional constraint attributes
     const minStrings = parseInt(element.getAttribute('min-strings') ?? '0', 10) || 0;
+    const patternMask = element.getAttribute('pattern-mask');
+    const patternMessage = element.getAttribute('data-patternmask-message');
 
-    // Add constraint message if min-strings > 0
+    // Build constraint text: min-strings message takes priority as initial hint
+    const minStringsText = minStrings === 1
+      ? 'Enter a response.'
+      : minStrings > 1
+        ? `Enter at least ${minStrings} responses.`
+        : null;
+    const patternText = patternMessage ?? (patternMask ? 'Required format' : null);
+
+    // Add constraint message if min-strings > 0 OR pattern-mask is present
     let constraint: ConstraintMessage | undefined;
-    if (minStrings > 0) {
-      const constraintText = minStrings === 1
-        ? 'Enter a response.'
-        : `Enter at least ${minStrings} responses.`;
+    if (minStrings > 0 || patternMask) {
       constraint = createConstraintMessage(
         `constraint-${responseIdentifier}`,
-        constraintText,
+        minStringsText ?? patternText!,
         context.styleManager,
       );
       container.appendChild(constraint.element);
@@ -125,10 +135,23 @@ class ExtendedTextInteractionHandler implements ElementHandler {
     if (context.itemState) {
       context.itemState.registerResponse(responseIdentifier, () => {
         const value = textarea.value.trim();
-        const isValid = minStrings <= 0 || value.length > 0;
 
-        if (!isValid) {
+        // Min-strings check: empty input when required
+        if (minStrings > 0 && value.length === 0) {
           textarea.setAttribute('aria-invalid', 'true');
+          if (constraint && minStringsText) {
+            constraint.setText(minStringsText);
+          }
+          constraint?.setError(true);
+          return { value: null, valid: false };
+        }
+
+        // Pattern-mask check: non-empty but wrong format
+        if (patternMask && !new RegExp(patternMask).test(textarea.value)) {
+          textarea.setAttribute('aria-invalid', 'true');
+          if (constraint && patternText) {
+            constraint.setText(patternText);
+          }
           constraint?.setError(true);
           return { value: value === '' ? null : value, valid: false };
         }
@@ -189,6 +212,10 @@ const EXTENDED_TEXT_INTERACTION_STYLES = `
 .cutie-extended-text-interaction textarea:disabled:focus {
   outline: none;
 }
+
+.cutie-extended-text-interaction.qti-height-lines-3 textarea { min-height: 4.2em; }
+.cutie-extended-text-interaction.qti-height-lines-6 textarea { min-height: 8.4em; }
+.cutie-extended-text-interaction.qti-height-lines-15 textarea { min-height: 21em; }
 `.trim();
 
 // Register with priority 50 (after specific handlers, before unsupported catch-all at 500)

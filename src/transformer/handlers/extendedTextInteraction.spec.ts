@@ -436,4 +436,247 @@ describe('extendedTextInteraction', () => {
       expect(textarea.hasAttribute('aria-invalid')).toBe(false);
     });
   });
+
+  describe('height-lines vocab classes', () => {
+    it('forwards source classes to container', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" class="qti-height-lines-3">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const interactionDiv = container.querySelector('.cutie-extended-text-interaction')!;
+      expect(interactionDiv.classList.contains('qti-height-lines-3')).toBe(true);
+    });
+
+    it('forwards qti-height-lines-6 class', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" class="qti-height-lines-6">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const interactionDiv = container.querySelector('.cutie-extended-text-interaction')!;
+      expect(interactionDiv.classList.contains('qti-height-lines-6')).toBe(true);
+    });
+
+    it('forwards qti-height-lines-15 class', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" class="qti-height-lines-15">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const interactionDiv = container.querySelector('.cutie-extended-text-interaction')!;
+      expect(interactionDiv.classList.contains('qti-height-lines-15')).toBe(true);
+    });
+  });
+
+  describe('pattern-mask rendering', () => {
+    it('creates constraint message when pattern-mask is present (no min-strings)', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" pattern-mask="^\\d+$">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const constraintEl = container.querySelector('.cutie-constraint-text');
+      expect(constraintEl).not.toBeNull();
+      expect(constraintEl!.textContent).toBe('Required format');
+    });
+
+    it('uses custom data-patternmask-message text', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1"
+          pattern-mask="^\\d+$"
+          data-patternmask-message="Enter only digits">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const constraintEl = container.querySelector('.cutie-constraint-text');
+      expect(constraintEl!.textContent).toBe('Enter only digits');
+    });
+
+    it('sets aria-describedby on textarea linking to constraint', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" pattern-mask="^\\d+$">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const textarea = container.querySelector('textarea')!;
+      const constraintEl = container.querySelector('.cutie-constraint-text')!;
+      expect(textarea.getAttribute('aria-describedby')).toBe(constraintEl.id);
+    });
+  });
+
+  describe('pattern-mask validation', () => {
+    it('returns valid:true when value matches pattern', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" pattern-mask="^\\d+$">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const textarea = container.querySelector('textarea')!;
+      textarea.value = '12345';
+
+      const result = itemState.collectAll();
+      expect(result.valid).toBe(true);
+      expect(result.responses).toEqual({ R1: '12345' });
+    });
+
+    it('returns valid:false when value does not match pattern', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" pattern-mask="^\\d+$">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const textarea = container.querySelector('textarea')!;
+      textarea.value = 'abc';
+
+      const result = itemState.collectAll();
+      expect(result.valid).toBe(false);
+    });
+
+    it('sets aria-invalid on textarea when pattern does not match', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" pattern-mask="^\\d+$">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const textarea = container.querySelector('textarea')!;
+      textarea.value = 'abc';
+
+      itemState.collectAll();
+      expect(textarea.getAttribute('aria-invalid')).toBe('true');
+    });
+
+    it('clears error on re-validation when pattern matches', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" pattern-mask="^\\d+$">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const textarea = container.querySelector('textarea')!;
+
+      // First: invalid
+      textarea.value = 'abc';
+      itemState.collectAll();
+      expect(textarea.getAttribute('aria-invalid')).toBe('true');
+
+      // Second: valid
+      textarea.value = '123';
+      const result = itemState.collectAll();
+      expect(result.valid).toBe(true);
+      expect(textarea.hasAttribute('aria-invalid')).toBe(false);
+    });
+  });
+
+  describe('combined min-strings + pattern-mask', () => {
+    it('shows min-strings error when input is empty', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1"
+          min-strings="1" pattern-mask="^\\d+$">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      itemState.collectAll();
+
+      const constraintEl = container.querySelector('.cutie-constraint-text')!;
+      expect(constraintEl.textContent).toBe('Enter a response.');
+      expect(constraintEl.classList.contains('cutie-constraint-error')).toBe(true);
+    });
+
+    it('shows pattern-mask error when non-empty but wrong format', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1"
+          min-strings="1" pattern-mask="^\\d+$"
+          data-patternmask-message="Numbers only">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const textarea = container.querySelector('textarea')!;
+      textarea.value = 'abc';
+
+      itemState.collectAll();
+
+      const constraintEl = container.querySelector('.cutie-constraint-text')!;
+      expect(constraintEl.textContent).toBe('Numbers only');
+      expect(constraintEl.classList.contains('cutie-constraint-error')).toBe(true);
+    });
+
+    it('swaps constraint text dynamically between errors', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1"
+          min-strings="1" pattern-mask="^\\d+$"
+          data-patternmask-message="Numbers only">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const textarea = container.querySelector('textarea')!;
+      const constraintEl = container.querySelector('.cutie-constraint-text')!;
+
+      // Empty → min-strings error
+      itemState.collectAll();
+      expect(constraintEl.textContent).toBe('Enter a response.');
+
+      // Non-empty invalid → pattern error
+      textarea.value = 'abc';
+      itemState.collectAll();
+      expect(constraintEl.textContent).toBe('Numbers only');
+
+      // Valid → no error
+      textarea.value = '123';
+      const result = itemState.collectAll();
+      expect(result.valid).toBe(true);
+      expect(constraintEl.classList.contains('cutie-constraint-error')).toBe(false);
+    });
+  });
 });
