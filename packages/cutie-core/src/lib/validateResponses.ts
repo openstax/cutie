@@ -127,19 +127,33 @@ function validateExtendedTextInteractions(
     const responseIdentifier = interaction.getAttribute('response-identifier');
     if (!responseIdentifier) continue;
 
+    // Check min-strings
     const minStringsAttr = interaction.getAttribute('min-strings');
-    if (!minStringsAttr) continue;
+    if (minStringsAttr) {
+      const minStrings = parseInt(minStringsAttr, 10);
+      if (!isNaN(minStrings) && minStrings > 0) {
+        const value = String(submission[responseIdentifier] ?? '').trim();
+        if (value.length === 0) {
+          errors.push({
+            responseIdentifier,
+            constraint: 'min-strings',
+            message: `Expected at least ${minStrings} non-empty string(s), got 0`,
+          });
+        }
+      }
+    }
 
-    const minStrings = parseInt(minStringsAttr, 10);
-    if (isNaN(minStrings) || minStrings <= 0) continue;
-
-    const value = String(submission[responseIdentifier] ?? '').trim();
-    if (value.length === 0) {
-      errors.push({
-        responseIdentifier,
-        constraint: 'min-strings',
-        message: `Expected at least ${minStrings} non-empty string(s), got 0`,
-      });
+    // Check pattern-mask
+    const patternMask = interaction.getAttribute('pattern-mask');
+    if (patternMask) {
+      const value = String(submission[responseIdentifier] ?? '');
+      if (!new RegExp(patternMask).test(value)) {
+        errors.push({
+          responseIdentifier,
+          constraint: 'pattern-mask',
+          message: `Value does not match pattern "${patternMask}"`,
+        });
+      }
     }
   }
 }

@@ -221,6 +221,46 @@ describe('validateExtendedTextInteractions', () => {
     const doc = parseItem(makeExtendedTextItem(''));
     expect(() => validateSubmission({ RESPONSE: '' }, doc)).not.toThrow();
   });
+
+  it('passes when value matches pattern-mask', () => {
+    const doc = parseItem(makeExtendedTextItem('pattern-mask="^\\d{3}$"'));
+    expect(() => validateSubmission({ RESPONSE: '123' }, doc)).not.toThrow();
+  });
+
+  it('fails when value does not match pattern-mask', () => {
+    const doc = parseItem(makeExtendedTextItem('pattern-mask="^\\d{3}$"'));
+    expect(() => validateSubmission({ RESPONSE: 'abc' }, doc)).toThrow(ResponseValidationError);
+
+    try {
+      validateSubmission({ RESPONSE: 'abc' }, doc);
+    } catch (e) {
+      const err = e as ResponseValidationError;
+      expect(err.errors).toHaveLength(1);
+      expect(err.errors[0]!.constraint).toBe('pattern-mask');
+    }
+  });
+
+  it('fails when null response does not match pattern-mask', () => {
+    const doc = parseItem(makeExtendedTextItem('pattern-mask="^\\d{3}$"'));
+    expect(() => validateSubmission({ RESPONSE: null }, doc)).toThrow(ResponseValidationError);
+  });
+
+  it('passes when no pattern-mask is set', () => {
+    const doc = parseItem(makeExtendedTextItem(''));
+    expect(() => validateSubmission({ RESPONSE: 'anything' }, doc)).not.toThrow();
+  });
+
+  it('reports both min-strings and pattern-mask errors independently', () => {
+    const doc = parseItem(makeExtendedTextItem('min-strings="1" pattern-mask="^\\d+$"'));
+    try {
+      validateSubmission({ RESPONSE: '' }, doc);
+    } catch (e) {
+      const err = e as ResponseValidationError;
+      expect(err.errors).toHaveLength(2);
+      expect(err.errors[0]!.constraint).toBe('min-strings');
+      expect(err.errors[1]!.constraint).toBe('pattern-mask');
+    }
+  });
 });
 
 describe('validateInlineChoiceInteractions', () => {

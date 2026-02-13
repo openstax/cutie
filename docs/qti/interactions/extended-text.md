@@ -15,7 +15,7 @@
 | min-strings | not in checklist | :white_check_mark: | validated with constraint messages |
 | expected-length | not in checklist | :white_check_mark: | tracked but not used for sizing |
 | format | advanced | :x: | plain and xhtml; we treat everything as plain text |
-| pattern-mask | advanced | :x: | |
+| pattern-mask | advanced | :white_check_mark: | regex validation with constraint message |
 | max-strings | not in checklist | :x: | max number of response strings |
 | base | not in checklist | :x: | numeric base for value interpretation |
 | string-identifier | not in checklist | :x: | multi-string response support |
@@ -26,9 +26,9 @@
 
 | class | cutie | notes |
 |---|---|---|
-| qti-height-lines-3 | :x: | forwarded but no CSS; expected-lines attr works separately |
-| qti-height-lines-6 | :x: | forwarded but no CSS |
-| qti-height-lines-15 | :x: | forwarded but no CSS |
+| qti-height-lines-3 | :white_check_mark: | min-height 4.2em; expected-lines attr overrides |
+| qti-height-lines-6 | :white_check_mark: | min-height 8.4em; expected-lines attr overrides |
+| qti-height-lines-15 | :white_check_mark: | min-height 21em; expected-lines attr overrides |
 
 ### counters — advanced cert
 
@@ -41,7 +41,7 @@
 
 | attribute | cutie | notes |
 |---|---|---|
-| data-patternmask-message | :x: | goes with pattern-mask |
+| data-patternmask-message | :white_check_mark: | custom error text for pattern-mask |
 
 ### writing mode — not in cert checklist
 

@@ -47,6 +47,8 @@ import * as formulaAlgebraic from './formula-algebraic';
 import * as extendedTextScored from './extended-text-scored';
 import * as variantChoiceLabels from './variant-choice-labels';
 import * as variantChoiceLayout from './variant-choice-layout';
+import * as variantExtendedTextSizes from './variant-extended-text-sizes';
+import * as variantExtendedTextPattern from './variant-extended-text-pattern';
 
 /* these examples are copied exactly from examples in the spec
  * documents, they are used for verification that cutie works
@@ -93,6 +95,8 @@ export const formulaExamples = [
 export const variantExamples = [
   variantChoiceLabels,
   variantChoiceLayout,
+  variantExtendedTextSizes,
+  variantExtendedTextPattern,
 ];
 
 /* these examples were made for each interaction type to show editor-supported

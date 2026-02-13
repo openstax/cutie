@@ -174,6 +174,9 @@ export function App() {
           );
           result = await setScore(aiResult.score, aiResult.comments, result.state, itemXml, { resolveAssets });
         }
+      } else {
+        // Brief delay to show submitting state when scoring is instant
+        await new Promise(r => setTimeout(r, 1000));
       }
 
       setAttemptState(result.state);
