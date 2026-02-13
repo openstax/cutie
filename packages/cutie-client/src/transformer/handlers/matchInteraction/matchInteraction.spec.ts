@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ItemStateImpl } from '../../../state/itemState';
 import { registry } from '../../registry';
 import type { TransformContext } from '../../types';
@@ -20,7 +20,8 @@ function createQtiDocument(interactionHtml: string): Document {
 
 function transformInteraction(
   doc: Document,
-  itemState: ItemStateImpl
+  itemState: ItemStateImpl,
+  contextOverrides?: Partial<TransformContext>
 ): DocumentFragment {
   const interaction = doc.querySelector('qti-match-interaction')!;
 
@@ -33,6 +34,7 @@ function transformInteraction(
       }
       return frag;
     },
+    ...contextOverrides,
   };
 
   const handler = registry.getAll().find((r) => r.handler.canHandle(interaction));
@@ -133,6 +135,183 @@ describe('matchInteraction validation', () => {
       const matchContainer = container.querySelector('.cutie-match-interaction')!;
       const constraintEl = container.querySelector('.cutie-constraint-text')!;
       expect(matchContainer.getAttribute('aria-describedby')).toContain(constraintEl.id);
+    });
+  });
+
+  describe('error handling', () => {
+    it('renders error when response-identifier is missing', () => {
+      const doc = createQtiDocument(`
+        <qti-match-interaction>
+          <qti-simple-match-set>
+            <qti-simple-associable-choice identifier="S1" match-max="1">Source 1</qti-simple-associable-choice>
+          </qti-simple-match-set>
+          <qti-simple-match-set>
+            <qti-simple-associable-choice identifier="T1" match-max="1">Target 1</qti-simple-associable-choice>
+          </qti-simple-match-set>
+        </qti-match-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      expect(container.querySelector('.cutie-error-display')).not.toBeNull();
+      expect(container.querySelector('.cutie-match-interaction')).toBeNull();
+    });
+  });
+
+  describe('basic rendering', () => {
+    it('creates container with correct structure and two match sets', () => {
+      const doc = createQtiDocument(BASIC_MATCH_QTI);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const matchContainer = container.querySelector('.cutie-match-interaction')!;
+      expect(matchContainer).not.toBeNull();
+      expect(matchContainer.getAttribute('role')).toBe('group');
+
+      const layout = container.querySelector('.cutie-match-layout')!;
+      expect(layout).not.toBeNull();
+      expect(layout.classList.contains('cutie-match-source-left')).toBe(true);
+
+      const matchSets = container.querySelectorAll('.cutie-match-set');
+      expect(matchSets.length).toBe(2);
+
+      const choices = container.querySelectorAll('.cutie-match-choice');
+      expect(choices.length).toBe(4);
+    });
+  });
+
+  describe('orientation', () => {
+    it('defaults to cutie-match-source-left when no class specified', () => {
+      const doc = createQtiDocument(BASIC_MATCH_QTI);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const layout = container.querySelector('.cutie-match-layout')!;
+      expect(layout.classList.contains('cutie-match-source-left')).toBe(true);
+    });
+
+    it('reads qti-match-source-right from class attribute', () => {
+      const doc = createQtiDocument(`
+        <qti-match-interaction response-identifier="R1" class="qti-match-source-right" max-associations="4">
+          <qti-simple-match-set>
+            <qti-simple-associable-choice identifier="S1" match-max="1">Source 1</qti-simple-associable-choice>
+          </qti-simple-match-set>
+          <qti-simple-match-set>
+            <qti-simple-associable-choice identifier="T1" match-max="1">Target 1</qti-simple-associable-choice>
+          </qti-simple-match-set>
+        </qti-match-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const layout = container.querySelector('.cutie-match-layout')!;
+      expect(layout.classList.contains('cutie-match-source-right')).toBe(true);
+      expect(layout.classList.contains('cutie-match-source-left')).toBe(false);
+    });
+
+    it('reads qti-match-source-top from class attribute', () => {
+      const doc = createQtiDocument(`
+        <qti-match-interaction response-identifier="R1" class="qti-match-source-top" max-associations="4">
+          <qti-simple-match-set>
+            <qti-simple-associable-choice identifier="S1" match-max="1">Source 1</qti-simple-associable-choice>
+          </qti-simple-match-set>
+          <qti-simple-match-set>
+            <qti-simple-associable-choice identifier="T1" match-max="1">Target 1</qti-simple-associable-choice>
+          </qti-simple-match-set>
+        </qti-match-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const layout = container.querySelector('.cutie-match-layout')!;
+      expect(layout.classList.contains('cutie-match-source-top')).toBe(true);
+    });
+
+    it('reads qti-match-source-bottom from class attribute', () => {
+      const doc = createQtiDocument(`
+        <qti-match-interaction response-identifier="R1" class="qti-match-source-bottom" max-associations="4">
+          <qti-simple-match-set>
+            <qti-simple-associable-choice identifier="S1" match-max="1">Source 1</qti-simple-associable-choice>
+          </qti-simple-match-set>
+          <qti-simple-match-set>
+            <qti-simple-associable-choice identifier="T1" match-max="1">Target 1</qti-simple-associable-choice>
+          </qti-simple-match-set>
+        </qti-match-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const layout = container.querySelector('.cutie-match-layout')!;
+      expect(layout.classList.contains('cutie-match-source-bottom')).toBe(true);
+    });
+  });
+
+  describe('accessibility', () => {
+    it('initializes choices with aria-selected="false"', () => {
+      const doc = createQtiDocument(BASIC_MATCH_QTI);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const choices = container.querySelectorAll('.cutie-match-choice');
+      for (const choice of choices) {
+        expect(choice.getAttribute('aria-selected')).toBe('false');
+      }
+    });
+  });
+
+  describe('cleanup', () => {
+    it('registers a cleanup callback via onCleanup', () => {
+      const doc = createQtiDocument(BASIC_MATCH_QTI);
+      const cleanupFn = vi.fn();
+
+      transformInteraction(doc, itemState, {
+        onCleanup: (cb) => cleanupFn(cb),
+      });
+
+      expect(cleanupFn).toHaveBeenCalledWith(expect.any(Function));
+    });
+  });
+
+  describe('disabled state', () => {
+    it('adds disabled class when interactions are disabled', () => {
+      const doc = createQtiDocument(BASIC_MATCH_QTI);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      itemState.setInteractionsEnabled(false);
+
+      const matchContainer = container.querySelector('.cutie-match-interaction')!;
+      expect(matchContainer.classList.contains('cutie-match-interaction--disabled')).toBe(true);
+    });
+
+    it('removes disabled class when interactions are re-enabled', () => {
+      const doc = createQtiDocument(BASIC_MATCH_QTI);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      itemState.setInteractionsEnabled(false);
+      itemState.setInteractionsEnabled(true);
+
+      const matchContainer = container.querySelector('.cutie-match-interaction')!;
+      expect(matchContainer.classList.contains('cutie-match-interaction--disabled')).toBe(false);
     });
   });
 
