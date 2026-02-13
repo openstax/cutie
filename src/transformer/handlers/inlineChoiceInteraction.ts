@@ -147,6 +147,14 @@ class InlineChoiceInteractionHandler implements ElementHandler {
 
       context.itemState.registerResponse(responseIdentifier, responseAccessor);
 
+      // Clear validation errors when user interaction makes the state valid
+      select.addEventListener('change', () => {
+        if (!isConstrained || select.value !== '') {
+          select.removeAttribute('aria-invalid');
+          indicator?.setError(false);
+        }
+      });
+
       // Observe interaction enabled state to enable/disable select
       const observer = (state: { interactionsEnabled: boolean }) => {
         select.disabled = !state.interactionsEnabled;

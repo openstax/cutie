@@ -331,6 +331,35 @@ describe('inlineChoiceInteraction', () => {
       expect(select.hasAttribute('aria-invalid')).toBe(false);
     });
 
+    it('clears error immediately on user selection without collectAll', () => {
+      const doc = createQtiDocument(`
+        <qti-inline-choice-interaction response-identifier="R1" required="true">
+          <qti-inline-choice identifier="A">Alpha</qti-inline-choice>
+          <qti-inline-choice identifier="B">Beta</qti-inline-choice>
+        </qti-inline-choice-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const select = container.querySelector('select')!;
+
+      // Trigger invalid state
+      itemState.collectAll();
+      expect(select.getAttribute('aria-invalid')).toBe('true');
+
+      const indicator = container.querySelector('.cutie-required-indicator')!;
+      expect(indicator.classList.contains('cutie-constraint-error')).toBe(true);
+
+      // User makes a selection — error should clear without collectAll
+      select.value = 'A';
+      select.dispatchEvent(new Event('change'));
+
+      expect(select.hasAttribute('aria-invalid')).toBe(false);
+      expect(indicator.classList.contains('cutie-constraint-error')).toBe(false);
+    });
+
     it('shows error state on indicator when invalid', () => {
       const doc = createQtiDocument(`
         <qti-inline-choice-interaction response-identifier="R1" required="true">
