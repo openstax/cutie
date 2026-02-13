@@ -91,6 +91,11 @@ class FormulaInteractionHandler implements ElementHandler {
     // Parse optional min-strings attribute
     const minStrings = parseInt(element.getAttribute('min-strings') ?? '0', 10) || 0;
 
+    // Read extended-text attributes
+    const placeholderText = element.getAttribute('placeholder-text')
+      ?? 'Enter LaTeX formula (e.g., 5x or \\frac{1}{2})';
+    const expectedLines = element.getAttribute('expected-lines');
+
     // Add constraint message if min-strings > 0
     let constraint: ConstraintMessage | undefined;
     if (minStrings > 0) {
@@ -153,6 +158,8 @@ class FormulaInteractionHandler implements ElementHandler {
         } else {
           mathField.setAttribute('aria-label', 'Formula input');
         }
+
+        mathField.setAttribute('placeholder', placeholderText);
 
         // Set initial value
         if (initialValue) {
@@ -217,7 +224,14 @@ class FormulaInteractionHandler implements ElementHandler {
         } else {
           textarea.setAttribute('aria-label', 'Formula input');
         }
-        textarea.placeholder = 'Enter LaTeX formula (e.g., 5x or \\frac{1}{2})';
+        textarea.placeholder = placeholderText;
+
+        if (expectedLines) {
+          const lines = parseInt(expectedLines, 10);
+          if (!isNaN(lines) && lines > 0) {
+            textarea.style.minHeight = `${Math.max(lines * 1.4, 3)}em`;
+          }
+        }
 
         if (initialValue) {
           textarea.value = initialValue;
