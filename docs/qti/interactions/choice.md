@@ -30,18 +30,18 @@
 
 | class | cutie | notes |
 |---|---|---|
-| qti-labels-none | :x: | forwarded but no CSS |
-| qti-labels-decimal | :x: | forwarded but no CSS |
-| qti-labels-lower-alpha | :x: | forwarded but no CSS |
-| qti-labels-upper-alpha | :x: | forwarded but no CSS |
+| qti-labels-none | :white_check_mark: | no-op; default has no labels |
+| qti-labels-decimal | :white_check_mark: | CSS counter with `decimal` style |
+| qti-labels-lower-alpha | :white_check_mark: | CSS counter with `lower-alpha` style |
+| qti-labels-upper-alpha | :white_check_mark: | CSS counter with `upper-alpha` style |
 
 ### label suffixes — basic cert
 
 | class | cutie | notes |
 |---|---|---|
-| qti-labels-suffix-none | :x: | forwarded but no CSS |
-| qti-labels-suffix-period | :x: | forwarded but no CSS |
-| qti-labels-suffix-parenthesis | :x: | forwarded but no CSS |
+| qti-labels-suffix-none | :white_check_mark: | no-op; default has no suffix |
+| qti-labels-suffix-period | :white_check_mark: | appends `.` via CSS `content` |
+| qti-labels-suffix-parenthesis | :white_check_mark: | appends `)` via CSS `content` |
 
 ### orientation — advanced cert
 

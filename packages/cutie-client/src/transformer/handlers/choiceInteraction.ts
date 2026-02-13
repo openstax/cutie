@@ -416,4 +416,58 @@ const CHOICE_INTERACTION_STYLES = `
   .cutie-choice-interaction .cutie-simple-choice:has(input:disabled) .cutie-simple-choice-content {
     cursor: not-allowed;
   }
+
+  /* ── Choice label vocabulary classes ─────────────────────────── */
+
+  /* Counter setup */
+  .cutie-choice-interaction:is(.qti-labels-decimal, .qti-labels-lower-alpha, .qti-labels-upper-alpha) .cutie-simple-choice-group {
+    counter-reset: choice-label;
+  }
+
+  .cutie-choice-interaction:is(.qti-labels-decimal, .qti-labels-lower-alpha, .qti-labels-upper-alpha) .cutie-simple-choice {
+    counter-increment: choice-label;
+  }
+
+  /* Shared label styling */
+  .cutie-choice-interaction:is(.qti-labels-decimal, .qti-labels-lower-alpha, .qti-labels-upper-alpha) .cutie-simple-choice::before {
+    display: inline-block;
+    min-width: 1.5em;
+    text-align: right;
+    flex-shrink: 0;
+    font-weight: 600;
+    line-height: 1.5;
+  }
+
+  /* Base labels (no suffix) */
+  .cutie-choice-interaction.qti-labels-decimal .cutie-simple-choice::before {
+    content: counter(choice-label, decimal);
+  }
+  .cutie-choice-interaction.qti-labels-lower-alpha .cutie-simple-choice::before {
+    content: counter(choice-label, lower-alpha);
+  }
+  .cutie-choice-interaction.qti-labels-upper-alpha .cutie-simple-choice::before {
+    content: counter(choice-label, upper-alpha);
+  }
+
+  /* Period suffix (higher specificity overrides base) */
+  .cutie-choice-interaction.qti-labels-decimal.qti-labels-suffix-period .cutie-simple-choice::before {
+    content: counter(choice-label, decimal) ".";
+  }
+  .cutie-choice-interaction.qti-labels-lower-alpha.qti-labels-suffix-period .cutie-simple-choice::before {
+    content: counter(choice-label, lower-alpha) ".";
+  }
+  .cutie-choice-interaction.qti-labels-upper-alpha.qti-labels-suffix-period .cutie-simple-choice::before {
+    content: counter(choice-label, upper-alpha) ".";
+  }
+
+  /* Parenthesis suffix */
+  .cutie-choice-interaction.qti-labels-decimal.qti-labels-suffix-parenthesis .cutie-simple-choice::before {
+    content: counter(choice-label, decimal) ")";
+  }
+  .cutie-choice-interaction.qti-labels-lower-alpha.qti-labels-suffix-parenthesis .cutie-simple-choice::before {
+    content: counter(choice-label, lower-alpha) ")";
+  }
+  .cutie-choice-interaction.qti-labels-upper-alpha.qti-labels-suffix-parenthesis .cutie-simple-choice::before {
+    content: counter(choice-label, upper-alpha) ")";
+  }
 `;

@@ -45,6 +45,7 @@ import * as formulaStrict from './formula-strict';
 import * as formulaCanonical from './formula-canonical';
 import * as formulaAlgebraic from './formula-algebraic';
 import * as extendedTextScored from './extended-text-scored';
+import * as variantChoiceLabels from './variant-choice-labels';
 
 /* these examples are copied exactly from examples in the spec
  * documents, they are used for verification that cutie works
@@ -87,6 +88,11 @@ export const formulaExamples = [
   formulaAlgebraic,
 ];
 
+/* variant testing examples for visual verification of CSS/layout features */
+export const variantExamples = [
+  variantChoiceLabels,
+];
+
 /* these examples were made for each interaction type to show editor-supported
  * response processing and feedback patterns, and show extensive feedback as
  * we would expect to see in real assessment items */
@@ -117,6 +123,10 @@ export const exampleGroups: ExampleGroup[] = [
   {
     label: 'Math Formula Entry',
     items: formulaExamples,
+  },
+  {
+    label: 'Variant Testing',
+    items: variantExamples,
   },
   {
     label: 'Feedback Types',
