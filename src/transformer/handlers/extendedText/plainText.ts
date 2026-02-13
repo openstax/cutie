@@ -3,9 +3,12 @@ import { registry } from '../../registry';
 import type { ElementHandler, TransformContext } from '../../types';
 import { getDefaultValue } from '../responseUtils';
 import {
+  createCharacterCounter,
   createConstraintElements,
   createInteractionContainer,
   parseConstraints,
+  parseCounterDirection,
+  parseExpectedLength,
   processPrompt,
   wireConstraintDescribedBy,
 } from './utils';
@@ -22,9 +25,12 @@ import {
  * - Multi-line textarea for text input
  *
  * Basic level certification requirements:
- * - Can ignore sizing hints (expected-length, expected-lines)
+ * - Can ignore sizing hints (expected-lines)
  * - Can ignore validation attributes (pattern-mask)
  * - Can treat all formats as plain text
+ *
+ * Advanced: expected-length is used with qti-counter-up/qti-counter-down
+ * vocab classes to display a live character counter.
  */
 class ExtendedTextInteractionHandler implements ElementHandler {
   canHandle(element: Element): boolean {
@@ -90,6 +96,20 @@ class ExtendedTextInteractionHandler implements ElementHandler {
     }
 
     container.appendChild(textarea);
+
+    // Character counter (requires both expected-length and a counter direction class)
+    const expectedLength = parseExpectedLength(element);
+    const counterDirection = parseCounterDirection(element);
+    if (expectedLength !== null && counterDirection !== null) {
+      const counter = createCharacterCounter(
+        expectedLength, counterDirection, responseIdentifier, context.styleManager,
+      );
+      container.appendChild(counter.element);
+      counter.update(textarea.value.length);
+      textarea.addEventListener('input', () => {
+        counter.update(textarea.value.length);
+      });
+    }
 
     // Parse and create constraint elements
     const constraints = parseConstraints(element);
