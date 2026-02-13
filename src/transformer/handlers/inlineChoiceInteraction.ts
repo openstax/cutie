@@ -104,11 +104,14 @@ class InlineChoiceInteractionHandler implements ElementHandler {
     if (isConstrained) {
       select.setAttribute('aria-required', 'true');
 
+      const customMessage = element.getAttribute('data-min-selections-message');
+      const constraintId = `constraint-${responseIdentifier}`;
       indicator = createInlineRequiredIndicator(
-        `constraint-${responseIdentifier}`,
-        'Selection required',
+        constraintId,
+        customMessage ?? 'Selection required',
         context.styleManager,
       );
+      select.setAttribute('aria-describedby', constraintId);
     }
 
     // Register response accessor with itemState if available
