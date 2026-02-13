@@ -1,3 +1,4 @@
+/* spell-checker: ignore bqti */
 import { createMissingAttributeError } from '../../errors/errorDisplay';
 import {
   type ConstraintMessage,
@@ -6,6 +7,13 @@ import {
 import { registry } from '../registry';
 import type { ElementHandler, TransformContext } from '../types';
 import { getDefaultValue } from './responseUtils';
+
+function parseInputWidth(element: Element): number | null {
+  const match = element.getAttribute('class')?.match(/\bqti-input-width-(\d+)\b/);
+  if (!match) return null;
+  const width = parseInt(match[1], 10);
+  return isNaN(width) || width <= 0 ? null : width;
+}
 
 /**
  * Handler for qti-inline-choice-interaction elements.
@@ -60,6 +68,12 @@ class InlineChoiceInteractionHandler implements ElementHandler {
     select.className = 'cutie-inline-choice-interaction';
     select.dataset.responseIdentifier = responseIdentifier;
 
+    const inputWidth = parseInputWidth(element);
+    if (inputWidth !== null) {
+      select.style.width = `${inputWidth + 4}ch`;
+      select.style.minWidth = '0';
+    }
+
     // Collect choices from qti-inline-choice children
     const choiceElements = Array.from(element.children).filter(
       (child) => child.tagName.toLowerCase() === 'qti-inline-choice'
@@ -68,7 +82,7 @@ class InlineChoiceInteractionHandler implements ElementHandler {
     // Add placeholder option for initial unselected state
     const placeholder = document.createElement('option');
     placeholder.value = '';
-    placeholder.textContent = 'Select\u2026';
+    placeholder.textContent = element.getAttribute('data-prompt') ?? 'Select\u2026';
     placeholder.disabled = true;
     placeholder.selected = true;
     placeholder.hidden = true;

@@ -350,6 +350,101 @@ describe('inlineChoiceInteraction', () => {
     });
   });
 
+  describe('qti-input-width sizing', () => {
+    it('sets width from qti-input-width-6 class', () => {
+      const doc = createQtiDocument(`
+        <qti-inline-choice-interaction response-identifier="R1" class="qti-input-width-6">
+          <qti-inline-choice identifier="A">Alpha</qti-inline-choice>
+        </qti-inline-choice-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const select = container.querySelector('select')!;
+      expect(select.style.width).toBe('10ch');
+      expect(select.style.minWidth).toBe('0');
+    });
+
+    it('sets width from qti-input-width-72 class', () => {
+      const doc = createQtiDocument(`
+        <qti-inline-choice-interaction response-identifier="R1" class="qti-input-width-72">
+          <qti-inline-choice identifier="A">Alpha</qti-inline-choice>
+        </qti-inline-choice-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const select = container.querySelector('select')!;
+      expect(select.style.width).toBe('76ch');
+    });
+
+    it('does not set inline width when no class is present', () => {
+      const doc = createQtiDocument(`
+        <qti-inline-choice-interaction response-identifier="R1">
+          <qti-inline-choice identifier="A">Alpha</qti-inline-choice>
+        </qti-inline-choice-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const select = container.querySelector('select')!;
+      expect(select.style.width).toBe('');
+    });
+
+    it('parses width when mixed with other classes', () => {
+      const doc = createQtiDocument(`
+        <qti-inline-choice-interaction response-identifier="R1" class="foo qti-input-width-15 bar">
+          <qti-inline-choice identifier="A">Alpha</qti-inline-choice>
+        </qti-inline-choice-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const select = container.querySelector('select')!;
+      expect(select.style.width).toBe('19ch');
+    });
+  });
+
+  describe('data-prompt', () => {
+    it('uses data-prompt as placeholder text', () => {
+      const doc = createQtiDocument(`
+        <qti-inline-choice-interaction response-identifier="R1" data-prompt="Choose one">
+          <qti-inline-choice identifier="A">Alpha</qti-inline-choice>
+        </qti-inline-choice-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const placeholder = container.querySelector('option')!;
+      expect(placeholder.textContent).toBe('Choose one');
+    });
+
+    it('defaults to "Select\u2026" when data-prompt is absent', () => {
+      const doc = createQtiDocument(`
+        <qti-inline-choice-interaction response-identifier="R1">
+          <qti-inline-choice identifier="A">Alpha</qti-inline-choice>
+        </qti-inline-choice-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const placeholder = container.querySelector('option')!;
+      expect(placeholder.textContent).toBe('Select\u2026');
+    });
+  });
+
   describe('disabled state', () => {
     it('disables select when interactions are disabled', () => {
       const doc = createQtiDocument(`
