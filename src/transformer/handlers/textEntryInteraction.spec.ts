@@ -120,6 +120,86 @@ describe('textEntryInteraction', () => {
     });
   });
 
+  describe('qti-input-width sizing', () => {
+    it('sets width from qti-input-width-6 class', () => {
+      const doc = createQtiDocument(`
+        <qti-text-entry-interaction response-identifier="R1" class="qti-input-width-6"></qti-text-entry-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const input = container.querySelector('input')!;
+      expect(input.style.width).toBe('8ch');
+    });
+
+    it('sets width from qti-input-width-72 class', () => {
+      const doc = createQtiDocument(`
+        <qti-text-entry-interaction response-identifier="R1" class="qti-input-width-72"></qti-text-entry-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const input = container.querySelector('input')!;
+      expect(input.style.width).toBe('74ch');
+    });
+
+    it('extracts width class when mixed with other classes', () => {
+      const doc = createQtiDocument(`
+        <qti-text-entry-interaction response-identifier="R1" class="foo qti-input-width-15 bar"></qti-text-entry-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const input = container.querySelector('input')!;
+      expect(input.style.width).toBe('17ch');
+    });
+
+    it('overrides expected-length when both are present', () => {
+      const doc = createQtiDocument(`
+        <qti-text-entry-interaction response-identifier="R1" class="qti-input-width-20" expected-length="5"></qti-text-entry-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const input = container.querySelector('input')!;
+      expect(input.style.width).toBe('22ch');
+    });
+
+    it('falls back to expected-length when no width class', () => {
+      const doc = createQtiDocument(`
+        <qti-text-entry-interaction response-identifier="R1" expected-length="5"></qti-text-entry-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const input = container.querySelector('input')!;
+      expect(input.style.width).toBe('7ch');
+    });
+
+    it('falls back to 10ch when neither width class nor expected-length', () => {
+      const doc = createQtiDocument(`
+        <qti-text-entry-interaction response-identifier="R1"></qti-text-entry-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const input = container.querySelector('input')!;
+      expect(input.style.width).toBe('10ch');
+    });
+  });
+
   describe('expected-length sizing', () => {
     it('sets width based on expected-length attribute', () => {
       const doc = createQtiDocument(`

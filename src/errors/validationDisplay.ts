@@ -67,6 +67,7 @@ const VALIDATION_DISPLAY_STYLES = `
 export interface ConstraintMessage {
   element: HTMLElement;
   setError: (isError: boolean) => void;
+  setText: (text: string) => void;
 }
 
 export function createConstraintMessage(
@@ -107,7 +108,11 @@ export function createConstraintMessage(
     }
   };
 
-  return { element: container, setError };
+  const setText = (newText: string) => {
+    textSpan.textContent = newText;
+  };
+
+  return { element: container, setError, setText };
 }
 
 /**
@@ -143,5 +148,10 @@ export function createInlineRequiredIndicator(
     }
   };
 
-  return { element: span, setError };
+  const setText = (newText: string) => {
+    span.title = newText;
+    span.setAttribute('aria-label', newText);
+  };
+
+  return { element: span, setError, setText };
 }

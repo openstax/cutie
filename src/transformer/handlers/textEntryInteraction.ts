@@ -5,6 +5,7 @@ import {
 } from '../../errors/validationDisplay';
 import { registry } from '../registry';
 import type { ElementHandler, TransformContext } from '../types';
+import { parseInputWidth } from '../vocabUtils';
 import { getDefaultValue } from './responseUtils';
 
 /**
@@ -73,17 +74,20 @@ class TextEntryInteractionHandler implements ElementHandler {
     // Set data attribute for identification
     input.dataset.responseIdentifier = responseIdentifier;
 
-    // Optional: Use expected-length as a sizing hint (not required for Basic level)
-    const expectedLength = element.getAttribute('expected-length');
-    if (expectedLength) {
-      const length = parseInt(expectedLength, 10);
-      if (!isNaN(length) && length > 0) {
-        // Use expected-length to set approximate width (1ch per character + padding)
-        input.style.width = `${length + 2}ch`;
-      }
+    // Width precedence: qti-input-width-N > expected-length > default 10ch
+    const inputWidth = parseInputWidth(element);
+    if (inputWidth !== null) {
+      input.style.width = `${inputWidth + 2}ch`;
     } else {
-      // Default width if no expected-length provided
-      input.style.width = '10ch';
+      const expectedLength = element.getAttribute('expected-length');
+      if (expectedLength) {
+        const length = parseInt(expectedLength, 10);
+        if (!isNaN(length) && length > 0) {
+          input.style.width = `${length + 2}ch`;
+        }
+      } else {
+        input.style.width = '10ch';
+      }
     }
 
     // Initialize with default value from response declaration if present

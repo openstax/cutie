@@ -498,7 +498,7 @@ describe('choiceInteraction validation', () => {
       expect(interaction.classList.contains('qti-orientation-horizontal')).toBe(false);
     });
 
-    it('uses custom data-min-selections-message instead of generated text', () => {
+    it('shows auto-generated hint initially even when data-min-selections-message is set', () => {
       const doc = createQtiDocument(`
         <qti-choice-interaction response-identifier="R1" max-choices="3" min-choices="2"
           data-min-selections-message="Pick at least two">
@@ -514,10 +514,34 @@ describe('choiceInteraction validation', () => {
 
       const constraintEl = container.querySelector('.cutie-constraint-text');
       expect(constraintEl).not.toBeNull();
+      // Initial text is the auto-generated hint, not the custom message
+      expect(constraintEl!.textContent).toBe('Select between 2 and 3 choices.');
+    });
+
+    it('shows custom data-min-selections-message on min-choices violation', () => {
+      const doc = createQtiDocument(`
+        <qti-choice-interaction response-identifier="R1" max-choices="3" min-choices="2"
+          data-min-selections-message="Pick at least two">
+          <qti-simple-choice identifier="A">A</qti-simple-choice>
+          <qti-simple-choice identifier="B">B</qti-simple-choice>
+          <qti-simple-choice identifier="C">C</qti-simple-choice>
+        </qti-choice-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      // Select only 1 (below min of 2) and trigger validation
+      const inputs = container.querySelectorAll<HTMLInputElement>('input[type="checkbox"]');
+      inputs[0]!.checked = true;
+      itemState.collectAll();
+
+      const constraintEl = container.querySelector('.cutie-constraint-text');
       expect(constraintEl!.textContent).toBe('Pick at least two');
     });
 
-    it('uses custom data-max-selections-message instead of generated text', () => {
+    it('shows auto-generated hint initially even when data-max-selections-message is set', () => {
       const doc = createQtiDocument(`
         <qti-choice-interaction response-identifier="R1" max-choices="2"
           data-max-selections-message="No more than two please">
@@ -533,7 +557,34 @@ describe('choiceInteraction validation', () => {
 
       const constraintEl = container.querySelector('.cutie-constraint-text');
       expect(constraintEl).not.toBeNull();
+      // Initial text is the auto-generated hint, not the custom message
+      expect(constraintEl!.textContent).toBe('Select up to 2 choices.');
+    });
+
+    it('shows custom data-max-selections-message on over-selection', () => {
+      const doc = createQtiDocument(`
+        <qti-choice-interaction response-identifier="R1" max-choices="2"
+          data-max-selections-message="No more than two please">
+          <qti-simple-choice identifier="A">A</qti-simple-choice>
+          <qti-simple-choice identifier="B">B</qti-simple-choice>
+          <qti-simple-choice identifier="C">C</qti-simple-choice>
+        </qti-choice-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      // Select all 3 (exceeds max of 2)
+      const inputs = container.querySelectorAll<HTMLInputElement>('input[type="checkbox"]');
+      inputs[0]!.checked = true;
+      inputs[1]!.checked = true;
+      inputs[2]!.checked = true;
+      inputs[2]!.dispatchEvent(new Event('change', { bubbles: true }));
+
+      const constraintEl = container.querySelector('.cutie-constraint-text');
       expect(constraintEl!.textContent).toBe('No more than two please');
+      expect(constraintEl!.classList.contains('cutie-constraint-error')).toBe(true);
     });
 
     describe('label vocabulary classes', () => {
@@ -758,6 +809,177 @@ describe('choiceInteraction validation', () => {
         const interaction = container.querySelector('.cutie-choice-interaction')!;
         expect(interaction.classList.contains('qti-input-control-hidden')).toBe(true);
       });
+    });
+  });
+
+  describe('over-selection behavior', () => {
+    it('does not disable inputs when max-choices is reached', () => {
+      const doc = createQtiDocument(`
+        <qti-choice-interaction response-identifier="R1" max-choices="2">
+          <qti-simple-choice identifier="A">A</qti-simple-choice>
+          <qti-simple-choice identifier="B">B</qti-simple-choice>
+          <qti-simple-choice identifier="C">C</qti-simple-choice>
+        </qti-choice-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const inputs = container.querySelectorAll<HTMLInputElement>('input[type="checkbox"]');
+
+      // Select two (at max)
+      inputs[0]!.checked = true;
+      inputs[1]!.checked = true;
+      inputs[1]!.dispatchEvent(new Event('change', { bubbles: true }));
+
+      // Third input should still be enabled — over-selection is allowed
+      expect(inputs[2]!.disabled).toBe(false);
+    });
+
+    it('shows max error in real-time when over-selecting', () => {
+      const doc = createQtiDocument(`
+        <qti-choice-interaction response-identifier="R1" max-choices="2">
+          <qti-simple-choice identifier="A">A</qti-simple-choice>
+          <qti-simple-choice identifier="B">B</qti-simple-choice>
+          <qti-simple-choice identifier="C">C</qti-simple-choice>
+        </qti-choice-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const inputs = container.querySelectorAll<HTMLInputElement>('input[type="checkbox"]');
+
+      // Select all 3 (exceeds max of 2)
+      inputs[0]!.checked = true;
+      inputs[1]!.checked = true;
+      inputs[2]!.checked = true;
+      inputs[2]!.dispatchEvent(new Event('change', { bubbles: true }));
+
+      const fieldset = container.querySelector('fieldset')!;
+      expect(fieldset.getAttribute('aria-invalid')).toBe('true');
+
+      const constraintEl = container.querySelector('.cutie-constraint-text')!;
+      expect(constraintEl.classList.contains('cutie-constraint-error')).toBe(true);
+    });
+
+    it('clears error and restores hint text when over-selection is corrected', () => {
+      const doc = createQtiDocument(`
+        <qti-choice-interaction response-identifier="R1" max-choices="2"
+          data-max-selections-message="Too many!">
+          <qti-simple-choice identifier="A">A</qti-simple-choice>
+          <qti-simple-choice identifier="B">B</qti-simple-choice>
+          <qti-simple-choice identifier="C">C</qti-simple-choice>
+        </qti-choice-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const inputs = container.querySelectorAll<HTMLInputElement>('input[type="checkbox"]');
+      const constraintEl = container.querySelector('.cutie-constraint-text')!;
+
+      // Over-select (3 checked, max is 2)
+      inputs[0]!.checked = true;
+      inputs[1]!.checked = true;
+      inputs[2]!.checked = true;
+      inputs[2]!.dispatchEvent(new Event('change', { bubbles: true }));
+      expect(constraintEl.textContent).toBe('Too many!');
+
+      // Deselect one to go back to valid
+      inputs[2]!.checked = false;
+      inputs[2]!.dispatchEvent(new Event('change', { bubbles: true }));
+
+      expect(constraintEl.classList.contains('cutie-constraint-error')).toBe(false);
+      expect(constraintEl.textContent).toBe('Select up to 2 choices.');
+    });
+
+    it('shows correct custom message based on violation type', () => {
+      const doc = createQtiDocument(`
+        <qti-choice-interaction response-identifier="R1" max-choices="3" min-choices="2"
+          data-min-selections-message="Need more"
+          data-max-selections-message="Too many">
+          <qti-simple-choice identifier="A">A</qti-simple-choice>
+          <qti-simple-choice identifier="B">B</qti-simple-choice>
+          <qti-simple-choice identifier="C">C</qti-simple-choice>
+          <qti-simple-choice identifier="D">D</qti-simple-choice>
+        </qti-choice-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const inputs = container.querySelectorAll<HTMLInputElement>('input[type="checkbox"]');
+      const constraintEl = container.querySelector('.cutie-constraint-text')!;
+
+      // Min violation: select 1 (below min of 2), trigger via accessor
+      inputs[0]!.checked = true;
+      itemState.collectAll();
+      expect(constraintEl.textContent).toBe('Need more');
+
+      // Fix to valid: select 2
+      inputs[1]!.checked = true;
+      inputs[1]!.dispatchEvent(new Event('change', { bubbles: true }));
+      expect(constraintEl.textContent).toBe('Select between 2 and 3 choices.');
+
+      // Max violation: select all 4 (exceeds max of 3)
+      inputs[2]!.checked = true;
+      inputs[3]!.checked = true;
+      inputs[3]!.dispatchEvent(new Event('change', { bubbles: true }));
+      expect(constraintEl.textContent).toBe('Too many');
+    });
+
+    it('uses auto-generated hint text in error style when no custom messages set', () => {
+      const doc = createQtiDocument(`
+        <qti-choice-interaction response-identifier="R1" max-choices="2" min-choices="1">
+          <qti-simple-choice identifier="A">A</qti-simple-choice>
+          <qti-simple-choice identifier="B">B</qti-simple-choice>
+          <qti-simple-choice identifier="C">C</qti-simple-choice>
+        </qti-choice-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const inputs = container.querySelectorAll<HTMLInputElement>('input[type="checkbox"]');
+      const constraintEl = container.querySelector('.cutie-constraint-text')!;
+
+      // Over-select: 3 checked, max is 2 — no custom message, should show hint in error style
+      inputs[0]!.checked = true;
+      inputs[1]!.checked = true;
+      inputs[2]!.checked = true;
+      inputs[2]!.dispatchEvent(new Event('change', { bubbles: true }));
+
+      expect(constraintEl.classList.contains('cutie-constraint-error')).toBe(true);
+      expect(constraintEl.textContent).toBe('Select between 1 and 2 choices.');
+    });
+
+    it('returns invalid when over-selecting via accessor', () => {
+      const doc = createQtiDocument(`
+        <qti-choice-interaction response-identifier="R1" max-choices="2">
+          <qti-simple-choice identifier="A">A</qti-simple-choice>
+          <qti-simple-choice identifier="B">B</qti-simple-choice>
+          <qti-simple-choice identifier="C">C</qti-simple-choice>
+        </qti-choice-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const inputs = container.querySelectorAll<HTMLInputElement>('input[type="checkbox"]');
+      inputs[0]!.checked = true;
+      inputs[1]!.checked = true;
+      inputs[2]!.checked = true;
+
+      const result = itemState.collectAll();
+      expect(result.valid).toBe(false);
+      expect(result.invalidCount).toBe(1);
     });
   });
 });
