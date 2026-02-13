@@ -115,6 +115,13 @@ function validateTextEntryInteractions(
   }
 }
 
+/**
+ * Strip HTML tags from a string, returning plain text content.
+ */
+function stripHtmlTags(html: string): string {
+  return html.replace(/<[^>]*>/g, '');
+}
+
 function validateExtendedTextInteractions(
   submission: ResponseData,
   itemDoc: Document,
@@ -127,13 +134,17 @@ function validateExtendedTextInteractions(
     const responseIdentifier = interaction.getAttribute('response-identifier');
     if (!responseIdentifier) continue;
 
+    const isXhtml = interaction.getAttribute('format') === 'xhtml';
+
     // Check min-strings
     const minStringsAttr = interaction.getAttribute('min-strings');
     if (minStringsAttr) {
       const minStrings = parseInt(minStringsAttr, 10);
       if (!isNaN(minStrings) && minStrings > 0) {
-        const value = String(submission[responseIdentifier] ?? '').trim();
-        if (value.length === 0) {
+        const rawValue = String(submission[responseIdentifier] ?? '');
+        // For xhtml format, strip HTML tags before checking emptiness
+        const textContent = isXhtml ? stripHtmlTags(rawValue) : rawValue;
+        if (textContent.trim().length === 0) {
           errors.push({
             responseIdentifier,
             constraint: 'min-strings',
@@ -143,16 +154,18 @@ function validateExtendedTextInteractions(
       }
     }
 
-    // Check pattern-mask
-    const patternMask = interaction.getAttribute('pattern-mask');
-    if (patternMask) {
-      const value = String(submission[responseIdentifier] ?? '');
-      if (!new RegExp(patternMask).test(value)) {
-        errors.push({
-          responseIdentifier,
-          constraint: 'pattern-mask',
-          message: `Value does not match pattern "${patternMask}"`,
-        });
+    // Check pattern-mask (skip for xhtml — regex on HTML is meaningless)
+    if (!isXhtml) {
+      const patternMask = interaction.getAttribute('pattern-mask');
+      if (patternMask) {
+        const value = String(submission[responseIdentifier] ?? '');
+        if (!new RegExp(patternMask).test(value)) {
+          errors.push({
+            responseIdentifier,
+            constraint: 'pattern-mask',
+            message: `Value does not match pattern "${patternMask}"`,
+          });
+        }
       }
     }
   }
