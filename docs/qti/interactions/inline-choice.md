@@ -32,13 +32,13 @@ Note: inline-choice is entirely **advanced** cert (Q12 is Level 2).
 
 | class | cutie | notes |
 |---|---|---|
-| qti-input-width-{1,2,3,4,6,10,15,20,25,30,35,40,45,50,72} | :x: | forwarded but no CSS |
+| qti-input-width-{1,2,3,4,6,10,15,20,25,30,35,40,45,50,72} | :white_check_mark: | sets select width in ch units |
 
 ### data attributes — advanced cert
 
 | attribute | cutie | notes |
 |---|---|---|
-| data-prompt | :x: | prompt text for the dropdown |
+| data-prompt | :white_check_mark: | custom placeholder text for the dropdown |
 
 ### writing mode — not in cert checklist
 
