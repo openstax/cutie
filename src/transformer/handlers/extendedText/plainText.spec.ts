@@ -437,6 +437,190 @@ describe('extendedTextInteraction', () => {
     });
   });
 
+  describe('clearing errors on input', () => {
+    it('clears error when min-strings violation is resolved by typing', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" min-strings="1">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const textarea = container.querySelector('textarea')!;
+      const constraintEl = container.querySelector('.cutie-constraint-text')!;
+
+      // Trigger validation error
+      itemState.collectAll();
+      expect(textarea.getAttribute('aria-invalid')).toBe('true');
+      expect(constraintEl.classList.contains('cutie-constraint-error')).toBe(true);
+
+      // User types valid content — error clears
+      textarea.value = 'hello';
+      textarea.dispatchEvent(new Event('input'));
+      expect(textarea.hasAttribute('aria-invalid')).toBe(false);
+      expect(constraintEl.classList.contains('cutie-constraint-error')).toBe(false);
+    });
+
+    it('keeps error when min-strings violation is not resolved', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" min-strings="1">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const textarea = container.querySelector('textarea')!;
+
+      // Trigger validation error
+      itemState.collectAll();
+      expect(textarea.getAttribute('aria-invalid')).toBe('true');
+
+      // User types only whitespace — still invalid
+      textarea.value = '   ';
+      textarea.dispatchEvent(new Event('input'));
+      expect(textarea.getAttribute('aria-invalid')).toBe('true');
+    });
+
+    it('clears error when pattern-mask violation is resolved', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" pattern-mask="^\\d+$">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const textarea = container.querySelector('textarea')!;
+      textarea.value = 'abc';
+
+      // Trigger validation error
+      itemState.collectAll();
+      expect(textarea.getAttribute('aria-invalid')).toBe('true');
+
+      // Still invalid — different non-matching text
+      textarea.value = 'xyz';
+      textarea.dispatchEvent(new Event('input'));
+      expect(textarea.getAttribute('aria-invalid')).toBe('true');
+
+      // Now valid
+      textarea.value = '123';
+      textarea.dispatchEvent(new Event('input'));
+      expect(textarea.hasAttribute('aria-invalid')).toBe(false);
+    });
+
+    it('clears error when max-characters violation is resolved', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" data-max-characters="10">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const textarea = container.querySelector('textarea')!;
+      textarea.value = 'way too long for the limit';
+
+      // Trigger validation error
+      itemState.collectAll();
+      expect(textarea.getAttribute('aria-invalid')).toBe('true');
+
+      // Still over limit
+      textarea.value = 'still too long';
+      textarea.dispatchEvent(new Event('input'));
+      expect(textarea.getAttribute('aria-invalid')).toBe('true');
+
+      // Now under limit
+      textarea.value = 'short';
+      textarea.dispatchEvent(new Event('input'));
+      expect(textarea.hasAttribute('aria-invalid')).toBe(false);
+    });
+
+    it('clears error when min-characters violation is resolved', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" data-min-characters="5">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const textarea = container.querySelector('textarea')!;
+      textarea.value = 'hi';
+
+      // Trigger validation error
+      itemState.collectAll();
+      expect(textarea.getAttribute('aria-invalid')).toBe('true');
+
+      // Still under minimum
+      textarea.value = 'hey';
+      textarea.dispatchEvent(new Event('input'));
+      expect(textarea.getAttribute('aria-invalid')).toBe('true');
+
+      // Now meets minimum
+      textarea.value = 'hello';
+      textarea.dispatchEvent(new Event('input'));
+      expect(textarea.hasAttribute('aria-invalid')).toBe(false);
+    });
+
+    it('resets constraint text to initial message when error clears', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1"
+          min-strings="1" pattern-mask="^\\d+$"
+          data-patternmask-message="Numbers only">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const textarea = container.querySelector('textarea')!;
+      const constraintEl = container.querySelector('.cutie-constraint-text')!;
+
+      // Initial text is the min-strings message
+      expect(constraintEl.textContent).toBe('Enter a response.');
+
+      // Empty submit → min-strings error
+      itemState.collectAll();
+      expect(constraintEl.textContent).toBe('Enter a response.');
+
+      // Non-matching input → pattern error
+      textarea.value = 'abc';
+      textarea.dispatchEvent(new Event('input'));
+      expect(constraintEl.textContent).toBe('Numbers only');
+
+      // Valid input → resets to initial neutral text
+      textarea.value = '123';
+      textarea.dispatchEvent(new Event('input'));
+      expect(constraintEl.textContent).toBe('Enter a response.');
+      expect(constraintEl.classList.contains('cutie-constraint-error')).toBe(false);
+    });
+
+    it('does not run validation when no prior error exists', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" min-strings="1">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const textarea = container.querySelector('textarea')!;
+      textarea.value = 'hello';
+      textarea.dispatchEvent(new Event('input'));
+
+      expect(textarea.hasAttribute('aria-invalid')).toBe(false);
+    });
+  });
+
   describe('height-lines vocab classes', () => {
     it('forwards source classes to container', () => {
       const doc = createQtiDocument(`
@@ -656,6 +840,191 @@ describe('extendedTextInteraction', () => {
     });
   });
 
+  describe('data-max-characters', () => {
+    it('shows counter with hard-limit wording (no "suggested")', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1"
+          data-max-characters="200" class="qti-counter-down">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const counter = container.querySelector('.cutie-character-counter')!;
+      expect(counter).not.toBeNull();
+      expect(counter.textContent).toBe('200 characters remaining');
+    });
+
+    it('defaults to counter-down when no counter class specified', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1"
+          data-max-characters="200">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const counter = container.querySelector('.cutie-character-counter')!;
+      expect(counter).not.toBeNull();
+      expect(counter.textContent).toBe('200 characters remaining');
+    });
+
+    it('respects explicit qti-counter-up class with max-characters', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1"
+          data-max-characters="200" class="qti-counter-up">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const counter = container.querySelector('.cutie-character-counter')!;
+      expect(counter.textContent).toBe('0 / 200 characters');
+    });
+
+    it('shows hard-limit over-limit text', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1"
+          data-max-characters="5" class="qti-counter-down">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const textarea = container.querySelector('textarea')!;
+      textarea.value = 'hello world';
+      textarea.dispatchEvent(new Event('input'));
+
+      const counter = container.querySelector('.cutie-character-counter')!;
+      expect(counter.textContent).toBe('6 characters over limit');
+      expect(counter.classList.contains('cutie-counter-over')).toBe(true);
+    });
+
+    it('returns valid:false when over limit', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1"
+          data-max-characters="5">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const textarea = container.querySelector('textarea')!;
+      textarea.value = 'hello world';
+
+      const result = itemState.collectAll();
+      expect(result.valid).toBe(false);
+    });
+
+    it('sets aria-invalid and constraint error when over limit', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1"
+          data-max-characters="5">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const textarea = container.querySelector('textarea')!;
+      textarea.value = 'hello world';
+
+      itemState.collectAll();
+
+      expect(textarea.getAttribute('aria-invalid')).toBe('true');
+
+      const constraintEl = container.querySelector('.cutie-constraint-text')!;
+      expect(constraintEl.classList.contains('cutie-constraint-error')).toBe(true);
+      expect(constraintEl.textContent).toBe('Maximum 5 characters allowed');
+    });
+
+    it('clears error when under limit again', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1"
+          data-max-characters="20">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const textarea = container.querySelector('textarea')!;
+
+      // Over limit
+      textarea.value = 'this is way too many characters for the limit';
+      itemState.collectAll();
+      expect(textarea.getAttribute('aria-invalid')).toBe('true');
+
+      // Under limit
+      textarea.value = 'short';
+      const result = itemState.collectAll();
+      expect(result.valid).toBe(true);
+      expect(textarea.hasAttribute('aria-invalid')).toBe(false);
+    });
+
+    it('takes precedence over expected-length for counter', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1"
+          expected-length="500" data-max-characters="200" class="qti-counter-down">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const counter = container.querySelector('.cutie-character-counter')!;
+      // Should use max-characters (200) with hard-limit wording, not expected-length (500)
+      expect(counter.textContent).toBe('200 characters remaining');
+    });
+
+    it('returns valid:true when at exactly the limit', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1"
+          data-max-characters="5">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const textarea = container.querySelector('textarea')!;
+      textarea.value = 'hello';
+
+      const result = itemState.collectAll();
+      expect(result.valid).toBe(true);
+    });
+
+    it('creates constraint element for max-characters even without min-strings', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1"
+          data-max-characters="100">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const constraintEl = container.querySelector('.cutie-constraint-text');
+      expect(constraintEl).not.toBeNull();
+      expect(constraintEl!.textContent).toBe('Maximum 100 characters allowed');
+    });
+  });
+
   describe('pattern-mask rendering', () => {
     it('creates constraint message when pattern-mask is present (no min-strings)', () => {
       const doc = createQtiDocument(`
@@ -779,6 +1148,181 @@ describe('extendedTextInteraction', () => {
       const result = itemState.collectAll();
       expect(result.valid).toBe(true);
       expect(textarea.hasAttribute('aria-invalid')).toBe(false);
+    });
+  });
+
+  describe('data-min-characters', () => {
+    it('creates constraint element with min-characters text', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" data-min-characters="50">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const constraintEl = container.querySelector('.cutie-constraint-text');
+      expect(constraintEl).not.toBeNull();
+      expect(constraintEl!.textContent).toBe('Write at least 50 characters');
+    });
+
+    it('returns valid:false when empty (implies required)', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" data-min-characters="10">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const result = itemState.collectAll();
+      expect(result.valid).toBe(false);
+      expect(result.responses).toEqual({ R1: null });
+    });
+
+    it('returns valid:false when non-empty but under limit', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" data-min-characters="20">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const textarea = container.querySelector('textarea')!;
+      textarea.value = 'short';
+
+      const result = itemState.collectAll();
+      expect(result.valid).toBe(false);
+      expect(result.responses).toEqual({ R1: 'short' });
+    });
+
+    it('sets aria-invalid and constraint error when under limit', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" data-min-characters="20">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const textarea = container.querySelector('textarea')!;
+      textarea.value = 'short';
+
+      itemState.collectAll();
+
+      expect(textarea.getAttribute('aria-invalid')).toBe('true');
+      const constraintEl = container.querySelector('.cutie-constraint-text')!;
+      expect(constraintEl.classList.contains('cutie-constraint-error')).toBe(true);
+      expect(constraintEl.textContent).toBe('Write at least 20 characters');
+    });
+
+    it('returns valid:true when at exactly the minimum', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" data-min-characters="5">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const textarea = container.querySelector('textarea')!;
+      textarea.value = 'hello';
+
+      const result = itemState.collectAll();
+      expect(result.valid).toBe(true);
+    });
+
+    it('returns valid:true when over the minimum', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" data-min-characters="5">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const textarea = container.querySelector('textarea')!;
+      textarea.value = 'hello world';
+
+      const result = itemState.collectAll();
+      expect(result.valid).toBe(true);
+    });
+
+    it('clears error when text meets minimum on re-validation', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" data-min-characters="5">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const textarea = container.querySelector('textarea')!;
+
+      // Under limit
+      textarea.value = 'hi';
+      itemState.collectAll();
+      expect(textarea.getAttribute('aria-invalid')).toBe('true');
+
+      // Meets limit
+      textarea.value = 'hello';
+      const result = itemState.collectAll();
+      expect(result.valid).toBe(true);
+      expect(textarea.hasAttribute('aria-invalid')).toBe(false);
+    });
+
+    it('shows min-strings error when empty with both min-strings and min-characters', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1"
+          min-strings="1" data-min-characters="20">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      itemState.collectAll();
+
+      const constraintEl = container.querySelector('.cutie-constraint-text')!;
+      expect(constraintEl.textContent).toBe('Enter a response.');
+    });
+
+    it('works with data-max-characters: both constraints enforced independently', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1"
+          data-min-characters="5" data-max-characters="20">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const textarea = container.querySelector('textarea')!;
+
+      // Too short
+      textarea.value = 'hi';
+      let result = itemState.collectAll();
+      expect(result.valid).toBe(false);
+
+      // In range
+      textarea.value = 'hello world';
+      result = itemState.collectAll();
+      expect(result.valid).toBe(true);
+
+      // Too long
+      textarea.value = 'this is way too many characters for the limit';
+      result = itemState.collectAll();
+      expect(result.valid).toBe(false);
     });
   });
 

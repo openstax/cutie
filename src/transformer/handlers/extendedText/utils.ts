@@ -53,6 +53,8 @@ export interface ParsedConstraints {
   minStrings: number;
   patternMask: string | null;
   patternMessage: string | null;
+  minCharacters: number | null;
+  maxCharacters: number | null;
 }
 
 /**
@@ -62,7 +64,9 @@ export function parseConstraints(element: Element): ParsedConstraints {
   const minStrings = parseInt(element.getAttribute('min-strings') ?? '0', 10) || 0;
   const patternMask = element.getAttribute('pattern-mask');
   const patternMessage = element.getAttribute('data-patternmask-message');
-  return { minStrings, patternMask, patternMessage };
+  const minCharacters = parseMinCharacters(element);
+  const maxCharacters = parseMaxCharacters(element);
+  return { minStrings, patternMask, patternMessage, minCharacters, maxCharacters };
 }
 
 /**
@@ -71,6 +75,20 @@ export function parseConstraints(element: Element): ParsedConstraints {
 export function getMinStringsText(minStrings: number): string | null {
   if (minStrings === 1) return 'Enter a response.';
   if (minStrings > 1) return `Enter at least ${minStrings} responses.`;
+  return null;
+}
+
+export function getMinCharactersText(minCharacters: number | null): string | null {
+  if (minCharacters !== null && minCharacters > 0) {
+    return `Write at least ${minCharacters} characters`;
+  }
+  return null;
+}
+
+export function getMaxCharactersText(maxCharacters: number | null): string | null {
+  if (maxCharacters !== null && maxCharacters > 0) {
+    return `Maximum ${maxCharacters} characters allowed`;
+  }
   return null;
 }
 
@@ -83,8 +101,11 @@ export function getPatternText(
 
 export interface ConstraintResult {
   constraint: ConstraintMessage;
+  initialText: string;
   minStringsText: string | null;
+  minCharactersText: string | null;
   patternText: string | null;
+  maxCharactersText: string | null;
 }
 
 /**
@@ -96,19 +117,23 @@ export function createConstraintElements(
   responseIdentifier: string,
   styleManager?: StyleManager,
 ): ConstraintResult | null {
-  const { minStrings, patternMask, patternMessage } = constraints;
+  const { minStrings, patternMask, patternMessage, minCharacters, maxCharacters } = constraints;
   const minStringsText = getMinStringsText(minStrings);
+  const minCharactersText = getMinCharactersText(minCharacters);
   const patternText = getPatternText(patternMask, patternMessage);
+  const maxCharactersText = getMaxCharactersText(maxCharacters);
 
-  if (minStrings <= 0 && !patternMask) return null;
+  if (minStrings <= 0 && !patternMask && minCharacters === null && maxCharacters === null) return null;
+
+  const initialText = minCharactersText ?? minStringsText ?? patternText ?? maxCharactersText!;
 
   const constraint = createConstraintMessage(
     `constraint-${responseIdentifier}`,
-    minStringsText ?? patternText!,
+    initialText,
     styleManager,
   );
 
-  return { constraint, minStringsText, patternText };
+  return { constraint, initialText, minStringsText, minCharactersText, patternText, maxCharactersText };
 }
 
 /**
@@ -130,6 +155,28 @@ export function wireConstraintDescribedBy(
 // ---------------------------------------------------------------------------
 // Character counter
 // ---------------------------------------------------------------------------
+
+/**
+ * Parse the data-min-characters attribute from an extended-text interaction.
+ * This is a spec extension that enforces a minimum character requirement.
+ */
+export function parseMinCharacters(element: Element): number | null {
+  const raw = element.getAttribute('data-min-characters');
+  if (!raw) return null;
+  const n = parseInt(raw, 10);
+  return isNaN(n) || n <= 0 ? null : n;
+}
+
+/**
+ * Parse the data-max-characters attribute from an extended-text interaction.
+ * This is a spec extension that enforces a hard character limit.
+ */
+export function parseMaxCharacters(element: Element): number | null {
+  const raw = element.getAttribute('data-max-characters');
+  if (!raw) return null;
+  const n = parseInt(raw, 10);
+  return isNaN(n) || n <= 0 ? null : n;
+}
 
 /**
  * Parse the expected-length attribute from an extended-text interaction.
@@ -178,12 +225,17 @@ const CHARACTER_COUNTER_STYLES = `
 /**
  * Create a live character counter element with an update function.
  * The counter is an aria-live region that announces changes to screen readers.
+ *
+ * When `isHardLimit` is true the counter uses hard-limit wording
+ * ("characters" / "characters remaining" / "over limit") instead of the
+ * soft "suggested characters" language used for expected-length.
  */
 export function createCharacterCounter(
-  expectedLength: number,
+  targetLength: number,
   direction: 'up' | 'down',
   responseIdentifier: string,
   styleManager?: StyleManager,
+  isHardLimit = false,
 ): CharacterCounter {
   if (styleManager && !styleManager.hasStyle('cutie-character-counter')) {
     styleManager.addStyle('cutie-character-counter', CHARACTER_COUNTER_STYLES);
@@ -200,15 +252,21 @@ export function createCharacterCounter(
 
   function update(charCount: number): void {
     if (direction === 'up') {
-      span.textContent = `${charCount} / ${expectedLength} suggested characters`;
-      wrapper.classList.toggle('cutie-counter-over', charCount > expectedLength);
+      span.textContent = isHardLimit
+        ? `${charCount} / ${targetLength} characters`
+        : `${charCount} / ${targetLength} suggested characters`;
+      wrapper.classList.toggle('cutie-counter-over', charCount > targetLength);
     } else {
-      const remaining = expectedLength - charCount;
+      const remaining = targetLength - charCount;
       if (remaining >= 0) {
-        span.textContent = `${remaining} suggested characters remaining`;
+        span.textContent = isHardLimit
+          ? `${remaining} characters remaining`
+          : `${remaining} suggested characters remaining`;
         wrapper.classList.remove('cutie-counter-over');
       } else {
-        span.textContent = `${-remaining} characters over suggested size`;
+        span.textContent = isHardLimit
+          ? `${-remaining} characters over limit`
+          : `${-remaining} characters over suggested size`;
         wrapper.classList.add('cutie-counter-over');
       }
     }
