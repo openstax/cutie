@@ -107,3 +107,32 @@ QTI's standard `qti-extended-text-interaction` treats responses as plain text, c
 **Server-side scoring**: `cutie-core` uses the [Compute Engine](https://cortexjs.io/compute-engine/) to compare LaTeX expressions according to the specified mode when evaluating `qti-match` elements.
 
 Standard QTI items without these attributes continue to work normally with string comparison.
+
+### Character Limits (`data-min-characters`, `data-max-characters`)
+
+QTI's `expected-length` attribute is a sizing hint — it suggests a response length but does
+not enforce it. Some assessment scenarios require hard character limits that prevent
+submission when constraints are not met.
+
+**Solution**: Cutie extends `qti-extended-text-interaction` with character limit attributes:
+
+```xml
+<qti-extended-text-interaction response-identifier="RESPONSE"
+  data-min-characters="20" data-max-characters="200" class="qti-counter-up">
+```
+
+| Attribute | Element | Description |
+|-----------|---------|-------------|
+| `data-min-characters` | `qti-extended-text-interaction` | Minimum character requirement; response is invalid when not met |
+| `data-max-characters` | `qti-extended-text-interaction` | Hard character limit; response is invalid when exceeded |
+
+`data-max-characters` always displays a live character counter (defaulting to count-down).
+The `qti-counter-up` / `qti-counter-down` vocab classes can override the counter direction.
+Unlike `expected-length` (which shows "suggested characters"), `data-max-characters` uses
+hard-limit language ("characters remaining" / "over limit") and fails validation on submit.
+
+`data-min-characters` displays a constraint message (`"Write at least N characters"`) and
+implies the response is required — empty input fails validation without needing `min-strings="1"`.
+
+The two attributes pair well together with `qti-counter-up` to give learners a clear picture
+of the acceptable response length range.

@@ -37,11 +37,13 @@
 | qti-counter-up | :white_check_mark: | character count up (e.g. "25 / 200 characters") |
 | qti-counter-down | :white_check_mark: | character count down from expected-length (e.g. "175 characters remaining") |
 
-### data attributes — advanced cert
+### data attributes — spec extensions
 
 | attribute | cutie | notes |
 |---|---|---|
 | data-patternmask-message | :white_check_mark: | custom error text for pattern-mask |
+| data-min-characters | :white_check_mark: | minimum character requirement; response invalid when not met; implies required |
+| data-max-characters | :white_check_mark: | hard character limit; response invalid when exceeded; counter always shown (defaults to count-down) |
 
 ### writing mode — not in cert checklist
 

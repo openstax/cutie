@@ -35,8 +35,8 @@ export const item = `<?xml version="1.0" encoding="UTF-8"?>
       </ul>
     </qti-rubric-block>
     <qti-extended-text-interaction response-identifier="RESPONSE" format="xhtml"
-                                   expected-length="400" min-strings="1"
-                                   class="qti-height-lines-15">
+                                   data-min-characters="50" data-max-characters="2000"
+                                   class="qti-counter-up qti-height-lines-15">
       <qti-prompt>Write your response below using the rich text editor. Use formatting such
                   as <strong>bold</strong> and <em>lists</em> to organize your answer.</qti-prompt>
     </qti-extended-text-interaction>

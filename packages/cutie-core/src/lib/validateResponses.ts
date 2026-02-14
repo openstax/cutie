@@ -154,6 +154,40 @@ function validateExtendedTextInteractions(
       }
     }
 
+    // Check data-min-characters
+    const minCharsAttr = interaction.getAttribute('data-min-characters');
+    if (minCharsAttr) {
+      const minChars = parseInt(minCharsAttr, 10);
+      if (!isNaN(minChars) && minChars > 0) {
+        const rawValue = String(submission[responseIdentifier] ?? '');
+        const textContent = isXhtml ? stripHtmlTags(rawValue) : rawValue;
+        if (textContent.trim().length < minChars) {
+          errors.push({
+            responseIdentifier,
+            constraint: 'data-min-characters',
+            message: `Expected at least ${minChars} character(s), got ${textContent.trim().length}`,
+          });
+        }
+      }
+    }
+
+    // Check data-max-characters
+    const maxCharsAttr = interaction.getAttribute('data-max-characters');
+    if (maxCharsAttr) {
+      const maxChars = parseInt(maxCharsAttr, 10);
+      if (!isNaN(maxChars) && maxChars > 0) {
+        const rawValue = String(submission[responseIdentifier] ?? '');
+        const textContent = isXhtml ? stripHtmlTags(rawValue) : rawValue;
+        if (textContent.trim().length > maxChars) {
+          errors.push({
+            responseIdentifier,
+            constraint: 'data-max-characters',
+            message: `Expected at most ${maxChars} character(s), got ${textContent.trim().length}`,
+          });
+        }
+      }
+    }
+
     // Check pattern-mask (skip for xhtml — regex on HTML is meaningless)
     if (!isXhtml) {
       const patternMask = interaction.getAttribute('pattern-mask');

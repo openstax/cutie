@@ -95,22 +95,31 @@ class RichTextInteractionHandler implements ElementHandler {
 
     container.appendChild(editorWrapper);
 
-    // Character counter (requires both expected-length and a counter direction class)
+    // Parse constraints — skip pattern-mask for xhtml (regex on HTML is meaningless)
+    const constraints = parseConstraints(element);
+
+    // Character counter
+    // data-max-characters forces the counter on (defaulting to 'down'),
+    // otherwise expected-length + a counter direction class is required.
     const expectedLength = parseExpectedLength(element);
     const counterDirection = parseCounterDirection(element);
+    const minCharacters = constraints.minCharacters;
+    const maxCharacters = constraints.maxCharacters;
+    const counterTarget = maxCharacters ?? expectedLength;
+    const isHardLimit = maxCharacters !== null;
+    const effectiveDirection = counterDirection ?? (isHardLimit ? 'down' : null);
+
     let counter: CharacterCounter | null = null;
-    if (expectedLength !== null && counterDirection !== null) {
+    if (counterTarget !== null && effectiveDirection !== null) {
       counter = createCharacterCounter(
-        expectedLength, counterDirection, responseIdentifier, context.styleManager,
+        counterTarget, effectiveDirection, responseIdentifier, context.styleManager, isHardLimit,
       );
       container.appendChild(counter.element);
     }
-
-    // Parse constraints — skip pattern-mask for xhtml (regex on HTML is meaningless)
-    const constraints = parseConstraints(element);
-    const constraintResult = constraints.minStrings > 0
+    const needsConstraint = constraints.minStrings > 0 || minCharacters !== null || maxCharacters !== null;
+    const constraintResult = needsConstraint
       ? createConstraintElements(
-          { minStrings: constraints.minStrings, patternMask: null, patternMessage: null },
+          { minStrings: constraints.minStrings, patternMask: null, patternMessage: null, minCharacters, maxCharacters },
           responseIdentifier,
           context.styleManager,
         )
@@ -132,22 +141,55 @@ class RichTextInteractionHandler implements ElementHandler {
     // Track active editor root for aria wiring
     let activeEditorRoot: HTMLElement | null = null;
 
+    // Validate constraints and update error UI. Returns true when valid.
+    // Defined outside the itemState block so the Quill text-change handler can call it.
+    const validate = (): boolean => {
+      const textContent = stripHtml(currentHtml).trim();
+
+      // Min-strings check: empty input when required
+      if (constraints.minStrings > 0 && textContent.length === 0) {
+        activeEditorRoot?.setAttribute('aria-invalid', 'true');
+        if (constraintResult?.minStringsText) {
+          constraintResult.constraint.setText(constraintResult.minStringsText);
+        }
+        constraintResult?.constraint.setError(true);
+        return false;
+      }
+
+      // Min-characters check: too short (includes empty — implies required)
+      if (minCharacters !== null && textContent.length < minCharacters) {
+        activeEditorRoot?.setAttribute('aria-invalid', 'true');
+        if (constraintResult?.minCharactersText) {
+          constraintResult.constraint.setText(constraintResult.minCharactersText);
+        }
+        constraintResult?.constraint.setError(true);
+        return false;
+      }
+
+      // Max-characters check: hard character limit exceeded
+      if (maxCharacters !== null && textContent.length > maxCharacters) {
+        activeEditorRoot?.setAttribute('aria-invalid', 'true');
+        if (constraintResult?.maxCharactersText) {
+          constraintResult.constraint.setText(constraintResult.maxCharactersText);
+        }
+        constraintResult?.constraint.setError(true);
+        return false;
+      }
+
+      activeEditorRoot?.removeAttribute('aria-invalid');
+      if (constraintResult) {
+        constraintResult.constraint.setError(false);
+        constraintResult.constraint.setText(constraintResult.initialText);
+      }
+      return true;
+    };
+
     // Register response accessor before async load
     if (context.itemState) {
       context.itemState.registerResponse(responseIdentifier, () => {
-        const textContent = stripHtml(currentHtml).trim();
-        const isEmpty = textContent.length === 0;
-        const isValid = constraints.minStrings <= 0 || !isEmpty;
-
-        if (!isValid) {
-          activeEditorRoot?.setAttribute('aria-invalid', 'true');
-          constraintResult?.constraint.setError(true);
-          return { value: null, valid: false };
-        }
-
-        activeEditorRoot?.removeAttribute('aria-invalid');
-        constraintResult?.constraint.setError(false);
-        return { value: isEmpty ? null : currentHtml, valid: true };
+        const isEmpty = stripHtml(currentHtml).trim().length === 0;
+        const valid = validate();
+        return { value: isEmpty ? null : currentHtml, valid };
       });
     }
 
@@ -199,6 +241,13 @@ class RichTextInteractionHandler implements ElementHandler {
             counter!.update(stripHtml(quill.root.innerHTML).length);
           });
         }
+
+        // Re-validate on text-change so errors clear/update as the user edits
+        quill.on('text-change', () => {
+          if (activeEditorRoot?.hasAttribute('aria-invalid')) {
+            validate();
+          }
+        });
 
         // Wire up aria attributes on the editor root
         activeEditorRoot = quill.root;

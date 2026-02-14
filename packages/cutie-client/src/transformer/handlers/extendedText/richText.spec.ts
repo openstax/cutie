@@ -463,6 +463,176 @@ describe('richTextInteraction', () => {
     });
   });
 
+  describe('clearing errors on text-change', () => {
+    it('clears error when min-strings violation is resolved by typing', async () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" format="xhtml" min-strings="1">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+      await waitForQuill();
+
+      // Trigger validation error
+      itemState.collectAll();
+      expect(mockQuillInstance.root.getAttribute('aria-invalid')).toBe('true');
+      const constraintEl = container.querySelector('.cutie-constraint-text')!;
+      expect(constraintEl.classList.contains('cutie-constraint-error')).toBe(true);
+
+      // User types valid content — error clears
+      mockQuillInstance.root.innerHTML = '<p>hello</p>';
+      simulateTextChange();
+      expect(mockQuillInstance.root.hasAttribute('aria-invalid')).toBe(false);
+      expect(constraintEl.classList.contains('cutie-constraint-error')).toBe(false);
+    });
+
+    it('keeps error when min-strings violation is not resolved', async () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" format="xhtml" min-strings="1">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+      await waitForQuill();
+
+      // Trigger validation error
+      itemState.collectAll();
+      expect(mockQuillInstance.root.getAttribute('aria-invalid')).toBe('true');
+
+      // Still empty content — error persists
+      mockQuillInstance.root.innerHTML = '<p><br></p>';
+      simulateTextChange();
+      expect(mockQuillInstance.root.getAttribute('aria-invalid')).toBe('true');
+    });
+
+    it('keeps error when max-characters violation is not resolved', async () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" format="xhtml"
+          data-max-characters="5">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+      await waitForQuill();
+
+      mockQuillInstance.root.innerHTML = '<p>Way too long text</p>';
+      simulateTextChange();
+
+      // Trigger validation error
+      itemState.collectAll();
+      expect(mockQuillInstance.root.getAttribute('aria-invalid')).toBe('true');
+
+      // Still over limit — error persists
+      mockQuillInstance.root.innerHTML = '<p>Still long</p>';
+      simulateTextChange();
+      expect(mockQuillInstance.root.getAttribute('aria-invalid')).toBe('true');
+
+      // Now under limit — error clears
+      mockQuillInstance.root.innerHTML = '<p>Ok</p>';
+      simulateTextChange();
+      expect(mockQuillInstance.root.hasAttribute('aria-invalid')).toBe(false);
+    });
+
+    it('keeps error when min-characters violation is not resolved', async () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" format="xhtml"
+          data-min-characters="10">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+      await waitForQuill();
+
+      mockQuillInstance.root.innerHTML = '<p>Hi</p>';
+      simulateTextChange();
+
+      // Trigger validation error
+      itemState.collectAll();
+      expect(mockQuillInstance.root.getAttribute('aria-invalid')).toBe('true');
+
+      // Still under minimum — error persists
+      mockQuillInstance.root.innerHTML = '<p>Hey</p>';
+      simulateTextChange();
+      expect(mockQuillInstance.root.getAttribute('aria-invalid')).toBe('true');
+
+      // Now meets minimum — error clears
+      mockQuillInstance.root.innerHTML = '<p>Hello world!</p>';
+      simulateTextChange();
+      expect(mockQuillInstance.root.hasAttribute('aria-invalid')).toBe(false);
+    });
+  });
+
+  describe('data-min-characters', () => {
+    it('returns valid:false when Quill content is non-empty but under limit', async () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" format="xhtml"
+          data-min-characters="20">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+      await waitForQuill();
+
+      mockQuillInstance.root.innerHTML = '<p>Short</p>';
+      simulateTextChange();
+
+      const result = itemState.collectAll();
+      expect(result.valid).toBe(false);
+    });
+
+    it('sets constraint error text when under limit', async () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" format="xhtml"
+          data-min-characters="20">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+      await waitForQuill();
+
+      mockQuillInstance.root.innerHTML = '<p>Short</p>';
+      simulateTextChange();
+
+      itemState.collectAll();
+
+      expect(mockQuillInstance.root.getAttribute('aria-invalid')).toBe('true');
+      const constraintEl = container.querySelector('.cutie-constraint-text')!;
+      expect(constraintEl.classList.contains('cutie-constraint-error')).toBe(true);
+      expect(constraintEl.textContent).toBe('Write at least 20 characters');
+    });
+
+    it('returns valid:true when content meets minimum', async () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" format="xhtml"
+          data-min-characters="5">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+      await waitForQuill();
+
+      mockQuillInstance.root.innerHTML = '<p>Hello world</p>';
+      simulateTextChange();
+
+      const result = itemState.collectAll();
+      expect(result.valid).toBe(true);
+    });
+  });
+
   describe('character counter', () => {
     it('does not render counter when expected-length is absent', async () => {
       const doc = createQtiDocument(`
@@ -546,6 +716,143 @@ describe('richTextInteraction', () => {
       const counter = container.querySelector('.cutie-character-counter')!;
       expect(counter.textContent).toBe('6 characters over suggested size');
       expect(counter.classList.contains('cutie-counter-over')).toBe(true);
+    });
+  });
+
+  describe('data-max-characters', () => {
+    it('shows counter with hard-limit wording', async () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" format="xhtml"
+          data-max-characters="200" class="qti-counter-down">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+      await waitForQuill();
+
+      const counter = container.querySelector('.cutie-character-counter')!;
+      expect(counter).not.toBeNull();
+      expect(counter.textContent).toBe('200 characters remaining');
+    });
+
+    it('defaults to counter-down when no counter class specified', async () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" format="xhtml"
+          data-max-characters="200">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+      await waitForQuill();
+
+      const counter = container.querySelector('.cutie-character-counter')!;
+      expect(counter).not.toBeNull();
+      expect(counter.textContent).toBe('200 characters remaining');
+    });
+
+    it('respects explicit qti-counter-up class', async () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" format="xhtml"
+          data-max-characters="200" class="qti-counter-up">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+      await waitForQuill();
+
+      const counter = container.querySelector('.cutie-character-counter')!;
+      expect(counter.textContent).toBe('0 / 200 characters');
+    });
+
+    it('returns valid:false when Quill content exceeds limit', async () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" format="xhtml"
+          data-max-characters="5">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+      await waitForQuill();
+
+      mockQuillInstance.root.innerHTML = '<p>Hello world</p>';
+      simulateTextChange();
+
+      const result = itemState.collectAll();
+      expect(result.valid).toBe(false);
+    });
+
+    it('sets aria-invalid and constraint error when over limit', async () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" format="xhtml"
+          data-max-characters="5">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+      await waitForQuill();
+
+      mockQuillInstance.root.innerHTML = '<p>Hello world</p>';
+      simulateTextChange();
+
+      itemState.collectAll();
+
+      expect(mockQuillInstance.root.getAttribute('aria-invalid')).toBe('true');
+
+      const constraintEl = container.querySelector('.cutie-constraint-text')!;
+      expect(constraintEl.classList.contains('cutie-constraint-error')).toBe(true);
+      expect(constraintEl.textContent).toBe('Maximum 5 characters allowed');
+    });
+
+    it('clears error when content goes under limit', async () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" format="xhtml"
+          data-max-characters="20">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+      await waitForQuill();
+
+      // Over limit
+      mockQuillInstance.root.innerHTML = '<p>This is way too many characters</p>';
+      simulateTextChange();
+      itemState.collectAll();
+      expect(mockQuillInstance.root.getAttribute('aria-invalid')).toBe('true');
+
+      // Under limit
+      mockQuillInstance.root.innerHTML = '<p>Short</p>';
+      simulateTextChange();
+      const result = itemState.collectAll();
+      expect(result.valid).toBe(true);
+      expect(mockQuillInstance.root.hasAttribute('aria-invalid')).toBe(false);
+    });
+
+    it('takes precedence over expected-length for counter', async () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" format="xhtml"
+          expected-length="500" data-max-characters="200" class="qti-counter-down">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+      await waitForQuill();
+
+      const counter = container.querySelector('.cutie-character-counter')!;
+      expect(counter.textContent).toBe('200 characters remaining');
     });
   });
 

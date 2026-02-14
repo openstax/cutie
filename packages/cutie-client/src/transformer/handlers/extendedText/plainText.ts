@@ -97,12 +97,23 @@ class ExtendedTextInteractionHandler implements ElementHandler {
 
     container.appendChild(textarea);
 
-    // Character counter (requires both expected-length and a counter direction class)
+    // Parse constraint attributes (used by both counter and validation below)
+    const constraints = parseConstraints(element);
+
+    // Character counter
+    // data-max-characters forces the counter on (defaulting to 'down'),
+    // otherwise expected-length + a counter direction class is required.
     const expectedLength = parseExpectedLength(element);
     const counterDirection = parseCounterDirection(element);
-    if (expectedLength !== null && counterDirection !== null) {
+    const minCharacters = constraints.minCharacters;
+    const maxCharacters = constraints.maxCharacters;
+    const counterTarget = maxCharacters ?? expectedLength;
+    const isHardLimit = maxCharacters !== null;
+    const effectiveDirection = counterDirection ?? (isHardLimit ? 'down' : null);
+
+    if (counterTarget !== null && effectiveDirection !== null) {
       const counter = createCharacterCounter(
-        expectedLength, counterDirection, responseIdentifier, context.styleManager,
+        counterTarget, effectiveDirection, responseIdentifier, context.styleManager, isHardLimit,
       );
       container.appendChild(counter.element);
       counter.update(textarea.value.length);
@@ -111,8 +122,7 @@ class ExtendedTextInteractionHandler implements ElementHandler {
       });
     }
 
-    // Parse and create constraint elements
-    const constraints = parseConstraints(element);
+    // Create constraint elements (appended after counter to preserve DOM order)
     const constraintResult = createConstraintElements(constraints, responseIdentifier, context.styleManager);
 
     if (constraintResult) {
@@ -122,7 +132,8 @@ class ExtendedTextInteractionHandler implements ElementHandler {
 
     // Register response accessor with itemState
     if (context.itemState) {
-      context.itemState.registerResponse(responseIdentifier, () => {
+      // Validate constraints and update error UI. Returns true when valid.
+      const validate = (): boolean => {
         const value = textarea.value.trim();
 
         // Min-strings check: empty input when required
@@ -132,7 +143,17 @@ class ExtendedTextInteractionHandler implements ElementHandler {
             constraintResult.constraint.setText(constraintResult.minStringsText);
           }
           constraintResult?.constraint.setError(true);
-          return { value: null, valid: false };
+          return false;
+        }
+
+        // Min-characters check: too short (includes empty — implies required)
+        if (minCharacters !== null && value.length < minCharacters) {
+          textarea.setAttribute('aria-invalid', 'true');
+          if (constraintResult?.minCharactersText) {
+            constraintResult.constraint.setText(constraintResult.minCharactersText);
+          }
+          constraintResult?.constraint.setError(true);
+          return false;
         }
 
         // Pattern-mask check: non-empty but wrong format
@@ -142,12 +163,38 @@ class ExtendedTextInteractionHandler implements ElementHandler {
             constraintResult.constraint.setText(constraintResult.patternText);
           }
           constraintResult?.constraint.setError(true);
-          return { value: value === '' ? null : value, valid: false };
+          return false;
+        }
+
+        // Max-characters check: hard character limit exceeded
+        if (maxCharacters !== null && value.length > maxCharacters) {
+          textarea.setAttribute('aria-invalid', 'true');
+          if (constraintResult?.maxCharactersText) {
+            constraintResult.constraint.setText(constraintResult.maxCharactersText);
+          }
+          constraintResult?.constraint.setError(true);
+          return false;
         }
 
         textarea.removeAttribute('aria-invalid');
-        constraintResult?.constraint.setError(false);
-        return { value: value === '' ? null : value, valid: true };
+        if (constraintResult) {
+          constraintResult.constraint.setError(false);
+          constraintResult.constraint.setText(constraintResult.initialText);
+        }
+        return true;
+      };
+
+      context.itemState.registerResponse(responseIdentifier, () => {
+        const value = textarea.value.trim();
+        const valid = validate();
+        return { value: value === '' ? null : value, valid };
+      });
+
+      // Re-validate on input so errors clear as soon as the value becomes valid
+      textarea.addEventListener('input', () => {
+        if (textarea.hasAttribute('aria-invalid')) {
+          validate();
+        }
       });
 
       // Observe interaction state changes to enable/disable textarea
