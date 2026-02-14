@@ -262,6 +262,137 @@ describe('validateExtendedTextInteractions', () => {
     }
   });
 
+  describe('data-min-characters', () => {
+    it('passes when text meets minimum', () => {
+      const doc = parseItem(makeExtendedTextItem('data-min-characters="5"'));
+      expect(() => validateSubmission({ RESPONSE: 'hello' }, doc)).not.toThrow();
+    });
+
+    it('passes when text exceeds minimum', () => {
+      const doc = parseItem(makeExtendedTextItem('data-min-characters="5"'));
+      expect(() => validateSubmission({ RESPONSE: 'hello world' }, doc)).not.toThrow();
+    });
+
+    it('fails when text is under minimum', () => {
+      const doc = parseItem(makeExtendedTextItem('data-min-characters="10"'));
+      expect(() => validateSubmission({ RESPONSE: 'short' }, doc)).toThrow(ResponseValidationError);
+
+      try {
+        validateSubmission({ RESPONSE: 'short' }, doc);
+      } catch (e) {
+        const err = e as ResponseValidationError;
+        expect(err.errors).toHaveLength(1);
+        expect(err.errors[0]!.constraint).toBe('data-min-characters');
+      }
+    });
+
+    it('fails when response is empty (implies required)', () => {
+      const doc = parseItem(makeExtendedTextItem('data-min-characters="5"'));
+      expect(() => validateSubmission({ RESPONSE: '' }, doc)).toThrow(ResponseValidationError);
+    });
+
+    it('fails when response is null', () => {
+      const doc = parseItem(makeExtendedTextItem('data-min-characters="5"'));
+      expect(() => validateSubmission({ RESPONSE: null }, doc)).toThrow(ResponseValidationError);
+    });
+
+    it('trims whitespace before checking length', () => {
+      const doc = parseItem(makeExtendedTextItem('data-min-characters="5"'));
+      expect(() => validateSubmission({ RESPONSE: '  hi  ' }, doc)).toThrow(ResponseValidationError);
+    });
+
+    it('strips HTML tags for xhtml format', () => {
+      const doc = parseItem(makeExtendedTextItem('format="xhtml" data-min-characters="10"'));
+      // "Short" is only 5 chars of text content
+      expect(() => validateSubmission({ RESPONSE: '<p>Short</p>' }, doc)).toThrow(
+        ResponseValidationError
+      );
+    });
+
+    it('passes for xhtml when text content meets minimum', () => {
+      const doc = parseItem(makeExtendedTextItem('format="xhtml" data-min-characters="5"'));
+      expect(() =>
+        validateSubmission({ RESPONSE: '<p>Hello world</p>' }, doc)
+      ).not.toThrow();
+    });
+  });
+
+  describe('data-max-characters', () => {
+    it('passes when text is under limit', () => {
+      const doc = parseItem(makeExtendedTextItem('data-max-characters="20"'));
+      expect(() => validateSubmission({ RESPONSE: 'short' }, doc)).not.toThrow();
+    });
+
+    it('passes when text is at exactly the limit', () => {
+      const doc = parseItem(makeExtendedTextItem('data-max-characters="5"'));
+      expect(() => validateSubmission({ RESPONSE: 'hello' }, doc)).not.toThrow();
+    });
+
+    it('fails when text exceeds limit', () => {
+      const doc = parseItem(makeExtendedTextItem('data-max-characters="5"'));
+      expect(() => validateSubmission({ RESPONSE: 'hello world' }, doc)).toThrow(
+        ResponseValidationError
+      );
+
+      try {
+        validateSubmission({ RESPONSE: 'hello world' }, doc);
+      } catch (e) {
+        const err = e as ResponseValidationError;
+        expect(err.errors).toHaveLength(1);
+        expect(err.errors[0]!.constraint).toBe('data-max-characters');
+      }
+    });
+
+    it('passes when response is empty', () => {
+      const doc = parseItem(makeExtendedTextItem('data-max-characters="5"'));
+      expect(() => validateSubmission({ RESPONSE: '' }, doc)).not.toThrow();
+    });
+
+    it('trims whitespace before checking length', () => {
+      const doc = parseItem(makeExtendedTextItem('data-max-characters="5"'));
+      // "hello" is 5 chars, padding shouldn't cause failure
+      expect(() => validateSubmission({ RESPONSE: '  hello  ' }, doc)).not.toThrow();
+    });
+
+    it('strips HTML tags for xhtml format', () => {
+      const doc = parseItem(makeExtendedTextItem('format="xhtml" data-max-characters="5"'));
+      // "Hello world" is 11 chars of text content
+      expect(() => validateSubmission({ RESPONSE: '<p>Hello world</p>' }, doc)).toThrow(
+        ResponseValidationError
+      );
+    });
+
+    it('passes for xhtml when text content is under limit', () => {
+      const doc = parseItem(makeExtendedTextItem('format="xhtml" data-max-characters="20"'));
+      expect(() =>
+        validateSubmission({ RESPONSE: '<p>Short</p>' }, doc)
+      ).not.toThrow();
+    });
+  });
+
+  describe('combined data-min-characters + data-max-characters', () => {
+    it('passes when text is in range', () => {
+      const doc = parseItem(
+        makeExtendedTextItem('data-min-characters="5" data-max-characters="20"')
+      );
+      expect(() => validateSubmission({ RESPONSE: 'hello world' }, doc)).not.toThrow();
+    });
+
+    it('reports both errors when empty (under min, but max passes since 0 <= max)', () => {
+      const doc = parseItem(
+        makeExtendedTextItem('data-min-characters="5" data-max-characters="20"')
+      );
+      try {
+        validateSubmission({ RESPONSE: '' }, doc);
+      } catch (e) {
+        const err = e as ResponseValidationError;
+        // Only min-characters fails (0 < 5), max-characters passes (0 <= 20)
+        expect(err.errors).toHaveLength(1);
+        expect(err.errors[0]!.constraint).toBe('data-min-characters');
+      }
+    });
+  });
+
   describe('xhtml format', () => {
     it('strips HTML tags for min-strings empty check', () => {
       const doc = parseItem(makeExtendedTextItem('format="xhtml" min-strings="1"'));
