@@ -609,6 +609,8 @@ export function App() {
             onNext: handleNextQuestion,
             onEnd: handleEndQuiz,
             isLoadingNext: isLoadingNextQuestion,
+            history: quizState.history,
+            currentQuiz: quizState.currentQuiz,
           } : undefined}
         />
       ),

@@ -3,6 +3,7 @@ import type { AttemptState } from '@openstax/cutie-core';
 import { mountItem } from '@openstax/cutie-client';
 import type { MountedItem, MountItemOptions, ResponseData } from '@openstax/cutie-client';
 import { isEffectivelyEmptyTemplate } from './utils/qtiUtils';
+import { TopicScores } from './TopicScores';
 
 const MenuIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor">
@@ -14,6 +15,14 @@ interface QuizModeProps {
   onNext: () => void;
   onEnd: () => void;
   isLoadingNext: boolean;
+  history: {
+    topic: string;
+    questions: { result: 'correct' | 'incorrect' | 'partial-credit' }[];
+  }[];
+  currentQuiz: {
+    topic: string;
+    questions: { result?: 'correct' | 'incorrect' | 'partial-credit' }[];
+  } | null;
 }
 
 interface PreviewTabProps {
@@ -204,6 +213,9 @@ export function PreviewTab({ attemptState, sanitizedTemplate, responses, onSubmi
                 </button>
               )}
             </div>
+            {quizMode && (
+              <TopicScores history={quizMode.history} currentQuiz={quizMode.currentQuiz} />
+            )}
           </div>
         )}
       </div>
