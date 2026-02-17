@@ -128,10 +128,10 @@ describe('extendedTextInteraction', () => {
       container.appendChild(fragment);
 
       const textarea = container.querySelector('textarea')!;
-      expect(textarea.style.minHeight).toBe('14em');
+      expect(textarea.style.minHeight).toBe('calc(14em + 18px)');
     });
 
-    it('enforces a minimum of 3em for small line counts', () => {
+    it('accounts for padding and border overhead in small line counts', () => {
       const doc = createQtiDocument(`
         <qti-extended-text-interaction response-identifier="R1" expected-lines="1">
         </qti-extended-text-interaction>
@@ -142,7 +142,7 @@ describe('extendedTextInteraction', () => {
       container.appendChild(fragment);
 
       const textarea = container.querySelector('textarea')!;
-      expect(textarea.style.minHeight).toBe('3em');
+      expect(textarea.style.minHeight).toBe('calc(1.4em + 18px)');
     });
   });
 

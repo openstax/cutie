@@ -272,7 +272,7 @@ class RichTextInteractionHandler implements ElementHandler {
         if (expectedLines) {
           const lines = parseInt(expectedLines, 10);
           if (!isNaN(lines) && lines > 0) {
-            quill.root.style.minHeight = `${Math.max(lines * 1.4, 3)}em`;
+            quill.root.style.minHeight = `calc(${lines * 1.4}em + 16px)`;
           }
         }
 
@@ -344,6 +344,7 @@ const RICH_TEXT_INTERACTION_STYLES = `
 .cutie-rich-text-interaction .ql-editor {
   min-height: 7.5em;
   padding: 8px;
+  line-height: 1.4;
 }
 
 .cutie-rich-text-disabled .ql-toolbar {
@@ -374,9 +375,9 @@ const RICH_TEXT_INTERACTION_STYLES = `
   font-size: 14px;
 }
 
-.cutie-rich-text-interaction.qti-height-lines-3 .ql-editor { min-height: 4.2em; }
-.cutie-rich-text-interaction.qti-height-lines-6 .ql-editor { min-height: 8.4em; }
-.cutie-rich-text-interaction.qti-height-lines-15 .ql-editor { min-height: 21em; }
+.cutie-rich-text-interaction.qti-height-lines-3 .ql-editor { min-height: calc(4.2em + 16px); }
+.cutie-rich-text-interaction.qti-height-lines-6 .ql-editor { min-height: calc(8.4em + 16px); }
+.cutie-rich-text-interaction.qti-height-lines-15 .ql-editor { min-height: calc(21em + 16px); }
 `.trim();
 
 // Register with priority 45 (between formula@40 and plainText@50)

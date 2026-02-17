@@ -33,29 +33,29 @@ adaptive="false" time-dependent="false" xml:lang="en">
     <p><strong>Extended Text Size Variants</strong></p>
     <p>Each textarea below demonstrates a different sizing approach.</p>
 
-    <!-- Default (no sizing hints) — uses CSS default 7.5em -->
+    <!-- Default (no sizing hints) -->
     <qti-extended-text-interaction response-identifier="R1">
-      <qti-prompt>Default size (no sizing hints, CSS default 7.5em)</qti-prompt>
+      <qti-prompt>Default size (no sizing hints)</qti-prompt>
     </qti-extended-text-interaction>
 
     <!-- qti-height-lines-3: short answer, 3 lines -->
     <qti-extended-text-interaction response-identifier="R2" class="qti-height-lines-3">
-      <qti-prompt>qti-height-lines-3 (4.2em, short answer)</qti-prompt>
+      <qti-prompt>qti-height-lines-3 (short answer, 3 lines)</qti-prompt>
     </qti-extended-text-interaction>
 
     <!-- qti-height-lines-6: medium answer, 6 lines -->
     <qti-extended-text-interaction response-identifier="R3" class="qti-height-lines-6">
-      <qti-prompt>qti-height-lines-6 (8.4em, medium answer)</qti-prompt>
+      <qti-prompt>qti-height-lines-6 (medium answer, 6 lines)</qti-prompt>
     </qti-extended-text-interaction>
 
     <!-- qti-height-lines-15: long answer, 15 lines -->
     <qti-extended-text-interaction response-identifier="R4" class="qti-height-lines-15">
-      <qti-prompt>qti-height-lines-15 (21em, essay-length)</qti-prompt>
+      <qti-prompt>qti-height-lines-15 (essay-length, 15 lines)</qti-prompt>
     </qti-extended-text-interaction>
 
     <!-- expected-lines="10" attribute (inline style, overrides height-lines class) -->
     <qti-extended-text-interaction response-identifier="R5" expected-lines="10" class="qti-height-lines-3">
-      <qti-prompt>expected-lines="10" with qti-height-lines-3 class (attribute wins, 14em)</qti-prompt>
+      <qti-prompt>expected-lines="10" with qti-height-lines-3 class (attribute wins, 10 lines)</qti-prompt>
     </qti-extended-text-interaction>
 
     <!-- Rich text (format="xhtml") with default height -->
@@ -65,7 +65,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
 
     <!-- Rich text (format="xhtml") with qti-height-lines-15 for tall editor -->
     <qti-extended-text-interaction response-identifier="R7" format="xhtml" class="qti-height-lines-15">
-      <qti-prompt>Rich text editor — qti-height-lines-15 (21em, essay-length)</qti-prompt>
+      <qti-prompt>Rich text editor — qti-height-lines-15 (essay-length, 15 lines)</qti-prompt>
     </qti-extended-text-interaction>
 
     <!-- Character counter: count up -->
