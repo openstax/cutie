@@ -818,7 +818,7 @@ describe('extendedTextInteraction', () => {
       expect(counter.textContent).toBe('10 / 200 suggested characters');
     });
 
-    it('DOM order: textarea > counter > constraint', () => {
+    it('DOM order: textarea > footer with constraint + counter', () => {
       const doc = createQtiDocument(`
         <qti-extended-text-interaction response-identifier="R1"
           expected-length="200" class="qti-counter-up" min-strings="1">
@@ -832,11 +832,17 @@ describe('extendedTextInteraction', () => {
       const interaction = container.querySelector('.cutie-extended-text-interaction')!;
       const children = Array.from(interaction.children);
       const textareaIdx = children.findIndex(c => c.tagName === 'TEXTAREA');
-      const counterIdx = children.findIndex(c => c.classList.contains('cutie-character-counter'));
-      const constraintIdx = children.findIndex(c => c.classList.contains('cutie-constraint-text'));
+      const footerIdx = children.findIndex(c => c.classList.contains('cutie-interaction-footer'));
 
-      expect(textareaIdx).toBeLessThan(counterIdx);
-      expect(counterIdx).toBeLessThan(constraintIdx);
+      expect(textareaIdx).toBeLessThan(footerIdx);
+
+      // Inside the footer: constraint first (left), counter second (right)
+      const footer = interaction.querySelector('.cutie-interaction-footer')!;
+      const footerChildren = Array.from(footer.children);
+      const constraintIdx = footerChildren.findIndex(c => c.classList.contains('cutie-constraint-text'));
+      const counterIdx = footerChildren.findIndex(c => c.classList.contains('cutie-character-counter'));
+
+      expect(constraintIdx).toBeLessThan(counterIdx);
     });
   });
 

@@ -9,6 +9,7 @@ import {
   createCharacterCounter,
   createConstraintElements,
   createInteractionContainer,
+  createInteractionFooter,
   parseConstraints,
   parseCounterDirection,
   parseExpectedLength,
@@ -114,7 +115,6 @@ class RichTextInteractionHandler implements ElementHandler {
       counter = createCharacterCounter(
         counterTarget, effectiveDirection, responseIdentifier, context.styleManager, isHardLimit,
       );
-      container.appendChild(counter.element);
     }
     const needsConstraint = constraints.minStrings > 0 || minCharacters !== null || maxCharacters !== null;
     const constraintResult = needsConstraint
@@ -125,8 +125,14 @@ class RichTextInteractionHandler implements ElementHandler {
         )
       : null;
 
-    if (constraintResult) {
-      container.appendChild(constraintResult.constraint.element);
+    // Wrap counter and/or constraint in a shared footer row
+    const footer = createInteractionFooter(
+      constraintResult?.constraint.element ?? null,
+      counter?.element ?? null,
+      context.styleManager,
+    );
+    if (footer) {
+      container.appendChild(footer);
     }
 
     fragment.appendChild(container);
