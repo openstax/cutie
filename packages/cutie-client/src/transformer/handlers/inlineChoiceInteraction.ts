@@ -60,6 +60,7 @@ class InlineChoiceInteractionHandler implements ElementHandler {
     // Create select element
     const select = document.createElement('select');
     select.className = 'cutie-inline-choice-interaction';
+    select.id = `select-${responseIdentifier}`;
     select.dataset.responseIdentifier = responseIdentifier;
 
     const inputWidth = parseInputWidth(element);

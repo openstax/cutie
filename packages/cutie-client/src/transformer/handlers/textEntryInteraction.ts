@@ -64,6 +64,7 @@ class TextEntryInteractionHandler implements ElementHandler {
       input.type = 'text';
     }
     input.className = 'cutie-text-entry-interaction';
+    input.id = `input-${responseIdentifier}`;
 
     // Set placeholder text if provided
     const placeholderText = element.getAttribute('placeholder-text');
