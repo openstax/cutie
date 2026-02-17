@@ -68,6 +68,7 @@ class ExtendedTextInteractionHandler implements ElementHandler {
     // Create textarea for response input
     const textarea = document.createElement('textarea');
     textarea.className = 'cutie-extended-text-response';
+    textarea.id = `textarea-${responseIdentifier}`;
     if (prompt) {
       textarea.setAttribute('aria-labelledby', prompt.id);
     } else {
