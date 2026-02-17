@@ -1,13 +1,13 @@
 // Variant test: extended text height-lines vocabulary classes and expected-lines sizing
 
-export const name = "Extended Text Sizes";
+export const name = "Extended Text Layouts";
 
 export const item = `<?xml version="1.0" encoding="UTF-8"?>
 <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 xsi:schemaLocation="http://www.imsglobal.org/xsd/imsqtiasi_v3p0
 https://purl.imsglobal.org/spec/qti/v3p0/schema/xsd/imsqti_asiv3p0p1_v1p0.xsd"
-identifier="variant-extended-text-sizes" title="Extended Text Size Variants"
+identifier="variant-extended-text-layouts" title="Extended Text Layout Variants"
 adaptive="false" time-dependent="false" xml:lang="en">
 
   <qti-response-declaration identifier="R1" cardinality="single" base-type="string"/>
@@ -85,17 +85,17 @@ adaptive="false" time-dependent="false" xml:lang="en">
 
     <!-- Hard character limit (data-max-characters) — counter defaults to down -->
     <qti-extended-text-interaction response-identifier="R11" data-max-characters="100" class="qti-height-lines-3">
-      <qti-prompt>Hard limit 100 chars (data-max-characters) — counter defaults to down, validation fails when exceeded</qti-prompt>
+      <qti-prompt>Hard limit 100 chars — counter "100 characters remaining" (right) + constraint "Maximum 100 characters allowed" (left)</qti-prompt>
     </qti-extended-text-interaction>
 
     <!-- Hard character limit with counter-up -->
     <qti-extended-text-interaction response-identifier="R12" data-max-characters="50" class="qti-counter-up qti-height-lines-3">
-      <qti-prompt>Hard limit 50 chars with counter-up — shows "N / 50 characters"</qti-prompt>
+      <qti-prompt>Hard limit 50 chars with counter-up — counter "0 / 50 characters" (right) + constraint "Maximum 50 characters allowed" (left)</qti-prompt>
     </qti-extended-text-interaction>
 
     <!-- Min + max character range with counter-up -->
     <qti-extended-text-interaction response-identifier="R13" data-min-characters="20" data-max-characters="200" class="qti-counter-up qti-height-lines-6">
-      <qti-prompt>Min 20, max 200 chars — "Write at least 20 characters" constraint with counter</qti-prompt>
+      <qti-prompt>Min 20, max 200 chars — counter "0 / 200 characters" (right) + constraint "Write at least 20 characters" (left)</qti-prompt>
     </qti-extended-text-interaction>
 
   </qti-item-body>

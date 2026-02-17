@@ -1,13 +1,13 @@
 <!-- spell-checker: ignore textareas -->
 ---
-name: Extended Text — Height-Lines Sizes
+name: Extended Text — Layout Variants 
 route: /
-tags: [extended-text, interaction, sizing, variants]
+tags: [extended-text, interaction, variants]
 examples:
-  - Extended Text Sizes
+  - Extended Text Layouts 
 ---
 
-# Extended Text — Height-Lines Sizes
+# Extended Text — Layout Variants 
 
 Visual verification that `qti-height-lines-*` vocabulary classes and `expected-lines` attribute correctly control textarea sizing.
 
@@ -38,6 +38,16 @@ Take a full-page screenshot, then verify each textarea's visible height:
 1. Drag the resize handle on any textarea.
    - [ ] Textarea can be resized vertically (all textareas have `resize: vertical`)
    - [ ] Textarea cannot be resized below its min-height
+
+## Counter and Constraint Messages
+
+Scroll through the item and verify that each interaction's counter and/or constraint message renders as described by its prompt text.
+
+1. Interactions with only a counter
+   - [ ] Counter text appears right-aligned below the input area
+
+2. Interactions with both a counter and a constraint
+   - [ ] Constraint text (left) and counter text (right) appear on the same row, not stacked vertically
 
 ## Interaction
 

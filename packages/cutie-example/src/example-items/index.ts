@@ -48,7 +48,7 @@ import * as extendedTextScored from './extended-text-scored';
 import * as extendedTextScoredRich from './extended-text-scored-rich';
 import * as variantChoiceLabels from './variant-choice-labels';
 import * as variantChoiceLayout from './variant-choice-layout';
-import * as variantExtendedTextSizes from './variant-extended-text-sizes';
+import * as variantExtendedTextLayouts from './variant-extended-text-layouts';
 import * as variantExtendedTextPattern from './variant-extended-text-pattern';
 
 /* these examples are copied exactly from examples in the spec
@@ -97,7 +97,7 @@ export const formulaExamples = [
 export const variantExamples = [
   variantChoiceLabels,
   variantChoiceLayout,
-  variantExtendedTextSizes,
+  variantExtendedTextLayouts,
   variantExtendedTextPattern,
 ];
 

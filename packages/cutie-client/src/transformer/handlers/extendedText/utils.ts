@@ -209,7 +209,7 @@ const CHARACTER_COUNTER_STYLES = `
   text-align: right;
   color: var(--cutie-text-muted);
   font-size: 0.85em;
-  margin-top: 4px;
+  margin-left: auto;
 }
 
 .cutie-character-counter.cutie-counter-over {
@@ -274,4 +274,45 @@ export function createCharacterCounter(
 
   update(0);
   return { element: wrapper, update };
+}
+
+// ---------------------------------------------------------------------------
+// Interaction footer (shared row for counter + constraint)
+// ---------------------------------------------------------------------------
+
+const INTERACTION_FOOTER_STYLES = `
+.cutie-interaction-footer {
+  display: flex;
+  align-items: baseline;
+  margin-top: 4px;
+  gap: 1em;
+}
+
+.cutie-interaction-footer .cutie-constraint-text {
+  margin-top: 0;
+}
+`.trim();
+
+/**
+ * Create a flex-row footer container for counter and/or constraint elements.
+ * Returns null if neither element is provided.
+ */
+export function createInteractionFooter(
+  constraint: HTMLElement | null,
+  counter: HTMLElement | null,
+  styleManager?: StyleManager,
+): HTMLDivElement | null {
+  if (!constraint && !counter) return null;
+
+  if (styleManager && !styleManager.hasStyle('cutie-interaction-footer')) {
+    styleManager.addStyle('cutie-interaction-footer', INTERACTION_FOOTER_STYLES);
+  }
+
+  const footer = document.createElement('div');
+  footer.className = 'cutie-interaction-footer';
+
+  if (constraint) footer.appendChild(constraint);
+  if (counter) footer.appendChild(counter);
+
+  return footer;
 }

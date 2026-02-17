@@ -6,6 +6,7 @@ import {
   createCharacterCounter,
   createConstraintElements,
   createInteractionContainer,
+  createInteractionFooter,
   parseConstraints,
   parseCounterDirection,
   parseExpectedLength,
@@ -111,23 +112,33 @@ class ExtendedTextInteractionHandler implements ElementHandler {
     const isHardLimit = maxCharacters !== null;
     const effectiveDirection = counterDirection ?? (isHardLimit ? 'down' : null);
 
+    let counterElement: HTMLDivElement | null = null;
     if (counterTarget !== null && effectiveDirection !== null) {
       const counter = createCharacterCounter(
         counterTarget, effectiveDirection, responseIdentifier, context.styleManager, isHardLimit,
       );
-      container.appendChild(counter.element);
+      counterElement = counter.element;
       counter.update(textarea.value.length);
       textarea.addEventListener('input', () => {
         counter.update(textarea.value.length);
       });
     }
 
-    // Create constraint elements (appended after counter to preserve DOM order)
+    // Create constraint elements
     const constraintResult = createConstraintElements(constraints, responseIdentifier, context.styleManager);
 
     if (constraintResult) {
-      container.appendChild(constraintResult.constraint.element);
       wireConstraintDescribedBy(textarea, constraintResult.constraint.element);
+    }
+
+    // Wrap counter and/or constraint in a shared footer row
+    const footer = createInteractionFooter(
+      constraintResult?.constraint.element ?? null,
+      counterElement,
+      context.styleManager,
+    );
+    if (footer) {
+      container.appendChild(footer);
     }
 
     // Register response accessor with itemState
