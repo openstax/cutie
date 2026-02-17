@@ -87,7 +87,7 @@ class ExtendedTextInteractionHandler implements ElementHandler {
     if (expectedLines) {
       const lines = parseInt(expectedLines, 10);
       if (!isNaN(lines) && lines > 0) {
-        textarea.style.minHeight = `${Math.max(lines * 1.4, 3)}em`;
+        textarea.style.minHeight = `calc(${lines * 1.4}em + 18px)`;
       }
     }
 
@@ -239,6 +239,7 @@ const EXTENDED_TEXT_INTERACTION_STYLES = `
   padding: 8px;
   font-size: 1.6rem;
   font-family: inherit;
+  line-height: 1.4;
   border: 1px solid var(--cutie-border);
   border-radius: 4px;
   resize: vertical;
@@ -261,9 +262,9 @@ const EXTENDED_TEXT_INTERACTION_STYLES = `
   outline: none;
 }
 
-.cutie-extended-text-interaction.qti-height-lines-3 textarea { min-height: 4.2em; }
-.cutie-extended-text-interaction.qti-height-lines-6 textarea { min-height: 8.4em; }
-.cutie-extended-text-interaction.qti-height-lines-15 textarea { min-height: 21em; }
+.cutie-extended-text-interaction.qti-height-lines-3 textarea { min-height: calc(4.2em + 18px); }
+.cutie-extended-text-interaction.qti-height-lines-6 textarea { min-height: calc(8.4em + 18px); }
+.cutie-extended-text-interaction.qti-height-lines-15 textarea { min-height: calc(21em + 18px); }
 `.trim();
 
 // Register with priority 50 (after specific handlers, before unsupported catch-all at 500)
