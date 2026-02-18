@@ -192,6 +192,12 @@ export const MATCH_INTERACTION_STYLES = `
     color: var(--cutie-primary-fg);
   }
 
+  .cutie-match-chip--selected::after {
+    content: '×';
+    margin-left: 0.375em;
+    font-weight: bold;
+  }
+
   .cutie-match-chip--dragging {
     opacity: 0.5;
     cursor: grabbing;

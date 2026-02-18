@@ -322,7 +322,7 @@ export class MatchController {
     if (existingAssociation) {
       announce(
         this.context,
-        `${choice.content} selected. Click another item to move, or press backspace to remove.`
+        `${choice.content} selected. Click again or press backspace to remove. Click another item to move.`
       );
     } else {
       announce(this.context, `${choice.content} selected. Choose an item from the other set to create an association.`);
@@ -501,9 +501,18 @@ export class MatchController {
       chip.textContent = connectedChoice.content;
 
       // Click to select chip - selecting the chip means selecting what it represents (connectedId)
+      // Tap-again-to-remove: if this chip's association is already selected, remove it
       chip.addEventListener('click', (e) => {
         e.stopPropagation();
         if (!this.enabled) return;
+
+        if (this.selection?.existingAssociation?.sourceId === sourceId
+          && this.selection?.existingAssociation?.targetId === targetId) {
+          this.clearSelection();
+          this.removeAssociation(sourceId, targetId);
+          choice.element.focus();
+          return;
+        }
 
         this.select(connectedId, existingAssociation, chip);
       });
@@ -515,6 +524,16 @@ export class MatchController {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           e.stopPropagation();
+
+          // Tap-again-to-remove: if this chip's association is already selected, remove it
+          if (this.selection?.existingAssociation?.sourceId === sourceId
+            && this.selection?.existingAssociation?.targetId === targetId) {
+            this.clearSelection();
+            this.removeAssociation(sourceId, targetId);
+            choice.element.focus();
+            return;
+          }
+
           this.select(connectedId, existingAssociation, chip);
         } else if (e.key === 'Delete' || e.key === 'Backspace') {
           e.preventDefault();
