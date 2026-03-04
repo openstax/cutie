@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { beginAttempt, submitResponse, setScore } from '@openstax/cutie-core';
 import type { AttemptState, ProcessingOptions } from '@openstax/cutie-core';
 import type { ResponseData } from '@openstax/cutie-client';
@@ -117,6 +117,13 @@ export function App() {
       setProcessing(false);
     }
   };
+
+  useEffect(() => {
+    const param = new URLSearchParams(window.location.search).get('item');
+    if (param) {
+      loadExample(param);
+    }
+  }, []);
 
   const handleAIGenerate = async (xml: string) => {
     setItemXml(xml);
