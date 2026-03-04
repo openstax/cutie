@@ -139,7 +139,7 @@ describe('formulaInteraction', () => {
       await waitForMathField();
 
       const mathField = container.querySelector('.cutie-formula-field')!;
-      expect(mathField.getAttribute('placeholder')).toBe('Enter LaTeX formula (e.g., 5x or \\frac{1}{2})');
+      expect(mathField.getAttribute('placeholder')).toBe('\\text{Enter a formula (e.g., }5x\\text{ or }\\frac{1}{2}\\text{)}');
     });
   });
 

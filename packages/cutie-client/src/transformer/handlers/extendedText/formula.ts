@@ -97,7 +97,7 @@ class FormulaInteractionHandler implements ElementHandler {
 
     // Read extended-text attributes
     const placeholderText = element.getAttribute('placeholder-text')
-      ?? 'Enter LaTeX formula (e.g., 5x or \\frac{1}{2})';
+      ?? '\\text{Enter a formula (e.g., }5x\\text{ or }\\frac{1}{2}\\text{)}';
 
     // Get default value
     const defaultValue = getDefaultValue(element.ownerDocument, responseIdentifier);
