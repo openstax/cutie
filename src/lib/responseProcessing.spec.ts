@@ -3379,3 +3379,78 @@ describe('processResponse - Formula Response Processing', () => {
     });
   });
 });
+
+describe('processResponse - Template Variable Correct Response', () => {
+  test('match_correct uses __correct_ variable set by qti-set-correct-response', () => {
+    // Minimal item with no static <qti-correct-response> — correct answer
+    // is set dynamically via template processing into __correct_RESPONSE
+    const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+                     identifier="template-item"
+                     adaptive="false"
+                     time-dependent="false">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="float"/>
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/>
+  <qti-response-processing
+    template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>
+</qti-assessment-item>`;
+
+    const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+    const currentState: AttemptState = {
+      variables: { SCORE: 0, __correct_RESPONSE: 20.0 },
+      completionStatus: 'not_attempted',
+      score: null,
+    };
+
+    // Correct answer
+    const correct = processResponse(itemDoc, { RESPONSE: '20' }, currentState);
+    expect(correct.variables.SCORE).toBe(1);
+
+    // Incorrect answer
+    const incorrect = processResponse(itemDoc, { RESPONSE: '10' }, currentState);
+    expect(incorrect.variables.SCORE).toBe(0);
+  });
+
+  test('qti-correct expression uses __correct_ variable', () => {
+    // Item with inline response processing using <qti-correct>
+    const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+                     identifier="template-item-inline"
+                     adaptive="false"
+                     time-dependent="false">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="float"/>
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/>
+  <qti-response-processing>
+    <qti-response-condition>
+      <qti-response-if>
+        <qti-match>
+          <qti-variable identifier="RESPONSE"/>
+          <qti-correct identifier="RESPONSE"/>
+        </qti-match>
+        <qti-set-outcome-value identifier="SCORE">
+          <qti-base-value base-type="float">1</qti-base-value>
+        </qti-set-outcome-value>
+      </qti-response-if>
+      <qti-response-else>
+        <qti-set-outcome-value identifier="SCORE">
+          <qti-base-value base-type="float">0</qti-base-value>
+        </qti-set-outcome-value>
+      </qti-response-else>
+    </qti-response-condition>
+  </qti-response-processing>
+</qti-assessment-item>`;
+
+    const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+    const currentState: AttemptState = {
+      variables: { SCORE: 0, __correct_RESPONSE: 15.0 },
+      completionStatus: 'not_attempted',
+      score: null,
+    };
+
+    const correct = processResponse(itemDoc, { RESPONSE: '15' }, currentState);
+    expect(correct.variables.SCORE).toBe(1);
+
+    const incorrect = processResponse(itemDoc, { RESPONSE: '5' }, currentState);
+    expect(incorrect.variables.SCORE).toBe(0);
+  });
+});

@@ -241,7 +241,7 @@ function executeResponseTemplate(
  */
 function executeMatchCorrectTemplate(itemDoc: Document, variables: Record<string, unknown>): void {
   const responseValue = variables['RESPONSE'];
-  const correctValue = getCorrectResponse(itemDoc, 'RESPONSE');
+  const correctValue = getCorrectResponse(itemDoc, 'RESPONSE', variables);
 
   if (compareResponseValues(itemDoc, 'RESPONSE', responseValue, correctValue)) {
     variables['SCORE'] = 1;
@@ -327,7 +327,10 @@ function executeMapResponsePointTemplate(itemDoc: Document, variables: Record<st
 /**
  * Get the correct response value from a response declaration
  */
-function getCorrectResponse(itemDoc: Document, identifier: string): unknown {
+function getCorrectResponse(itemDoc: Document, identifier: string, variables: Record<string, unknown>): unknown {
+  const templateCorrect = variables[`__correct_${identifier}`];
+  if (templateCorrect !== undefined) return templateCorrect;
+
   const declarations = itemDoc.getElementsByTagName('qti-response-declaration');
 
   for (let i = 0; i < declarations.length; i++) {
@@ -670,7 +673,7 @@ function evaluateExpression(
   switch (localName) {
     // Response-specific operators
     case 'qti-correct':
-      return evaluateCorrect(element, itemDoc);
+      return evaluateCorrect(element, itemDoc, variables);
     case 'qti-map-response':
       return evaluateMapResponse(element, itemDoc, variables, subEvaluate);
     case 'qti-map-response-point':
@@ -684,11 +687,11 @@ function evaluateExpression(
 
 // Expression evaluators
 
-function evaluateCorrect(element: Element, itemDoc: Document): unknown {
+function evaluateCorrect(element: Element, itemDoc: Document, variables: Record<string, unknown>): unknown {
   const identifier = element.getAttribute('identifier');
   if (!identifier) return null;
 
-  return getCorrectResponse(itemDoc, identifier);
+  return getCorrectResponse(itemDoc, identifier, variables);
 }
 
 function evaluateMapResponse(
