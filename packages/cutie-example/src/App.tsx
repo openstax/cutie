@@ -102,6 +102,10 @@ export function App() {
     const example = examples.find(ex => ex.name === exampleName);
     if (!example) return;
 
+    const url = new URL(window.location.href);
+    url.searchParams.set('item', exampleName);
+    window.history.replaceState(null, '', url);
+
     setItemXml(example.item);
     setResponses(null);
     setError('');
