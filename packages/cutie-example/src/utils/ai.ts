@@ -153,7 +153,7 @@ ${topic}
 
 export const continueQuiz = (
   topic: string,
-  history: {topic: string; questions: {description: string; result: 'correct' | 'incorrect' | 'partial-credit'}[]}[],
+  history: {topic: string; questions: {description: string; result: 'correct' | 'incorrect' | 'partial-credit' | 'pending'}[]}[],
   modelId: number = DEFAULT_MODEL_ID
 ) => {
   const formattedHistory = history.slice(-3).map(quiz => `## ${quiz.topic}

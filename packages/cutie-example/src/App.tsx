@@ -266,16 +266,17 @@ export function App() {
     // Eagerly generate next quiz + first question when on last or second-to-last question
     if ((isLastQuestion || currentIndex === quiz.questions.length - 2) && !prefetchingRef.current.nextQuiz) {
       // Build the history that will exist when we move to next quiz
-      const projectedHistory = isLastQuestion ? [
+      // Always include current quiz — unanswered questions marked 'pending'
+      const projectedHistory = [
         ...history,
         {
           topic: quiz.topic,
           questions: quiz.questions.map(q => ({
             description: q.description,
-            result: ('result' in q ? q.result : 'incorrect') as 'correct' | 'incorrect' | 'partial-credit',
+            result: ('result' in q ? q.result : 'pending') as 'correct' | 'incorrect' | 'partial-credit' | 'pending',
           })),
         }
-      ] : history;
+      ];
 
       const promise = continueQuiz(userTopic, projectedHistory, fastModelId)
         .then(async (nextQuizResponse) => {
