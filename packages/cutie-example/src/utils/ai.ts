@@ -136,7 +136,7 @@ const interactionTypes = z.enum(['choice', 'inline-choice', 'text-entry', 'gap-m
 export type InteractionType = z.infer<typeof interactionTypes>;
 
 const quizResponse = z.object({
-  topic: z.string().describe(`An atomic topic related to these questions. It should be specific and focused, not an entire discipline or broad subject area, it should be more focused than the user's specified interest, such that further topics could be identified within the specified interest.`),
+  topic: z.string().describe(`An atomic topic related to these questions. It should be specific and focused. The topic MUST be related to the specfified area of interest. The topic MUST NOT be the same as the specified area of interest, it should be something smaller and more focused.`),
   questions: z.array(z.object({
     description: z.string().describe(`A single sentence describing a question to be asked about the topic. This may be the question text (eg. "What is the capital of France?") or a description of a question (Eg. "Gap-match words in a well known excerpt from Moby Dick."`),
     interactions: z.array(interactionTypes).min(1).describe('specify one or more QTIv3 interaction types this question should use')
