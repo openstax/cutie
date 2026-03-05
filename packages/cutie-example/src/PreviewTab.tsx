@@ -51,7 +51,12 @@ export function PreviewTab({ attemptState, sanitizedTemplate, responses, onSubmi
   // Uses update() on submit transitions to preserve announcement state,
   // and fresh mountItem() on reset or new item load
   useEffect(() => {
-    if (!previewRef.current || !sanitizedTemplate) return;
+    if (!previewRef.current || !sanitizedTemplate) {
+      // Clean up previous mounted item when template is cleared
+      mountedItemRef.current?.unmount();
+      mountedItemRef.current = null;
+      return;
+    }
 
     const prevStatus = prevCompletionStatusRef.current;
     prevCompletionStatusRef.current = attemptState?.completionStatus;
