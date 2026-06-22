@@ -22,10 +22,11 @@ git checkout -b "$release_branch_name"
 packages=( \
   "cutie-core" \
   "cutie-client" \
+  "cutie-editor" \
 )
 
 for package in "${packages[@]}"; do
-  relative_package_dir="packages/flex-page-$package"
+  relative_package_dir="packages/$package"
   package_dir="$project_dir/$relative_package_dir"
   cd "$package_dir";
   name=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('/dev/stdin').toString()).name)" < package.json)
