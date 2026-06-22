@@ -1,7 +1,7 @@
 {
   "name": "@openstax/cutie-editor",
   "description": "Framework-agnostic WYSIWYG editor for QTI v3 assessment items",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "dependencies": {
     "slate": "^0.123.0",
     "slate-dom": "^0.123.0",
