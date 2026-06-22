@@ -1,0 +1,324 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const dompurify_1 = __importDefault(require("dompurify"));
+const errorDisplay_1 = require("../../../errors/errorDisplay");
+const registry_1 = require("../../registry");
+const responseUtils_1 = require("../responseUtils");
+const quillLoader_1 = require("./quillLoader");
+const utils_1 = require("./utils");
+const QUILL_CSS_URL = 'https://cdn.jsdelivr.net/npm/quill@2/dist/quill.snow.css';
+const QUILL_CSS_ID = 'cutie-quill-snow-css';
+/**
+ * Strip HTML tags and return plain text content.
+ * Used to determine if editor content is empty.
+ */
+function stripHtml(html) {
+    var _a;
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    return (_a = tmp.textContent) !== null && _a !== void 0 ? _a : '';
+}
+/**
+ * Quill toolbar configuration for rich text editing.
+ */
+const QUILL_TOOLBAR = [
+    ['bold', 'italic', 'underline', 'strike'],
+    [{ header: 1 }, { header: 2 }],
+    [{ list: 'ordered' }, { list: 'bullet' }],
+    ['blockquote', 'code-block'],
+    [{ script: 'sub' }, { script: 'super' }],
+    [{ align: [] }],
+    ['clean'],
+];
+/**
+ * Handler for qti-extended-text-interaction with format="xhtml"
+ *
+ * Renders a Quill rich text editor for XHTML responses.
+ * Loads Quill asynchronously to avoid bundling it with the main bundle.
+ *
+ * Response value is stored as HTML (not XHTML).
+ */
+class RichTextInteractionHandler {
+    canHandle(element) {
+        if (element.tagName.toLowerCase() !== 'qti-extended-text-interaction') {
+            return false;
+        }
+        return element.getAttribute('format') === 'xhtml';
+    }
+    transform(element, context) {
+        var _a, _b;
+        const fragment = document.createDocumentFragment();
+        const responseIdentifier = element.getAttribute('response-identifier');
+        if (!responseIdentifier) {
+            console.error('qti-extended-text-interaction missing required response-identifier attribute');
+            fragment.appendChild((0, errorDisplay_1.createMissingAttributeError)('qti-extended-text-interaction', 'response-identifier'));
+            return fragment;
+        }
+        // Register styles once
+        if (context.styleManager && !context.styleManager.hasStyle('cutie-rich-text-interaction')) {
+            context.styleManager.addStyle('cutie-rich-text-interaction', RICH_TEXT_INTERACTION_STYLES);
+        }
+        // Create container for the interaction
+        const container = (0, utils_1.createInteractionContainer)(element, 'cutie-rich-text-interaction', responseIdentifier);
+        // Process qti-prompt if present
+        const prompt = (0, utils_1.processPrompt)(element, responseIdentifier, context);
+        if (prompt) {
+            container.appendChild(prompt.element);
+        }
+        // Create editor wrapper + loading placeholder
+        const editorWrapper = document.createElement('div');
+        editorWrapper.className = 'cutie-rich-text-wrapper';
+        const loadingPlaceholder = document.createElement('div');
+        loadingPlaceholder.className = 'cutie-rich-text-loading';
+        loadingPlaceholder.textContent = 'Loading rich text editor...';
+        editorWrapper.appendChild(loadingPlaceholder);
+        container.appendChild(editorWrapper);
+        // Parse constraints — skip pattern-mask for xhtml (regex on HTML is meaningless)
+        const constraints = (0, utils_1.parseConstraints)(element);
+        // Character counter
+        // data-max-characters forces the counter on (defaulting to 'down'),
+        // otherwise expected-length + a counter direction class is required.
+        const expectedLength = (0, utils_1.parseExpectedLength)(element);
+        const counterDirection = (0, utils_1.parseCounterDirection)(element);
+        const minCharacters = constraints.minCharacters;
+        const maxCharacters = constraints.maxCharacters;
+        const counterTarget = maxCharacters !== null && maxCharacters !== void 0 ? maxCharacters : expectedLength;
+        const isHardLimit = maxCharacters !== null;
+        const effectiveDirection = counterDirection !== null && counterDirection !== void 0 ? counterDirection : (isHardLimit ? 'down' : null);
+        let counter = null;
+        if (counterTarget !== null && effectiveDirection !== null) {
+            counter = (0, utils_1.createCharacterCounter)(counterTarget, effectiveDirection, responseIdentifier, context.styleManager, isHardLimit);
+        }
+        const needsConstraint = constraints.minStrings > 0 || minCharacters !== null || maxCharacters !== null;
+        const constraintResult = needsConstraint
+            ? (0, utils_1.createConstraintElements)({ minStrings: constraints.minStrings, patternMask: null, patternMessage: null, minCharacters, maxCharacters }, responseIdentifier, context.styleManager)
+            : null;
+        // Wrap counter and/or constraint in a shared footer row
+        const footer = (0, utils_1.createInteractionFooter)((_a = constraintResult === null || constraintResult === void 0 ? void 0 : constraintResult.constraint.element) !== null && _a !== void 0 ? _a : null, (_b = counter === null || counter === void 0 ? void 0 : counter.element) !== null && _b !== void 0 ? _b : null, context.styleManager);
+        if (footer) {
+            container.appendChild(footer);
+        }
+        fragment.appendChild(container);
+        // Get default value
+        const defaultValue = (0, responseUtils_1.getDefaultValue)(element.ownerDocument, responseIdentifier);
+        const initialHtml = typeof defaultValue === 'string' ? defaultValue : '';
+        // Track current HTML value for response accessor
+        let currentHtml = initialHtml;
+        // Track active editor root for aria wiring
+        let activeEditorRoot = null;
+        // Validate constraints and update error UI. Returns true when valid.
+        // Defined outside the itemState block so the Quill text-change handler can call it.
+        const validate = () => {
+            const textContent = stripHtml(currentHtml).trim();
+            // Min-strings check: empty input when required
+            if (constraints.minStrings > 0 && textContent.length === 0) {
+                activeEditorRoot === null || activeEditorRoot === void 0 ? void 0 : activeEditorRoot.setAttribute('aria-invalid', 'true');
+                if (constraintResult === null || constraintResult === void 0 ? void 0 : constraintResult.minStringsText) {
+                    constraintResult.constraint.setText(constraintResult.minStringsText);
+                }
+                constraintResult === null || constraintResult === void 0 ? void 0 : constraintResult.constraint.setError(true);
+                return false;
+            }
+            // Min-characters check: too short (includes empty — implies required)
+            if (minCharacters !== null && textContent.length < minCharacters) {
+                activeEditorRoot === null || activeEditorRoot === void 0 ? void 0 : activeEditorRoot.setAttribute('aria-invalid', 'true');
+                if (constraintResult === null || constraintResult === void 0 ? void 0 : constraintResult.minCharactersText) {
+                    constraintResult.constraint.setText(constraintResult.minCharactersText);
+                }
+                constraintResult === null || constraintResult === void 0 ? void 0 : constraintResult.constraint.setError(true);
+                return false;
+            }
+            // Max-characters check: hard character limit exceeded
+            if (maxCharacters !== null && textContent.length > maxCharacters) {
+                activeEditorRoot === null || activeEditorRoot === void 0 ? void 0 : activeEditorRoot.setAttribute('aria-invalid', 'true');
+                if (constraintResult === null || constraintResult === void 0 ? void 0 : constraintResult.maxCharactersText) {
+                    constraintResult.constraint.setText(constraintResult.maxCharactersText);
+                }
+                constraintResult === null || constraintResult === void 0 ? void 0 : constraintResult.constraint.setError(true);
+                return false;
+            }
+            activeEditorRoot === null || activeEditorRoot === void 0 ? void 0 : activeEditorRoot.removeAttribute('aria-invalid');
+            if (constraintResult) {
+                constraintResult.constraint.setError(false);
+                constraintResult.constraint.setText(constraintResult.initialText);
+            }
+            return true;
+        };
+        // Register response accessor before async load
+        if (context.itemState) {
+            context.itemState.registerResponse(responseIdentifier, () => {
+                const isEmpty = stripHtml(currentHtml).trim().length === 0;
+                const valid = validate();
+                return { value: isEmpty ? null : currentHtml, valid };
+            });
+        }
+        // Read expected-lines for min-height
+        const expectedLines = element.getAttribute('expected-lines');
+        // Load Quill asynchronously
+        (0, quillLoader_1.loadQuill)()
+            .then((quillModule) => {
+            const Quill = quillModule.default;
+            loadingPlaceholder.remove();
+            // Inject Quill snow CSS if not already present
+            if (!document.getElementById(QUILL_CSS_ID)) {
+                const link = document.createElement('link');
+                link.id = QUILL_CSS_ID;
+                link.rel = 'stylesheet';
+                link.href = QUILL_CSS_URL;
+                document.head.appendChild(link);
+            }
+            // Create editor container
+            const editorContainer = document.createElement('div');
+            editorContainer.className = 'cutie-rich-text-editor';
+            editorWrapper.appendChild(editorContainer);
+            // Instantiate Quill
+            const quill = new Quill(editorContainer, {
+                theme: 'snow',
+                modules: { toolbar: QUILL_TOOLBAR },
+            });
+            // Set default value (sanitize before inserting)
+            if (initialHtml) {
+                quill.clipboard.dangerouslyPasteHTML(dompurify_1.default.sanitize(initialHtml));
+                currentHtml = quill.root.innerHTML;
+            }
+            // Listen for text changes (sanitize output for defense in depth)
+            quill.on('text-change', () => {
+                currentHtml = dompurify_1.default.sanitize(quill.root.innerHTML);
+            });
+            // Wire counter to text-change events
+            if (counter) {
+                counter.update(stripHtml(quill.root.innerHTML).length);
+                quill.on('text-change', () => {
+                    counter.update(stripHtml(quill.root.innerHTML).length);
+                });
+            }
+            // Re-validate on text-change so errors clear/update as the user edits
+            quill.on('text-change', () => {
+                if (activeEditorRoot === null || activeEditorRoot === void 0 ? void 0 : activeEditorRoot.hasAttribute('aria-invalid')) {
+                    validate();
+                }
+            });
+            // Wire up aria attributes on the editor root
+            activeEditorRoot = quill.root;
+            if (prompt) {
+                quill.root.setAttribute('aria-labelledby', prompt.id);
+            }
+            else {
+                quill.root.setAttribute('aria-label', 'Rich text response input');
+            }
+            // Wire up constraint aria-describedby
+            if (constraintResult) {
+                (0, utils_1.wireConstraintDescribedBy)(quill.root, constraintResult.constraint.element);
+            }
+            // Apply expected-lines min-height to .ql-editor
+            if (expectedLines) {
+                const lines = parseInt(expectedLines, 10);
+                if (!isNaN(lines) && lines > 0) {
+                    quill.root.style.minHeight = `calc(${lines * 1.4}em + 16px)`;
+                }
+            }
+            // Handle disabled state
+            if (context.itemState) {
+                const setDisabled = (disabled) => {
+                    quill.enable(!disabled);
+                    if (disabled) {
+                        container.classList.add('cutie-rich-text-disabled');
+                    }
+                    else {
+                        container.classList.remove('cutie-rich-text-disabled');
+                    }
+                };
+                context.itemState.addObserver((state) => {
+                    setDisabled(!state.interactionsEnabled);
+                });
+                setDisabled(!context.itemState.interactionsEnabled);
+            }
+        })
+            .catch((error) => {
+            console.error('Failed to load Quill:', error);
+            loadingPlaceholder.remove();
+            const errorMsg = document.createElement('div');
+            errorMsg.className = 'cutie-rich-text-error';
+            errorMsg.textContent = 'Rich text editor failed to load. Please check that Quill is installed.';
+            editorWrapper.appendChild(errorMsg);
+        });
+        return fragment;
+    }
+}
+const RICH_TEXT_INTERACTION_STYLES = `
+.cutie-rich-text-interaction {
+  display: block;
+  margin: 8px 0;
+}
+
+.cutie-rich-text-interaction .cutie-prompt {
+  margin-bottom: 8px;
+}
+
+.cutie-rich-text-wrapper {
+  width: 100%;
+  border: 1px solid var(--cutie-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.cutie-rich-text-wrapper:focus-within {
+  outline: 2px solid var(--cutie-primary);
+  outline-offset: 1px;
+  border-color: var(--cutie-primary);
+}
+
+.cutie-rich-text-interaction .ql-toolbar {
+  border: none;
+  border-bottom: 1px solid var(--cutie-border);
+}
+
+.cutie-rich-text-interaction .ql-container {
+  border: none;
+  font-size: 1.6rem;
+  font-family: inherit;
+}
+
+.cutie-rich-text-interaction .ql-editor {
+  min-height: 7.5em;
+  padding: 8px;
+  line-height: 1.4;
+}
+
+.cutie-rich-text-disabled .ql-toolbar {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.cutie-rich-text-disabled .ql-container {
+  background-color: var(--cutie-bg-alt);
+  opacity: 0.6;
+}
+
+.cutie-rich-text-loading {
+  padding: 12px;
+  color: var(--cutie-text-muted);
+  font-style: italic;
+  background-color: var(--cutie-bg-alt);
+  border: 1px solid var(--cutie-border);
+  border-radius: 4px;
+}
+
+.cutie-rich-text-error {
+  color: var(--cutie-feedback-incorrect);
+  background-color: var(--cutie-bg-alt);
+  padding: 8px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.cutie-rich-text-interaction.qti-height-lines-3 .ql-editor { min-height: calc(4.2em + 16px); }
+.cutie-rich-text-interaction.qti-height-lines-6 .ql-editor { min-height: calc(8.4em + 16px); }
+.cutie-rich-text-interaction.qti-height-lines-15 .ql-editor { min-height: calc(21em + 16px); }
+`.trim();
+// Register with priority 45 (between formula@40 and plainText@50)
+registry_1.registry.register('rich-text-interaction', new RichTextInteractionHandler(), 45);
