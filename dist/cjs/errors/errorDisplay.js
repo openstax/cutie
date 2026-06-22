@@ -1,0 +1,86 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ERROR_DISPLAY_STYLES = void 0;
+exports.createErrorElement = createErrorElement;
+exports.createUnsupportedElement = createUnsupportedElement;
+exports.createMissingAttributeError = createMissingAttributeError;
+exports.createInvalidAttributeError = createInvalidAttributeError;
+/**
+ * CSS styles for error display elements.
+ * Registered as part of base styles so they are always available.
+ */
+exports.ERROR_DISPLAY_STYLES = `
+  .cutie-error-display {
+    display: inline-block;
+    background-color: var(--cutie-bg-alt);
+    border: 2px solid var(--cutie-feedback-incorrect);
+    border-radius: 4px;
+    padding: 12px 16px;
+    margin: 8px 0;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+
+  .cutie-error-display__title {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--cutie-feedback-incorrect);
+  }
+
+  .cutie-error-display__message {
+    color: var(--cutie-feedback-incorrect);
+    font-size: 14px;
+  }
+`;
+/**
+ * Create a generic error display element
+ *
+ * @param title - The error title text
+ * @param message - The detailed error message
+ * @returns HTMLElement configured with error styling
+ */
+function createErrorElement(title, message) {
+    const container = document.createElement('span');
+    container.className = 'cutie-error-display';
+    // Create title
+    const titleEl = document.createElement('strong');
+    titleEl.className = 'cutie-error-display__title';
+    titleEl.textContent = title;
+    // Create message
+    const messageEl = document.createElement('div');
+    messageEl.className = 'cutie-error-display__message';
+    messageEl.textContent = message;
+    container.appendChild(titleEl);
+    container.appendChild(messageEl);
+    return container;
+}
+/**
+ * Create a visual error display for unsupported elements
+ */
+function createUnsupportedElement(elementName) {
+    return createErrorElement('Unsupported Element', `The element '${elementName}' is not yet implemented.`);
+}
+/**
+ * Create an error display for a missing required attribute
+ *
+ * @param elementName - The QTI element name (e.g., 'qti-choice-interaction')
+ * @param attributeName - The missing attribute name (e.g., 'response-identifier')
+ * @returns HTMLElement configured with error styling
+ */
+function createMissingAttributeError(elementName, attributeName) {
+    return createErrorElement('Configuration Error', `${elementName} is missing required attribute: ${attributeName}`);
+}
+/**
+ * Create an error display for an invalid attribute value
+ *
+ * @param elementName - The QTI element name
+ * @param attributeName - The attribute name
+ * @param value - The invalid value
+ * @param reason - Optional explanation of why the value is invalid
+ * @returns HTMLElement configured with error styling
+ */
+function createInvalidAttributeError(elementName, attributeName, value, reason) {
+    const message = reason
+        ? `${elementName} has invalid ${attributeName} value: ${value}. ${reason}`
+        : `${elementName} has invalid ${attributeName} value: ${value}`;
+    return createErrorElement('Configuration Error', message);
+}
