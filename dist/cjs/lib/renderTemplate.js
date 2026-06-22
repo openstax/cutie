@@ -1,0 +1,601 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.renderTemplate = renderTemplate;
+/* spell-checker: ignore inlines */
+const xmldom_1 = require("@xmldom/xmldom");
+/**
+ * Renders a sanitized QTI template for client consumption.
+ *
+ * This function:
+ * 1. Substitutes template and outcome variable values into the item body
+ * 2. Applies conditional visibility rules based on current state
+ * 3. Shows/hides feedback elements based on outcome variables
+ * 4. Strips sensitive content that should not be exposed to the client:
+ *    - qti-template-declaration elements
+ *    - qti-template-processing rules
+ *    - qti-response-processing rules
+ *    - qti-correct-response, qti-mapping from response declarations
+ *    - Response declarations not used in the filtered body
+ *    - Hidden feedback that shouldn't be visible yet
+ * 5. Injects current response values as qti-default-value elements
+ * 6. Optionally resolves asset URLs via provided callback
+ * 7. Serializes the sanitized document to XML string
+ *
+ * This runs after both initializeState and processResponse to generate
+ * the template that the client will render.
+ *
+ * @param itemDoc - Parsed QTI assessment item XML document
+ * @param state - Current attempt state with variable values
+ * @param options - Optional processing options (e.g., asset resolver)
+ * @returns Promise resolving to sanitized QTI XML string safe for client rendering
+ */
+async function renderTemplate(itemDoc, state, options) {
+    // Clone the document to avoid mutating the original
+    const clonedDoc = itemDoc.cloneNode(true);
+    const root = clonedDoc.documentElement;
+    // Step 1: Remove sensitive content that shouldn't be exposed to the client
+    removeSensitiveElements(root);
+    // Step 2: Substitute template variables into qti-printed-variable elements
+    substituteVariables(root, state.variables);
+    // Step 3: Process conditional template elements (blocks, inlines, choices)
+    processTemplateConditionals(root, state.variables);
+    // Step 3.5: Apply shuffle orders to reorder interaction choices
+    if (state.shuffleOrders) {
+        applyShuffleOrders(root, state.shuffleOrders);
+    }
+    // Step 4: Process feedback visibility based on outcome variables
+    processFeedbackVisibility(root, state.variables);
+    // Step 5: Substitute math variables in MathML expressions
+    substituteMathVariables(root, state.variables);
+    // Step 6: Sanitize response declarations (after body is filtered)
+    sanitizeResponseDeclarations(root, state.variables);
+    // Step 7: Clean up empty text nodes and normalize whitespace
+    normalizeWhitespace(root);
+    // Step 8: Resolve asset URLs if resolver is provided
+    if (options === null || options === void 0 ? void 0 : options.resolveAssets) {
+        await resolveAssetUrls(root, options.resolveAssets);
+    }
+    // Step 9: Serialize the sanitized document to XML string
+    return serializeToXml(clonedDoc);
+}
+/**
+ * Substitutes variable values into qti-printed-variable elements.
+ * Replaces each qti-printed-variable element with a text node containing the variable value.
+ * If the variable is missing or null/undefined, replaces with an empty text node.
+ */
+function substituteVariables(root, variables) {
+    const printedVars = Array.from(root.getElementsByTagName('qti-printed-variable'));
+    for (const printedVar of printedVars) {
+        const identifier = printedVar.getAttribute('identifier');
+        if (!identifier)
+            continue;
+        const value = variables[identifier];
+        // Convert the value to a string representation (empty string if missing)
+        const textValue = value === undefined || value === null ? '' : String(value);
+        // Create a text node with the value
+        const textNode = root.ownerDocument.createTextNode(textValue);
+        // Replace the qti-printed-variable element with the text node
+        const parent = printedVar.parentNode;
+        if (parent) {
+            parent.replaceChild(textNode, printedVar);
+        }
+    }
+}
+/**
+ * Removes sensitive elements from the document that should not be exposed to the client.
+ * This includes:
+ * - qti-outcome-declaration
+ * - qti-template-declaration
+ * - qti-template-processing
+ * - qti-response-processing
+ * - qti-rubric-block elements not intended for the candidate view
+ *
+ * Note: qti-response-declaration elements are kept but sanitized separately.
+ */
+function removeSensitiveElements(root) {
+    var _a, _b, _c;
+    const sensitiveTagNames = [
+        'qti-outcome-declaration',
+        'qti-template-declaration',
+        'qti-template-processing',
+        'qti-response-processing',
+    ];
+    for (const tagName of sensitiveTagNames) {
+        const elements = Array.from(root.getElementsByTagName(tagName));
+        for (const element of elements) {
+            (_a = element.parentNode) === null || _a === void 0 ? void 0 : _a.removeChild(element);
+        }
+    }
+    // Remove rubric blocks not intended for candidates
+    const rubricBlocks = Array.from(root.getElementsByTagName('qti-rubric-block'));
+    for (const rubric of rubricBlocks) {
+        const view = (_b = rubric.getAttribute('view')) !== null && _b !== void 0 ? _b : '';
+        const views = view.split(/\s+/).filter(Boolean);
+        if (!views.includes('candidate')) {
+            (_c = rubric.parentNode) === null || _c === void 0 ? void 0 : _c.removeChild(rubric);
+        }
+    }
+}
+/**
+ * Processes elements with template-identifier/show-hide for conditional visibility.
+ *
+ * Applies to qti-template-block, qti-template-inline, and choice elements
+ * (qti-simple-choice, qti-inline-choice, qti-simple-associable-choice,
+ * qti-gap-text, qti-gap-img, qti-gap).
+ *
+ * These elements have a template-identifier attribute that should match values in template variables.
+ * - If show-hide="show": element is visible only when template-identifier matches a variable value
+ * - If show-hide="hide": element is hidden when template-identifier matches a variable value
+ *
+ * The matching is done by finding a variable (any variable) that contains the template-identifier.
+ * Variables can be single values or arrays (multiple cardinality).
+ *
+ * Elements without a template-identifier attribute are skipped, so normal choices are unaffected.
+ */
+function processTemplateConditionals(root, variables) {
+    var _a;
+    // Process template-block, template-inline, and choice elements
+    const templateElements = [
+        ...Array.from(root.getElementsByTagName('qti-template-block')),
+        ...Array.from(root.getElementsByTagName('qti-template-inline')),
+        ...Array.from(root.getElementsByTagName('qti-simple-choice')),
+        ...Array.from(root.getElementsByTagName('qti-inline-choice')),
+        ...Array.from(root.getElementsByTagName('qti-simple-associable-choice')),
+        ...Array.from(root.getElementsByTagName('qti-gap-text')),
+        ...Array.from(root.getElementsByTagName('qti-gap-img')),
+        ...Array.from(root.getElementsByTagName('qti-gap')),
+    ];
+    for (const element of templateElements) {
+        const templateIdentifier = element.getAttribute('template-identifier');
+        const showHide = element.getAttribute('show-hide');
+        if (!templateIdentifier)
+            continue;
+        // Check if any variable contains this template identifier
+        const isMatch = checkVariableContains(variables, templateIdentifier);
+        // Determine if element should be removed
+        let shouldRemove = false;
+        if (showHide === 'show') {
+            // Remove if it doesn't match
+            shouldRemove = !isMatch;
+        }
+        else if (showHide === 'hide') {
+            // Remove if it does match
+            shouldRemove = isMatch;
+        }
+        if (shouldRemove) {
+            (_a = element.parentNode) === null || _a === void 0 ? void 0 : _a.removeChild(element);
+        }
+    }
+}
+/**
+ * Processes qti-feedback-block and qti-feedback-inline elements for conditional visibility.
+ *
+ * These elements have an outcome-identifier and identifier attribute.
+ * - outcome-identifier: references the outcome variable to check
+ * - identifier: the value to look for in that outcome variable
+ * - show-hide: "show" means visible when identifier is in outcome variable,
+ *              "hide" means hidden when identifier is in outcome variable
+ */
+function processFeedbackVisibility(root, variables) {
+    var _a;
+    // Process feedback-block, feedback-inline, and modal-feedback elements
+    const feedbackElements = [
+        ...Array.from(root.getElementsByTagName('qti-feedback-block')),
+        ...Array.from(root.getElementsByTagName('qti-feedback-inline')),
+        ...Array.from(root.getElementsByTagName('qti-modal-feedback')),
+    ];
+    for (const element of feedbackElements) {
+        const outcomeIdentifier = element.getAttribute('outcome-identifier');
+        const identifier = element.getAttribute('identifier');
+        const showHide = element.getAttribute('show-hide');
+        if (!outcomeIdentifier || !identifier)
+            continue;
+        // Get the outcome variable value
+        const outcomeValue = variables[outcomeIdentifier];
+        // Check if the identifier is in the outcome variable
+        const isMatch = valueContains(outcomeValue, identifier);
+        // Determine if element should be removed
+        let shouldRemove = false;
+        if (showHide === 'show') {
+            // Remove if it doesn't match
+            shouldRemove = !isMatch;
+        }
+        else if (showHide === 'hide') {
+            // Remove if it does match
+            shouldRemove = isMatch;
+        }
+        if (shouldRemove) {
+            (_a = element.parentNode) === null || _a === void 0 ? void 0 : _a.removeChild(element);
+        }
+    }
+}
+/**
+ * Substitutes template variables into MathML expressions.
+ * Looks for <m:mi> and <m:mn> elements whose text content matches a variable identifier,
+ * and replaces the content with the variable's value.
+ */
+function substituteMathVariables(root, variables) {
+    var _a;
+    // Get all MathML identifier (mi) and number (mn) elements
+    // MathML uses the namespace http://www.w3.org/1998/Math/MathML
+    const mathElements = [
+        ...Array.from(root.getElementsByTagName('m:mi')),
+        ...Array.from(root.getElementsByTagName('m:mn')),
+    ];
+    for (const mathElement of mathElements) {
+        const textContent = (_a = mathElement.textContent) === null || _a === void 0 ? void 0 : _a.trim();
+        if (!textContent)
+            continue;
+        // Check if this text content matches a variable identifier
+        const value = variables[textContent];
+        if (value === undefined || value === null)
+            continue;
+        // Replace the text content with the variable value
+        mathElement.textContent = String(value);
+    }
+}
+/**
+ * Checks if any variable in the variables object contains the given identifier.
+ * Handles both single values and arrays (multiple cardinality).
+ */
+function checkVariableContains(variables, identifier) {
+    for (const value of Object.values(variables)) {
+        if (valueContains(value, identifier)) {
+            return true;
+        }
+    }
+    return false;
+}
+/**
+ * Checks if a value contains the given identifier.
+ * Handles both single values and arrays.
+ */
+function valueContains(value, identifier) {
+    if (Array.isArray(value)) {
+        return value.includes(identifier);
+    }
+    return value === identifier;
+}
+/**
+ * Sanitizes qti-response-declaration elements:
+ * 1. Collects response-identifier attributes from interaction elements in the body
+ * 2. Removes declarations for identifiers not used in the filtered body
+ * 3. Strips sensitive children (qti-correct-response, qti-mapping, qti-area-mapping)
+ * 4. Injects qti-default-value with current response values from state
+ */
+function sanitizeResponseDeclarations(root, variables) {
+    var _a, _b, _c;
+    // Step 1: Find all response identifiers used in the item body
+    const itemBody = root.getElementsByTagName('qti-item-body')[0];
+    const usedIdentifiers = new Set();
+    if (itemBody) {
+        // Get all elements in the body that might have response-identifier
+        const allElements = itemBody.getElementsByTagName('*');
+        for (let i = 0; i < allElements.length; i++) {
+            const element = allElements[i];
+            const responseId = element === null || element === void 0 ? void 0 : element.getAttribute('response-identifier');
+            if (responseId) {
+                usedIdentifiers.add(responseId);
+            }
+        }
+    }
+    // Step 2: Process all qti-response-declaration elements
+    const declarations = Array.from(root.getElementsByTagName('qti-response-declaration'));
+    for (const declaration of declarations) {
+        const identifier = declaration.getAttribute('identifier');
+        // Remove declarations not used in the body
+        if (!identifier || !usedIdentifiers.has(identifier)) {
+            (_a = declaration.parentNode) === null || _a === void 0 ? void 0 : _a.removeChild(declaration);
+            continue;
+        }
+        // Step 3: Remove sensitive child elements
+        const sensitiveChildren = [
+            'qti-correct-response',
+            'qti-mapping',
+            'qti-area-mapping',
+        ];
+        for (const tagName of sensitiveChildren) {
+            const elements = Array.from(declaration.getElementsByTagName(tagName));
+            for (const element of elements) {
+                (_b = element.parentNode) === null || _b === void 0 ? void 0 : _b.removeChild(element);
+            }
+        }
+        // Step 4: Inject default value if response exists in state
+        const responseValue = variables[identifier];
+        if (responseValue !== undefined && responseValue !== null) {
+            // Remove any existing qti-default-value first
+            const existingDefaults = Array.from(declaration.getElementsByTagName('qti-default-value'));
+            for (const existing of existingDefaults) {
+                (_c = existing.parentNode) === null || _c === void 0 ? void 0 : _c.removeChild(existing);
+            }
+            // Create new qti-default-value element
+            const defaultValue = declaration.ownerDocument.createElement('qti-default-value');
+            // Handle different cardinalities
+            if (Array.isArray(responseValue)) {
+                // Multiple or ordered cardinality
+                for (const val of responseValue) {
+                    const valueElement = declaration.ownerDocument.createElement('qti-value');
+                    valueElement.textContent = String(val);
+                    defaultValue.appendChild(valueElement);
+                }
+            }
+            else {
+                // Single cardinality
+                const valueElement = declaration.ownerDocument.createElement('qti-value');
+                valueElement.textContent = String(responseValue);
+                defaultValue.appendChild(valueElement);
+            }
+            // Append to declaration
+            declaration.appendChild(defaultValue);
+        }
+    }
+}
+/**
+ * Normalizes whitespace in the document by removing whitespace-only text nodes
+ * that are direct children of qti-assessment-item.
+ *
+ * qti-assessment-item should only contain structural elements, so any text nodes
+ * are just formatting. We remove all whitespace-only text nodes and add single
+ * newlines between elements for readability.
+ */
+function normalizeWhitespace(root) {
+    var _a;
+    if (root.nodeName !== 'qti-assessment-item') {
+        return;
+    }
+    const childNodes = Array.from(root.childNodes);
+    // Remove all whitespace-only text nodes
+    for (const child of childNodes) {
+        if (child.nodeType === 3) {
+            const textNode = child;
+            if (((_a = textNode.textContent) === null || _a === void 0 ? void 0 : _a.trim()) === '') {
+                root.removeChild(child);
+            }
+        }
+    }
+    // Add single newline + indent between element children for formatting
+    const elementChildren = Array.from(root.childNodes).filter((node) => node.nodeType === 1);
+    for (let i = 0; i < elementChildren.length; i++) {
+        const elem = elementChildren[i];
+        // Add newline before each element (except we'll handle the first one separately)
+        if (i > 0) {
+            root.insertBefore(root.ownerDocument.createTextNode('\n\n    '), elem);
+        }
+    }
+    // Add newline at the start (after opening tag) and end (before closing tag)
+    if (elementChildren.length > 0) {
+        root.insertBefore(root.ownerDocument.createTextNode('\n\n    '), elementChildren[0]);
+        root.appendChild(root.ownerDocument.createTextNode('\n\n  '));
+    }
+}
+/**
+ * Resolves asset URLs in the document using the provided resolver.
+ *
+ * Collects all unique URLs from `src` and `data` attributes,
+ * calls the resolver with the batch, and replaces the attribute
+ * values with the resolved URLs.
+ */
+async function resolveAssetUrls(root, resolver) {
+    // Collect all elements with src or data attributes
+    const allElements = root.getElementsByTagName('*');
+    const elementsWithAssets = [];
+    const urlSet = new Set();
+    for (let i = 0; i < allElements.length; i++) {
+        const element = allElements[i];
+        if (!element)
+            continue;
+        const src = element.getAttribute('src');
+        const data = element.getAttribute('data');
+        if (src) {
+            elementsWithAssets.push({ element, attr: 'src' });
+            urlSet.add(src);
+        }
+        if (data) {
+            elementsWithAssets.push({ element, attr: 'data' });
+            urlSet.add(data);
+        }
+    }
+    // If no assets found, nothing to resolve
+    if (urlSet.size === 0) {
+        return;
+    }
+    // Create ordered array of unique URLs
+    const uniqueUrls = Array.from(urlSet);
+    // Call resolver with all unique URLs
+    const resolvedUrls = await resolver(uniqueUrls);
+    // Create mapping from original URL to resolved URL
+    const urlMap = new Map();
+    for (let i = 0; i < uniqueUrls.length; i++) {
+        urlMap.set(uniqueUrls[i], resolvedUrls[i]);
+    }
+    // Replace attribute values with resolved URLs
+    for (const { element, attr } of elementsWithAssets) {
+        const originalUrl = element.getAttribute(attr);
+        if (originalUrl) {
+            const resolvedUrl = urlMap.get(originalUrl);
+            if (resolvedUrl !== undefined) {
+                element.setAttribute(attr, resolvedUrl);
+            }
+        }
+    }
+}
+/**
+ * Serializes the document to an XML string.
+ */
+function serializeToXml(doc) {
+    const serializer = new xmldom_1.XMLSerializer();
+    return serializer.serializeToString(doc);
+}
+/**
+ * Applies shuffle orders to reorder interaction choice elements.
+ * Each interaction type has its choices reordered according to the stored shuffle order.
+ */
+function applyShuffleOrders(root, shuffleOrders) {
+    // Apply to choice interactions
+    applyShuffleToChoiceInteractions(root, shuffleOrders);
+    // Apply to inline-choice interactions
+    applyShuffleToInlineChoiceInteractions(root, shuffleOrders);
+    // Apply to match interactions
+    applyShuffleToMatchInteractions(root, shuffleOrders);
+    // Apply to gap-match interactions
+    applyShuffleToGapMatchInteractions(root, shuffleOrders);
+}
+/**
+ * Reorders qti-simple-choice elements within qti-choice-interaction.
+ */
+function applyShuffleToChoiceInteractions(root, shuffleOrders) {
+    const interactions = root.getElementsByTagName('qti-choice-interaction');
+    for (let i = 0; i < interactions.length; i++) {
+        const interaction = interactions[i];
+        const responseId = interaction.getAttribute('response-identifier');
+        if (!responseId || !shuffleOrders[responseId])
+            continue;
+        const order = shuffleOrders[responseId];
+        reorderChildrenByIdentifier(interaction, 'qti-simple-choice', order);
+    }
+}
+/**
+ * Reorders qti-inline-choice elements within qti-inline-choice-interaction.
+ */
+function applyShuffleToInlineChoiceInteractions(root, shuffleOrders) {
+    const interactions = root.getElementsByTagName('qti-inline-choice-interaction');
+    for (let i = 0; i < interactions.length; i++) {
+        const interaction = interactions[i];
+        const responseId = interaction.getAttribute('response-identifier');
+        if (!responseId || !shuffleOrders[responseId])
+            continue;
+        const order = shuffleOrders[responseId];
+        reorderChildrenByIdentifier(interaction, 'qti-inline-choice', order);
+    }
+}
+/**
+ * Reorders choices within qti-match-interaction match sets.
+ * Uses keys like RESPONSE_0 and RESPONSE_1 for each match set.
+ */
+function applyShuffleToMatchInteractions(root, shuffleOrders) {
+    const interactions = root.getElementsByTagName('qti-match-interaction');
+    for (let i = 0; i < interactions.length; i++) {
+        const interaction = interactions[i];
+        const responseId = interaction.getAttribute('response-identifier');
+        if (!responseId)
+            continue;
+        const matchSets = interaction.getElementsByTagName('qti-simple-match-set');
+        for (let setIndex = 0; setIndex < matchSets.length; setIndex++) {
+            const matchSet = matchSets[setIndex];
+            const orderKey = `${responseId}_${setIndex}`;
+            const order = shuffleOrders[orderKey];
+            if (order) {
+                reorderChildrenByIdentifier(matchSet, 'qti-simple-associable-choice', order);
+            }
+        }
+    }
+}
+/**
+ * Reorders qti-gap-text and qti-gap-img elements within qti-gap-match-interaction.
+ */
+function applyShuffleToGapMatchInteractions(root, shuffleOrders) {
+    const interactions = root.getElementsByTagName('qti-gap-match-interaction');
+    for (let i = 0; i < interactions.length; i++) {
+        const interaction = interactions[i];
+        const responseId = interaction.getAttribute('response-identifier');
+        if (!responseId || !shuffleOrders[responseId])
+            continue;
+        const order = shuffleOrders[responseId];
+        reorderGapMatchChoices(interaction, order);
+    }
+}
+/**
+ * Reorders child elements of a specific tag name according to the given identifier order.
+ */
+function reorderChildrenByIdentifier(parent, childTagName, order) {
+    const children = Array.from(parent.getElementsByTagName(childTagName));
+    // Create a map of identifier to element
+    const elementMap = new Map();
+    for (const child of children) {
+        const identifier = child.getAttribute('identifier');
+        if (identifier) {
+            elementMap.set(identifier, child);
+        }
+    }
+    // Find the first child element to use as insertion point
+    const firstChild = children[0];
+    if (!firstChild)
+        return;
+    // Remove all choice elements
+    for (const child of children) {
+        parent.removeChild(child);
+    }
+    // Re-insert in the specified order
+    const insertionPoint = firstChild.nextSibling;
+    for (const identifier of order) {
+        const element = elementMap.get(identifier);
+        if (element) {
+            if (insertionPoint) {
+                parent.insertBefore(element, insertionPoint);
+            }
+            else {
+                parent.appendChild(element);
+            }
+        }
+    }
+}
+/**
+ * Reorders gap-text and gap-img elements within a gap-match interaction.
+ * These are direct children of the interaction, mixed with other content.
+ */
+function reorderGapMatchChoices(interaction, order) {
+    var _a;
+    // Collect gap-text and gap-img elements
+    const gapChoices = [];
+    const childNodes = Array.from(interaction.childNodes);
+    for (const node of childNodes) {
+        if (node.nodeType === 1) {
+            const element = node;
+            const tagName = (_a = element.tagName) === null || _a === void 0 ? void 0 : _a.toLowerCase();
+            if (tagName === 'qti-gap-text' || tagName === 'qti-gap-img') {
+                gapChoices.push(element);
+            }
+        }
+    }
+    if (gapChoices.length === 0)
+        return;
+    // Create a map of identifier to element
+    const elementMap = new Map();
+    for (const choice of gapChoices) {
+        const identifier = choice.getAttribute('identifier');
+        if (identifier) {
+            elementMap.set(identifier, choice);
+        }
+    }
+    // Find the position of the first gap choice
+    const firstChoice = gapChoices[0];
+    const insertionPoint = firstChoice;
+    // Remove all gap choices
+    for (const choice of gapChoices) {
+        interaction.removeChild(choice);
+    }
+    // Find the new insertion point (the element that was after the first choice, or the first child)
+    let insertBefore = null;
+    for (const node of Array.from(interaction.childNodes)) {
+        if (node === insertionPoint) {
+            insertBefore = node;
+            break;
+        }
+    }
+    // If the first choice was at the beginning, insert at the beginning
+    if (!insertBefore) {
+        insertBefore = interaction.firstChild;
+    }
+    // Re-insert in the specified order
+    for (const identifier of order) {
+        const element = elementMap.get(identifier);
+        if (element) {
+            if (insertBefore) {
+                interaction.insertBefore(element, insertBefore);
+            }
+            else {
+                interaction.appendChild(element);
+            }
+        }
+    }
+}

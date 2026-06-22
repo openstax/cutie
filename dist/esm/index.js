@@ -1,0 +1,102 @@
+import { DOMParser } from '@xmldom/xmldom';
+import { deriveMaxScore } from './lib/deriveMaxScore';
+import { initializeState } from './lib/initializeState';
+import { renderTemplate } from './lib/renderTemplate';
+import { processResponse } from './lib/responseProcessing';
+import { buildScore } from './lib/scoreUtils';
+import { validateSubmission } from './lib/validateResponses';
+/**
+ * Initializes a new attempt at a QTI assessment item.
+ *
+ * Creates the initial learner state with default values and renders
+ * the first template with any randomized template variables resolved.
+ *
+ * @param itemXml - Complete QTI v3 assessment item XML definition
+ * @param options - Optional processing options (e.g., asset resolver)
+ * @returns Promise resolving to initial state and sanitized template XML
+ *
+ * @example
+ * ```typescript
+ * const { state, template } = await beginAttempt(itemXml);
+ * // Persist state, send template to client for rendering
+ * ```
+ */
+export async function beginAttempt(itemXml, options) {
+    // Parse the QTI XML document
+    const parser = new DOMParser();
+    const itemDoc = parser.parseFromString(itemXml.trim(), 'text/xml');
+    // Initialize state by processing template declarations and template processing
+    const state = initializeState(itemDoc);
+    // Render the sanitized template with resolved variables
+    const template = await renderTemplate(itemDoc, state, options);
+    return { state, template };
+}
+/**
+ * Processes a response submission and updates the attempt state.
+ *
+ * Runs response processing to score the submission, update outcome variables,
+ * and determine completion status. Then generates an updated template with
+ * any newly visible feedback or content changes.
+ *
+ * @param submission - Learner's response data (response IDs mapped to values)
+ * @param state - Current attempt state from previous operation
+ * @param itemXml - Complete QTI v3 assessment item XML definition
+ * @param options - Optional processing options (e.g., asset resolver)
+ * @returns Promise resolving to updated state and sanitized template XML
+ *
+ * @example
+ * ```typescript
+ * const submission = { RESPONSE_1: 'choiceA', RESPONSE_2: [1, 3] };
+ * const { state, template } = await submitResponse(submission, currentState, itemXml);
+ *
+ * // Check if attempt is complete
+ * if (state.completionStatus === 'completed') {
+ *   // End session, show final results
+ * }
+ * ```
+ */
+export async function submitResponse(submission, state, itemXml, options) {
+    // Parse the QTI XML document
+    const parser = new DOMParser();
+    const itemDoc = parser.parseFromString(itemXml.trim(), 'text/xml');
+    // Validate response constraints before processing
+    validateSubmission(submission, itemDoc);
+    // Process the response submission to update state
+    const updatedState = processResponse(itemDoc, submission, state);
+    // Render the updated template with new state (feedback may now be visible)
+    const template = await renderTemplate(itemDoc, updatedState, options);
+    return { state: updatedState, template };
+}
+/**
+ * Applies an externally-determined score to an attempt state.
+ *
+ * Used after `submitResponse` returns a state with `pendingManualScoring`
+ * to finalize the score (e.g., after AI or human grading). Clears the
+ * `pendingManualScoring` flag and re-renders the template so that any
+ * score-based feedback becomes visible.
+ *
+ * @param score - The score awarded by the external scorer
+ * @param comments - Feedback or comments from the external scorer
+ * @param state - Current attempt state (should have `pendingManualScoring`)
+ * @param itemXml - Complete QTI v3 assessment item XML definition
+ * @param options - Optional processing options (e.g., asset resolver)
+ * @returns Promise resolving to updated state and sanitized template XML
+ */
+export async function setScore(score, comments, state, itemXml, options) {
+    const parser = new DOMParser();
+    const itemDoc = parser.parseFromString(itemXml.trim(), 'text/xml');
+    const maxScore = deriveMaxScore(itemDoc, state.variables);
+    if (maxScore === null) {
+        throw new Error('Cannot determine max score for item');
+    }
+    const updatedState = {
+        ...state,
+        variables: { ...state.variables, SCORE: score },
+        score: buildScore(score, maxScore),
+        comments,
+        pendingManualScoring: undefined,
+    };
+    const template = await renderTemplate(itemDoc, updatedState, options);
+    return { state: updatedState, template };
+}
+export { ResponseValidationError } from './lib/validateResponses';

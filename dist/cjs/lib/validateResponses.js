@@ -1,0 +1,265 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ResponseValidationError = void 0;
+exports.validateSubmission = validateSubmission;
+/**
+ * Error thrown when submitted responses violate interaction constraints.
+ * Contains structured error details for each violated constraint.
+ */
+class ResponseValidationError extends Error {
+    constructor(errors) {
+        const messages = errors.map((e) => `${e.responseIdentifier}: ${e.message}`);
+        super(`Response validation failed: ${messages.join('; ')}`);
+        this.name = 'ResponseValidationError';
+        this.errors = errors;
+    }
+}
+exports.ResponseValidationError = ResponseValidationError;
+/**
+ * Validate a response submission against interaction constraints defined in the item.
+ * Throws ResponseValidationError if any constraints are violated.
+ */
+function validateSubmission(submission, itemDoc) {
+    const errors = [];
+    validateChoiceInteractions(submission, itemDoc, errors);
+    validateTextEntryInteractions(submission, itemDoc, errors);
+    validateExtendedTextInteractions(submission, itemDoc, errors);
+    validateInlineChoiceInteractions(submission, itemDoc, errors);
+    validateGapMatchInteractions(submission, itemDoc, errors);
+    validateMatchInteractions(submission, itemDoc, errors);
+    if (errors.length > 0) {
+        throw new ResponseValidationError(errors);
+    }
+}
+function validateChoiceInteractions(submission, itemDoc, errors) {
+    const interactions = itemDoc.getElementsByTagName('qti-choice-interaction');
+    for (let i = 0; i < interactions.length; i++) {
+        const interaction = interactions[i];
+        const responseIdentifier = interaction.getAttribute('response-identifier');
+        if (!responseIdentifier)
+            continue;
+        const response = submission[responseIdentifier];
+        const selectedCount = getSelectedCount(response);
+        // Check min-choices
+        const minChoicesAttr = interaction.getAttribute('min-choices');
+        if (minChoicesAttr) {
+            const minChoices = parseInt(minChoicesAttr, 10);
+            if (!isNaN(minChoices) && minChoices > 0 && selectedCount < minChoices) {
+                errors.push({
+                    responseIdentifier,
+                    constraint: 'min-choices',
+                    message: `Expected at least ${minChoices} choice(s), got ${selectedCount}`,
+                });
+            }
+        }
+        // Check max-choices
+        const maxChoicesAttr = interaction.getAttribute('max-choices');
+        if (maxChoicesAttr) {
+            const maxChoices = parseInt(maxChoicesAttr, 10);
+            if (!isNaN(maxChoices) && maxChoices > 0 && selectedCount > maxChoices) {
+                errors.push({
+                    responseIdentifier,
+                    constraint: 'max-choices',
+                    message: `Expected at most ${maxChoices} choice(s), got ${selectedCount}`,
+                });
+            }
+        }
+    }
+}
+function getSelectedCount(response) {
+    if (response == null)
+        return 0;
+    if (Array.isArray(response))
+        return response.length;
+    return 1;
+}
+function validateTextEntryInteractions(submission, itemDoc, errors) {
+    var _a;
+    const interactions = itemDoc.getElementsByTagName('qti-text-entry-interaction');
+    for (let i = 0; i < interactions.length; i++) {
+        const interaction = interactions[i];
+        const responseIdentifier = interaction.getAttribute('response-identifier');
+        if (!responseIdentifier)
+            continue;
+        const patternMask = interaction.getAttribute('pattern-mask');
+        if (!patternMask)
+            continue;
+        const value = String((_a = submission[responseIdentifier]) !== null && _a !== void 0 ? _a : '');
+        if (!new RegExp(patternMask).test(value)) {
+            errors.push({
+                responseIdentifier,
+                constraint: 'pattern-mask',
+                message: `Value does not match pattern "${patternMask}"`,
+            });
+        }
+    }
+}
+/**
+ * Strip HTML tags from a string, returning plain text content.
+ */
+function stripHtmlTags(html) {
+    return html.replace(/<[^>]*>/g, '');
+}
+function validateExtendedTextInteractions(submission, itemDoc, errors) {
+    var _a, _b, _c, _d;
+    const interactions = itemDoc.getElementsByTagName('qti-extended-text-interaction');
+    for (let i = 0; i < interactions.length; i++) {
+        const interaction = interactions[i];
+        const responseIdentifier = interaction.getAttribute('response-identifier');
+        if (!responseIdentifier)
+            continue;
+        const isXhtml = interaction.getAttribute('format') === 'xhtml';
+        // Check min-strings
+        const minStringsAttr = interaction.getAttribute('min-strings');
+        if (minStringsAttr) {
+            const minStrings = parseInt(minStringsAttr, 10);
+            if (!isNaN(minStrings) && minStrings > 0) {
+                const rawValue = String((_a = submission[responseIdentifier]) !== null && _a !== void 0 ? _a : '');
+                // For xhtml format, strip HTML tags before checking emptiness
+                const textContent = isXhtml ? stripHtmlTags(rawValue) : rawValue;
+                if (textContent.trim().length === 0) {
+                    errors.push({
+                        responseIdentifier,
+                        constraint: 'min-strings',
+                        message: `Expected at least ${minStrings} non-empty string(s), got 0`,
+                    });
+                }
+            }
+        }
+        // Check data-min-characters
+        const minCharsAttr = interaction.getAttribute('data-min-characters');
+        if (minCharsAttr) {
+            const minChars = parseInt(minCharsAttr, 10);
+            if (!isNaN(minChars) && minChars > 0) {
+                const rawValue = String((_b = submission[responseIdentifier]) !== null && _b !== void 0 ? _b : '');
+                const textContent = isXhtml ? stripHtmlTags(rawValue) : rawValue;
+                if (textContent.trim().length < minChars) {
+                    errors.push({
+                        responseIdentifier,
+                        constraint: 'data-min-characters',
+                        message: `Expected at least ${minChars} character(s), got ${textContent.trim().length}`,
+                    });
+                }
+            }
+        }
+        // Check data-max-characters
+        const maxCharsAttr = interaction.getAttribute('data-max-characters');
+        if (maxCharsAttr) {
+            const maxChars = parseInt(maxCharsAttr, 10);
+            if (!isNaN(maxChars) && maxChars > 0) {
+                const rawValue = String((_c = submission[responseIdentifier]) !== null && _c !== void 0 ? _c : '');
+                const textContent = isXhtml ? stripHtmlTags(rawValue) : rawValue;
+                if (textContent.trim().length > maxChars) {
+                    errors.push({
+                        responseIdentifier,
+                        constraint: 'data-max-characters',
+                        message: `Expected at most ${maxChars} character(s), got ${textContent.trim().length}`,
+                    });
+                }
+            }
+        }
+        // Check pattern-mask (skip for xhtml — regex on HTML is meaningless)
+        if (!isXhtml) {
+            const patternMask = interaction.getAttribute('pattern-mask');
+            if (patternMask) {
+                const value = String((_d = submission[responseIdentifier]) !== null && _d !== void 0 ? _d : '');
+                if (!new RegExp(patternMask).test(value)) {
+                    errors.push({
+                        responseIdentifier,
+                        constraint: 'pattern-mask',
+                        message: `Value does not match pattern "${patternMask}"`,
+                    });
+                }
+            }
+        }
+    }
+}
+function validateInlineChoiceInteractions(submission, itemDoc, errors) {
+    const interactions = itemDoc.getElementsByTagName('qti-inline-choice-interaction');
+    for (let i = 0; i < interactions.length; i++) {
+        const interaction = interactions[i];
+        const responseIdentifier = interaction.getAttribute('response-identifier');
+        if (!responseIdentifier)
+            continue;
+        const required = interaction.getAttribute('required') === 'true';
+        const minChoicesAttr = interaction.getAttribute('min-choices');
+        const minChoices = minChoicesAttr ? parseInt(minChoicesAttr, 10) : 0;
+        const isConstrained = required || (!isNaN(minChoices) && minChoices >= 1);
+        if (!isConstrained)
+            continue;
+        const value = submission[responseIdentifier];
+        if (value == null || String(value).trim().length === 0) {
+            errors.push({
+                responseIdentifier,
+                constraint: required ? 'required' : 'min-choices',
+                message: 'A selection is required',
+            });
+        }
+    }
+}
+function validateGapMatchInteractions(submission, itemDoc, errors) {
+    const interactions = itemDoc.getElementsByTagName('qti-gap-match-interaction');
+    for (let i = 0; i < interactions.length; i++) {
+        const interaction = interactions[i];
+        const responseIdentifier = interaction.getAttribute('response-identifier');
+        if (!responseIdentifier)
+            continue;
+        const response = submission[responseIdentifier];
+        const count = getSelectedCount(response);
+        const minAttr = interaction.getAttribute('min-associations');
+        if (minAttr) {
+            const min = parseInt(minAttr, 10);
+            if (!isNaN(min) && min > 0 && count < min) {
+                errors.push({
+                    responseIdentifier,
+                    constraint: 'min-associations',
+                    message: `Expected at least ${min} association(s), got ${count}`,
+                });
+            }
+        }
+        const maxAttr = interaction.getAttribute('max-associations');
+        if (maxAttr) {
+            const max = parseInt(maxAttr, 10);
+            if (!isNaN(max) && max > 0 && count > max) {
+                errors.push({
+                    responseIdentifier,
+                    constraint: 'max-associations',
+                    message: `Expected at most ${max} association(s), got ${count}`,
+                });
+            }
+        }
+    }
+}
+function validateMatchInteractions(submission, itemDoc, errors) {
+    const interactions = itemDoc.getElementsByTagName('qti-match-interaction');
+    for (let i = 0; i < interactions.length; i++) {
+        const interaction = interactions[i];
+        const responseIdentifier = interaction.getAttribute('response-identifier');
+        if (!responseIdentifier)
+            continue;
+        const response = submission[responseIdentifier];
+        const count = getSelectedCount(response);
+        const minAttr = interaction.getAttribute('min-associations');
+        if (minAttr) {
+            const min = parseInt(minAttr, 10);
+            if (!isNaN(min) && min > 0 && count < min) {
+                errors.push({
+                    responseIdentifier,
+                    constraint: 'min-associations',
+                    message: `Expected at least ${min} association(s), got ${count}`,
+                });
+            }
+        }
+        const maxAttr = interaction.getAttribute('max-associations');
+        if (maxAttr) {
+            const max = parseInt(maxAttr, 10);
+            if (!isNaN(max) && max > 0 && count > max) {
+                errors.push({
+                    responseIdentifier,
+                    constraint: 'max-associations',
+                    message: `Expected at most ${max} association(s), got ${count}`,
+                });
+            }
+        }
+    }
+}
