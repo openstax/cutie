@@ -1,0 +1,12 @@
+import { wrapInlineContentInParagraphs } from '../../utils/normalization';
+export const contentBodyConfig = {
+    type: 'qti-content-body',
+    xmlTagName: 'qti-content-body',
+    isVoid: false,
+    isInline: false,
+    needsSpacers: false,
+    categories: [],
+    forbidDescendants: [],
+    matches: (element) => 'type' in element && element.type === 'qti-content-body',
+    normalize: (editor, node, path) => wrapInlineContentInParagraphs(editor, node, path),
+};
