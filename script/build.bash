@@ -12,3 +12,6 @@ mkdir -p dist
 
 yarn -s tsc --project tsconfig.without-specs.esm.json "${tsc_args[@]}"
 yarn -s tsc --project tsconfig.without-specs.cjs.json "${tsc_args[@]}"
+
+echo '{"type": "module"}' > dist/esm/package.json
+echo '{"type": "commonjs"}' > dist/cjs/package.json
