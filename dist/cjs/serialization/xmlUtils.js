@@ -1,0 +1,158 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.createXmlDocument = createXmlDocument;
+exports.createXmlElement = createXmlElement;
+exports.parseHtml = parseHtml;
+exports.serializeElement = serializeElement;
+exports.parseXml = parseXml;
+exports.escapeHtml = escapeHtml;
+exports.isQtiElement = isQtiElement;
+exports.normalizeTagName = normalizeTagName;
+exports.extractItemBodyXml = extractItemBodyXml;
+exports.htmlToXhtml = htmlToXhtml;
+/**
+ * QTI namespace URI
+ */
+const QTI_NAMESPACE = 'http://www.imsglobal.org/xsd/imsqtiasi_v3p0';
+/**
+ * Create a new XML document with QTI namespace
+ *
+ * @returns XMLDocument with QTI namespace
+ */
+function createXmlDocument() {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(`<qti-item-body xmlns="${QTI_NAMESPACE}"></qti-item-body>`, 'application/xml');
+    return doc;
+}
+/**
+ * Create an XML element with proper QTI namespace
+ *
+ * @param doc - XML document
+ * @param tagName - Element tag name
+ * @returns Element with QTI namespace
+ */
+function createXmlElement(doc, tagName) {
+    return doc.createElementNS(QTI_NAMESPACE, tagName);
+}
+/**
+ * Parse HTML string to DOM
+ *
+ * @param html - HTML string
+ * @returns Parsed DocumentFragment
+ */
+function parseHtml(html) {
+    const template = document.createElement('template');
+    template.innerHTML = html.trim();
+    return template.content;
+}
+/**
+ * Serialize DOM element to string
+ *
+ * @param element - Element to serialize
+ * @returns XML string
+ */
+function serializeElement(element) {
+    const serializer = new XMLSerializer();
+    return serializer.serializeToString(element);
+}
+/**
+ * Parse XML string to DOM
+ *
+ * @param xml - XML string
+ * @returns Parsed Document or DocumentFragment
+ */
+function parseXml(xml) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(xml.trim(), 'application/xml');
+    // Check for parsing errors
+    // spell-checker: disable-next-line
+    const parserError = doc.querySelector('parsererror');
+    if (parserError) {
+        console.error('XML parsing error:', parserError.textContent);
+        return null;
+    }
+    return doc;
+}
+/**
+ * Escape HTML special characters
+ *
+ * @param text - Text to escape
+ * @returns Escaped text
+ */
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+/**
+ * Check if a tag name is a QTI element
+ *
+ * @param tagName - Tag name to check
+ * @returns True if QTI element
+ */
+function isQtiElement(tagName) {
+    return tagName.toLowerCase().startsWith('qti-');
+}
+/**
+ * Normalize tag name (lowercase, handle namespace prefixes)
+ *
+ * @param tagName - Tag name to normalize
+ * @returns Normalized tag name
+ */
+function normalizeTagName(tagName) {
+    // Remove namespace prefix if present
+    const parts = tagName.split(':');
+    return parts[parts.length - 1].toLowerCase();
+}
+/**
+ * Extract XHTML content from qti-item-body element
+ *
+ * @param qtiXml - Full QTI XML or just item body
+ * @returns XHTML content from inside qti-item-body (not converted to HTML)
+ */
+function extractItemBodyXml(qtiXml) {
+    const doc = parseXml(qtiXml);
+    if (!doc) {
+        throw new Error('Failed to parse QTI XML');
+    }
+    // Find qti-item-body element
+    const itemBody = doc.querySelector('qti-item-body');
+    if (!itemBody) {
+        // Maybe it's already just the body content
+        return qtiXml;
+    }
+    // Serialize children as XHTML using XMLSerializer
+    const serializer = new XMLSerializer();
+    let xhtml = '';
+    for (const child of Array.from(itemBody.childNodes)) {
+        xhtml += serializer.serializeToString(child);
+    }
+    return xhtml;
+}
+/**
+ * Convert HTML content back to XHTML (HTML to XHTML)
+ *
+ * @param html - HTML content from TinyMCE
+ * @returns XHTML string suitable for embedding in QTI XML
+ */
+function htmlToXhtml(html) {
+    // Parse as HTML
+    const htmlDoc = document.implementation.createHTMLDocument('');
+    const container = htmlDoc.createElement('div');
+    container.innerHTML = html;
+    // Create XML document and import HTML nodes into XML context
+    const xmlDoc = createXmlDocument();
+    const xmlContainer = createXmlElement(xmlDoc, 'div');
+    for (const child of Array.from(container.childNodes)) {
+        // Import node from HTML document to XML context
+        const imported = xmlDoc.importNode(child, true);
+        xmlContainer.appendChild(imported);
+    }
+    // Serialize as XML (which will use XHTML rules like self-closing tags)
+    const serializer = new XMLSerializer();
+    let xhtml = '';
+    for (const child of Array.from(xmlContainer.childNodes)) {
+        xhtml += serializer.serializeToString(child);
+    }
+    return xhtml;
+}
