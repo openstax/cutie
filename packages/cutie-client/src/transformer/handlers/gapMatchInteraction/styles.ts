@@ -135,7 +135,6 @@ export const GAP_MATCH_INTERACTION_STYLES = `
     display: inline-flex;
     align-items: center;
     padding: 0.5em 0.75em;
-    border: 2px solid var(--cutie-primary);
     border-radius: 4px;
     background-color: var(--cutie-bg);
     color: var(--cutie-text);
@@ -144,6 +143,10 @@ export const GAP_MATCH_INTERACTION_STYLES = `
     font-family: inherit;
     cursor: grab;
     transition: transform 0.1s, box-shadow 0.2s, border-color 0.2s, background-color 0.2s;
+
+    &:not(:disabled) {
+      border: 2px solid var(--cutie-primary);
+    }
   }
 
   .cutie-gap-text:hover {
