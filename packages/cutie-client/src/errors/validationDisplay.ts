@@ -13,7 +13,7 @@ const INLINE_REQUIRED_INDICATOR_STYLE_ID = 'cutie-inline-required-indicator';
 
 const INLINE_REQUIRED_INDICATOR_STYLES = `
   .cutie-required-indicator {
-    font-size: 0.75em;
+    font-size: 1.15em;
     vertical-align: super;
     color: var(--cutie-text-muted);
     cursor: default;
@@ -31,7 +31,7 @@ const VALIDATION_DISPLAY_STYLES = `
     display: flex;
     align-items: center;
     gap: 0.3em;
-    font-size: 0.85em;
+    font-size: 1em;
     color: var(--cutie-text-muted);
     margin-top: 0.5em;
   }
