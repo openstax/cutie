@@ -77,7 +77,9 @@ const FEEDBACK_BLOCK_STYLES = `
   .cutie-feedback-block .cutie-feedback-icon {
     position: absolute;
     left: 0.625em;
-    top: 0.75em;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
   }
 
   .cutie-feedback-block[data-feedback-type="correct"] {
