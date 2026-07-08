@@ -233,6 +233,11 @@ const FORMULA_INTERACTION_STYLES = `
   box-shadow: none;
 }
 
+.cutie-formula-field[aria-invalid="true"],
+.cutie-formula-field[aria-invalid="true"]:focus-within {
+  border-color: var(--cutie-feedback-incorrect);
+}
+
 .cutie-formula-field[disabled] {
   background-color: var(--cutie-bg-alt);
   cursor: not-allowed;
