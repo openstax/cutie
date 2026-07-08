@@ -116,26 +116,34 @@ class TextEntryInteractionHandler implements ElementHandler {
 
     // Register response accessor with itemState if available
     if (context.itemState) {
+      // Check the pattern-mask constraint and decorate the input's error state.
+      const validate = (): boolean => {
+        if (!hasConstraint) return true;
+
+        const isValid = new RegExp(patternMask).test(input.value);
+        if (isValid) {
+          input.removeAttribute('aria-invalid');
+        } else {
+          input.setAttribute('aria-invalid', 'true');
+        }
+        indicator?.setError(!isValid);
+        return isValid;
+      };
+
       const responseAccessor = () => {
         const value = input.value.trim();
-
-        if (hasConstraint) {
-          const isValid = new RegExp(patternMask).test(input.value);
-
-          if (!isValid) {
-            input.setAttribute('aria-invalid', 'true');
-            indicator?.setError(true);
-            return { value: value === '' ? null : value, valid: false };
-          }
-
-          input.removeAttribute('aria-invalid');
-          indicator?.setError(false);
-        }
-
-        return { value: value === '' ? null : value, valid: true };
+        const valid = validate();
+        return { value: value === '' ? null : value, valid };
       };
 
       context.itemState.registerResponse(responseIdentifier, responseAccessor);
+
+      // Clear the error in real time once the field is already in an error state.
+      if (hasConstraint) {
+        input.addEventListener('input', () => {
+          if (input.hasAttribute('aria-invalid')) validate();
+        });
+      }
 
       // Observe interaction enabled state to enable/disable input
       const observer = (state: { interactionsEnabled: boolean }) => {

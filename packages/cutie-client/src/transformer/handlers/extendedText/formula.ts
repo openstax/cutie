@@ -109,21 +109,24 @@ class FormulaInteractionHandler implements ElementHandler {
     // Track active input element for aria-describedby/aria-invalid
     let activeInputElement: HTMLElement | null = null;
 
+    // Check the required (min-strings) constraint and decorate the error state.
+    const validate = (): boolean => {
+      const isValid = constraints.minStrings <= 0 || currentValue.trim().length > 0;
+      if (isValid) {
+        activeInputElement?.removeAttribute('aria-invalid');
+      } else {
+        activeInputElement?.setAttribute('aria-invalid', 'true');
+      }
+      constraintResult?.constraint.setError(!isValid);
+      return isValid;
+    };
+
     // Register response accessor immediately (returns current value)
     if (context.itemState) {
       context.itemState.registerResponse(responseIdentifier, () => {
         const trimmed = currentValue.trim();
-        const isValid = constraints.minStrings <= 0 || trimmed.length > 0;
-
-        if (!isValid) {
-          activeInputElement?.setAttribute('aria-invalid', 'true');
-          constraintResult?.constraint.setError(true);
-          return { value: trimmed === '' ? null : trimmed, valid: false };
-        }
-
-        activeInputElement?.removeAttribute('aria-invalid');
-        constraintResult?.constraint.setError(false);
-        return { value: trimmed === '' ? null : trimmed, valid: true };
+        const valid = validate();
+        return { value: trimmed === '' ? null : trimmed, valid };
       });
     }
 
@@ -157,6 +160,8 @@ class FormulaInteractionHandler implements ElementHandler {
         // Listen for input events to update current value
         mathField.addEventListener('input', () => {
           currentValue = mathField.value;
+          // Clear the error in real time once already in an error state.
+          if (activeInputElement?.hasAttribute('aria-invalid')) validate();
         });
 
         // Handle interaction state
