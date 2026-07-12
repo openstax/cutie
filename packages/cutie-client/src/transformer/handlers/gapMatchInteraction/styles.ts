@@ -208,4 +208,44 @@ export const GAP_MATCH_INTERACTION_STYLES = `
   .cutie-gap-match-content {
     line-height: 2;
   }
+
+  /*
+   * Bowtie layout (NCLEX-style): the three content regions — Actions to Take,
+   * Condition, Parameters to Monitor — are laid out as a 3-column grid. Each
+   * region is authored as a top-level block in gap-match-content, so document
+   * order maps to left / center / right.
+   */
+  .cutie-gap-match-bowtie .cutie-gap-match-content {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 1em;
+    line-height: 1.5;
+  }
+
+  .cutie-gap-match-bowtie .cutie-gap-match-content > * {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5em;
+    margin: 0;
+    padding: 1em;
+    border: 2px solid var(--cutie-border);
+    border-radius: 8px;
+    text-align: center;
+  }
+
+  /* The central "Condition" region is the focal point of the bowtie */
+  .cutie-gap-match-bowtie .cutie-gap-match-content > *:nth-child(2) {
+    border-color: var(--cutie-primary);
+    background-color: var(--cutie-bg-alt);
+    font-weight: 600;
+  }
+
+  /* Collapse to a single column on narrow screens */
+  @media (max-width: 40em) {
+    .cutie-gap-match-bowtie .cutie-gap-match-content {
+      grid-template-columns: 1fr;
+    }
+  }
 `;

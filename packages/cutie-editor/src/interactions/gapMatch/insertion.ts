@@ -1,5 +1,12 @@
 import { Editor, Element, Transforms } from 'slate';
+import type { CustomEditor } from '../../types';
 import { generateUniqueResponseId } from '../../utils/idGenerator';
+import {
+  type MapEntry,
+  type MappingMetadata,
+  updateMapping,
+} from '../../utils/mappingDeclaration';
+import { updateResponseProcessingMode } from '../../utils/responseProcessingTransforms';
 
 interface XmlNode {
   tagName: string;
@@ -212,6 +219,182 @@ export function insertGapMatchInteraction(
     { type: 'paragraph', children: [{ text: '' }] } as any,
     { at: interactionEntry ? [interactionEntry[1][0] + 1] : undefined }
   );
+}
+
+/**
+ * A single column of a bowtie: its match-group, heading, gaps, and choice pool
+ * (a couple of decoys per column keep the task non-trivial).
+ */
+interface BowtieColumn {
+  group: string;
+  label: string;
+  gaps: string[];
+  choices: Array<{ id: string; text: string; correctGap?: string }>;
+}
+
+/**
+ * The fixed NCLEX-style bowtie: Actions to Take (2 gaps) | Condition (1 gap) |
+ * Parameters to Monitor (2 gaps). Document order maps to left / center / right
+ * in the client's bowtie grid. Each column is its own match-group so choices
+ * can only be dropped into their own column's gaps.
+ */
+const BOWTIE_COLUMNS: BowtieColumn[] = [
+  {
+    group: 'actions',
+    label: 'Actions to Take',
+    gaps: ['GA1', 'GA2'],
+    choices: [
+      { id: 'ACT1', text: 'Administer prescribed IV fluids', correctGap: 'GA1' },
+      { id: 'ACT2', text: 'Notify the primary provider', correctGap: 'GA2' },
+      { id: 'ACT3', text: 'Restrict oral fluids' },
+      { id: 'ACT4', text: 'Elevate the head of the bed' },
+    ],
+  },
+  {
+    group: 'condition',
+    label: 'Condition',
+    gaps: ['GC1'],
+    choices: [
+      { id: 'COND1', text: 'Fluid volume deficit', correctGap: 'GC1' },
+      { id: 'COND2', text: 'Fluid volume excess' },
+      { id: 'COND3', text: 'Impaired gas exchange' },
+    ],
+  },
+  {
+    group: 'parameters',
+    label: 'Parameters to Monitor',
+    gaps: ['GP1', 'GP2'],
+    choices: [
+      { id: 'PAR1', text: 'Heart rate', correctGap: 'GP1' },
+      { id: 'PAR2', text: 'Blood pressure', correctGap: 'GP2' },
+      { id: 'PAR3', text: 'Pupillary response' },
+      { id: 'PAR4', text: 'Deep tendon reflexes' },
+    ],
+  },
+];
+
+/**
+ * Insert a bowtie interaction: a gap-match preset with three match-group-restricted
+ * columns and per-correct-choice scoring (+1 each, min 0). It is a standard
+ * qti-gap-match-interaction — the `class="bowtie"` token drives the client's
+ * 3-column layout, and the document's response processing is set to sum the
+ * mapped scores so each correct placement earns a point.
+ */
+export function insertBowtieInteraction(
+  editor: Editor,
+  config: {
+    responseIdentifier?: string;
+    shuffle?: boolean;
+  } = {}
+): void {
+  const responseId = config.responseIdentifier || generateUniqueResponseId(editor);
+
+  // Flatten the columns into the gap-text choice pool (match-group-tagged).
+  const choiceNodes = BOWTIE_COLUMNS.flatMap((column) =>
+    column.choices.map((choice) => ({
+      type: 'qti-gap-text',
+      attributes: {
+        identifier: choice.id,
+        'match-max': '1',
+        'match-group': column.group,
+      },
+      children: [{ text: choice.text }],
+    }))
+  );
+
+  // One content paragraph per column: heading text followed by its gaps. Empty
+  // text nodes wrap the inline void gaps as Slate requires.
+  const contentParagraphs = BOWTIE_COLUMNS.map((column) => {
+    const children: Array<Record<string, unknown>> = [{ text: column.label }];
+    for (const gapId of column.gaps) {
+      children.push({
+        type: 'qti-gap',
+        attributes: { identifier: gapId, 'match-group': column.group },
+        children: [{ text: '' }],
+      });
+      children.push({ text: '' });
+    }
+    return { type: 'paragraph', attributes: {}, children };
+  });
+
+  // Correct pairings ("CHOICE GAP") and a +1 map-entry for each.
+  const correctValues: string[] = [];
+  const mapEntries: MapEntry[] = [];
+  for (const column of BOWTIE_COLUMNS) {
+    for (const choice of column.choices) {
+      if (choice.correctGap) {
+        const pairing = `${choice.id} ${choice.correctGap}`;
+        correctValues.push(pairing);
+        mapEntries.push({ mapKey: pairing, mappedValue: 1 });
+      }
+    }
+  }
+
+  // Build the response declaration: correct response + a mapping that floors the
+  // score at 0 (wrong placements map to the default 0, never negative).
+  const baseDecl = {
+    tagName: 'qti-response-declaration',
+    attributes: {
+      identifier: responseId,
+      cardinality: 'multiple',
+      'base-type': 'directedPair',
+    },
+    children: [
+      {
+        tagName: 'qti-correct-response',
+        attributes: {},
+        children: correctValues.map((value) => ({
+          tagName: 'qti-value',
+          attributes: {},
+          children: [value],
+        })),
+      },
+    ],
+  };
+  const mappingMetadata: MappingMetadata = { defaultValue: 0, lowerBound: 0 };
+  const responseDeclaration = updateMapping(baseDecl as any, mappingMetadata, mapEntries);
+
+  const bowtieInteraction = {
+    type: 'qti-gap-match-interaction',
+    attributes: {
+      'response-identifier': responseId,
+      class: 'bowtie',
+      shuffle: config.shuffle ? 'true' : undefined,
+    },
+    children: [
+      { type: 'gap-match-choices', children: choiceNodes },
+      { type: 'gap-match-content', children: contentParagraphs },
+    ],
+    responseDeclaration,
+  };
+
+  // Insert at the current selection (same flow as insertGapMatchInteraction).
+  const { selection } = editor;
+  const insertPoint = selection ? Editor.start(editor, selection) : Editor.end(editor, []);
+
+  Transforms.insertNodes(editor, bowtieInteraction as any, { at: insertPoint });
+
+  const [interactionEntry] = Editor.nodes(editor, {
+    at: insertPoint,
+    match: (n) => Element.isElement(n) && 'type' in n && n.type === 'qti-gap-match-interaction',
+  });
+
+  if (interactionEntry) {
+    const [, interactionPath] = interactionEntry;
+    // Select the start of the first content region.
+    Transforms.select(editor, Editor.start(editor, [...interactionPath, 1, 0]));
+  }
+
+  // Trailing paragraph for cursor positioning after the interaction.
+  Transforms.insertNodes(
+    editor,
+    { type: 'paragraph', children: [{ text: '' }] } as any,
+    { at: interactionEntry ? [interactionEntry[1][0] + 1] : undefined }
+  );
+
+  // Partial-credit scoring: sum the mapped response so each correct placement
+  // contributes its +1. Without this the item defaults to all-or-nothing.
+  updateResponseProcessingMode(editor as unknown as CustomEditor, 'sumScores');
 }
 
 /**

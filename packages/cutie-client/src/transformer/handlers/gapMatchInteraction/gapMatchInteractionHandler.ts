@@ -58,6 +58,14 @@ export class GapMatchInteractionHandler implements ElementHandler {
     container.setAttribute('data-response-identifier', responseIdentifier);
     container.setAttribute('role', 'group');
 
+    // Optional bowtie layout: arranges the content regions as a 3-column grid.
+    // Triggered by a non-reserved `bowtie` token on the QTI class attribute
+    // (`class` is a spec-provided presentation hook; bowtie is not a QTI type).
+    const qtiClass = element.getAttribute('class') ?? '';
+    if (qtiClass.split(/\s+/).includes('bowtie')) {
+      container.classList.add('cutie-gap-match-bowtie');
+    }
+
     // Find prompt element
     const children = Array.from(element.children);
     const promptElement = children.find(

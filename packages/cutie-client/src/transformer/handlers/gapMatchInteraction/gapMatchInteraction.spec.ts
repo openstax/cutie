@@ -272,4 +272,49 @@ describe('gapMatchInteraction', () => {
       expect(gapMatchContainer.classList.contains('cutie-gap-match-interaction--disabled')).toBe(false);
     });
   });
+
+  describe('bowtie layout', () => {
+    const BOWTIE_QTI = `
+      <qti-gap-match-interaction response-identifier="R1" class="bowtie">
+        <qti-gap-text identifier="ACT1" match-max="1" match-group="actions">Action 1</qti-gap-text>
+        <qti-gap-text identifier="PAR1" match-max="1" match-group="parameters">Parameter 1</qti-gap-text>
+        <p>Actions<qti-gap identifier="GA1" match-group="actions"></qti-gap></p>
+        <p>Parameters<qti-gap identifier="GP1" match-group="parameters"></qti-gap></p>
+      </qti-gap-match-interaction>
+    `;
+
+    it('adds the bowtie layout class when the class token is present', () => {
+      const doc = createQtiDocument(BOWTIE_QTI);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const interaction = container.querySelector('.cutie-gap-match-interaction')!;
+      expect(interaction.classList.contains('cutie-gap-match-bowtie')).toBe(true);
+    });
+
+    it('does not add the bowtie class for a plain gap-match', () => {
+      const doc = createQtiDocument(BASIC_GAP_MATCH_QTI);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const interaction = container.querySelector('.cutie-gap-match-interaction')!;
+      expect(interaction.classList.contains('cutie-gap-match-bowtie')).toBe(false);
+    });
+
+    it('preserves each gap match-group so drops stay column-restricted', () => {
+      const doc = createQtiDocument(BOWTIE_QTI);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const gaps = container.querySelectorAll('.cutie-gap');
+      const groups = Array.from(gaps).map((g) => g.getAttribute('data-match-group'));
+      expect(groups).toEqual(['actions', 'parameters']);
+    });
+  });
 });

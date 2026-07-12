@@ -5,7 +5,7 @@ import { insertChoiceInteraction } from '../interactions/choice';
 import { insertTextEntryInteraction } from '../interactions/textEntry';
 import { insertInlineChoiceInteraction } from '../interactions/inlineChoice';
 import { insertExtendedTextInteraction } from '../interactions/extendedText';
-import { insertGapMatchInteraction } from '../interactions/gapMatch';
+import { insertGapMatchInteraction, insertBowtieInteraction } from '../interactions/gapMatch';
 import { insertMatchInteraction } from '../interactions/match';
 import { insertImage } from '../elements/image';
 import { insertFeedbackInline } from '../elements/feedback/feedbackInline';
@@ -480,6 +480,14 @@ export function Toolbar(): React.JSX.Element {
               }}
             >
               Match
+            </DropdownItem>
+            <DropdownItem
+              onClick={() => {
+                insertBowtieInteraction(editor);
+                setInteractionsOpen(false);
+              }}
+            >
+              Bowtie
             </DropdownItem>
           </div>
         )}
