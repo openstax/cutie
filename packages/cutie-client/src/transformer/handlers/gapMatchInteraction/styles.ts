@@ -210,42 +210,46 @@ export const GAP_MATCH_INTERACTION_STYLES = `
   }
 
   /*
-   * Bowtie layout (NCLEX-style): the three content regions — Actions to Take,
-   * Condition, Parameters to Monitor — are laid out as a 3-column grid. Each
-   * region is authored as a top-level block in gap-match-content, so document
-   * order maps to left / center / right.
+   * Bowtie layout (NCLEX-style): three columns — Actions to Take | Condition |
+   * Parameters to Monitor. Each top-level content block becomes one
+   * .cutie-bowtie-column (a heading followed by its gaps); document order maps
+   * to left / center / right. The center column is vertically centered against
+   * the taller side columns, giving the pinched bowtie shape.
    */
   .cutie-gap-match-bowtie .cutie-gap-match-content {
     display: grid;
     grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    gap: 1em;
+    gap: 1.5em;
     line-height: 1.5;
   }
 
-  .cutie-gap-match-bowtie .cutie-gap-match-content > * {
+  .cutie-bowtie-column {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 0.5em;
-    margin: 0;
-    padding: 1em;
-    border: 2px solid var(--cutie-border);
-    border-radius: 8px;
+    gap: 0.75em;
     text-align: center;
   }
 
-  /* The central "Condition" region is the focal point of the bowtie */
-  .cutie-gap-match-bowtie .cutie-gap-match-content > *:nth-child(2) {
-    border-color: var(--cutie-primary);
-    background-color: var(--cutie-bg-alt);
-    font-weight: 600;
+  /* The heading line (a <strong>/<p>) sits above the column's gaps */
+  .cutie-bowtie-column > p {
+    margin: 0;
   }
 
-  /* Collapse to a single column on narrow screens */
+  /* Gaps become full-width, tall drop targets stacked within their column */
+  .cutie-bowtie-column .cutie-gap {
+    display: flex;
+    width: 100%;
+    min-height: 3em;
+    margin: 0;
+    box-sizing: border-box;
+  }
+
+  /* Collapse to a single stacked column on narrow screens */
   @media (max-width: 40em) {
     .cutie-gap-match-bowtie .cutie-gap-match-content {
       grid-template-columns: 1fr;
+      align-items: stretch;
     }
   }
 `;

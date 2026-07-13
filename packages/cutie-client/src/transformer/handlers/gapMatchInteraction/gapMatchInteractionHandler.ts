@@ -62,7 +62,8 @@ export class GapMatchInteractionHandler implements ElementHandler {
     // Triggered by a non-reserved `bowtie` token on the QTI class attribute
     // (`class` is a spec-provided presentation hook; bowtie is not a QTI type).
     const qtiClass = element.getAttribute('class') ?? '';
-    if (qtiClass.split(/\s+/).includes('bowtie')) {
+    const isBowtie = qtiClass.split(/\s+/).includes('bowtie');
+    if (isBowtie) {
       container.classList.add('cutie-gap-match-bowtie');
     }
 
@@ -124,7 +125,9 @@ export class GapMatchInteractionHandler implements ElementHandler {
     const contentContainer = document.createElement('div');
     contentContainer.className = 'cutie-gap-match-content';
 
-    // Transform all non-choice, non-prompt children
+    // Transform all non-choice, non-prompt children. In bowtie mode each such
+    // top-level block becomes one column of the grid (heading + its gaps), so
+    // wrap it in a column element; otherwise inline the content as usual.
     for (const child of children) {
       const tagName = child.tagName.toLowerCase();
       if (
@@ -133,7 +136,14 @@ export class GapMatchInteractionHandler implements ElementHandler {
         tagName !== 'qti-gap-img'
       ) {
         if (context.transformChildren) {
-          contentContainer.appendChild(context.transformChildren(child));
+          if (isBowtie) {
+            const column = document.createElement('div');
+            column.className = 'cutie-bowtie-column';
+            column.appendChild(context.transformChildren(child));
+            contentContainer.appendChild(column);
+          } else {
+            contentContainer.appendChild(context.transformChildren(child));
+          }
         }
       }
     }

@@ -316,5 +316,30 @@ describe('gapMatchInteraction', () => {
       const groups = Array.from(gaps).map((g) => g.getAttribute('data-match-group'));
       expect(groups).toEqual(['actions', 'parameters']);
     });
+
+    it('wraps each content block in a bowtie column containing its gaps', () => {
+      const doc = createQtiDocument(BOWTIE_QTI);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const content = container.querySelector('.cutie-gap-match-content')!;
+      const columns = content.querySelectorAll('.cutie-bowtie-column');
+      expect(columns.length).toBe(2);
+      // Each column keeps its own gap (not flattened into sibling cells).
+      expect(columns[0].querySelectorAll('.cutie-gap').length).toBe(1);
+      expect(columns[1].querySelectorAll('.cutie-gap').length).toBe(1);
+    });
+
+    it('does not wrap content blocks in columns for a plain gap-match', () => {
+      const doc = createQtiDocument(BASIC_GAP_MATCH_QTI);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      expect(container.querySelectorAll('.cutie-bowtie-column').length).toBe(0);
+    });
   });
 });
