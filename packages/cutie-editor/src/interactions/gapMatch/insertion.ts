@@ -302,10 +302,11 @@ export function insertBowtieInteraction(
     }))
   );
 
-  // One content paragraph per column: heading text followed by its gaps. Empty
-  // text nodes wrap the inline void gaps as Slate requires.
+  // One content paragraph per column: a bold heading followed by its gaps.
+  // Empty text nodes wrap the inline void gaps as Slate requires. In bowtie
+  // mode the client renders each of these blocks as a column.
   const contentParagraphs = BOWTIE_COLUMNS.map((column) => {
-    const children: Array<Record<string, unknown>> = [{ text: column.label }];
+    const children: Array<Record<string, unknown>> = [{ text: column.label, bold: true }];
     for (const gapId of column.gaps) {
       children.push({
         type: 'qti-gap',
