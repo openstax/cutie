@@ -14,12 +14,12 @@ describe('isFeedbackType', () => {
 
 describe('createFeedbackIcon', () => {
   it.each([
-    ['correct', 'Correct:'],
-    ['incorrect', 'Incorrect:'],
-    ['info', 'Information:'],
-  ] as [FeedbackType, string][])(
+    ['correct', 'Correct:', '0 0 24 24'],
+    ['incorrect', 'Incorrect:', '0 0 24 24'],
+    ['info', 'Information:', '0 -960 960 960'],
+  ] as [FeedbackType, string, string][])(
     'should create icon for "%s" with currentColor fill and label "%s"',
-    (type, label) => {
+    (type, label, viewBox) => {
       const icon = createFeedbackIcon(type);
 
       expect(icon.tagName.toLowerCase()).toBe('span');
@@ -30,7 +30,7 @@ describe('createFeedbackIcon', () => {
       expect(svg?.getAttribute('aria-hidden')).toBe('true');
       expect(svg?.getAttribute('class')).toBe('cutie-feedback-icon__svg');
       expect(svg?.getAttribute('fill')).toBe('currentColor');
-      expect(svg?.getAttribute('viewBox')).toBe('0 -960 960 960');
+      expect(svg?.getAttribute('viewBox')).toBe(viewBox);
 
       const path = svg?.querySelector('path');
       expect(path).not.toBeNull();

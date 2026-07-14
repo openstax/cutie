@@ -68,7 +68,7 @@ const FEEDBACK_BLOCK_STYLES = `
     display: block;
     position: relative;
     margin: 0.75em 0;
-    padding: 0.75em 1em 0.75em 2.25em;
+    padding: 1.75em 1em 1.75em 2.25em;
     background-color: var(--cutie-bg-alt);
     color: var(--cutie-text);
     font-style: italic;
@@ -77,9 +77,13 @@ const FEEDBACK_BLOCK_STYLES = `
   .cutie-feedback-block .cutie-feedback-icon {
     position: absolute;
     left: 0.625em;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 16px;
+    top: 1.8em;
+    height: 1lh;
+  }
+
+  .cutie-feedback-block .cutie-feedback-icon__svg {
+    width: 16px;
+    height: 16px;
   }
 
   .cutie-feedback-block[data-feedback-type="correct"] {
@@ -92,5 +96,13 @@ const FEEDBACK_BLOCK_STYLES = `
 
   .cutie-feedback-block[data-feedback-type="info"] {
     border-left: 0.5em solid var(--cutie-feedback-info);
+  }
+
+  .cutie-feedback-block > .cutie-feedback-icon + * {
+    margin-top: 0;
+  }
+
+  .cutie-feedback-block > :last-child {
+    margin-bottom: 0;
   }
 `;
