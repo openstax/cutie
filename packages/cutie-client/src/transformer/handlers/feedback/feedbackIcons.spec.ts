@@ -14,8 +14,8 @@ describe('isFeedbackType', () => {
 
 describe('createFeedbackIcon', () => {
   it.each([
-    ['correct', 'Correct:', '0 0 24 24'],
-    ['incorrect', 'Incorrect:', '0 0 24 24'],
+    ['correct', 'Correct:', '0.75 0.75 22.5 22.5'],
+    ['incorrect', 'Incorrect:', '0.75 0.75 22.5 22.5'],
     ['info', 'Information:', '0 -960 960 960'],
   ] as [FeedbackType, string, string][])(
     'should create icon for "%s" with currentColor fill and label "%s"',
