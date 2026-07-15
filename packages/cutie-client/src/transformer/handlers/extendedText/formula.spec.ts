@@ -241,5 +241,29 @@ describe('formulaInteraction', () => {
       const constraintEl = container.querySelector('.cutie-constraint-text')!;
       expect(constraintEl.classList.contains('cutie-constraint-error')).toBe(true);
     });
+
+    it('clears error state on input once the value becomes valid', async () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" min-strings="1">
+        </qti-extended-text-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+      await waitForMathField();
+
+      const mathField = container.querySelector('.cutie-formula-field') as HTMLElement & { value: string };
+      const constraintEl = container.querySelector('.cutie-constraint-text')!;
+
+      itemState.collectAll();
+      expect(mathField.getAttribute('aria-invalid')).toBe('true');
+
+      mathField.value = 'x+1';
+      mathField.dispatchEvent(new Event('input'));
+
+      expect(mathField.hasAttribute('aria-invalid')).toBe(false);
+      expect(constraintEl.classList.contains('cutie-constraint-error')).toBe(false);
+    });
   });
 });
