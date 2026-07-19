@@ -3,9 +3,10 @@
 // SCORE = qti-map-response(RESPONSE): +1 for each correctly placed choice,
 // default 0 for wrong placements, floored at 0 by the mapping's lower-bound.
 //
-// Bowtie (NCLEX-style): a gap-match rendered as three match-group-restricted
-// columns — Actions to Take | Condition | Parameters to Monitor — driven by the
-// `class="bowtie"` layout token.
+// Bowtie (NCLEX-style): a plain gap-match whose three match-group-restricted
+// columns — Actions to Take | Condition | Parameters to Monitor — are derived
+// by the client from the match-group data (every choice targets exactly one
+// group and each content block holds one group's gaps). No layout hints.
 
 export const name = "Bowtie (Clinical Judgment)";
 
@@ -47,7 +48,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
   <qti-outcome-declaration identifier="FEEDBACK" cardinality="multiple" base-type="identifier"/>
 
   <qti-item-body>
-    <qti-gap-match-interaction response-identifier="RESPONSE" class="bowtie" shuffle="true">
+    <qti-gap-match-interaction response-identifier="RESPONSE" shuffle="true">
       <qti-prompt>
         A client presents with dry mucous membranes, tachycardia, and hypotension.
         Drag one choice into each box to complete the diagram: the two actions the

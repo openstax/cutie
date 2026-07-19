@@ -186,9 +186,10 @@ describe('Gap Match Interaction', () => {
     });
   });
 
-  // A bowtie is a gap-match with a `class="bowtie"` layout token, per-column
-  // match-groups, and a map_response mapping — the shape insertBowtieInteraction
-  // produces. These assert those bowtie-specific bits survive a round-trip.
+  // A bowtie is a gap-match with per-column match-groups and a map_response
+  // mapping — the shape insertBowtieInteraction produces (the client derives
+  // the column layout from the match-group structure). These assert those
+  // bits, plus any shared-vocabulary class, survive a round-trip.
   describe('bowtie (gap-match variant)', () => {
     const bowtieXml = `<?xml version="1.0" encoding="UTF-8"?>
 <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
@@ -207,7 +208,7 @@ describe('Gap Match Interaction', () => {
   </qti-response-declaration>
   <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/>
   <qti-item-body>
-    <qti-gap-match-interaction response-identifier="RESPONSE" class="bowtie">
+    <qti-gap-match-interaction response-identifier="RESPONSE" class="qti-choices-bottom">
       <qti-gap-text identifier="ACT1" match-max="1" match-group="actions">Action</qti-gap-text>
       <qti-gap-text identifier="COND1" match-max="1" match-group="condition">Condition</qti-gap-text>
       <qti-gap-text identifier="PAR1" match-max="1" match-group="parameters">Parameter</qti-gap-text>
@@ -218,11 +219,11 @@ describe('Gap Match Interaction', () => {
   </qti-item-body>
 </qti-assessment-item>`;
 
-    it('preserves the bowtie layout class on the interaction', () => {
+    it('preserves shared-vocabulary layout classes on the interaction', () => {
       const parsed = parseXmlToSlate(bowtieXml);
       const result = serializeSlateToQti(parsed, bowtieXml);
 
-      expect(result.xml).toContain('class="bowtie"');
+      expect(result.xml).toContain('class="qti-choices-bottom"');
     });
 
     it('preserves per-column match-groups on choices and gaps', () => {

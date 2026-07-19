@@ -234,9 +234,9 @@ interface BowtieColumn {
 
 /**
  * The fixed NCLEX-style bowtie: Actions to Take (2 gaps) | Condition (1 gap) |
- * Parameters to Monitor (2 gaps). Document order maps to left / center / right
- * in the client's bowtie grid. Each column is its own match-group so choices
- * can only be dropped into their own column's gaps.
+ * Parameters to Monitor (2 gaps). Each column is its own match-group so
+ * choices can only be dropped into their own column's gaps — the client
+ * derives the column layout and per-column choice banks from that structure.
  */
 const BOWTIE_COLUMNS: BowtieColumn[] = [
   {
@@ -276,9 +276,10 @@ const BOWTIE_COLUMNS: BowtieColumn[] = [
 /**
  * Insert a bowtie interaction: a gap-match preset with three match-group-restricted
  * columns and per-correct-choice scoring (+1 each, min 0). It is a standard
- * qti-gap-match-interaction — the `class="bowtie"` token drives the client's
- * 3-column layout, and the document's response processing is set to sum the
- * mapped scores so each correct placement earns a point.
+ * qti-gap-match-interaction with no layout hints — the client derives the
+ * 3-column presentation from the match-group structure — and the document's
+ * response processing is set to sum the mapped scores so each correct
+ * placement earns a point.
  */
 export function insertBowtieInteraction(
   editor: Editor,
@@ -303,8 +304,9 @@ export function insertBowtieInteraction(
   );
 
   // One content paragraph per column: a bold heading followed by its gaps.
-  // Empty text nodes wrap the inline void gaps as Slate requires. In bowtie
-  // mode the client renders each of these blocks as a column.
+  // Empty text nodes wrap the inline void gaps as Slate requires. Because
+  // each block holds a single group's gaps, the client renders each block
+  // as a column.
   const contentParagraphs = BOWTIE_COLUMNS.map((column) => {
     const children: Array<Record<string, unknown>> = [{ text: column.label, bold: true }];
     for (const gapId of column.gaps) {
@@ -359,7 +361,6 @@ export function insertBowtieInteraction(
     type: 'qti-gap-match-interaction',
     attributes: {
       'response-identifier': responseId,
-      class: 'bowtie',
       shuffle: config.shuffle ? 'true' : undefined,
     },
     children: [

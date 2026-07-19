@@ -24,7 +24,7 @@ function createSeededEditor(): CustomEditor {
 }
 
 describe('insertBowtieInteraction', () => {
-  it('inserts a serializable bowtie gap-match with the layout class', () => {
+  it('inserts a serializable gap-match with no layout class', () => {
     const editor = createSeededEditor();
 
     insertBowtieInteraction(editor);
@@ -32,7 +32,9 @@ describe('insertBowtieInteraction', () => {
 
     expect(result.errors ?? []).toEqual([]);
     expect(result.xml).toContain('qti-gap-match-interaction');
-    expect(result.xml).toContain('class="bowtie"');
+    // The client derives the bowtie presentation from the match-group
+    // structure; the preset emits no class attribute at all.
+    expect(result.xml).not.toContain('class=');
   });
 
   it('restricts each column via its own match-group', () => {

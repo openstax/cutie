@@ -4,8 +4,10 @@ import {
   createConstraintMessage,
 } from '../../../errors/validationDisplay';
 import type { ElementHandler, TransformContext } from '../../types';
+import { parseChoicesContainerWidth } from '../../vocabUtils';
 import { getDefaultValue } from '../responseUtils';
 import { GapMatchController } from './controller';
+import { analyzeMatchGroups } from './matchGroupAnalysis';
 import { GAP_MATCH_INTERACTION_STYLES } from './styles';
 
 function buildGapMatchConstraintText(min: number, max: number): string | null {
@@ -22,8 +24,16 @@ interface ChoiceData {
   identifier: string;
   element: Element;
   matchMax: number;
-  matchGroup: string;
+  matchGroups: string[];
   isImage: boolean;
+}
+
+/**
+ * Present a match-group identifier to assistive tech (identifiers are
+ * machine tokens like "vital-signs").
+ */
+function humanizeGroupId(group: string): string {
+  return group.replace(/[-_]+/g, ' ');
 }
 
 /**
@@ -52,20 +62,15 @@ export class GapMatchInteractionHandler implements ElementHandler {
       return fragment;
     }
 
-    // Create main container
+    // Create main container. Source classes carry QTI shared vocabulary
+    // (e.g. qti-choices-bottom) — pass them through so CSS can key off them.
     const container = document.createElement('div');
-    container.className = 'cutie-gap-match-interaction';
+    const sourceClasses = element.getAttribute('class');
+    container.className = sourceClasses
+      ? `cutie-gap-match-interaction ${sourceClasses}`
+      : 'cutie-gap-match-interaction';
     container.setAttribute('data-response-identifier', responseIdentifier);
     container.setAttribute('role', 'group');
-
-    // Optional bowtie layout: arranges the content regions as a 3-column grid.
-    // Triggered by a non-reserved `bowtie` token on the QTI class attribute
-    // (`class` is a spec-provided presentation hook; bowtie is not a QTI type).
-    const qtiClass = element.getAttribute('class') ?? '';
-    const isBowtie = qtiClass.split(/\s+/).includes('bowtie');
-    if (isBowtie) {
-      container.classList.add('cutie-gap-match-bowtie');
-    }
 
     // Find prompt element
     const children = Array.from(element.children);
@@ -93,12 +98,6 @@ export class GapMatchInteractionHandler implements ElementHandler {
       container.setAttribute('aria-label', 'Gap match interaction');
     }
 
-    // Create choices container
-    const choicesContainer = document.createElement('div');
-    choicesContainer.className = 'cutie-gap-match-choices';
-    choicesContainer.setAttribute('role', 'listbox');
-    choicesContainer.setAttribute('aria-label', 'Available choices');
-
     // Build choice data - choices are already in the correct order from the server
     const choices: ChoiceData[] = [];
     for (const choiceElement of choiceElements) {
@@ -109,41 +108,152 @@ export class GapMatchInteractionHandler implements ElementHandler {
       }
 
       const matchMax = parseInt(choiceElement.getAttribute('match-max') ?? '1', 10);
+      const matchGroup = choiceElement.getAttribute('match-group') ?? '';
 
       choices.push({
         identifier,
         element: choiceElement,
         matchMax: isNaN(matchMax) ? 1 : matchMax,
-        matchGroup: choiceElement.getAttribute('match-group') ?? '',
+        matchGroups: matchGroup.split(/\s+/).filter(Boolean),
         isImage: choiceElement.tagName.toLowerCase() === 'qti-gap-img',
       });
     }
 
-    container.appendChild(choicesContainer);
+    // Create the choice buttons up front; the layout below decides where
+    // each button lands in the DOM.
+    const choiceButtons = new Map<string, { button: HTMLButtonElement; content: string }>();
+    for (const choice of choices) {
+      const choiceBtn = document.createElement('button');
+      choiceBtn.className = 'cutie-gap-text';
+      choiceBtn.type = 'button';
+      choiceBtn.setAttribute('role', 'option');
+      choiceBtn.setAttribute('data-identifier', choice.identifier);
+      choiceBtn.setAttribute('data-match-max', String(choice.matchMax));
+      choiceBtn.setAttribute('draggable', 'true');
+      choiceBtn.setAttribute('aria-pressed', 'false');
+
+      let content: string;
+      if (choice.isImage) {
+        // Handle qti-gap-img
+        const imgSrc = choice.element.getAttribute('src') ?? '';
+        const imgAlt = choice.element.getAttribute('alt') ?? '';
+        const img = document.createElement('img');
+        img.src = imgSrc;
+        img.alt = imgAlt;
+        img.className = 'cutie-gap-img-content';
+        choiceBtn.appendChild(img);
+        content = imgAlt || 'image option';
+      } else {
+        // Handle qti-gap-text
+        content = choice.element.textContent ?? '';
+        choiceBtn.textContent = content;
+      }
+
+      choiceButtons.set(choice.identifier, { button: choiceBtn, content });
+    }
+
+    // Derived grouping: when the match-group data proves that every choice
+    // has exactly one target group the choices cluster by group, and when
+    // the content blocks also partition the gaps by group, each block
+    // becomes a column with its group's choices banked beneath it.
+    const analysis = analyzeMatchGroups(element);
+    const choicesContainerWidth = parseChoicesContainerWidth(element);
+    const choiceBanks: HTMLElement[] = [];
+    const orderedChoices: ChoiceData[] = [];
+
+    const createBank = (ariaLabel: string): HTMLElement => {
+      const bank = document.createElement('div');
+      bank.className = 'cutie-gap-match-choices';
+      bank.setAttribute('role', 'listbox');
+      bank.setAttribute('aria-label', ariaLabel);
+      if (choicesContainerWidth !== null) {
+        bank.style.width = `${choicesContainerWidth}px`;
+      }
+      choiceBanks.push(bank);
+      return bank;
+    };
+
+    const placeChoice = (parent: HTMLElement, choice: ChoiceData): void => {
+      const entry = choiceButtons.get(choice.identifier);
+      if (entry) {
+        parent.appendChild(entry.button);
+        orderedChoices.push(choice);
+      }
+    };
+
+    const choicesForGroup = (group: string): ChoiceData[] =>
+      choices.filter((choice) => choice.matchGroups.length === 1 && choice.matchGroups[0] === group);
 
     // Create content container and transform remaining children (which includes gaps)
     const contentContainer = document.createElement('div');
     contentContainer.className = 'cutie-gap-match-content';
 
-    // Transform all non-choice, non-prompt children. In bowtie mode each such
-    // top-level block becomes one column of the grid (heading + its gaps), so
-    // wrap it in a column element; otherwise inline the content as usual.
-    for (const child of children) {
+    const contentBlocks = children.filter((child) => {
       const tagName = child.tagName.toLowerCase();
-      if (
+      return (
         tagName !== 'qti-prompt' &&
         tagName !== 'qti-gap-text' &&
         tagName !== 'qti-gap-img'
-      ) {
+      );
+    });
+
+    const blockGroups = analysis.blockGroups;
+    if (blockGroups) {
+      // The blocks partition the gaps by group: render each block as a
+      // column with its group's choices banked beneath its gaps.
+      contentContainer.classList.add('cutie-gap-match-content--grouped');
+      contentContainer.style.setProperty('--cutie-match-group-count', String(blockGroups.length));
+
+      for (let i = 0; i < contentBlocks.length; i++) {
+        const child = contentBlocks[i];
+        const group = blockGroups[i];
+
+        const block = document.createElement('div');
+        block.className = 'cutie-match-group-block';
+        block.setAttribute('data-match-group', group);
         if (context.transformChildren) {
-          if (isBowtie) {
-            const column = document.createElement('div');
-            column.className = 'cutie-bowtie-column';
-            column.appendChild(context.transformChildren(child));
-            contentContainer.appendChild(column);
-          } else {
-            contentContainer.appendChild(context.transformChildren(child));
+          block.appendChild(context.transformChildren(child));
+        }
+
+        const groupChoices = choicesForGroup(group);
+        if (groupChoices.length > 0) {
+          const bank = createBank(`${humanizeGroupId(group)} choices`);
+          bank.classList.add('cutie-gap-match-choices--bank');
+          bank.setAttribute('data-match-group', group);
+          for (const choice of groupChoices) {
+            placeChoice(bank, choice);
           }
+          block.appendChild(bank);
+        }
+
+        contentContainer.appendChild(block);
+      }
+    } else {
+      // Shared tray, sectioned by group when the choices cluster.
+      const tray = createBank('Available choices');
+      if (analysis.trayGroups) {
+        tray.classList.add('cutie-gap-match-choices--grouped');
+        for (const group of analysis.trayGroups) {
+          const section = document.createElement('div');
+          section.className = 'cutie-gap-match-choice-group';
+          section.setAttribute('role', 'group');
+          section.setAttribute('aria-label', humanizeGroupId(group));
+          section.setAttribute('data-match-group', group);
+          for (const choice of choicesForGroup(group)) {
+            placeChoice(section, choice);
+          }
+          tray.appendChild(section);
+        }
+      } else {
+        for (const choice of choices) {
+          placeChoice(tray, choice);
+        }
+      }
+      container.appendChild(tray);
+
+      for (const child of contentBlocks) {
+        if (context.transformChildren) {
+          contentContainer.appendChild(context.transformChildren(child));
         }
       }
     }
@@ -175,42 +285,16 @@ export class GapMatchInteractionHandler implements ElementHandler {
     }
 
     // Create the controller
-    const controller = new GapMatchController(responseIdentifier, choicesContainer, context, container, maxAssociations);
+    const controller = new GapMatchController(responseIdentifier, choiceBanks, context, container, maxAssociations);
 
-    // Create and register choice elements
+    // Register choices in DOM order so keyboard navigation follows the layout
     let isFirst = true;
-    for (const choice of choices) {
-      const choiceBtn = document.createElement('button');
-      choiceBtn.className = 'cutie-gap-text';
-      choiceBtn.type = 'button';
-      choiceBtn.setAttribute('role', 'option');
-      choiceBtn.setAttribute('data-identifier', choice.identifier);
-      choiceBtn.setAttribute('data-match-max', String(choice.matchMax));
-      choiceBtn.setAttribute('tabindex', isFirst ? '0' : '-1');
-      choiceBtn.setAttribute('draggable', 'true');
-      choiceBtn.setAttribute('aria-pressed', 'false');
+    for (const choice of orderedChoices) {
+      const entry = choiceButtons.get(choice.identifier);
+      if (!entry) continue;
 
-      let content: string;
-      if (choice.isImage) {
-        // Handle qti-gap-img
-        const imgSrc = choice.element.getAttribute('src') ?? '';
-        const imgAlt = choice.element.getAttribute('alt') ?? '';
-        const img = document.createElement('img');
-        img.src = imgSrc;
-        img.alt = imgAlt;
-        img.className = 'cutie-gap-img-content';
-        choiceBtn.appendChild(img);
-        content = imgAlt || 'image option';
-      } else {
-        // Handle qti-gap-text
-        content = choice.element.textContent ?? '';
-        choiceBtn.textContent = content;
-      }
-
-      choicesContainer.appendChild(choiceBtn);
-
-      const matchGroups = choice.matchGroup ? choice.matchGroup.split(/\s+/) : [];
-      controller.registerChoice(choice.identifier, choiceBtn, choice.matchMax, content, matchGroups);
+      entry.button.setAttribute('tabindex', isFirst ? '0' : '-1');
+      controller.registerChoice(choice.identifier, entry.button, choice.matchMax, entry.content, choice.matchGroups);
       isFirst = false;
     }
 
