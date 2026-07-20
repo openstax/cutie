@@ -1,4 +1,8 @@
-import type { StyleManager } from '../transformer/types';
+import type {
+  ParagraphValidationAggregator,
+  ParagraphValidationField,
+  StyleManager,
+} from '../transformer/types';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -8,6 +12,21 @@ const WARNING_ICON_PATH =
   'm40-120 440-760 440 760H40Zm138-80h604L480-720 178-200Zm302-40q17 0 28.5-11.5T520-280q0-17-11.5-28.5T480-320q-17 0-28.5 11.5T440-280q0 17 11.5 28.5T480-240Zm-40-120h80v-200h-80v200Zm40-100Z';
 
 const CONSTRAINT_ERROR_CLASS = 'cutie-constraint-error';
+
+/** Warning icon — hidden by default, shown via CSS in error state. */
+function createWarningIcon(): SVGSVGElement {
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('class', 'cutie-constraint-icon');
+  svg.setAttribute('viewBox', '0 -960 960 960');
+  svg.setAttribute('fill', 'currentColor');
+
+  const path = document.createElementNS(SVG_NS, 'path');
+  path.setAttribute('d', WARNING_ICON_PATH);
+  svg.appendChild(path);
+
+  return svg;
+}
 
 const INLINE_REQUIRED_INDICATOR_STYLE_ID = 'cutie-inline-required-indicator';
 
@@ -88,17 +107,7 @@ export function createConstraintMessage(
   container.setAttribute('aria-live', 'polite');
   container.setAttribute('aria-atomic', 'true');
 
-  // Warning icon — hidden by default, shown via CSS in error state
-  const svg = document.createElementNS(SVG_NS, 'svg');
-  svg.setAttribute('aria-hidden', 'true');
-  svg.setAttribute('class', 'cutie-constraint-icon');
-  svg.setAttribute('viewBox', '0 -960 960 960');
-  svg.setAttribute('fill', 'currentColor');
-
-  const path = document.createElementNS(SVG_NS, 'path');
-  path.setAttribute('d', WARNING_ICON_PATH);
-  svg.appendChild(path);
-  container.appendChild(svg);
+  container.appendChild(createWarningIcon());
 
   const textSpan = document.createElement('span');
   textSpan.textContent = text;
@@ -161,4 +170,100 @@ export function createInlineRequiredIndicator(
   };
 
   return { element: span, setError, setText };
+}
+
+const PARAGRAPH_VALIDATION_STYLE_ID = 'cutie-paragraph-validation';
+
+const PARAGRAPH_VALIDATION_STYLES = `
+  .cutie-paragraph-validation {
+    margin-bottom: 0.5em;
+  }
+
+  .cutie-paragraph-validation-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25em;
+  }
+
+  /* Each row is hidden until it is the currently-erroring field, so the
+     summary only ever shows actual errors, not every possible constraint. */
+  .cutie-paragraph-validation-item {
+    display: none;
+    align-items: center;
+    gap: 0.3em;
+    font-size: 0.85em;
+    color: var(--cutie-feedback-incorrect);
+  }
+
+  .cutie-paragraph-validation-item.${CONSTRAINT_ERROR_CLASS} {
+    display: flex;
+  }
+`;
+
+/** Module-level counter for paragraph validation row IDs. */
+let paragraphValidationRowCounter = 0;
+
+/**
+ * Create an aggregator that renders one consolidated validation message
+ * block for all constrained inline interactions (text entry, inline choice)
+ * within a single enclosing paragraph. Intended to be rendered as a
+ * preceding sibling of that paragraph — see htmlPassthrough.ts.
+ *
+ * Each registered field gets its own always-present <li> (created once,
+ * never removed) whose visibility is toggled via setError, so revealing an
+ * error inside the live region is picked up by screen readers.
+ *
+ * @param styleManager - Optional style manager for registering shared styles
+ */
+export function createParagraphValidationAggregator(
+  styleManager?: StyleManager
+): ParagraphValidationAggregator {
+  if (styleManager && !styleManager.hasStyle(PARAGRAPH_VALIDATION_STYLE_ID)) {
+    styleManager.addStyle(PARAGRAPH_VALIDATION_STYLE_ID, PARAGRAPH_VALIDATION_STYLES);
+  }
+
+  let ordinalCounter = 0;
+  let fieldCount = 0;
+
+  const container = document.createElement('div');
+  container.className = 'cutie-paragraph-validation';
+  // Live region so newly-revealed rows are announced even if focus isn't on
+  // the associated input (e.g. validation run from a submit action
+  // elsewhere on the page). No aria-atomic, so fixing one field doesn't
+  // cause every other still-invalid field's text to be re-announced.
+  container.setAttribute('aria-live', 'polite');
+
+  const list = document.createElement('ul');
+  list.className = 'cutie-paragraph-validation-list';
+  container.appendChild(list);
+
+  return {
+    nextOrdinal: () => ++ordinalCounter,
+    registerField: (ordinal: number, message: string): ParagraphValidationField => {
+      fieldCount++;
+      const li = document.createElement('li');
+      li.className = 'cutie-paragraph-validation-item';
+      li.id = `cutie-paragraph-validation-row-${++paragraphValidationRowCounter}`;
+
+      li.appendChild(createWarningIcon());
+
+      const textSpan = document.createElement('span');
+      textSpan.textContent = `Blank ${ordinal}: ${message}`;
+      li.appendChild(textSpan);
+
+      list.appendChild(li);
+
+      return {
+        id: li.id,
+        setError: (isError: boolean) => {
+          li.classList.toggle(CONSTRAINT_ERROR_CLASS, isError);
+        },
+      };
+    },
+    hasFields: () => fieldCount > 0,
+    element: container,
+  };
 }

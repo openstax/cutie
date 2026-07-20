@@ -454,6 +454,15 @@ export function annotateInlineInteractions(
     // Collect all referenced span IDs across all interactions
     const referencedSpanIds = new Set<string>();
 
+    // NOTE: the "blank N of M" numbering below counts the same set of
+    // interactions, in the same document-order walk, as
+    // ParagraphValidationAggregator.nextOrdinal() (see htmlPassthrough.ts /
+    // errors/validationDisplay.ts) — the two are independently derived, not
+    // cross-referenced, but are expected to agree so that a screen reader
+    // user hears "blank 2 of 3" for the same field the validation summary
+    // labels "Blank 2". Keep both counting every text-entry/inline-choice
+    // interaction regardless of constraint if this logic changes.
+
     // Assign IDs to interactions and build aria-labelledby
     for (let i = 0; i < interactions.length; i++) {
       const record = interactions[i]!;

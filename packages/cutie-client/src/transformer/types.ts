@@ -70,6 +70,46 @@ export interface ItemState {
 }
 
 /**
+ * A single registered field within a ParagraphValidationAggregator.
+ */
+export interface ParagraphValidationField {
+  /** DOM id of this field's row — set as aria-describedby on the field's input/select. */
+  readonly id: string;
+  /** Toggle this field's error visibility within the shared paragraph summary. */
+  setError(isError: boolean): void;
+}
+
+/**
+ * Aggregates validation errors for inline interactions (text-entry,
+ * inline-choice) within a single enclosing paragraph, rendered as one
+ * consolidated message block above the paragraph.
+ */
+export interface ParagraphValidationAggregator {
+  /**
+   * Reserve the next 1-based ordinal position for an inline interaction
+   * within this paragraph, whether or not it is constrained. Every inline
+   * interaction handler (text-entry, inline-choice) calls this exactly once
+   * per transform(), in document order — this keeps "Blank N" labels here in
+   * sync with the "blank N of M" labels assigned independently by
+   * inlineInteractionAnnotator.ts, which counts the same set of
+   * interactions in the same document-order walk.
+   */
+  nextOrdinal(): number;
+
+  /**
+   * Register a constrained field for display in the shared validation
+   * summary. Call only for interactions that actually have a constraint.
+   */
+  registerField(ordinal: number, message: string): ParagraphValidationField;
+
+  /** True once at least one field has been registered. */
+  hasFields(): boolean;
+
+  /** The rendered summary element (a <div> wrapping a <ul>). */
+  readonly element: HTMLElement;
+}
+
+/**
  * Context passed through transformation pipeline
  */
 export interface TransformContext {
@@ -78,6 +118,14 @@ export interface TransformContext {
    * Injected to avoid circular dependencies
    */
   transformChildren?: (element: Element) => DocumentFragment;
+
+  /**
+   * Aggregator for the nearest enclosing paragraph's validation summary.
+   * Set by htmlPassthrough.ts while transforming a <p>'s children; inline
+   * interaction handlers register their constrained fields here in addition
+   * to (not instead of) their own per-field indicator.
+   */
+  paragraphValidation?: ParagraphValidationAggregator;
 
   /**
    * Item state manager for response collection and interaction state.

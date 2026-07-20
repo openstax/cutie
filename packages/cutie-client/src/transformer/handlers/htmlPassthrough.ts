@@ -1,5 +1,6 @@
+import { createParagraphValidationAggregator } from '../../errors/validationDisplay';
 import { registry } from '../registry';
-import type { ElementHandler, TransformContext } from '../types';
+import type { ElementHandler, ParagraphValidationAggregator, TransformContext } from '../types';
 import {
   annotateInlineInteractions,
   BLOCK_TAGS,
@@ -30,18 +31,42 @@ class HtmlPassthroughHandler implements ElementHandler {
       }
     }
 
-    // Recursively transform children using context function
-    if (context.transformChildren) {
-      const childrenFragment = context.transformChildren(element);
-      cloned.appendChild(childrenFragment);
+    const tagName = element.tagName.toLowerCase();
+
+    // Only <p> gets a validation aggregator: it can only contain phrasing
+    // content, so a consolidated message for it must be a preceding
+    // sibling — unlike other BLOCK_TAGS containers (div, li, td, ...),
+    // which could validly nest a leading block child instead.
+    const isParagraph = tagName === 'p';
+    const previousAggregator = context.paragraphValidation;
+    let aggregator: ParagraphValidationAggregator | undefined;
+
+    if (isParagraph) {
+      aggregator = createParagraphValidationAggregator(context.styleManager);
+      context.paragraphValidation = aggregator;
+    }
+
+    try {
+      // Recursively transform children using context function
+      if (context.transformChildren) {
+        const childrenFragment = context.transformChildren(element);
+        cloned.appendChild(childrenFragment);
+      }
+    } finally {
+      if (isParagraph) {
+        context.paragraphValidation = previousAggregator;
+      }
     }
 
     // After building the output for a block-level element, annotate any
     // inline interactions with aria-labelledby referencing surrounding text.
     // Inner blocks are processed first (via recursion above), so nested
     // interactions are already annotated and get skipped.
-    if (BLOCK_TAGS.has(element.tagName.toLowerCase())) {
+    if (BLOCK_TAGS.has(tagName)) {
       const wrapperFragment = document.createDocumentFragment();
+      if (aggregator?.hasFields()) {
+        wrapperFragment.appendChild(aggregator.element);
+      }
       wrapperFragment.appendChild(cloned);
       if (annotateInlineInteractions(wrapperFragment)) {
         if (context.styleManager && !context.styleManager.hasStyle('cutie-sr-only')) {

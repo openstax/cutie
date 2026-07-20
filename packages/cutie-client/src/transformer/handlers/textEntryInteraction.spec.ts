@@ -1,7 +1,7 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ItemStateImpl } from '../../state/itemState';
 import { registry } from '../registry';
-import type { TransformContext } from '../types';
+import type { ParagraphValidationAggregator, TransformContext } from '../types';
 
 // Side-effect import to register the handler
 import './textEntryInteraction';
@@ -20,12 +20,14 @@ function createQtiDocument(interactionHtml: string): Document {
 
 function transformInteraction(
   doc: Document,
-  itemState: ItemStateImpl
+  itemState: ItemStateImpl,
+  paragraphValidation?: ParagraphValidationAggregator
 ): DocumentFragment {
   const interaction = doc.querySelector('qti-text-entry-interaction')!;
 
   const context: TransformContext = {
     itemState,
+    paragraphValidation,
     transformChildren: (el: Element) => {
       const frag = document.createDocumentFragment();
       for (const child of Array.from(el.childNodes)) {
@@ -37,6 +39,38 @@ function transformInteraction(
 
   const handler = registry.getAll().find((r) => r.handler.canHandle(interaction));
   return handler!.handler.transform(interaction, context);
+}
+
+/** Mock ParagraphValidationAggregator that records what handlers do with it. */
+function createMockAggregator() {
+  const registeredFields: { ordinal: number; message: string }[] = [];
+  const createdFields: { id: string; setError: ReturnType<typeof vi.fn> }[] = [];
+  let ordinalCounter = 0;
+  let nextOrdinalCallCount = 0;
+
+  const aggregator: ParagraphValidationAggregator = {
+    nextOrdinal: () => {
+      nextOrdinalCallCount++;
+      return ++ordinalCounter;
+    },
+    registerField: (ordinal, message) => {
+      registeredFields.push({ ordinal, message });
+      const field = { id: `mock-field-${ordinal}`, setError: vi.fn() };
+      createdFields.push(field);
+      return field;
+    },
+    hasFields: () => registeredFields.length > 0,
+    element: document.createElement('div'),
+  };
+
+  return {
+    aggregator,
+    registeredFields,
+    createdFields,
+    get nextOrdinalCallCount() {
+      return nextOrdinalCallCount;
+    },
+  };
 }
 
 describe('textEntryInteraction', () => {
@@ -557,6 +591,68 @@ describe('textEntryInteraction', () => {
 
       const indicator = container.querySelector('.cutie-required-indicator')!;
       expect(indicator.classList.contains('cutie-constraint-error')).toBe(true);
+    });
+  });
+
+  describe('paragraph validation aggregator', () => {
+    it('reserves an ordinal even when unconstrained', () => {
+      const doc = createQtiDocument(`
+        <qti-text-entry-interaction response-identifier="R1"></qti-text-entry-interaction>
+      `);
+      const mock = createMockAggregator();
+
+      transformInteraction(doc, itemState, mock.aggregator);
+
+      expect(mock.nextOrdinalCallCount).toBe(1);
+      expect(mock.registeredFields).toEqual([]);
+    });
+
+    it('registers a field when constrained, without replacing the indicator', () => {
+      const doc = createQtiDocument(`
+        <qti-text-entry-interaction response-identifier="R1" pattern-mask="^\\d+$" data-patternmask-message="Numbers only">
+        </qti-text-entry-interaction>
+      `);
+      const { aggregator, registeredFields } = createMockAggregator();
+
+      const fragment = transformInteraction(doc, itemState, aggregator);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      expect(registeredFields).toEqual([{ ordinal: 1, message: 'Numbers only' }]);
+
+      const indicator = container.querySelector('.cutie-required-indicator');
+      expect(indicator).not.toBeNull();
+      expect(indicator!.getAttribute('title')).toBe('Numbers only');
+      // aria-describedby still points at the local indicator, not the
+      // aggregator's row — avoids double-narration by screen readers.
+      const input = container.querySelector('input')!;
+      expect(input.getAttribute('aria-describedby')).toBe('constraint-R1');
+    });
+
+    it('calls setError on both the indicator and the aggregated field together', () => {
+      const doc = createQtiDocument(`
+        <qti-text-entry-interaction response-identifier="R1" pattern-mask="^\\d+$">
+        </qti-text-entry-interaction>
+      `);
+      const { aggregator, createdFields } = createMockAggregator();
+
+      const fragment = transformInteraction(doc, itemState, aggregator);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const input = container.querySelector('input')!;
+      input.value = 'abc';
+      itemState.collectAll();
+
+      const indicator = container.querySelector('.cutie-required-indicator')!;
+      expect(indicator.classList.contains('cutie-constraint-error')).toBe(true);
+      expect(createdFields[0]!.setError).toHaveBeenCalledWith(true);
+
+      input.value = '42';
+      itemState.collectAll();
+
+      expect(indicator.classList.contains('cutie-constraint-error')).toBe(false);
+      expect(createdFields[0]!.setError).toHaveBeenCalledWith(false);
     });
   });
 });

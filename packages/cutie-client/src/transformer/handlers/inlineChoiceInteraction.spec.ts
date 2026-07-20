@@ -1,7 +1,7 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ItemStateImpl } from '../../state/itemState';
 import { registry } from '../registry';
-import type { TransformContext } from '../types';
+import type { ParagraphValidationAggregator, TransformContext } from '../types';
 
 // Side-effect import to register the handler
 import './inlineChoiceInteraction';
@@ -20,12 +20,14 @@ function createQtiDocument(interactionHtml: string): Document {
 
 function transformInteraction(
   doc: Document,
-  itemState: ItemStateImpl
+  itemState: ItemStateImpl,
+  paragraphValidation?: ParagraphValidationAggregator
 ): DocumentFragment {
   const interaction = doc.querySelector('qti-inline-choice-interaction')!;
 
   const context: TransformContext = {
     itemState,
+    paragraphValidation,
     transformChildren: (el: Element) => {
       const frag = document.createDocumentFragment();
       for (const child of Array.from(el.childNodes)) {
@@ -37,6 +39,38 @@ function transformInteraction(
 
   const handler = registry.getAll().find((r) => r.handler.canHandle(interaction));
   return handler!.handler.transform(interaction, context);
+}
+
+/** Mock ParagraphValidationAggregator that records what handlers do with it. */
+function createMockAggregator() {
+  const registeredFields: { ordinal: number; message: string }[] = [];
+  const createdFields: { id: string; setError: ReturnType<typeof vi.fn> }[] = [];
+  let ordinalCounter = 0;
+  let nextOrdinalCallCount = 0;
+
+  const aggregator: ParagraphValidationAggregator = {
+    nextOrdinal: () => {
+      nextOrdinalCallCount++;
+      return ++ordinalCounter;
+    },
+    registerField: (ordinal, message) => {
+      registeredFields.push({ ordinal, message });
+      const field = { id: `mock-field-${ordinal}`, setError: vi.fn() };
+      createdFields.push(field);
+      return field;
+    },
+    hasFields: () => registeredFields.length > 0,
+    element: document.createElement('div'),
+  };
+
+  return {
+    aggregator,
+    registeredFields,
+    createdFields,
+    get nextOrdinalCallCount() {
+      return nextOrdinalCallCount;
+    },
+  };
 }
 
 describe('inlineChoiceInteraction', () => {
@@ -510,6 +544,75 @@ describe('inlineChoiceInteraction', () => {
 
       itemState.setInteractionsEnabled(true);
       expect(select.disabled).toBe(false);
+    });
+  });
+
+  describe('paragraph validation aggregator', () => {
+    it('reserves an ordinal even when unconstrained', () => {
+      const doc = createQtiDocument(`
+        <qti-inline-choice-interaction response-identifier="R1">
+          <qti-inline-choice identifier="A">Alpha</qti-inline-choice>
+        </qti-inline-choice-interaction>
+      `);
+      const mock = createMockAggregator();
+
+      transformInteraction(doc, itemState, mock.aggregator);
+
+      expect(mock.nextOrdinalCallCount).toBe(1);
+      expect(mock.registeredFields).toEqual([]);
+    });
+
+    it('registers a field when constrained, without replacing the indicator', () => {
+      const doc = createQtiDocument(`
+        <qti-inline-choice-interaction response-identifier="R1" required="true"
+          data-min-selections-message="Please choose an answer">
+          <qti-inline-choice identifier="A">Alpha</qti-inline-choice>
+          <qti-inline-choice identifier="B">Beta</qti-inline-choice>
+        </qti-inline-choice-interaction>
+      `);
+      const { aggregator, registeredFields } = createMockAggregator();
+
+      const fragment = transformInteraction(doc, itemState, aggregator);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      expect(registeredFields).toEqual([
+        { ordinal: 1, message: 'Please choose an answer' },
+      ]);
+
+      const indicator = container.querySelector('.cutie-required-indicator');
+      expect(indicator).not.toBeNull();
+      expect(indicator!.getAttribute('title')).toBe('Please choose an answer');
+      // aria-describedby still points at the local indicator, not the
+      // aggregator's row — avoids double-narration by screen readers.
+      const select = container.querySelector('select')!;
+      expect(select.getAttribute('aria-describedby')).toBe('constraint-R1');
+    });
+
+    it('calls setError on both the indicator and the aggregated field on validate and on change', () => {
+      const doc = createQtiDocument(`
+        <qti-inline-choice-interaction response-identifier="R1" required="true">
+          <qti-inline-choice identifier="A">Alpha</qti-inline-choice>
+          <qti-inline-choice identifier="B">Beta</qti-inline-choice>
+        </qti-inline-choice-interaction>
+      `);
+      const { aggregator, createdFields } = createMockAggregator();
+
+      const fragment = transformInteraction(doc, itemState, aggregator);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      itemState.collectAll();
+      const indicator = container.querySelector('.cutie-required-indicator')!;
+      expect(indicator.classList.contains('cutie-constraint-error')).toBe(true);
+      expect(createdFields[0]!.setError).toHaveBeenCalledWith(true);
+
+      const select = container.querySelector('select')!;
+      select.value = 'A';
+      select.dispatchEvent(new Event('change'));
+
+      expect(indicator.classList.contains('cutie-constraint-error')).toBe(false);
+      expect(createdFields[0]!.setError).toHaveBeenCalledWith(false);
     });
   });
 });

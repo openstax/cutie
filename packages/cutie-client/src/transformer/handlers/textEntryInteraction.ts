@@ -4,7 +4,7 @@ import {
   createInlineRequiredIndicator,
 } from '../../errors/validationDisplay';
 import { registry } from '../registry';
-import type { ElementHandler, TransformContext } from '../types';
+import type { ElementHandler, ParagraphValidationField, TransformContext } from '../types';
 import { parseInputWidth } from '../vocabUtils';
 import { getDefaultValue } from './responseUtils';
 
@@ -47,6 +47,11 @@ class TextEntryInteractionHandler implements ElementHandler {
       );
       return fragment;
     }
+
+    // Reserve this interaction's ordinal within its enclosing paragraph
+    // (if any), regardless of whether it turns out to be constrained — see
+    // ParagraphValidationAggregator.nextOrdinal() for why.
+    const ordinal = context.paragraphValidation?.nextOrdinal();
 
     // Find the response declaration to get base-type
     const responseDeclaration = element.ownerDocument?.querySelector(
@@ -104,14 +109,19 @@ class TextEntryInteractionHandler implements ElementHandler {
 
     // Add inline indicator if pattern-mask is present
     let indicator: ConstraintMessage | undefined;
+    let aggregatedField: ParagraphValidationField | undefined;
     if (hasConstraint) {
+      const message = patternMessage ?? 'Required format';
       const constraintId = `constraint-${responseIdentifier}`;
-      indicator = createInlineRequiredIndicator(
-        constraintId,
-        patternMessage ?? 'Required format',
-        context.styleManager,
-      );
+      indicator = createInlineRequiredIndicator(constraintId, message, context.styleManager);
       input.setAttribute('aria-describedby', constraintId);
+
+      // Additionally register with the enclosing paragraph's validation
+      // summary, if any — this is additive, not a replacement for the
+      // indicator above (see ParagraphValidationAggregator doc comment).
+      if (context.paragraphValidation && ordinal !== undefined) {
+        aggregatedField = context.paragraphValidation.registerField(ordinal, message);
+      }
     }
 
     // Register response accessor with itemState if available
@@ -125,11 +135,13 @@ class TextEntryInteractionHandler implements ElementHandler {
           if (!isValid) {
             input.setAttribute('aria-invalid', 'true');
             indicator?.setError(true);
+            aggregatedField?.setError(true);
             return { value: value === '' ? null : value, valid: false };
           }
 
           input.removeAttribute('aria-invalid');
           indicator?.setError(false);
+          aggregatedField?.setError(false);
         }
 
         return { value: value === '' ? null : value, valid: true };

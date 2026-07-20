@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ItemStateImpl } from '../../state/itemState';
+import { createTransformContext, transformNode } from '../elementTransformer';
 import { registry } from '../registry';
 import type { StyleManager, TransformContext } from '../types';
 import { annotateInlineInteractions } from './inlineInteractionAnnotator';
@@ -679,5 +681,73 @@ describe('Integration: htmlPassthrough pipeline', () => {
       'cutie-sr-only',
       expect.any(String)
     );
+  });
+});
+
+describe('Integration: paragraph validation aggregator', () => {
+  beforeEach(() => {
+    resetIds();
+  });
+
+  function transformParagraph(html: string): HTMLDivElement {
+    const source = document.createElement('div');
+    source.innerHTML = html;
+    const p = source.querySelector('p')!;
+
+    const context = createTransformContext({ itemState: new ItemStateImpl() });
+    const result = transformNode(p, context);
+
+    const output = document.createElement('div');
+    output.appendChild(result);
+    return output;
+  }
+
+  it('prepends a validation summary above the paragraph listing all constrained blanks', () => {
+    const output = transformParagraph(`
+      <p>Pick
+        <qti-inline-choice-interaction response-identifier="R1" required="true">
+          <qti-inline-choice identifier="A">Alpha</qti-inline-choice>
+        </qti-inline-choice-interaction>
+        then enter
+        <qti-text-entry-interaction response-identifier="R2" pattern-mask="^\\d+$" data-patternmask-message="Numbers only"></qti-text-entry-interaction>.
+      </p>
+    `);
+
+    const summary = output.querySelector('.cutie-paragraph-validation');
+    expect(summary).not.toBeNull();
+
+    const rows = Array.from(output.querySelectorAll('.cutie-paragraph-validation-item'));
+    expect(rows.map((r) => r.textContent)).toEqual([
+      'Blank 1: Selection required',
+      'Blank 2: Numbers only',
+    ]);
+
+    // Summary is a preceding sibling of the <p>, not nested inside it.
+    const p = output.querySelector('p')!;
+    expect(summary!.nextElementSibling).toBe(p);
+
+    // The aggregator's "Blank N" ordinals agree with the positional
+    // "blank N of M" labels inlineInteractionAnnotator.ts assigns
+    // independently in the same document-order walk.
+    const positionalTexts = Array.from(output.querySelectorAll('.cutie-sr-only')).map(
+      (s) => s.textContent
+    );
+    expect(positionalTexts).toContain('blank 1 of 2');
+    expect(positionalTexts).toContain('blank 2 of 2');
+
+    // The per-field asterisk indicators are still present alongside the summary.
+    expect(output.querySelectorAll('.cutie-required-indicator').length).toBe(2);
+  });
+
+  it('does not render a summary when the paragraph has no constrained inline interactions', () => {
+    const output = transformParagraph(`
+      <p>Pick
+        <qti-inline-choice-interaction response-identifier="R1">
+          <qti-inline-choice identifier="A">Alpha</qti-inline-choice>
+        </qti-inline-choice-interaction>.
+      </p>
+    `);
+
+    expect(output.querySelector('.cutie-paragraph-validation')).toBeNull();
   });
 });

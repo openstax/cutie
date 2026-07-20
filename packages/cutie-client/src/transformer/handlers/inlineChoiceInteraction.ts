@@ -5,7 +5,7 @@ import {
   createInlineRequiredIndicator,
 } from '../../errors/validationDisplay';
 import { registry } from '../registry';
-import type { ElementHandler, TransformContext } from '../types';
+import type { ElementHandler, ParagraphValidationField, TransformContext } from '../types';
 import { parseInputWidth } from '../vocabUtils';
 import { getDefaultValue } from './responseUtils';
 
@@ -56,6 +56,11 @@ class InlineChoiceInteractionHandler implements ElementHandler {
       );
       return fragment;
     }
+
+    // Reserve this interaction's ordinal within its enclosing paragraph
+    // (if any), regardless of whether it turns out to be constrained — see
+    // ParagraphValidationAggregator.nextOrdinal() for why.
+    const ordinal = context.paragraphValidation?.nextOrdinal();
 
     // Create select element
     const select = document.createElement('select');
@@ -110,17 +115,22 @@ class InlineChoiceInteractionHandler implements ElementHandler {
 
     // Add inline indicator if constrained
     let indicator: ConstraintMessage | undefined;
+    let aggregatedField: ParagraphValidationField | undefined;
     if (isConstrained) {
       select.setAttribute('aria-required', 'true');
 
       const customMessage = element.getAttribute('data-min-selections-message');
+      const message = customMessage ?? 'Selection required';
       const constraintId = `constraint-${responseIdentifier}`;
-      indicator = createInlineRequiredIndicator(
-        constraintId,
-        customMessage ?? 'Selection required',
-        context.styleManager,
-      );
+      indicator = createInlineRequiredIndicator(constraintId, message, context.styleManager);
       select.setAttribute('aria-describedby', constraintId);
+
+      // Additionally register with the enclosing paragraph's validation
+      // summary, if any — this is additive, not a replacement for the
+      // indicator above (see ParagraphValidationAggregator doc comment).
+      if (context.paragraphValidation && ordinal !== undefined) {
+        aggregatedField = context.paragraphValidation.registerField(ordinal, message);
+      }
     }
 
     // Register response accessor with itemState if available
@@ -132,11 +142,13 @@ class InlineChoiceInteractionHandler implements ElementHandler {
         if (!isValid) {
           select.setAttribute('aria-invalid', 'true');
           indicator?.setError(true);
+          aggregatedField?.setError(true);
           return { value: null, valid: false };
         }
 
         select.removeAttribute('aria-invalid');
         indicator?.setError(false);
+        aggregatedField?.setError(false);
         return { value: value === '' ? null : value, valid: true };
       };
 
@@ -147,6 +159,7 @@ class InlineChoiceInteractionHandler implements ElementHandler {
         if (!isConstrained || select.value !== '') {
           select.removeAttribute('aria-invalid');
           indicator?.setError(false);
+          aggregatedField?.setError(false);
         }
       });
 
