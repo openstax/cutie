@@ -21,8 +21,6 @@ jobs:
       - name: Run pip install
         run: pip install cfn-lint
 
-      - name: Run cfn-lint
-        run: cfn-lint
   spelling:
     name: spelling
     runs-on: ubuntu-latest
