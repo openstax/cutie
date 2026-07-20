@@ -77,5 +77,6 @@ const FEEDBACK_INLINE_STYLES = `
   .cutie-feedback-inline .cutie-feedback-icon__svg {
     width: 1.25em;
     height: 1.25em;
+    transform: translateY(-0.06em);
   }
 `;

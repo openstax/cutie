@@ -252,6 +252,15 @@ const EXTENDED_TEXT_INTERACTION_STYLES = `
   border-color: var(--cutie-primary);
 }
 
+.cutie-extended-text-interaction textarea[aria-invalid="true"] {
+  border-color: var(--cutie-feedback-incorrect);
+}
+
+.cutie-extended-text-interaction textarea[aria-invalid="true"]:focus {
+  outline-color: var(--cutie-feedback-incorrect);
+  border-color: var(--cutie-feedback-incorrect);
+}
+
 .cutie-extended-text-interaction textarea:disabled {
   background-color: var(--cutie-bg-alt);
   cursor: not-allowed;

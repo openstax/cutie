@@ -184,11 +184,12 @@ export const GAP_MATCH_INTERACTION_STYLES = `
     opacity: 0.6;
     cursor: not-allowed;
     background-color: var(--cutie-bg-alt);
+    border-color: var(--cutie-border);
   }
 
   .cutie-gap-text[disabled]:hover {
     background-color: var(--cutie-bg-alt);
-    border-color: var(--cutie-primary);
+    border-color: var(--cutie-border);
   }
 
   .cutie-gap-text[disabled]:focus {

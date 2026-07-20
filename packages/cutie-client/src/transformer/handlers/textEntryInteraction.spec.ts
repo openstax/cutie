@@ -558,5 +558,48 @@ describe('textEntryInteraction', () => {
       const indicator = container.querySelector('.cutie-required-indicator')!;
       expect(indicator.classList.contains('cutie-constraint-error')).toBe(true);
     });
+
+    it('clears error state on input once the value becomes valid', () => {
+      const doc = createQtiDocument(`
+        <qti-text-entry-interaction response-identifier="R1" pattern-mask="^\\d+$">
+        </qti-text-entry-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const input = container.querySelector('input')!;
+      const indicator = container.querySelector('.cutie-required-indicator')!;
+
+      // Surface the error via a failed submit
+      input.value = 'abc';
+      itemState.collectAll();
+      expect(input.getAttribute('aria-invalid')).toBe('true');
+
+      // Typing a valid value clears the error without another submit
+      input.value = '42';
+      input.dispatchEvent(new Event('input'));
+      expect(input.hasAttribute('aria-invalid')).toBe(false);
+      expect(indicator.classList.contains('cutie-constraint-error')).toBe(false);
+    });
+
+    it('does not surface an error on input before the first submit', () => {
+      const doc = createQtiDocument(`
+        <qti-text-entry-interaction response-identifier="R1" pattern-mask="^\\d+$">
+        </qti-text-entry-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const input = container.querySelector('input')!;
+
+      // Invalid value, but the candidate has not tried to submit yet
+      input.value = 'abc';
+      input.dispatchEvent(new Event('input'));
+      expect(input.hasAttribute('aria-invalid')).toBe(false);
+    });
   });
 });
