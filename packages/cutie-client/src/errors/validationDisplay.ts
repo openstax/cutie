@@ -1,4 +1,5 @@
 import type { StyleManager } from '../transformer/types';
+import { createForcedTextSetter, LIVE_REGION_STYLES as SR_ONLY_STYLES } from '../utils/liveRegion';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -104,16 +105,24 @@ export function createConstraintMessage(
   textSpan.textContent = text;
   container.appendChild(textSpan);
 
+  let currentText = text;
+  const forceSetText = createForcedTextSetter(textSpan);
+
   const setError = (isError: boolean) => {
     if (isError) {
       container.classList.add(CONSTRAINT_ERROR_CLASS);
+      // Re-assert the current text on every error, even if unchanged, so screen
+      // readers announce it — a same-value textContent assignment produces no
+      // detectable mutation for this live region to react to.
+      forceSetText(currentText);
     } else {
       container.classList.remove(CONSTRAINT_ERROR_CLASS);
     }
   };
 
   const setText = (newText: string) => {
-    textSpan.textContent = newText;
+    currentText = newText;
+    forceSetText(newText);
   };
 
   return { element: container, setError, setText };
@@ -139,17 +148,36 @@ export function createInlineRequiredIndicator(
   const span = document.createElement('span');
   span.className = 'cutie-required-indicator';
   span.id = id;
-  span.textContent = '*';
-  // Live region so the label is announced when it changes, even if focus
-  // isn't on the associated input.
-  span.setAttribute('aria-live', 'polite');
-  span.setAttribute('aria-atomic', 'true');
-  span.setAttribute('aria-label', title);
   span.title = title;
+  // aria-label (rather than the visible glyph text) drives this element's accessible
+  // name/description, so it stays the source of truth for aria-describedby linking
+  // regardless of what the nested announcer node below is doing.
+  span.setAttribute('aria-label', title);
+
+  const glyph = document.createElement('span');
+  glyph.className = 'cutie-required-indicator-glyph';
+  glyph.setAttribute('aria-hidden', 'true');
+  glyph.textContent = '*';
+  span.appendChild(glyph);
+
+  // aria-label/title changes alone are never picked up by a live region — the
+  // default aria-relevant ("additions text") only covers node additions and
+  // character-data changes, not attribute mutations. This hidden text node
+  // carries the announced message so screen readers have real text to react to.
+  const announcer = document.createElement('span');
+  announcer.style.cssText = SR_ONLY_STYLES;
+  announcer.setAttribute('aria-live', 'polite');
+  announcer.setAttribute('aria-atomic', 'true');
+  announcer.textContent = title;
+  span.appendChild(announcer);
+
+  let currentText = title;
+  const forceSetText = createForcedTextSetter(announcer);
 
   const setError = (isError: boolean) => {
     if (isError) {
       span.classList.add(CONSTRAINT_ERROR_CLASS);
+      forceSetText(currentText);
     } else {
       span.classList.remove(CONSTRAINT_ERROR_CLASS);
     }
@@ -158,6 +186,8 @@ export function createInlineRequiredIndicator(
   const setText = (newText: string) => {
     span.title = newText;
     span.setAttribute('aria-label', newText);
+    currentText = newText;
+    forceSetText(newText);
   };
 
   return { element: span, setError, setText };

@@ -387,7 +387,7 @@ describe('textEntryInteraction', () => {
 
       const indicator = container.querySelector('.cutie-required-indicator');
       expect(indicator).not.toBeNull();
-      expect(indicator!.textContent).toBe('*');
+      expect(indicator!.querySelector('.cutie-required-indicator-glyph')!.textContent).toBe('*');
     });
 
     it('uses custom data-patternmask-message as indicator title', () => {
