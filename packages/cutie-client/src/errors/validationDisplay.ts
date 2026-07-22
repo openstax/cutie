@@ -82,11 +82,9 @@ export function createConstraintMessage(
   const container = document.createElement('div');
   container.className = 'cutie-constraint-text';
   container.id = id;
-  // Live region so this text (already linked via aria-describedby) is
-  // announced when it changes, even if focus isn't on the described input —
-  // e.g. validation run from a submit action elsewhere on the page.
-  container.setAttribute('aria-live', 'polite');
-  container.setAttribute('aria-atomic', 'true');
+  // Not a live region — this text is read on focus via aria-describedby.
+  // Announcing changes is handled explicitly by callers via announce(),
+  // since aria-live doesn't reliably re-announce identical repeated text.
 
   // Warning icon — hidden by default, shown via CSS in error state
   const svg = document.createElementNS(SVG_NS, 'svg');
@@ -140,10 +138,8 @@ export function createInlineRequiredIndicator(
   span.className = 'cutie-required-indicator';
   span.id = id;
   span.textContent = '*';
-  // Live region so the label is announced when it changes, even if focus
-  // isn't on the associated input.
-  span.setAttribute('aria-live', 'polite');
-  span.setAttribute('aria-atomic', 'true');
+  // Not a live region — the label is read on focus via aria-describedby.
+  // Announcing changes is handled explicitly by callers via announce().
   span.setAttribute('aria-label', title);
   span.title = title;
 

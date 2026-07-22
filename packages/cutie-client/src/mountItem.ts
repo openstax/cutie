@@ -5,7 +5,7 @@ import { registerBaseStyles } from './styles';
 import { createTransformContext, transformChildren, transformNode } from './transformer/elementTransformer';
 import { DefaultStyleManager } from './transformer/styleManager';
 import type { ResponseData, TransformContext } from './transformer/types';
-import { announce } from './utils/liveRegion';
+import { announce, initLiveRegions } from './utils/liveRegion';
 
 /**
  * Theming options for a mounted QTI item.
@@ -157,6 +157,7 @@ export function mountItem(
       state,
     });
     currentContext = context;
+    initLiveRegions(context);
 
     const fragment = transformChildren(parsed.itemBody, context);
 

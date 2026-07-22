@@ -3,6 +3,7 @@ import {
   type ConstraintMessage,
   createInlineRequiredIndicator,
 } from '../../errors/validationDisplay';
+import { announce } from '../../utils/liveRegion';
 import { registry } from '../registry';
 import type { ElementHandler, TransformContext } from '../types';
 import { parseInputWidth } from '../vocabUtils';
@@ -125,6 +126,7 @@ class TextEntryInteractionHandler implements ElementHandler {
           if (!isValid) {
             input.setAttribute('aria-invalid', 'true');
             indicator?.setError(true);
+            announce(context, patternMessage ?? 'Required format', 'assertive');
             return { value: value === '' ? null : value, valid: false };
           }
 

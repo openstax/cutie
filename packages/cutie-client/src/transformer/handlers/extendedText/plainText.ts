@@ -11,6 +11,7 @@ import {
   parseCounterDirection,
   parseExpectedLength,
   processPrompt,
+  showConstraintError,
   wireConstraintDescribedBy,
 } from './utils';
 
@@ -151,40 +152,28 @@ class ExtendedTextInteractionHandler implements ElementHandler {
         // Min-strings check: empty input when required
         if (constraints.minStrings > 0 && value.length === 0) {
           textarea.setAttribute('aria-invalid', 'true');
-          if (constraintResult?.minStringsText) {
-            constraintResult.constraint.setText(constraintResult.minStringsText);
-          }
-          constraintResult?.constraint.setError(true);
+          showConstraintError(constraintResult, constraintResult?.minStringsText ?? null, context);
           return false;
         }
 
         // Min-characters check: too short (includes empty — implies required)
         if (minCharacters !== null && value.length < minCharacters) {
           textarea.setAttribute('aria-invalid', 'true');
-          if (constraintResult?.minCharactersText) {
-            constraintResult.constraint.setText(constraintResult.minCharactersText);
-          }
-          constraintResult?.constraint.setError(true);
+          showConstraintError(constraintResult, constraintResult?.minCharactersText ?? null, context);
           return false;
         }
 
         // Pattern-mask check: non-empty but wrong format
         if (constraints.patternMask && !new RegExp(constraints.patternMask).test(textarea.value)) {
           textarea.setAttribute('aria-invalid', 'true');
-          if (constraintResult?.patternText) {
-            constraintResult.constraint.setText(constraintResult.patternText);
-          }
-          constraintResult?.constraint.setError(true);
+          showConstraintError(constraintResult, constraintResult?.patternText ?? null, context);
           return false;
         }
 
         // Max-characters check: hard character limit exceeded
         if (maxCharacters !== null && value.length > maxCharacters) {
           textarea.setAttribute('aria-invalid', 'true');
-          if (constraintResult?.maxCharactersText) {
-            constraintResult.constraint.setText(constraintResult.maxCharactersText);
-          }
-          constraintResult?.constraint.setError(true);
+          showConstraintError(constraintResult, constraintResult?.maxCharactersText ?? null, context);
           return false;
         }
 

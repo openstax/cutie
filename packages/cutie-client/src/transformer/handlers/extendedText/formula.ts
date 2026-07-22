@@ -8,6 +8,7 @@ import {
   createInteractionContainer,
   parseConstraints,
   processPrompt,
+  showConstraintError,
   wireConstraintDescribedBy,
 } from './utils';
 
@@ -117,7 +118,7 @@ class FormulaInteractionHandler implements ElementHandler {
 
         if (!isValid) {
           activeInputElement?.setAttribute('aria-invalid', 'true');
-          constraintResult?.constraint.setError(true);
+          showConstraintError(constraintResult, constraintResult?.initialText ?? null, context);
           return { value: trimmed === '' ? null : trimmed, valid: false };
         }
 
