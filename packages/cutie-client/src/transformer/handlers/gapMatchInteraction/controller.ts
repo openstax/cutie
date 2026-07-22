@@ -78,6 +78,36 @@ export class GapMatchController {
   }
 
   /**
+   * The ordered choices that share a bank with choiceId — the roving group for
+   * arrow-key navigation. Each per-column bank is its own listbox, so arrow
+   * keys stay within one bank while Tab moves between banks.
+   */
+  private bankChoices(choiceId: string): Map<string, HTMLElement> {
+    const bank = this.bankFor(choiceId);
+    if (!bank) return this.choiceElements;
+    const scoped = new Map<string, HTMLElement>();
+    for (const [id, element] of this.choiceElements) {
+      if (bank.contains(element)) scoped.set(id, element);
+    }
+    return scoped;
+  }
+
+  /**
+   * Seed roving tabindex so the first choice in each bank is tabbable
+   * (tabindex="0") and the rest are not. Tab then moves between the banks while
+   * arrow keys move within a bank.
+   */
+  seedChoiceRoving(): void {
+    const seenBanks = new Set<HTMLElement | null>();
+    for (const element of this.choiceElements.values()) {
+      const bank = this.choiceBanks.find((b) => b.contains(element)) ?? null;
+      const isFirstInBank = !seenBanks.has(bank);
+      seenBanks.add(bank);
+      element.setAttribute('tabindex', isFirstInBank ? '0' : '-1');
+    }
+  }
+
+  /**
    * Wire up each choice bank to accept drops (return to word bank)
    */
   private wireChoiceBankEvents(): void {
@@ -190,10 +220,10 @@ export class GapMatchController {
         this.clearSelection();
       } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
         e.preventDefault();
-        focusNext(this.choiceElements, choiceId);
+        focusNext(this.bankChoices(choiceId), choiceId);
       } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
         e.preventDefault();
-        focusPrev(this.choiceElements, choiceId);
+        focusPrev(this.bankChoices(choiceId), choiceId);
       }
     });
 
@@ -620,13 +650,17 @@ export class GapMatchController {
     for (const [choiceId, element] of this.choiceElements) {
       if (enabled) {
         element.removeAttribute('disabled');
-        element.setAttribute('tabindex', element === this.choiceElements.values().next().value ? '0' : '-1');
         element.setAttribute('draggable', this.isChoiceExhausted(choiceId) ? 'false' : 'true');
       } else {
         element.setAttribute('disabled', '');
         element.setAttribute('tabindex', '-1');
         element.setAttribute('draggable', 'false');
       }
+    }
+
+    // Re-seed roving tabindex per bank (one tabbable choice per listbox)
+    if (enabled) {
+      this.seedChoiceRoving();
     }
 
     // Update gap elements

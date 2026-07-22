@@ -454,6 +454,37 @@ describe('gapMatchInteraction', () => {
       expect(tray.querySelectorAll('.cutie-gap-text').length).toBe(2);
     });
 
+    it('seeds exactly one tabbable choice per bank so Tab moves between banks', () => {
+      const container = transformToContainer(LAYOUT_COLUMNS_QTI);
+
+      const banks = container.querySelectorAll('.cutie-gap-match-choices--column');
+      expect(banks.length).toBe(2);
+      banks.forEach((bank) => {
+        expect(bank.querySelectorAll('.cutie-gap-text[tabindex="0"]').length).toBe(1);
+      });
+    });
+
+    it('keeps arrow-key navigation within a bank, wrapping instead of crossing', () => {
+      const container = transformToContainer(LAYOUT_COLUMNS_QTI);
+      document.body.appendChild(container);
+
+      try {
+        const act1 = container.querySelector<HTMLElement>('.cutie-gap-text[data-identifier="ACT1"]')!;
+        const act2 = container.querySelector<HTMLElement>('.cutie-gap-text[data-identifier="ACT2"]')!;
+
+        act1.focus();
+        act1.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+        expect(document.activeElement).toBe(act2);
+
+        // Arrowing off the last choice wraps within the bank — never into the
+        // parameters bank.
+        act2.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+        expect(document.activeElement).toBe(act1);
+      } finally {
+        container.remove();
+      }
+    });
+
     it('returns a picked-up choice when clicking the column bank background', () => {
       const container = transformToContainer(LAYOUT_COLUMNS_QTI);
       document.body.appendChild(container);

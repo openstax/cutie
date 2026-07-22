@@ -280,15 +280,16 @@ export class GapMatchInteractionHandler implements ElementHandler {
     const controller = new GapMatchController(responseIdentifier, choiceBanks, context, container, maxAssociations);
 
     // Register choices in DOM order so keyboard navigation follows the layout
-    let isFirst = true;
     for (const choice of orderedChoices) {
       const entry = choiceButtons.get(choice.identifier);
       if (!entry) continue;
 
-      entry.button.setAttribute('tabindex', isFirst ? '0' : '-1');
       controller.registerChoice(choice.identifier, entry.button, choice.matchMax, entry.content, choice.matchGroups);
-      isFirst = false;
     }
+
+    // Each bank is its own listbox: seed one tabbable choice per bank so Tab
+    // moves between banks and arrow keys move within a bank.
+    controller.seedChoiceRoving();
 
     // Find and register all gap elements in the transformed content
     const gapElements = contentContainer.querySelectorAll('.cutie-gap');
