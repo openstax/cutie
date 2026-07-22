@@ -17,9 +17,10 @@ const BASE_STYLES = `
     --cutie-feedback-correct: #22c55e;
     --cutie-feedback-incorrect: #d32f2f;
     --cutie-feedback-info: #4a90e2;
+    --cutie-line-height: 1.5;
     color: var(--cutie-text);
     background-color: var(--cutie-bg);
-    line-height: 1.5;
+    line-height: var(--cutie-line-height);
   }
 
   .cutie-item-container img {

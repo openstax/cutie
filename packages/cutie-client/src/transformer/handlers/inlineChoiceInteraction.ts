@@ -194,6 +194,15 @@ const INLINE_CHOICE_INTERACTION_STYLES = `
     border-color: var(--cutie-primary);
   }
 
+  .cutie-inline-choice-interaction[aria-invalid="true"] {
+    border-color: var(--cutie-feedback-incorrect);
+  }
+
+  .cutie-inline-choice-interaction[aria-invalid="true"]:focus {
+    outline-color: var(--cutie-feedback-incorrect);
+    border-color: var(--cutie-feedback-incorrect);
+  }
+
   .cutie-inline-choice-interaction:disabled {
     background-color: var(--cutie-bg-alt);
     cursor: not-allowed;

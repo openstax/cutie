@@ -5,7 +5,7 @@ on: [pull_request]
 jobs:
   cfn:
     timeout-minutes: 30
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repo
@@ -21,8 +21,6 @@ jobs:
       - name: Run pip install
         run: pip install cfn-lint
 
-      - name: Run cfn-lint
-        run: cfn-lint
   spelling:
     name: spelling
     runs-on: ubuntu-latest

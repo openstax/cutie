@@ -117,6 +117,20 @@ class TextEntryInteractionHandler implements ElementHandler {
 
     // Register response accessor with itemState if available
     if (context.itemState) {
+      // Check the pattern-mask constraint and decorate the input's error state.
+      const validate = (): boolean => {
+        if (!hasConstraint) return true;
+
+        const isValid = new RegExp(patternMask).test(input.value);
+        if (isValid) {
+          input.removeAttribute('aria-invalid');
+        } else {
+          input.setAttribute('aria-invalid', 'true');
+        }
+        indicator?.setError(!isValid);
+        return isValid;
+      };
+
       const responseAccessor = () => {
         const value = input.value.trim();
 
@@ -134,10 +148,19 @@ class TextEntryInteractionHandler implements ElementHandler {
           indicator?.setError(false);
         }
 
-        return { value: value === '' ? null : value, valid: true };
+        const valid = validate();
+
+        return { value: value === '' ? null : value, valid };
       };
 
       context.itemState.registerResponse(responseIdentifier, responseAccessor);
+
+      // Clear the error in real time once the field is already in an error state.
+      if (hasConstraint) {
+        input.addEventListener('input', () => {
+          if (input.hasAttribute('aria-invalid')) validate();
+        });
+      }
 
       // Observe interaction enabled state to enable/disable input
       const observer = (state: { interactionsEnabled: boolean }) => {
@@ -175,6 +198,15 @@ const TEXT_ENTRY_INTERACTION_STYLES = `
     outline: 2px solid var(--cutie-primary);
     outline-offset: 1px;
     border-color: var(--cutie-primary);
+  }
+
+  .cutie-text-entry-interaction[aria-invalid="true"] {
+    border-color: var(--cutie-feedback-incorrect);
+  }
+
+  .cutie-text-entry-interaction[aria-invalid="true"]:focus {
+    outline-color: var(--cutie-feedback-incorrect);
+    border-color: var(--cutie-feedback-incorrect);
   }
 
   .cutie-text-entry-interaction:disabled {

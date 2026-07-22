@@ -322,6 +322,16 @@ const RICH_TEXT_INTERACTION_STYLES = `
   border-color: var(--cutie-primary);
 }
 
+/* aria-invalid is set on the inner .ql-editor (quill.root) */
+.cutie-rich-text-wrapper:has([aria-invalid="true"]) {
+  border-color: var(--cutie-feedback-incorrect);
+}
+
+.cutie-rich-text-wrapper:has([aria-invalid="true"]):focus-within {
+  outline-color: var(--cutie-feedback-incorrect);
+  border-color: var(--cutie-feedback-incorrect);
+}
+
 .cutie-rich-text-interaction .ql-toolbar {
   border: none;
   border-bottom: 1px solid var(--cutie-border);
