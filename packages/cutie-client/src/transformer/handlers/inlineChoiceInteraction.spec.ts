@@ -180,7 +180,7 @@ describe('inlineChoiceInteraction', () => {
 
       const indicator = container.querySelector('.cutie-required-indicator');
       expect(indicator).not.toBeNull();
-      expect(indicator!.querySelector('.cutie-required-indicator-glyph')!.textContent).toBe('*');
+      expect(indicator!.textContent).toBe('*');
       expect(indicator!.getAttribute('title')).toBe('Selection required');
     });
 
