@@ -3,7 +3,7 @@ import { createConstraintMessage, createInlineRequiredIndicator } from './valida
 
 describe('createConstraintMessage', () => {
   beforeEach(() => {
-    vi.useFakeTimers({ toFake: ['requestAnimationFrame'] });
+    vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'setTimeout', 'clearTimeout'] });
   });
 
   afterEach(() => {
@@ -65,7 +65,7 @@ describe('createConstraintMessage', () => {
 
 describe('createInlineRequiredIndicator', () => {
   beforeEach(() => {
-    vi.useFakeTimers({ toFake: ['requestAnimationFrame'] });
+    vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'setTimeout', 'clearTimeout'] });
   });
 
   afterEach(() => {

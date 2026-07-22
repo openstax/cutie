@@ -4,7 +4,7 @@ import { announce, createForcedTextSetter } from './liveRegion';
 
 describe('createForcedTextSetter', () => {
   beforeEach(() => {
-    vi.useFakeTimers({ toFake: ['requestAnimationFrame'] });
+    vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'setTimeout', 'clearTimeout'] });
   });
 
   afterEach(() => {
@@ -64,7 +64,7 @@ describe('announce', () => {
   let ctx: TransformContext;
 
   beforeEach(() => {
-    vi.useFakeTimers({ toFake: ['requestAnimationFrame'] });
+    vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'setTimeout', 'clearTimeout'] });
     cleanupFns = [];
     ctx = {
       transformChildren: () => document.createDocumentFragment(),

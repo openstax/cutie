@@ -15,6 +15,13 @@ const regions: Record<Urgency, LiveRegionState> = {
   assertive: { element: null, setText: null, pendingMessages: [], flushScheduled: false, flushCtx: null },
 };
 
+// Browsers throttle how often accessibility-tree diffs are pushed to the OS
+// accessibility API, independently of paint/frame timing — often on the order of
+// ~100ms. Two mutations spaced only an animation frame apart (~16ms) can land inside
+// the same throttle window and collapse into a single "no net change" event before
+// screen readers ever see it. This delay is chosen to comfortably clear that window.
+const RESTORE_DELAY_MS = 150;
+
 /**
  * Wraps a text node's `textContent` updates so that setting the same text twice in a
  * row still produces a DOM mutation screen readers can react to. Screen readers
@@ -24,17 +31,17 @@ const regions: Record<Urgency, LiveRegionState> = {
  * The text is always applied synchronously, so callers (and tests) can read it back
  * immediately. Only when the incoming text is identical to what was set last time —
  * the case a plain assignment can't surface as a mutation — does this additionally
- * clear the node and restore the text across a couple of animation frames, forcing a
- * genuine empty -> non-empty transition for the live region to announce.
+ * clear the node on the next animation frame and restore the text after a short delay,
+ * forcing a genuine empty -> non-empty transition for the live region to announce.
  */
 export function createForcedTextSetter(node: HTMLElement): (text: string) => void {
   let lastText = node.textContent;
   let clearHandle: number | null = null;
-  let restoreHandle: number | null = null;
+  let restoreHandle: ReturnType<typeof setTimeout> | null = null;
 
   return (text: string) => {
     if (clearHandle !== null) cancelAnimationFrame(clearHandle);
-    if (restoreHandle !== null) cancelAnimationFrame(restoreHandle);
+    if (restoreHandle !== null) clearTimeout(restoreHandle);
     clearHandle = null;
     restoreHandle = null;
 
@@ -46,10 +53,10 @@ export function createForcedTextSetter(node: HTMLElement): (text: string) => voi
       clearHandle = requestAnimationFrame(() => {
         clearHandle = null;
         node.textContent = '';
-        restoreHandle = requestAnimationFrame(() => {
+        restoreHandle = setTimeout(() => {
           restoreHandle = null;
           node.textContent = text;
-        });
+        }, RESTORE_DELAY_MS);
       });
     }
   };
