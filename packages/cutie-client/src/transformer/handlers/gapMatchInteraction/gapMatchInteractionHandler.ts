@@ -7,7 +7,6 @@ import type { ElementHandler, TransformContext } from '../../types';
 import { parseChoicesContainerWidth } from '../../vocabUtils';
 import { getDefaultValue } from '../responseUtils';
 import { GapMatchController } from './controller';
-import { analyzeMatchGroups } from './matchGroupAnalysis';
 import { GAP_MATCH_INTERACTION_STYLES } from './styles';
 
 function buildGapMatchConstraintText(min: number, max: number): string | null {
@@ -152,11 +151,6 @@ export class GapMatchInteractionHandler implements ElementHandler {
       choiceButtons.set(choice.identifier, { button: choiceBtn, content });
     }
 
-    // Derived grouping: when the match-group data proves that every choice
-    // has exactly one target group the choices cluster by group, and when
-    // the content blocks also partition the gaps by group, each block
-    // becomes a column with its group's choices banked beneath it.
-    const analysis = analyzeMatchGroups(element);
     const choicesContainerWidth = parseChoicesContainerWidth(element);
     const choiceBanks: HTMLElement[] = [];
     const orderedChoices: ChoiceData[] = [];
@@ -197,65 +191,63 @@ export class GapMatchInteractionHandler implements ElementHandler {
       );
     });
 
-    const blockGroups = analysis.blockGroups;
-    if (blockGroups) {
-      // The blocks partition the gaps by group: render each block as a
-      // column with its group's choices banked beneath its gaps.
-      contentContainer.classList.add('cutie-gap-match-content--grouped');
-      contentContainer.style.setProperty('--cutie-match-group-count', String(blockGroups.length));
-
-      for (let i = 0; i < contentBlocks.length; i++) {
-        const child = contentBlocks[i];
-        const group = blockGroups[i];
-
-        const block = document.createElement('div');
-        block.className = 'cutie-match-group-block';
-        block.setAttribute('data-match-group', group);
-        if (context.transformChildren) {
-          block.appendChild(context.transformChildren(child));
-        }
-
-        const groupChoices = choicesForGroup(group);
-        if (groupChoices.length > 0) {
-          const bank = createBank(`${humanizeGroupId(group)} choices`);
-          bank.classList.add('cutie-gap-match-choices--bank');
-          bank.setAttribute('data-match-group', group);
-          for (const choice of groupChoices) {
-            placeChoice(bank, choice);
-          }
-          block.appendChild(bank);
-        }
-
-        contentContainer.appendChild(block);
+    // Transform the content blocks (which contain the gaps). transformNode
+    // preserves each block element itself — crucial so an authored
+    // qti-layout-row / qti-layout-col-* grid survives into the output.
+    for (const child of contentBlocks) {
+      if (context.transformNode) {
+        contentContainer.appendChild(context.transformNode(child));
+      } else if (context.transformChildren) {
+        contentContainer.appendChild(context.transformChildren(child));
       }
-    } else {
-      // Shared tray, sectioned by group when the choices cluster.
-      const tray = createBank('Available choices');
-      if (analysis.trayGroups) {
-        tray.classList.add('cutie-gap-match-choices--grouped');
-        for (const group of analysis.trayGroups) {
-          const section = document.createElement('div');
-          section.className = 'cutie-gap-match-choice-group';
-          section.setAttribute('role', 'group');
-          section.setAttribute('aria-label', humanizeGroupId(group));
-          section.setAttribute('data-match-group', group);
-          for (const choice of choicesForGroup(group)) {
-            placeChoice(section, choice);
+    }
+
+    // Author-declared columns: when the content is laid out with the QTI
+    // layout grid (qti-layout-row / qti-layout-col-*), each column whose gaps
+    // all share a single match-group gets that group's choices banked inside
+    // it. The layout is declared by the author via standard vocabulary — the
+    // handler renders what was declared rather than inferring it from data.
+    const claimedGroups = new Set<string>();
+    for (const column of contentContainer.querySelectorAll('[class*="qti-layout-col-"]')) {
+      const groups = new Set<string>();
+      for (const gap of column.querySelectorAll('.cutie-gap')) {
+        const groupAttr = gap.getAttribute('data-match-group');
+        if (groupAttr) {
+          for (const group of groupAttr.split(/\s+/).filter(Boolean)) {
+            groups.add(group);
           }
-          tray.appendChild(section);
         }
-      } else {
-        for (const choice of choices) {
-          placeChoice(tray, choice);
-        }
+      }
+      if (groups.size !== 1) continue;
+
+      const [group] = groups;
+      if (claimedGroups.has(group)) continue;
+
+      const groupChoices = choicesForGroup(group);
+      if (groupChoices.length === 0) continue;
+
+      const bank = createBank(`${humanizeGroupId(group)} choices`);
+      bank.classList.add('cutie-gap-match-choices--column');
+      bank.setAttribute('data-match-group', group);
+      column.classList.add('cutie-gap-match-column');
+      for (const choice of groupChoices) {
+        placeChoice(bank, choice);
+      }
+      column.appendChild(bank);
+      claimedGroups.add(group);
+    }
+
+    // Any choices not placed into a column — no columns at all, an ungrouped
+    // pool, or a group no column claimed — go into a single shared tray whose
+    // position follows the interaction's qti-choices-* class.
+    const leftoverChoices = choices.filter((choice) => !orderedChoices.includes(choice));
+    if (leftoverChoices.length > 0) {
+      container.classList.add('cutie-gap-match-interaction--shared-tray');
+      const tray = createBank('Available choices');
+      for (const choice of leftoverChoices) {
+        placeChoice(tray, choice);
       }
       container.appendChild(tray);
-
-      for (const child of contentBlocks) {
-        if (context.transformChildren) {
-          contentContainer.appendChild(context.transformChildren(child));
-        }
-      }
     }
 
     container.appendChild(contentContainer);

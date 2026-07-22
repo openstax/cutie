@@ -27,17 +27,29 @@ function transformInteraction(
 
   const context: TransformContext = {
     itemState,
-    transformChildren: (el: Element) => {
+    // Mirror production: transformNode dispatches to a handler or preserves the
+    // element via html-passthrough; transformChildren transforms each child via
+    // transformNode. This keeps authored wrappers (e.g. qti-layout-row) intact.
+    transformNode: (el: Element): DocumentFragment => {
+      const frag = document.createDocumentFragment();
+      const handler = registry.getAll().find((r) => r.handler.canHandle(el));
+      if (handler) {
+        frag.appendChild(handler.handler.transform(el, context));
+      } else {
+        const clone = document.createElement(el.tagName);
+        for (const attr of Array.from(el.attributes)) {
+          clone.setAttribute(attr.name, attr.value);
+        }
+        clone.appendChild(context.transformChildren!(el));
+        frag.appendChild(clone);
+      }
+      return frag;
+    },
+    transformChildren: (el: Element): DocumentFragment => {
       const frag = document.createDocumentFragment();
       for (const child of Array.from(el.childNodes)) {
         if (child.nodeType === Node.ELEMENT_NODE) {
-          const childEl = child as Element;
-          const handler = registry.getAll().find((r) => r.handler.canHandle(childEl));
-          if (handler) {
-            frag.appendChild(handler.handler.transform(childEl, context));
-          } else {
-            frag.appendChild(child.cloneNode(true));
-          }
+          frag.appendChild(context.transformNode!(child as Element));
         } else {
           frag.appendChild(child.cloneNode(true));
         }
@@ -290,7 +302,7 @@ describe('gapMatchInteraction', () => {
       expect(interaction.classList.contains('qti-choices-bottom')).toBe(true);
     });
 
-    it('adds no vocabulary classes to a plain interaction', () => {
+    it('adds no QTI vocabulary classes to a plain interaction', () => {
       const doc = createQtiDocument(BASIC_GAP_MATCH_QTI);
 
       const fragment = transformInteraction(doc, itemState);
@@ -298,7 +310,8 @@ describe('gapMatchInteraction', () => {
       container.appendChild(fragment);
 
       const interaction = container.querySelector('.cutie-gap-match-interaction')!;
-      expect(interaction.className).toBe('cutie-gap-match-interaction');
+      const hasQtiVocab = Array.from(interaction.classList).some((c) => c.startsWith('qti-'));
+      expect(hasQtiVocab).toBe(false);
     });
 
     it('applies data-choices-container-width to the word bank', () => {
@@ -334,27 +347,18 @@ describe('gapMatchInteraction', () => {
     });
   });
 
-  describe('derived match-group grouping', () => {
-    // Every choice has exactly one group AND the blocks partition the gaps
-    // by group -> blocks render as columns with per-group choice banks.
-    const GROUPED_BLOCKS_QTI = `
+  describe('author-declared layout columns', () => {
+    // Content laid out with the QTI layout grid: each qti-layout-col holds one
+    // match-group's gaps, so each column banks that group's choices.
+    const LAYOUT_COLUMNS_QTI = `
       <qti-gap-match-interaction response-identifier="R1">
         <qti-gap-text identifier="ACT1" match-max="1" match-group="actions">Action 1</qti-gap-text>
         <qti-gap-text identifier="ACT2" match-max="1" match-group="actions">Action 2</qti-gap-text>
         <qti-gap-text identifier="PAR1" match-max="1" match-group="parameters">Parameter 1</qti-gap-text>
-        <p>Actions<qti-gap identifier="GA1" match-group="actions"></qti-gap></p>
-        <p>Parameters<qti-gap identifier="GP1" match-group="parameters"></qti-gap></p>
-      </qti-gap-match-interaction>
-    `;
-
-    // Every choice has exactly one group but the gaps share one block ->
-    // the shared tray clusters into sections; content flows normally.
-    const GROUPED_INLINE_QTI = `
-      <qti-gap-match-interaction response-identifier="R1">
-        <qti-gap-text identifier="ACT1" match-max="1" match-group="actions">Action 1</qti-gap-text>
-        <qti-gap-text identifier="ACT2" match-max="1" match-group="actions">Action 2</qti-gap-text>
-        <qti-gap-text identifier="PAR1" match-max="1" match-group="parameters">Parameter 1</qti-gap-text>
-        <p>Do <qti-gap identifier="GA1" match-group="actions"></qti-gap> then monitor <qti-gap identifier="GP1" match-group="parameters"></qti-gap></p>
+        <div class="qti-layout-row">
+          <div class="qti-layout-col-6"><p>Actions<qti-gap identifier="GA1" match-group="actions"></qti-gap></p></div>
+          <div class="qti-layout-col-6"><p>Parameters<qti-gap identifier="GP1" match-group="parameters"></qti-gap></p></div>
+        </div>
       </qti-gap-match-interaction>
     `;
 
@@ -366,121 +370,92 @@ describe('gapMatchInteraction', () => {
       return container;
     }
 
-    function expectPlainPresentation(container: HTMLElement): void {
-      const tray = container.querySelector('.cutie-gap-match-choices')!;
-      expect(tray.classList.contains('cutie-gap-match-choices--grouped')).toBe(false);
-      expect(container.querySelectorAll('.cutie-gap-match-choice-group').length).toBe(0);
-      expect(container.querySelectorAll('.cutie-match-group-block').length).toBe(0);
-    }
+    it('preserves the authored qti-layout-row wrapper around the columns', () => {
+      const container = transformToContainer(LAYOUT_COLUMNS_QTI);
 
-    it('renders content blocks as group columns with per-group banks', () => {
-      const container = transformToContainer(GROUPED_BLOCKS_QTI);
-
-      const content = container.querySelector('.cutie-gap-match-content')!;
-      expect(content.classList.contains('cutie-gap-match-content--grouped')).toBe(true);
-
-      const blocks = content.querySelectorAll('.cutie-match-group-block');
-      expect(blocks.length).toBe(2);
-      expect(blocks[0].getAttribute('data-match-group')).toBe('actions');
-      expect(blocks[1].getAttribute('data-match-group')).toBe('parameters');
-
-      // Each block keeps its own gap and banks its own group's choices.
-      expect(blocks[0].querySelectorAll('.cutie-gap').length).toBe(1);
-      const actionIds = Array.from(
-        blocks[0].querySelectorAll('.cutie-gap-match-choices--bank .cutie-gap-text')
-      ).map((btn) => btn.getAttribute('data-identifier'));
-      expect(actionIds).toEqual(['ACT1', 'ACT2']);
-      const parameterIds = Array.from(
-        blocks[1].querySelectorAll('.cutie-gap-match-choices--bank .cutie-gap-text')
-      ).map((btn) => btn.getAttribute('data-identifier'));
-      expect(parameterIds).toEqual(['PAR1']);
-
-      // No shared tray outside the columns.
-      const interaction = container.querySelector('.cutie-gap-match-interaction')!;
-      const topLevelTrays = Array.from(interaction.children).filter((child) =>
-        child.classList.contains('cutie-gap-match-choices')
-      );
-      expect(topLevelTrays.length).toBe(0);
+      const row = container.querySelector('.cutie-gap-match-content > .qti-layout-row');
+      expect(row).not.toBeNull();
+      expect(row!.querySelectorAll(':scope > .qti-layout-col-6').length).toBe(2);
     });
 
-    it('clusters the shared tray into group sections when gaps stay inline', () => {
-      const container = transformToContainer(GROUPED_INLINE_QTI);
+    it('injects a per-column bank into each layout column keyed by its gap group', () => {
+      const container = transformToContainer(LAYOUT_COLUMNS_QTI);
 
-      const tray = container.querySelector('.cutie-gap-match-choices')!;
-      expect(tray.classList.contains('cutie-gap-match-choices--grouped')).toBe(true);
+      const columns = container.querySelectorAll('.qti-layout-col-6');
+      expect(columns.length).toBe(2);
+      columns.forEach((col) => {
+        expect(col.classList.contains('cutie-gap-match-column')).toBe(true);
+      });
 
-      const sections = tray.querySelectorAll('.cutie-gap-match-choice-group');
-      expect(sections.length).toBe(2);
-      expect(sections[0].getAttribute('data-match-group')).toBe('actions');
-      expect(sections[0].getAttribute('role')).toBe('group');
-      expect(sections[0].querySelectorAll('.cutie-gap-text').length).toBe(2);
-      expect(sections[1].getAttribute('data-match-group')).toBe('parameters');
-      expect(sections[1].querySelectorAll('.cutie-gap-text').length).toBe(1);
+      const actionsBank = columns[0].querySelector('.cutie-gap-match-choices--column')!;
+      expect(actionsBank.getAttribute('data-match-group')).toBe('actions');
+      const actionIds = Array.from(actionsBank.querySelectorAll('.cutie-gap-text')).map((b) =>
+        b.getAttribute('data-identifier')
+      );
+      expect(actionIds).toEqual(['ACT1', 'ACT2']);
 
-      expect(container.querySelectorAll('.cutie-match-group-block').length).toBe(0);
+      const parametersBank = columns[1].querySelector('.cutie-gap-match-choices--column')!;
+      expect(parametersBank.getAttribute('data-match-group')).toBe('parameters');
+      const parameterIds = Array.from(parametersBank.querySelectorAll('.cutie-gap-text')).map((b) =>
+        b.getAttribute('data-identifier')
+      );
+      expect(parameterIds).toEqual(['PAR1']);
+    });
+
+    it('does not render a shared tray when every choice is banked into a column', () => {
+      const container = transformToContainer(LAYOUT_COLUMNS_QTI);
+
+      const interaction = container.querySelector('.cutie-gap-match-interaction')!;
+      expect(interaction.classList.contains('cutie-gap-match-interaction--shared-tray')).toBe(false);
+
+      const banks = container.querySelectorAll('.cutie-gap-match-choices');
+      expect(banks.length).toBe(2);
+      banks.forEach((bank) =>
+        expect(bank.classList.contains('cutie-gap-match-choices--column')).toBe(true)
+      );
     });
 
     it('preserves each gap match-group so drops stay group-restricted', () => {
-      const container = transformToContainer(GROUPED_BLOCKS_QTI);
+      const container = transformToContainer(LAYOUT_COLUMNS_QTI);
 
-      const gaps = container.querySelectorAll('.cutie-gap');
-      const groups = Array.from(gaps).map((g) => g.getAttribute('data-match-group'));
+      const groups = Array.from(container.querySelectorAll('.cutie-gap')).map((g) =>
+        g.getAttribute('data-match-group')
+      );
       expect(groups).toEqual(['actions', 'parameters']);
     });
 
-    it('falls back to the plain tray when no match groups are declared', () => {
-      expectPlainPresentation(transformToContainer(BASIC_GAP_MATCH_QTI));
+    it('renders a single shared tray with all choices when no layout grid is used', () => {
+      const container = transformToContainer(BASIC_GAP_MATCH_QTI);
+
+      const interaction = container.querySelector('.cutie-gap-match-interaction')!;
+      expect(interaction.classList.contains('cutie-gap-match-interaction--shared-tray')).toBe(true);
+
+      const banks = container.querySelectorAll('.cutie-gap-match-choices');
+      expect(banks.length).toBe(1);
+      expect(banks[0].querySelectorAll('.cutie-gap-text').length).toBe(2);
+      expect(banks[0].querySelector('.cutie-gap-match-choices--column')).toBeNull();
     });
 
-    it('falls back when a choice declares multiple match groups', () => {
-      expectPlainPresentation(transformToContainer(`
-        <qti-gap-match-interaction response-identifier="R1">
-          <qti-gap-text identifier="ACT1" match-max="1" match-group="actions parameters">Action 1</qti-gap-text>
-          <qti-gap-text identifier="PAR1" match-max="1" match-group="parameters">Parameter 1</qti-gap-text>
-          <p>Actions<qti-gap identifier="GA1" match-group="actions"></qti-gap></p>
-          <p>Parameters<qti-gap identifier="GP1" match-group="parameters"></qti-gap></p>
-        </qti-gap-match-interaction>
-      `));
-    });
-
-    it('falls back when only one distinct group is declared', () => {
-      expectPlainPresentation(transformToContainer(`
-        <qti-gap-match-interaction response-identifier="R1">
-          <qti-gap-text identifier="ACT1" match-max="1" match-group="actions">Action 1</qti-gap-text>
-          <qti-gap-text identifier="ACT2" match-max="1" match-group="actions">Action 2</qti-gap-text>
-          <p>Actions<qti-gap identifier="GA1" match-group="actions"></qti-gap></p>
-        </qti-gap-match-interaction>
-      `));
-    });
-
-    it('falls back when a choice group has no matching gap', () => {
-      expectPlainPresentation(transformToContainer(`
-        <qti-gap-match-interaction response-identifier="R1">
-          <qti-gap-text identifier="ACT1" match-max="1" match-group="actions">Action 1</qti-gap-text>
-          <qti-gap-text identifier="OTH1" match-max="1" match-group="other">Other 1</qti-gap-text>
-          <p>Actions<qti-gap identifier="GA1" match-group="actions"></qti-gap></p>
-        </qti-gap-match-interaction>
-      `));
-    });
-
-    it('keeps content in normal flow when a block mixes groups', () => {
+    it('banks a column only when its gaps share a single group, else uses a shared tray', () => {
       const container = transformToContainer(`
         <qti-gap-match-interaction response-identifier="R1">
           <qti-gap-text identifier="ACT1" match-max="1" match-group="actions">Action 1</qti-gap-text>
           <qti-gap-text identifier="PAR1" match-max="1" match-group="parameters">Parameter 1</qti-gap-text>
-          <p>Mixed<qti-gap identifier="GA1" match-group="actions"></qti-gap><qti-gap identifier="GP1" match-group="parameters"></qti-gap></p>
-          <p>Parameters<qti-gap identifier="GP2" match-group="parameters"></qti-gap></p>
+          <div class="qti-layout-row">
+            <div class="qti-layout-col-12"><p>Mixed<qti-gap identifier="GA1" match-group="actions"></qti-gap><qti-gap identifier="GP1" match-group="parameters"></qti-gap></p></div>
+          </div>
         </qti-gap-match-interaction>
       `);
 
-      // The tray still clusters, but no block columns are derived.
+      expect(container.querySelector('.cutie-gap-match-choices--column')).toBeNull();
+      const interaction = container.querySelector('.cutie-gap-match-interaction')!;
+      expect(interaction.classList.contains('cutie-gap-match-interaction--shared-tray')).toBe(true);
       const tray = container.querySelector('.cutie-gap-match-choices')!;
-      expect(tray.classList.contains('cutie-gap-match-choices--grouped')).toBe(true);
-      expect(container.querySelectorAll('.cutie-match-group-block').length).toBe(0);
+      expect(tray.querySelectorAll('.cutie-gap-text').length).toBe(2);
     });
 
-    it('returns a picked-up choice when clicking the bank background', () => {
-      const container = transformToContainer(GROUPED_INLINE_QTI);
+    it('returns a picked-up choice when clicking the column bank background', () => {
+      const container = transformToContainer(LAYOUT_COLUMNS_QTI);
       document.body.appendChild(container);
 
       try {
@@ -491,10 +466,10 @@ describe('gapMatchInteraction', () => {
         gap.click();
         expect(gap.classList.contains('cutie-gap--filled')).toBe(true);
 
-        // Pick the choice back up, then click the section background to return it.
+        // Pick the choice back up, then click the bank background to return it.
         gap.click();
-        const section = container.querySelector<HTMLElement>('.cutie-gap-match-choice-group')!;
-        section.click();
+        const bank = container.querySelector<HTMLElement>('.cutie-gap-match-choices--column')!;
+        bank.click();
         expect(gap.classList.contains('cutie-gap--filled')).toBe(false);
       } finally {
         container.remove();

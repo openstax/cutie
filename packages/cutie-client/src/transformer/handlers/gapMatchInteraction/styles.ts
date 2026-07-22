@@ -212,28 +212,30 @@ export const GAP_MATCH_INTERACTION_STYLES = `
   }
 
   /*
-   * QTI shared vocabulary: qti-choices-bottom|left|right reposition the word
-   * bank relative to the content (qti-choices-top matches the default order).
-   * Only the visual order changes — DOM order stays prompt, choices, content,
-   * constraint, so screen-reader order is stable.
+   * QTI shared vocabulary: qti-choices-bottom|left|right reposition the shared
+   * word bank relative to the content (qti-choices-top matches the default
+   * order). These apply only when there IS a shared tray (a plain gap-match or
+   * leftover ungrouped choices) — column layouts use the per-column rules
+   * below. Only the visual order changes — DOM order stays prompt, choices,
+   * content, constraint, so screen-reader order is stable.
    */
-  .cutie-gap-match-interaction.qti-choices-bottom {
+  .cutie-gap-match-interaction--shared-tray.qti-choices-bottom {
     display: flex;
     flex-direction: column;
   }
 
-  .cutie-gap-match-interaction.qti-choices-bottom > .cutie-gap-match-choices {
+  .cutie-gap-match-interaction--shared-tray.qti-choices-bottom > .cutie-gap-match-choices {
     order: 1;
     margin-bottom: 0;
     margin-top: 1em;
   }
 
-  .cutie-gap-match-interaction.qti-choices-bottom > .cutie-constraint-text {
+  .cutie-gap-match-interaction--shared-tray.qti-choices-bottom > .cutie-constraint-text {
     order: 2;
   }
 
-  .cutie-gap-match-interaction.qti-choices-left,
-  .cutie-gap-match-interaction.qti-choices-right {
+  .cutie-gap-match-interaction--shared-tray.qti-choices-left,
+  .cutie-gap-match-interaction--shared-tray.qti-choices-right {
     display: grid;
     grid-template-areas: "prompt prompt" "choices content" "constraint constraint";
     grid-template-columns: minmax(10em, max-content) 1fr;
@@ -241,91 +243,94 @@ export const GAP_MATCH_INTERACTION_STYLES = `
     align-items: start;
   }
 
-  .cutie-gap-match-interaction.qti-choices-right {
+  .cutie-gap-match-interaction--shared-tray.qti-choices-right {
     grid-template-areas: "prompt prompt" "content choices" "constraint constraint";
     grid-template-columns: 1fr minmax(10em, max-content);
   }
 
-  .cutie-gap-match-interaction.qti-choices-left > .cutie-prompt,
-  .cutie-gap-match-interaction.qti-choices-right > .cutie-prompt {
+  .cutie-gap-match-interaction--shared-tray.qti-choices-left > .cutie-prompt,
+  .cutie-gap-match-interaction--shared-tray.qti-choices-right > .cutie-prompt {
     grid-area: prompt;
   }
 
-  .cutie-gap-match-interaction.qti-choices-left > .cutie-gap-match-choices,
-  .cutie-gap-match-interaction.qti-choices-right > .cutie-gap-match-choices {
+  .cutie-gap-match-interaction--shared-tray.qti-choices-left > .cutie-gap-match-choices,
+  .cutie-gap-match-interaction--shared-tray.qti-choices-right > .cutie-gap-match-choices {
     grid-area: choices;
     align-content: flex-start;
     margin-bottom: 0;
   }
 
-  .cutie-gap-match-interaction.qti-choices-left > .cutie-gap-match-content,
-  .cutie-gap-match-interaction.qti-choices-right > .cutie-gap-match-content {
+  .cutie-gap-match-interaction--shared-tray.qti-choices-left > .cutie-gap-match-content,
+  .cutie-gap-match-interaction--shared-tray.qti-choices-right > .cutie-gap-match-content {
     grid-area: content;
   }
 
-  .cutie-gap-match-interaction.qti-choices-left > .cutie-constraint-text,
-  .cutie-gap-match-interaction.qti-choices-right > .cutie-constraint-text {
+  .cutie-gap-match-interaction--shared-tray.qti-choices-left > .cutie-constraint-text,
+  .cutie-gap-match-interaction--shared-tray.qti-choices-right > .cutie-constraint-text {
     grid-area: constraint;
   }
 
   /*
-   * Derived grouping (no layout flag): when every choice targets exactly one
-   * match-group, the shared tray clusters into per-group sections; when the
-   * content blocks also partition the gaps by group, the blocks become
-   * columns with each group's choice bank beneath its own gaps. The center
-   * column of an odd-count layout is vertically centered against taller side
-   * columns (the NCLEX bowtie silhouette falls out of this naturally).
+   * Per-column choice banks. When the content is laid out with the QTI layout
+   * grid, each column that owns a match-group gets that group's choices banked
+   * inside it (cutie-gap-match-column on the column, --column on the bank). The
+   * bank sits beneath its gaps by default; the interaction's qti-choices-*
+   * class repositions it within the column. DOM order stays gaps → bank, so
+   * screen-reader order is stable.
    */
-  .cutie-gap-match-choices--grouped {
-    gap: 1em;
-  }
-
-  .cutie-gap-match-choice-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5em;
-  }
-
-  .cutie-gap-match-choice-group + .cutie-gap-match-choice-group {
-    border-left: 1px solid var(--cutie-border);
-    padding-left: 1em;
-  }
-
-  .cutie-gap-match-content--grouped {
-    display: grid;
-    grid-template-columns: repeat(var(--cutie-match-group-count, 1), minmax(0, 1fr));
-    align-items: center;
-    gap: 1.5em;
-    line-height: 1.5;
-  }
-
-  .cutie-match-group-block {
+  .cutie-gap-match-column {
     display: flex;
     flex-direction: column;
-    gap: 0.75em;
-    text-align: center;
   }
 
-  /* Gaps become full-width, tall drop targets stacked within their block */
-  .cutie-match-group-block .cutie-gap {
-    display: flex;
-    width: 100%;
-    min-height: 3em;
-    margin: 0;
-    box-sizing: border-box;
-  }
-
-  /* The per-column bank sits beneath its gaps */
-  .cutie-match-group-block > .cutie-gap-match-choices {
+  .cutie-gap-match-choices--column {
+    margin-top: 1em;
     margin-bottom: 0;
     justify-content: center;
   }
 
-  /* Collapse to a single stacked column on narrow screens */
-  @media (max-width: 40em) {
-    .cutie-gap-match-content--grouped {
-      grid-template-columns: 1fr;
-      align-items: stretch;
-    }
+  /* qti-choices-top: bank above its gaps */
+  .cutie-gap-match-interaction.qti-choices-top .cutie-gap-match-choices--column {
+    order: -1;
+    margin-top: 0;
+    margin-bottom: 1em;
+  }
+
+  /* qti-choices-left / -right: bank beside its gaps */
+  .cutie-gap-match-interaction.qti-choices-left .cutie-gap-match-column,
+  .cutie-gap-match-interaction.qti-choices-right .cutie-gap-match-column {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .cutie-gap-match-interaction.qti-choices-left .cutie-gap-match-choices--column {
+    order: -1;
+    margin: 0 1em 0 0;
+  }
+
+  .cutie-gap-match-interaction.qti-choices-right .cutie-gap-match-choices--column {
+    margin: 0 0 0 1em;
+  }
+
+  /*
+   * Diagram presentation for gap-match layout columns: the gaps become
+   * full-width stacked drop targets and the columns center-align, so a shorter
+   * middle column sits centered against taller side columns (the NCLEX bowtie
+   * silhouette). Scoped to gap-match columns, not the general layout grid.
+   */
+  .cutie-gap-match-content > .qti-layout-row {
+    align-items: center;
+  }
+
+  .cutie-gap-match-column {
+    text-align: center;
+  }
+
+  .cutie-gap-match-column .cutie-gap {
+    display: flex;
+    width: 100%;
+    min-height: 3em;
+    margin: 0.25em 0;
+    box-sizing: border-box;
   }
 `;

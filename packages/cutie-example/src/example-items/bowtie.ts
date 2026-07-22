@@ -3,10 +3,11 @@
 // SCORE = qti-map-response(RESPONSE): +1 for each correctly placed choice,
 // default 0 for wrong placements, floored at 0 by the mapping's lower-bound.
 //
-// Bowtie (NCLEX-style): a plain gap-match whose three match-group-restricted
-// columns — Actions to Take | Condition | Parameters to Monitor — are derived
-// by the client from the match-group data (every choice targets exactly one
-// group and each content block holds one group's gaps). No layout hints.
+// Bowtie (NCLEX-style): a gap-match whose three columns — Actions to Take |
+// Condition | Parameters to Monitor — are declared with the QTI layout grid
+// (qti-layout-row + qti-layout-col-4). match-group restricts each choice to
+// one column's gaps, so the client banks each group's choices beneath its own
+// column. The layout is authored with standard vocabulary, not inferred.
 
 export const name = "Bowtie (Clinical Judgment)";
 
@@ -70,9 +71,11 @@ adaptive="false" time-dependent="false" xml:lang="en">
       <qti-gap-text identifier="PAR3" match-max="1" match-group="parameters">Pupillary response</qti-gap-text>
       <qti-gap-text identifier="PAR4" match-max="1" match-group="parameters">Deep tendon reflexes</qti-gap-text>
 
-      <p><strong>Actions to Take</strong><qti-gap identifier="GA1" match-group="actions"/><qti-gap identifier="GA2" match-group="actions"/></p>
-      <p><strong>Condition</strong><qti-gap identifier="GC1" match-group="condition"/></p>
-      <p><strong>Parameters to Monitor</strong><qti-gap identifier="GP1" match-group="parameters"/><qti-gap identifier="GP2" match-group="parameters"/></p>
+      <div class="qti-layout-row">
+        <div class="qti-layout-col-4"><p><strong>Actions to Take</strong><qti-gap identifier="GA1" match-group="actions"/><qti-gap identifier="GA2" match-group="actions"/></p></div>
+        <div class="qti-layout-col-4"><p><strong>Condition</strong><qti-gap identifier="GC1" match-group="condition"/></p></div>
+        <div class="qti-layout-col-4"><p><strong>Parameters to Monitor</strong><qti-gap identifier="GP1" match-group="parameters"/><qti-gap identifier="GP2" match-group="parameters"/></p></div>
+      </div>
     </qti-gap-match-interaction>
 
     <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_correct" show-hide="show" data-feedback-type="correct">
