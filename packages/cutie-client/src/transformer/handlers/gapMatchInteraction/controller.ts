@@ -98,7 +98,7 @@ export class GapMatchController {
    * (tabindex="0") and the rest are not. Tab then moves between the banks while
    * arrow keys move within a bank.
    */
-  seedChoiceRoving(): void {
+  initRovingTabindex(): void {
     const seenBanks = new Set<HTMLElement | null>();
     for (const element of this.choiceElements.values()) {
       const bank = this.choiceBanks.find((b) => b.contains(element)) ?? null;
@@ -678,9 +678,8 @@ export class GapMatchController {
       }
     }
 
-    // Re-seed roving tabindex per bank (one tabbable choice per listbox)
     if (enabled) {
-      this.seedChoiceRoving();
+      this.initRovingTabindex();
     }
 
     // Update gap elements

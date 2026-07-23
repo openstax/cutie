@@ -289,7 +289,7 @@ export class GapMatchInteractionHandler implements ElementHandler {
 
     // Each bank is its own listbox: seed one tabbable choice per bank so Tab
     // moves between banks and arrow keys move within a bank.
-    controller.seedChoiceRoving();
+    controller.initRovingTabindex();
 
     // Find and register all gap elements in the transformed content
     const gapElements = contentContainer.querySelectorAll('.cutie-gap');

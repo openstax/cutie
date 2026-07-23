@@ -27,9 +27,6 @@ function transformInteraction(
 
   const context: TransformContext = {
     itemState,
-    // Mirror production: transformNode dispatches to a handler or preserves the
-    // element via html-passthrough; transformChildren transforms each child via
-    // transformNode. This keeps authored wrappers (e.g. qti-layout-row) intact.
     transformNode: (el: Element): DocumentFragment => {
       const frag = document.createDocumentFragment();
       const handler = registry.getAll().find((r) => r.handler.canHandle(el));
