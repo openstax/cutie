@@ -57,18 +57,6 @@ const BASE_STYLES = `
   .qti-layout-col11 { grid-column: span 11; }
   .qti-layout-col12 { grid-column: span 12; }
 
-  .qti-layout-offset1 { grid-column-start: 2; }
-  .qti-layout-offset2 { grid-column-start: 3; }
-  .qti-layout-offset3 { grid-column-start: 4; }
-  .qti-layout-offset4 { grid-column-start: 5; }
-  .qti-layout-offset5 { grid-column-start: 6; }
-  .qti-layout-offset6 { grid-column-start: 7; }
-  .qti-layout-offset7 { grid-column-start: 8; }
-  .qti-layout-offset8 { grid-column-start: 9; }
-  .qti-layout-offset9 { grid-column-start: 10; }
-  .qti-layout-offset10 { grid-column-start: 11; }
-  .qti-layout-offset11 { grid-column-start: 12; }
-
   @media (max-width: 40em) {
     .qti-layout-row {
       grid-template-columns: 1fr;
