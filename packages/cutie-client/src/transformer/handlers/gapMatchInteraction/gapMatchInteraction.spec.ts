@@ -506,5 +506,47 @@ describe('gapMatchInteraction', () => {
         container.remove();
       }
     });
+
+    it('exposes only same-group gaps to the tab order when a choice is selected', () => {
+      const container = transformToContainer(LAYOUT_COLUMNS_QTI);
+      document.body.appendChild(container);
+
+      try {
+        const actionChoice = container.querySelector<HTMLElement>('.cutie-gap-text[data-identifier="ACT1"]')!;
+        const actionGap = container.querySelector<HTMLElement>('.cutie-gap[data-identifier="GA1"]')!;
+        const parameterGap = container.querySelector<HTMLElement>('.cutie-gap[data-identifier="GP1"]')!;
+
+        // Before selection, no gap is in the tab order.
+        expect(actionGap.getAttribute('tabindex')).toBe('-1');
+        expect(parameterGap.getAttribute('tabindex')).toBe('-1');
+
+        actionChoice.click();
+
+        // Only the gap sharing the choice's match-group becomes focusable.
+        expect(actionGap.getAttribute('tabindex')).toBe('0');
+        expect(parameterGap.getAttribute('tabindex')).toBe('-1');
+      } finally {
+        container.remove();
+      }
+    });
+
+    it('removes all gaps from the tab order when the selection is cleared', () => {
+      const container = transformToContainer(LAYOUT_COLUMNS_QTI);
+      document.body.appendChild(container);
+
+      try {
+        const actionChoice = container.querySelector<HTMLElement>('.cutie-gap-text[data-identifier="ACT1"]')!;
+        const actionGap = container.querySelector<HTMLElement>('.cutie-gap[data-identifier="GA1"]')!;
+
+        actionChoice.click();
+        expect(actionGap.getAttribute('tabindex')).toBe('0');
+
+        // Toggling the same choice off clears the selection.
+        actionChoice.click();
+        expect(actionGap.getAttribute('tabindex')).toBe('-1');
+      } finally {
+        container.remove();
+      }
+    });
   });
 });

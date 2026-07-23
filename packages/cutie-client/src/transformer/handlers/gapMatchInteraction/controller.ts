@@ -15,6 +15,7 @@ export class GapMatchController {
   responseIdentifier: string;
   selectedChoice: string | null = null;
   selectedFromGap: string | null = null; // Track which gap the selection came from
+  private draggedChoiceId: string | null = null; // Choice currently being dragged (native DnD)
   gapAssignments = new Map<string, string>(); // gap-id -> choice-id
   choiceUseCounts = new Map<string, number>();
   choiceMaxCounts = new Map<string, number>();
@@ -236,6 +237,7 @@ export class GapMatchController {
       }
 
       e.dataTransfer?.setData('text/plain', `choice:${choiceId}`);
+      this.draggedChoiceId = choiceId;
       element.classList.add('cutie-gap-text--dragging');
 
       // Highlight valid drop targets
@@ -250,6 +252,7 @@ export class GapMatchController {
     });
 
     element.addEventListener('dragend', () => {
+      this.draggedChoiceId = null;
       element.classList.remove('cutie-gap-text--dragging');
       clearDropTargetHighlights(this.gapElements.values(), 'cutie-gap--drop-target');
     });
@@ -331,6 +334,7 @@ export class GapMatchController {
       }
 
       e.dataTransfer?.setData('text/plain', `gap:${gapId}`);
+      this.draggedChoiceId = currentChoiceInGap;
       element.classList.add('cutie-gap--dragging');
 
       // Highlight valid drop targets (other gaps and the word bank)
@@ -346,6 +350,7 @@ export class GapMatchController {
     });
 
     element.addEventListener('dragend', () => {
+      this.draggedChoiceId = null;
       element.classList.remove('cutie-gap--dragging');
       clearDropTargetHighlights(this.gapElements.values(), 'cutie-gap--drop-target');
       for (const bank of this.choiceBanks) {
@@ -354,12 +359,20 @@ export class GapMatchController {
       }
     });
 
-    // Drag over - accept drops
+    // Drag over - accept drops. Only signal droppable (preventDefault) and
+    // light up this gap when the dragged choice is actually allowed here — the
+    // same match-group restriction the persistent drop-target highlight uses.
+    // getData is unavailable during dragover, so we rely on the choice tracked
+    // at dragstart; when unknown (e.g. an external drag) fall back to allowing.
     element.addEventListener('dragover', (e) => {
       if (!this.enabled) return;
 
       const data = e.dataTransfer?.types.includes('text/plain');
       if (!data) return;
+
+      if (this.draggedChoiceId && !this.canPlaceInGap(gapId, this.draggedChoiceId)) {
+        return;
+      }
 
       e.preventDefault();
       element.classList.add('cutie-gap--drag-over');
@@ -463,16 +476,23 @@ export class GapMatchController {
       this.bankFor(choiceId)?.classList.add('cutie-gap-match-choices--drop-target');
     }
 
-    // Make gaps focusable when a choice is selected
-    for (const gapElement of this.gapElements.values()) {
-      gapElement.setAttribute('tabindex', '0');
+    // Make only the gaps that can accept this choice focusable, so keyboard and
+    // screen-reader users Tab through the valid targets only — the same
+    // match-group restriction the visual drop-target highlight uses. Invalid
+    // gaps stay out of the tab order rather than silently rejecting Enter.
+    let availableGaps = 0;
+    for (const [gapId, gapElement] of this.gapElements) {
+      const canPlace = this.canPlaceInGap(gapId, choiceId);
+      gapElement.setAttribute('tabindex', canPlace ? '0' : '-1');
+      if (canPlace) availableGaps++;
     }
 
     const content = this.choiceContents.get(choiceId) ?? '';
+    const gapWord = availableGaps === 1 ? 'gap' : 'gaps';
     if (fromGapId) {
-      announce(this.context,`${content} picked up from gap. Click on another gap to move it, or click the word bank to return it.`);
+      announce(this.context,`${content} picked up from gap. ${availableGaps} ${gapWord} available. Move it to another gap, or return it to the word bank.`);
     } else {
-      announce(this.context,`${content} selected. Click or press Enter on a gap to place it.`);
+      announce(this.context,`${content} selected. ${availableGaps} ${gapWord} available. Tab to a gap and press Enter to place it.`);
     }
   }
 
