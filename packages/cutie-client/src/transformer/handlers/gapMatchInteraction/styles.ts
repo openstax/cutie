@@ -281,6 +281,7 @@ export const GAP_MATCH_INTERACTION_STYLES = `
   .cutie-gap-match-column {
     display: flex;
     flex-direction: column;
+    text-align: center;
   }
 
   .cutie-gap-match-choices--column {
@@ -320,10 +321,6 @@ export const GAP_MATCH_INTERACTION_STYLES = `
    */
   .cutie-gap-match-content > .qti-layout-row {
     align-items: center;
-  }
-
-  .cutie-gap-match-column {
-    text-align: center;
   }
 
   .cutie-gap-match-column .cutie-gap {
