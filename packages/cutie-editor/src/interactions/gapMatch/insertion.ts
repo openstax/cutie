@@ -236,7 +236,7 @@ interface BowtieColumn {
  * The bowtie preset: three columns (2 gaps | 1 gap | 2 gaps) laid out with
  * placeholder content the author replaces. Each column is its own match-group
  * so choices can only be dropped into their own column's gaps. The columns are
- * authored with the QTI layout grid (qti-layout-row / qti-layout-col-4); the
+ * authored with the QTI layout grid (qti-layout-row / qti-layout-col4); the
  * client lays them out side by side and banks each group's choices beneath its
  * own column. A couple of decoy choices per column keep the task non-trivial.
  */
@@ -279,7 +279,7 @@ const BOWTIE_COLUMNS: BowtieColumn[] = [
  * Insert a bowtie interaction: a gap-match preset with three match-group-restricted
  * columns and per-correct-choice scoring (+1 each, min 0). It is a standard
  * qti-gap-match-interaction whose columns are authored with the QTI layout grid
- * (qti-layout-row / qti-layout-col-4) so the client lays them out side by side
+ * (qti-layout-row / qti-layout-col4) so the client lays them out side by side
  * and banks each group's choices beneath its own column. The document's response
  * processing is set to sum the mapped scores so each correct placement earns a
  * point.
@@ -307,7 +307,7 @@ export function insertBowtieInteraction(
   );
 
   // Lay the columns out with the QTI layout grid: a qti-layout-row wrapping one
-  // qti-layout-col-4 per column, each holding a paragraph with a bold heading
+  // qti-layout-col4 per column, each holding a paragraph with a bold heading
   // followed by its gaps. Empty text nodes wrap the inline void gaps as Slate
   // requires. The client renders the columns side by side and, because each
   // column's gaps all share a single match-group, banks that group's choices
@@ -329,7 +329,7 @@ export function insertBowtieInteraction(
       }
       return {
         type: 'div',
-        attributes: { class: 'qti-layout-col-4' },
+        attributes: { class: 'qti-layout-col4' },
         children: [{ type: 'paragraph', attributes: {}, children: paragraphChildren }],
       };
     }),

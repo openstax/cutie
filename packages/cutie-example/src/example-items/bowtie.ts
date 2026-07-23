@@ -5,7 +5,7 @@
 //
 // Bowtie (NCLEX-style): a gap-match whose three columns — Actions to Take |
 // Condition | Parameters to Monitor — are declared with the QTI layout grid
-// (qti-layout-row + qti-layout-col-4). match-group restricts each choice to
+// (qti-layout-row + qti-layout-col4). match-group restricts each choice to
 // one column's gaps, so the client banks each group's choices beneath its own
 // column. The layout is authored with standard vocabulary, not inferred.
 
@@ -72,9 +72,9 @@ adaptive="false" time-dependent="false" xml:lang="en">
       <qti-gap-text identifier="PAR4" match-max="1" match-group="parameters">Deep tendon reflexes</qti-gap-text>
 
       <div class="qti-layout-row">
-        <div class="qti-layout-col-4"><p><strong>Actions to Take</strong><qti-gap identifier="GA1" match-group="actions"/><qti-gap identifier="GA2" match-group="actions"/></p></div>
-        <div class="qti-layout-col-4"><p><strong>Condition</strong><qti-gap identifier="GC1" match-group="condition"/></p></div>
-        <div class="qti-layout-col-4"><p><strong>Parameters to Monitor</strong><qti-gap identifier="GP1" match-group="parameters"/><qti-gap identifier="GP2" match-group="parameters"/></p></div>
+        <div class="qti-layout-col4"><p><strong>Actions to Take</strong><qti-gap identifier="GA1" match-group="actions"/><qti-gap identifier="GA2" match-group="actions"/></p></div>
+        <div class="qti-layout-col4"><p><strong>Condition</strong><qti-gap identifier="GC1" match-group="condition"/></p></div>
+        <div class="qti-layout-col4"><p><strong>Parameters to Monitor</strong><qti-gap identifier="GP1" match-group="parameters"/><qti-gap identifier="GP2" match-group="parameters"/></p></div>
       </div>
     </qti-gap-match-interaction>
 

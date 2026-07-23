@@ -356,8 +356,8 @@ describe('gapMatchInteraction', () => {
         <qti-gap-text identifier="ACT2" match-max="1" match-group="actions">Action 2</qti-gap-text>
         <qti-gap-text identifier="PAR1" match-max="1" match-group="parameters">Parameter 1</qti-gap-text>
         <div class="qti-layout-row">
-          <div class="qti-layout-col-6"><p>Actions<qti-gap identifier="GA1" match-group="actions"></qti-gap></p></div>
-          <div class="qti-layout-col-6"><p>Parameters<qti-gap identifier="GP1" match-group="parameters"></qti-gap></p></div>
+          <div class="qti-layout-col6"><p>Actions<qti-gap identifier="GA1" match-group="actions"></qti-gap></p></div>
+          <div class="qti-layout-col6"><p>Parameters<qti-gap identifier="GP1" match-group="parameters"></qti-gap></p></div>
         </div>
       </qti-gap-match-interaction>
     `;
@@ -375,13 +375,13 @@ describe('gapMatchInteraction', () => {
 
       const row = container.querySelector('.cutie-gap-match-content > .qti-layout-row');
       expect(row).not.toBeNull();
-      expect(row!.querySelectorAll(':scope > .qti-layout-col-6').length).toBe(2);
+      expect(row!.querySelectorAll(':scope > .qti-layout-col6').length).toBe(2);
     });
 
     it('injects a per-column bank into each layout column keyed by its gap group', () => {
       const container = transformToContainer(LAYOUT_COLUMNS_QTI);
 
-      const columns = container.querySelectorAll('.qti-layout-col-6');
+      const columns = container.querySelectorAll('.qti-layout-col6');
       expect(columns.length).toBe(2);
       columns.forEach((col) => {
         expect(col.classList.contains('cutie-gap-match-column')).toBe(true);
@@ -442,7 +442,7 @@ describe('gapMatchInteraction', () => {
           <qti-gap-text identifier="ACT1" match-max="1" match-group="actions">Action 1</qti-gap-text>
           <qti-gap-text identifier="PAR1" match-max="1" match-group="parameters">Parameter 1</qti-gap-text>
           <div class="qti-layout-row">
-            <div class="qti-layout-col-12"><p>Mixed<qti-gap identifier="GA1" match-group="actions"></qti-gap><qti-gap identifier="GP1" match-group="parameters"></qti-gap></p></div>
+            <div class="qti-layout-col12"><p>Mixed<qti-gap identifier="GA1" match-group="actions"></qti-gap><qti-gap identifier="GP1" match-group="parameters"></qti-gap></p></div>
           </div>
         </qti-gap-match-interaction>
       `);

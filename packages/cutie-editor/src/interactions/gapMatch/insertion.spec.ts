@@ -33,9 +33,9 @@ describe('insertBowtieInteraction', () => {
     expect(result.errors ?? []).toEqual([]);
     expect(result.xml).toContain('qti-gap-match-interaction');
     // The columns are authored with the QTI layout grid so the client lays them
-    // out side by side: one qti-layout-row wrapping three qti-layout-col-4.
+    // out side by side: one qti-layout-row wrapping three qti-layout-col4.
     expect(result.xml).toContain('class="qti-layout-row"');
-    expect(result.xml.match(/class="qti-layout-col-4"/g) ?? []).toHaveLength(3);
+    expect(result.xml.match(/class="qti-layout-col4"/g) ?? []).toHaveLength(3);
   });
 
   it('restricts each column via its own match-group', () => {
