@@ -193,7 +193,7 @@ export class GapMatchInteractionHandler implements ElementHandler {
 
     // Transform the content blocks (which contain the gaps). transformNode
     // preserves each block element itself — crucial so an authored
-    // qti-layout-row / qti-layout-col-* grid survives into the output.
+    // qti-layout-row / qti-layout-col* grid survives into the output.
     for (const child of contentBlocks) {
       if (context.transformNode) {
         contentContainer.appendChild(context.transformNode(child));
@@ -203,12 +203,12 @@ export class GapMatchInteractionHandler implements ElementHandler {
     }
 
     // Author-declared columns: when the content is laid out with the QTI
-    // layout grid (qti-layout-row / qti-layout-col-*), each column whose gaps
+    // layout grid (qti-layout-row / qti-layout-col*), each column whose gaps
     // all share a single match-group gets that group's choices banked inside
     // it. The layout is declared by the author via standard vocabulary — the
     // handler renders what was declared rather than inferring it from data.
     const claimedGroups = new Set<string>();
-    for (const column of contentContainer.querySelectorAll('[class*="qti-layout-col-"]')) {
+    for (const column of contentContainer.querySelectorAll('[class*="qti-layout-col"]')) {
       const groups = new Set<string>();
       for (const gap of column.querySelectorAll('.cutie-gap')) {
         const groupAttr = gap.getAttribute('data-match-group');
