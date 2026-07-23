@@ -487,7 +487,7 @@ export function Toolbar(): React.JSX.Element {
                 setInteractionsOpen(false);
               }}
             >
-              Bowtie
+              Gap Match (Bowtie)
             </DropdownItem>
           </div>
         )}

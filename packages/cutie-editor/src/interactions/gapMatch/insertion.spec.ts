@@ -24,7 +24,7 @@ function createSeededEditor(): CustomEditor {
 }
 
 describe('insertBowtieInteraction', () => {
-  it('inserts a serializable gap-match with no layout class', () => {
+  it('inserts a serializable gap-match laid out with the QTI layout grid', () => {
     const editor = createSeededEditor();
 
     insertBowtieInteraction(editor);
@@ -32,9 +32,10 @@ describe('insertBowtieInteraction', () => {
 
     expect(result.errors ?? []).toEqual([]);
     expect(result.xml).toContain('qti-gap-match-interaction');
-    // The client derives the bowtie presentation from the match-group
-    // structure; the preset emits no class attribute at all.
-    expect(result.xml).not.toContain('class=');
+    // The columns are authored with the QTI layout grid so the client lays them
+    // out side by side: one qti-layout-row wrapping three qti-layout-col-4.
+    expect(result.xml).toContain('class="qti-layout-row"');
+    expect(result.xml.match(/class="qti-layout-col-4"/g) ?? []).toHaveLength(3);
   });
 
   it('restricts each column via its own match-group', () => {
@@ -43,7 +44,7 @@ describe('insertBowtieInteraction', () => {
     insertBowtieInteraction(editor);
     const result = serializeSlateToQti(editor.children, '');
 
-    for (const group of ['actions', 'condition', 'parameters']) {
+    for (const group of ['group-1', 'group-2', 'group-3']) {
       expect(result.xml).toContain(`match-group="${group}"`);
     }
   });

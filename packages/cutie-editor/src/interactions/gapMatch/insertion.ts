@@ -233,42 +233,44 @@ interface BowtieColumn {
 }
 
 /**
- * The fixed NCLEX-style bowtie: Actions to Take (2 gaps) | Condition (1 gap) |
- * Parameters to Monitor (2 gaps). Each column is its own match-group so
- * choices can only be dropped into their own column's gaps — the client
- * derives the column layout and per-column choice banks from that structure.
+ * The bowtie preset: three columns (2 gaps | 1 gap | 2 gaps) laid out with
+ * placeholder content the author replaces. Each column is its own match-group
+ * so choices can only be dropped into their own column's gaps. The columns are
+ * authored with the QTI layout grid (qti-layout-row / qti-layout-col-4); the
+ * client lays them out side by side and banks each group's choices beneath its
+ * own column. A couple of decoy choices per column keep the task non-trivial.
  */
 const BOWTIE_COLUMNS: BowtieColumn[] = [
   {
-    group: 'actions',
-    label: 'Actions to Take',
-    gaps: ['GA1', 'GA2'],
+    group: 'group-1',
+    label: 'Column 1',
+    gaps: ['G1', 'G2'],
     choices: [
-      { id: 'ACT1', text: 'Administer prescribed IV fluids', correctGap: 'GA1' },
-      { id: 'ACT2', text: 'Notify the primary provider', correctGap: 'GA2' },
-      { id: 'ACT3', text: 'Restrict oral fluids' },
-      { id: 'ACT4', text: 'Elevate the head of the bed' },
+      { id: 'A', text: 'Choice A', correctGap: 'G1' },
+      { id: 'B', text: 'Choice B', correctGap: 'G2' },
+      { id: 'C', text: 'Choice C' },
+      { id: 'D', text: 'Choice D' },
     ],
   },
   {
-    group: 'condition',
-    label: 'Condition',
-    gaps: ['GC1'],
+    group: 'group-2',
+    label: 'Column 2',
+    gaps: ['G3'],
     choices: [
-      { id: 'COND1', text: 'Fluid volume deficit', correctGap: 'GC1' },
-      { id: 'COND2', text: 'Fluid volume excess' },
-      { id: 'COND3', text: 'Impaired gas exchange' },
+      { id: 'E', text: 'Choice E', correctGap: 'G3' },
+      { id: 'F', text: 'Choice F' },
+      { id: 'G', text: 'Choice G' },
     ],
   },
   {
-    group: 'parameters',
-    label: 'Parameters to Monitor',
-    gaps: ['GP1', 'GP2'],
+    group: 'group-3',
+    label: 'Column 3',
+    gaps: ['G4', 'G5'],
     choices: [
-      { id: 'PAR1', text: 'Heart rate', correctGap: 'GP1' },
-      { id: 'PAR2', text: 'Blood pressure', correctGap: 'GP2' },
-      { id: 'PAR3', text: 'Pupillary response' },
-      { id: 'PAR4', text: 'Deep tendon reflexes' },
+      { id: 'H', text: 'Choice H', correctGap: 'G4' },
+      { id: 'I', text: 'Choice I', correctGap: 'G5' },
+      { id: 'J', text: 'Choice J' },
+      { id: 'K', text: 'Choice K' },
     ],
   },
 ];
@@ -276,10 +278,11 @@ const BOWTIE_COLUMNS: BowtieColumn[] = [
 /**
  * Insert a bowtie interaction: a gap-match preset with three match-group-restricted
  * columns and per-correct-choice scoring (+1 each, min 0). It is a standard
- * qti-gap-match-interaction with no layout hints — the client derives the
- * 3-column presentation from the match-group structure — and the document's
- * response processing is set to sum the mapped scores so each correct
- * placement earns a point.
+ * qti-gap-match-interaction whose columns are authored with the QTI layout grid
+ * (qti-layout-row / qti-layout-col-4) so the client lays them out side by side
+ * and banks each group's choices beneath its own column. The document's response
+ * processing is set to sum the mapped scores so each correct placement earns a
+ * point.
  */
 export function insertBowtieInteraction(
   editor: Editor,
@@ -303,22 +306,34 @@ export function insertBowtieInteraction(
     }))
   );
 
-  // One content paragraph per column: a bold heading followed by its gaps.
-  // Empty text nodes wrap the inline void gaps as Slate requires. Because
-  // each block holds a single group's gaps, the client renders each block
-  // as a column.
-  const contentParagraphs = BOWTIE_COLUMNS.map((column) => {
-    const children: Array<Record<string, unknown>> = [{ text: column.label, bold: true }];
-    for (const gapId of column.gaps) {
-      children.push({
-        type: 'qti-gap',
-        attributes: { identifier: gapId, 'match-group': column.group },
-        children: [{ text: '' }],
-      });
-      children.push({ text: '' });
-    }
-    return { type: 'paragraph', attributes: {}, children };
-  });
+  // Lay the columns out with the QTI layout grid: a qti-layout-row wrapping one
+  // qti-layout-col-4 per column, each holding a paragraph with a bold heading
+  // followed by its gaps. Empty text nodes wrap the inline void gaps as Slate
+  // requires. The client renders the columns side by side and, because each
+  // column's gaps all share a single match-group, banks that group's choices
+  // beneath the column.
+  const layoutRow = {
+    type: 'div',
+    attributes: { class: 'qti-layout-row' },
+    children: BOWTIE_COLUMNS.map((column) => {
+      const paragraphChildren: Array<Record<string, unknown>> = [
+        { text: column.label, bold: true },
+      ];
+      for (const gapId of column.gaps) {
+        paragraphChildren.push({
+          type: 'qti-gap',
+          attributes: { identifier: gapId, 'match-group': column.group },
+          children: [{ text: '' }],
+        });
+        paragraphChildren.push({ text: '' });
+      }
+      return {
+        type: 'div',
+        attributes: { class: 'qti-layout-col-4' },
+        children: [{ type: 'paragraph', attributes: {}, children: paragraphChildren }],
+      };
+    }),
+  };
 
   // Correct pairings ("CHOICE GAP") and a +1 map-entry for each.
   const correctValues: string[] = [];
@@ -365,7 +380,7 @@ export function insertBowtieInteraction(
     },
     children: [
       { type: 'gap-match-choices', children: choiceNodes },
-      { type: 'gap-match-content', children: contentParagraphs },
+      { type: 'gap-match-content', children: [layoutRow] },
     ],
     responseDeclaration,
   };
