@@ -62,7 +62,7 @@ const BASE_STYLES = `
       grid-template-columns: 1fr;
     }
 
-    /* Higher specificity than the col/offset rules, so columns stack full-width */
+    // stack full-width
     .qti-layout-row > * {
       grid-column: 1 / -1;
     }
