@@ -546,4 +546,98 @@ describe('gapMatchInteraction', () => {
       }
     });
   });
+
+  describe('response serialization', () => {
+    // A bowtie-style interaction: multiple gaps across two match-groups. This is
+    // the contract between the client and the server scorer — the value collected
+    // for each filled gap must be a "choiceId gapId" directedPair string.
+    const MULTI_GAP_QTI = `
+      <qti-gap-match-interaction response-identifier="R1">
+        <qti-gap-text identifier="ACT1" match-max="1" match-group="actions">Action 1</qti-gap-text>
+        <qti-gap-text identifier="ACT2" match-max="1" match-group="actions">Action 2</qti-gap-text>
+        <qti-gap-text identifier="PAR1" match-max="1" match-group="parameters">Parameter 1</qti-gap-text>
+        <div class="qti-layout-row">
+          <div class="qti-layout-col6"><p>Actions<qti-gap identifier="GA1" match-group="actions"></qti-gap><qti-gap identifier="GA2" match-group="actions"></qti-gap></p></div>
+          <div class="qti-layout-col6"><p>Parameters<qti-gap identifier="GP1" match-group="parameters"></qti-gap></p></div>
+        </div>
+      </qti-gap-match-interaction>
+    `;
+
+    function transformToContainer(qti: string): HTMLElement {
+      const doc = createQtiDocument(qti);
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+      return container;
+    }
+
+    function place(container: HTMLElement, choiceId: string, gapId: string): void {
+      container.querySelector<HTMLElement>(`.cutie-gap-text[data-identifier="${choiceId}"]`)!.click();
+      container.querySelector<HTMLElement>(`.cutie-gap[data-identifier="${gapId}"]`)!.click();
+    }
+
+    it('collects null when no gaps are filled', () => {
+      const container = transformToContainer(MULTI_GAP_QTI);
+      document.body.appendChild(container);
+
+      try {
+        expect(itemState.collectAll().responses.R1).toBeNull();
+      } finally {
+        container.remove();
+      }
+    });
+
+    it('serializes each filled gap as a "choiceId gapId" directedPair', () => {
+      const container = transformToContainer(MULTI_GAP_QTI);
+      document.body.appendChild(container);
+
+      try {
+        place(container, 'ACT1', 'GA1');
+        place(container, 'ACT2', 'GA2');
+        place(container, 'PAR1', 'GP1');
+
+        // Order follows placement order; scoring treats it as an unordered set.
+        expect(itemState.collectAll().responses.R1).toEqual(['ACT1 GA1', 'ACT2 GA2', 'PAR1 GP1']);
+      } finally {
+        container.remove();
+      }
+    });
+
+    it('drops a pair from the serialized response when its gap is cleared', () => {
+      const container = transformToContainer(MULTI_GAP_QTI);
+      document.body.appendChild(container);
+
+      try {
+        place(container, 'ACT1', 'GA1');
+        place(container, 'PAR1', 'GP1');
+        expect(itemState.collectAll().responses.R1).toEqual(['ACT1 GA1', 'PAR1 GP1']);
+
+        // Pick the choice back up and return it to its bank.
+        const gap = container.querySelector<HTMLElement>('.cutie-gap[data-identifier="GA1"]')!;
+        gap.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true }));
+
+        expect(itemState.collectAll().responses.R1).toEqual(['PAR1 GP1']);
+      } finally {
+        container.remove();
+      }
+    });
+
+    it('reflects a moved choice under its new gap', () => {
+      const container = transformToContainer(MULTI_GAP_QTI);
+      document.body.appendChild(container);
+
+      try {
+        place(container, 'ACT1', 'GA1');
+        expect(itemState.collectAll().responses.R1).toEqual(['ACT1 GA1']);
+
+        // Pick up from GA1 and drop into GA2 (same match-group).
+        container.querySelector<HTMLElement>('.cutie-gap[data-identifier="GA1"]')!.click();
+        container.querySelector<HTMLElement>('.cutie-gap[data-identifier="GA2"]')!.click();
+
+        expect(itemState.collectAll().responses.R1).toEqual(['ACT1 GA2']);
+      } finally {
+        container.remove();
+      }
+    });
+  });
 });

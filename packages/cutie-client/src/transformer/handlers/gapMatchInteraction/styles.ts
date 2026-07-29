@@ -315,12 +315,39 @@ export const GAP_MATCH_INTERACTION_STYLES = `
 
   /*
    * Diagram presentation for gap-match layout columns: the gaps become
-   * full-width stacked drop targets and the columns center-align, so a shorter
-   * middle column sits centered against taller side columns (the NCLEX bowtie
-   * silhouette). Scoped to gap-match columns, not the general layout grid.
+   * full-width stacked drop targets and the columns top-align. A shared two-row
+   * subgrid (gaps row, bank row) makes every column's gap area the same height,
+   * so the gaps line up across the top and each column's choice bank starts on
+   * the same line (the first choice of every bank lines up horizontally).
+   * Scoped to vertical layouts — qti-choices-left/right lay the bank beside the
+   * gaps with a flex-row column, so they opt out of the subgrid. Not applied to
+   * the general layout grid.
    */
   .cutie-gap-match-content > .qti-layout-row {
-    align-items: center;
+    align-items: start;
+  }
+
+  .cutie-gap-match-interaction:not(.qti-choices-left):not(.qti-choices-right)
+    .cutie-gap-match-content > .qti-layout-row {
+    grid-template-rows: auto auto;
+  }
+
+  .cutie-gap-match-interaction:not(.qti-choices-left):not(.qti-choices-right)
+    .cutie-gap-match-column {
+    display: grid;
+    grid-template-rows: subgrid;
+    grid-row: span 2;
+    row-gap: 1em;
+  }
+
+  /*
+   * The subgrid row-gap now spaces the bank from its gaps, so drop the bank's
+   * own vertical margin (default and qti-choices-top alike) to avoid doubling.
+   */
+  .cutie-gap-match-interaction:not(.qti-choices-left):not(.qti-choices-right)
+    .cutie-gap-match-choices--column {
+    margin-top: 0;
+    margin-bottom: 0;
   }
 
   .cutie-gap-match-column .cutie-gap {

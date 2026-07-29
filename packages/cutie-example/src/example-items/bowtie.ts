@@ -9,14 +9,14 @@
 // one column's gaps, so the client banks each group's choices beneath its own
 // column. The layout is authored with standard vocabulary, not inferred.
 
-export const name = "Bowtie (Clinical Judgment)";
+export const name = "Bowtie";
 
 export const item = `<?xml version="1.0" encoding="UTF-8"?>
 <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 xsi:schemaLocation="http://www.imsglobal.org/xsd/imsqtiasi_v3p0
 https://purl.imsglobal.org/spec/qti/v3p0/schema/xsd/imsqti_asiv3p0p1_v1p0.xsd"
-identifier="bowtie-clinical-judgment" title="Bowtie - Clinical Judgment"
+identifier="bowtie" title="Bowtie"
 adaptive="false" time-dependent="false" xml:lang="en">
 
   <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="directedPair">
