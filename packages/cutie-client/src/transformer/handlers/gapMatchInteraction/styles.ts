@@ -333,13 +333,11 @@ export const GAP_MATCH_INTERACTION_STYLES = `
   .cutie-gap-match-interaction.qti-choices-left .cutie-gap-match-column > p,
   .cutie-gap-match-interaction.qti-choices-right .cutie-gap-match-column > p {
     grid-area: gaps;
-    margin: 0;
   }
 
   .cutie-gap-match-interaction.qti-choices-left .cutie-gap-match-choices--column,
   .cutie-gap-match-interaction.qti-choices-right .cutie-gap-match-choices--column {
     grid-area: bank;
-    margin: 0;
   }
 
   /*
