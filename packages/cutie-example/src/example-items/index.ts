@@ -36,7 +36,6 @@ import * as textEntryStandard from './standard-text-entry';
 import * as inlineChoiceStandard from './standard-inline-choice';
 import * as matchStandard from './standard-match';
 import * as gapMatchStandard from './standard-gap-match';
-import * as bowtie from './bowtie';
 import * as textEntryPartialStandard from './standard-text-entry-partial';
 import * as choiceHorizontalStandard from './standard-choice-horizontal';
 import * as choicePartialStandard from './standard-choice-partial';
@@ -121,7 +120,6 @@ export const standardExamples = [
   inlineChoiceMulti,
   matchStandard,
   gapMatchStandard,
-  bowtie,
   textEntryPartialStandard,
   choicePartialStandard,
   multiInteractionStandard,

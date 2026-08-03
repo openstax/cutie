@@ -305,6 +305,11 @@ export const GAP_MATCH_INTERACTION_STYLES = `
     align-items: flex-start;
   }
 
+  .cutie-gap-match-interaction.qti-choices-left .cutie-gap-match-column p,
+  .cutie-gap-match-interaction.qti-choices-right .cutie-gap-match-column p {
+    margin: 0;
+  }
+
   .cutie-gap-match-interaction.qti-choices-left .cutie-gap-match-choices--column {
     order: -1;
     margin: 0 1em 0 0;

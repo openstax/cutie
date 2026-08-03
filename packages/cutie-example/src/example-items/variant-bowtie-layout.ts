@@ -4,7 +4,7 @@
 // the class repositions each group's bank within its own column. DOM order
 // stays gaps -> bank, so only the visual placement changes.
 
-export const name = "Bowtie Layout";
+export const name = "Gap Match - Bowtie Layout";
 
 // A compact clinical-judgment bowtie: Actions (2 gaps) | Condition (1 gap) |
 // Parameters (2 gaps). Reused per interaction with a different choice-bank class.
@@ -42,8 +42,8 @@ const responseDecl = (rid: string): string => `
   </qti-response-declaration>`;
 
 const variants: Array<{ rid: string; cls: string; label: string }> = [
-  { rid: 'R_TOP', cls: 'qti-choices-top', label: 'qti-choices-top — each bank above its column’s gaps' },
   { rid: 'R_BOTTOM', cls: '', label: 'Default (bottom) — each bank below its column’s gaps' },
+  { rid: 'R_TOP', cls: 'qti-choices-top', label: 'qti-choices-top — each bank above its column’s gaps' },
   { rid: 'R_LEFT', cls: 'qti-choices-left', label: 'qti-choices-left — each bank left of its column’s gaps' },
   { rid: 'R_RIGHT', cls: 'qti-choices-right', label: 'qti-choices-right — each bank right of its column’s gaps' },
 ];
@@ -64,7 +64,7 @@ ${variants.map(v => responseDecl(v.rid)).join('')}
   <qti-item-body>
     <p><strong>Bowtie Layout Variants</strong></p>
     <p>Each bowtie below places its per-column choice banks with a different qti-choices-* class.</p>
-${variants.map(v => buildBowtie(v.rid, v.cls, v.label)).join('\n')}
+${variants.map(v => buildBowtie(v.rid, v.cls, v.label)).join('\n    <hr/>\n')}
   </qti-item-body>
 
   <qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>
