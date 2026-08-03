@@ -28,14 +28,6 @@ interface ChoiceData {
 }
 
 /**
- * Present a match-group identifier to assistive tech (identifiers are
- * machine tokens like "vital-signs").
- */
-function humanizeGroupId(group: string): string {
-  return group.replace(/[-_]+/g, ' ');
-}
-
-/**
  * Handler for qti-gap-match-interaction elements.
  * Creates a container with draggable choices and wires up all interactions.
  */
@@ -155,11 +147,17 @@ export class GapMatchInteractionHandler implements ElementHandler {
     const choiceBanks: HTMLElement[] = [];
     const orderedChoices: ChoiceData[] = [];
 
-    const createBank = (ariaLabel: string): HTMLElement => {
+    // A bank is a listbox; name it either by a referenced element
+    // (aria-labelledby — e.g. the column's own heading) or a literal string.
+    const createBank = (naming: { label: string } | { labelledBy: string }): HTMLElement => {
       const bank = document.createElement('div');
       bank.className = 'cutie-gap-match-choices';
       bank.setAttribute('role', 'listbox');
-      bank.setAttribute('aria-label', ariaLabel);
+      if ('labelledBy' in naming) {
+        bank.setAttribute('aria-labelledby', naming.labelledBy);
+      } else {
+        bank.setAttribute('aria-label', naming.label);
+      }
       if (choicesContainerWidth !== null) {
         bank.style.width = `${choicesContainerWidth}px`;
       }
@@ -226,7 +224,16 @@ export class GapMatchInteractionHandler implements ElementHandler {
       const groupChoices = choicesForGroup(group);
       if (groupChoices.length === 0) continue;
 
-      const bank = createBank(`${humanizeGroupId(group)} choices`);
+      // Name the bank after the column's own heading so screen-reader users
+      // hear a meaningful listbox name on entering it.
+      const columnHeading = column.querySelector('h1, h2, h3, h4, h5, h6');
+      let bank: HTMLElement;
+      if (columnHeading) {
+        if (!columnHeading.id) columnHeading.id = `${responseIdentifier}-${group}-bank-label`;
+        bank = createBank({ labelledBy: columnHeading.id });
+      } else {
+        bank = createBank({ label: 'Available choices' });
+      }
       bank.classList.add('cutie-gap-match-choices--column');
       bank.setAttribute('data-match-group', group);
       column.classList.add('cutie-gap-match-column');
@@ -243,7 +250,7 @@ export class GapMatchInteractionHandler implements ElementHandler {
     const leftoverChoices = choices.filter((choice) => !orderedChoices.includes(choice));
     if (leftoverChoices.length > 0) {
       container.classList.add('cutie-gap-match-interaction--shared-tray');
-      const tray = createBank('Available choices');
+      const tray = createBank({ label: 'Available choices' });
       for (const choice of leftoverChoices) {
         placeChoice(tray, choice);
       }

@@ -285,6 +285,10 @@ export const GAP_MATCH_INTERACTION_STYLES = `
     text-align: center;
   }
 
+  .cutie-gap-match-column > :is(h1, h2, h3, h4, h5, h6) {
+    margin: 0;
+  }
+
   .cutie-gap-match-choices--column {
     margin-top: 1em;
     margin-bottom: 0;
@@ -298,36 +302,56 @@ export const GAP_MATCH_INTERACTION_STYLES = `
     margin-bottom: 1em;
   }
 
-  /* qti-choices-left / -right: bank beside its gaps */
+  /*
+   * qti-choices-left / -right: bank beside its gaps. The column is a grid whose
+   * heading spans the full width on top, with the gaps and bank placed side by
+   * side beneath it via named areas (bank first for -left, gaps first for
+   * -right) — explicit placement, so it does not depend on source order.
+   */
   .cutie-gap-match-interaction.qti-choices-left .cutie-gap-match-column,
   .cutie-gap-match-interaction.qti-choices-right .cutie-gap-match-column {
-    flex-direction: row;
-    align-items: flex-start;
+    display: grid;
+    grid-template-columns: auto auto;
+    align-items: start;
+    justify-content: center;
+    column-gap: 1em;
   }
 
-  .cutie-gap-match-interaction.qti-choices-left .cutie-gap-match-column p,
-  .cutie-gap-match-interaction.qti-choices-right .cutie-gap-match-column p {
+  .cutie-gap-match-interaction.qti-choices-left .cutie-gap-match-column {
+    grid-template-areas: "heading heading" "bank gaps";
+  }
+
+  .cutie-gap-match-interaction.qti-choices-right .cutie-gap-match-column {
+    grid-template-areas: "heading heading" "gaps bank";
+  }
+
+  .cutie-gap-match-interaction.qti-choices-left .cutie-gap-match-column > :is(h1, h2, h3, h4, h5, h6),
+  .cutie-gap-match-interaction.qti-choices-right .cutie-gap-match-column > :is(h1, h2, h3, h4, h5, h6) {
+    grid-area: heading;
+  }
+
+  .cutie-gap-match-interaction.qti-choices-left .cutie-gap-match-column > p,
+  .cutie-gap-match-interaction.qti-choices-right .cutie-gap-match-column > p {
+    grid-area: gaps;
     margin: 0;
   }
 
-  .cutie-gap-match-interaction.qti-choices-left .cutie-gap-match-choices--column {
-    order: -1;
-    margin: 0 1em 0 0;
-  }
-
+  .cutie-gap-match-interaction.qti-choices-left .cutie-gap-match-choices--column,
   .cutie-gap-match-interaction.qti-choices-right .cutie-gap-match-choices--column {
-    margin: 0 0 0 1em;
+    grid-area: bank;
+    margin: 0;
   }
 
   /*
    * Diagram presentation for gap-match layout columns: the gaps become
-   * full-width stacked drop targets and the columns top-align. A shared two-row
-   * subgrid (gaps row, bank row) makes every column's gap area the same height,
-   * so the gaps line up across the top and each column's choice bank starts on
-   * the same line (the first choice of every bank lines up horizontally).
-   * Scoped to vertical layouts — qti-choices-left/right lay the bank beside the
-   * gaps with a flex-row column, so they opt out of the subgrid. Not applied to
-   * the general layout grid.
+   * full-width stacked drop targets and the columns top-align. A shared
+   * three-row subgrid (heading row, gaps row, bank row) makes every column's
+   * heading and gap area the same height, so the headings line up across the
+   * top, the gaps line up, and each column's choice bank starts on the same
+   * line (the first choice of every bank lines up horizontally). Scoped to
+   * vertical layouts — qti-choices-left/right lay the bank beside the gaps with
+   * a grid column, so they opt out of the subgrid. Not applied to the general
+   * layout grid.
    */
   .cutie-gap-match-content > .qti-layout-row {
     align-items: start;
@@ -335,15 +359,24 @@ export const GAP_MATCH_INTERACTION_STYLES = `
 
   .cutie-gap-match-interaction:not(.qti-choices-left):not(.qti-choices-right)
     .cutie-gap-match-content > .qti-layout-row {
-    grid-template-rows: auto auto;
+    grid-template-rows: auto auto auto;
   }
 
   .cutie-gap-match-interaction:not(.qti-choices-left):not(.qti-choices-right)
     .cutie-gap-match-column {
     display: grid;
     grid-template-rows: subgrid;
-    grid-row: span 2;
+    grid-row: span 3;
     row-gap: 1em;
+  }
+
+  /*
+   * Pin the heading to the first shared row so the bank can reorder above the
+   * gaps (qti-choices-top) without displacing the heading.
+   */
+  .cutie-gap-match-interaction:not(.qti-choices-left):not(.qti-choices-right)
+    .cutie-gap-match-column > :is(h1, h2, h3, h4, h5, h6) {
+    grid-row: 1;
   }
 
   /*

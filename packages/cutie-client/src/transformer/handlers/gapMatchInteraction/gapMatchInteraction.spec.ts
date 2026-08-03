@@ -359,6 +359,19 @@ describe('gapMatchInteraction', () => {
       </qti-gap-match-interaction>
     `;
 
+    // Same layout, but each column leads with a heading — the conventional
+    // column title authors use for a bowtie.
+    const HEADED_COLUMNS_QTI = `
+      <qti-gap-match-interaction response-identifier="R1">
+        <qti-gap-text identifier="ACT1" match-max="1" match-group="actions">Action 1</qti-gap-text>
+        <qti-gap-text identifier="PAR1" match-max="1" match-group="parameters">Parameter 1</qti-gap-text>
+        <div class="qti-layout-row">
+          <div class="qti-layout-col6"><h3>Actions to Take</h3><p><qti-gap identifier="GA1" match-group="actions"></qti-gap></p></div>
+          <div class="qti-layout-col6"><h3>Parameters</h3><p><qti-gap identifier="GP1" match-group="parameters"></qti-gap></p></div>
+        </div>
+      </qti-gap-match-interaction>
+    `;
+
     function transformToContainer(qti: string): HTMLElement {
       const doc = createQtiDocument(qti);
       const fragment = transformInteraction(doc, itemState);
@@ -397,6 +410,32 @@ describe('gapMatchInteraction', () => {
         b.getAttribute('data-identifier')
       );
       expect(parameterIds).toEqual(['PAR1']);
+    });
+
+    it('names each column bank after its own column heading via aria-labelledby', () => {
+      const container = transformToContainer(HEADED_COLUMNS_QTI);
+
+      const columns = container.querySelectorAll('.qti-layout-col6');
+      const actionsBank = columns[0].querySelector('.cutie-gap-match-choices--column')!;
+
+      // Points at an element, not a literal string, and that element is the
+      // column's own heading holding just the title text.
+      expect(actionsBank.hasAttribute('aria-label')).toBe(false);
+      const labelId = actionsBank.getAttribute('aria-labelledby');
+      expect(labelId).toBeTruthy();
+      const label = columns[0].querySelector(`#${labelId}`)!;
+      expect(label).not.toBeNull();
+      expect(label.textContent).toBe('Actions to Take');
+    });
+
+    it('falls back to a generic bank name when a column has no heading', () => {
+      const container = transformToContainer(LAYOUT_COLUMNS_QTI);
+
+      const actionsBank = container
+        .querySelector('.qti-layout-col6')!
+        .querySelector('.cutie-gap-match-choices--column')!;
+      expect(actionsBank.hasAttribute('aria-labelledby')).toBe(false);
+      expect(actionsBank.getAttribute('aria-label')).toBe('Available choices');
     });
 
     it('does not render a shared tray when every choice is banked into a column', () => {

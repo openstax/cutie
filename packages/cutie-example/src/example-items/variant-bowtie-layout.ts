@@ -24,9 +24,9 @@ const buildBowtie = (rid: string, cls: string, label: string): string => `
       <qti-gap-text identifier="PAR3" match-max="1" match-group="parameters">Deep tendon reflexes</qti-gap-text>
 
       <div class="qti-layout-row">
-        <div class="qti-layout-col4"><p><strong>Actions to Take</strong><qti-gap identifier="GA1" match-group="actions"/><qti-gap identifier="GA2" match-group="actions"/></p></div>
-        <div class="qti-layout-col4"><p><strong>Condition</strong><qti-gap identifier="GC1" match-group="condition"/></p></div>
-        <div class="qti-layout-col4"><p><strong>Parameters to Monitor</strong><qti-gap identifier="GP1" match-group="parameters"/><qti-gap identifier="GP2" match-group="parameters"/></p></div>
+        <div class="qti-layout-col4"><h3>Actions to Take</h3><p><qti-gap identifier="GA1" match-group="actions"/><qti-gap identifier="GA2" match-group="actions"/></p></div>
+        <div class="qti-layout-col4"><h3>Condition</h3><p><qti-gap identifier="GC1" match-group="condition"/></p></div>
+        <div class="qti-layout-col4"><h3>Parameters to Monitor</h3><p><qti-gap identifier="GP1" match-group="parameters"/><qti-gap identifier="GP2" match-group="parameters"/></p></div>
       </div>
     </qti-gap-match-interaction>`;
 

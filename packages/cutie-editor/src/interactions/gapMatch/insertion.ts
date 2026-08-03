@@ -307,18 +307,17 @@ export function insertBowtieInteraction(
   );
 
   // Lay the columns out with the QTI layout grid: a qti-layout-row wrapping one
-  // qti-layout-col4 per column, each holding a paragraph with a bold heading
-  // followed by its gaps. Empty text nodes wrap the inline void gaps as Slate
-  // requires. The client renders the columns side by side and, because each
-  // column's gaps all share a single match-group, banks that group's choices
-  // beneath the column.
+  // qti-layout-col4 per column, each holding a heading followed by a paragraph
+  // of its gaps. The heading is a real h3 so the client can name the column's
+  // choice bank after it (aria-labelledby). Empty text nodes wrap the inline
+  // void gaps as Slate requires. The client renders the columns side by side
+  // and, because each column's gaps all share a single match-group, banks that
+  // group's choices beneath the column.
   const layoutRow = {
     type: 'div',
     attributes: { class: 'qti-layout-row' },
     children: BOWTIE_COLUMNS.map((column) => {
-      const paragraphChildren: Array<Record<string, unknown>> = [
-        { text: column.label, bold: true },
-      ];
+      const paragraphChildren: Array<Record<string, unknown>> = [{ text: '' }];
       for (const gapId of column.gaps) {
         paragraphChildren.push({
           type: 'qti-gap',
@@ -330,7 +329,10 @@ export function insertBowtieInteraction(
       return {
         type: 'div',
         attributes: { class: 'qti-layout-col4' },
-        children: [{ type: 'paragraph', attributes: {}, children: paragraphChildren }],
+        children: [
+          { type: 'heading', level: 3, attributes: {}, children: [{ text: column.label }] },
+          { type: 'paragraph', attributes: {}, children: paragraphChildren },
+        ],
       };
     }),
   };
