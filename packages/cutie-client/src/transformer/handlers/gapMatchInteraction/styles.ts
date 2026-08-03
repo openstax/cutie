@@ -1,3 +1,4 @@
+// cspell:ignore subgrid
 export const GAP_STYLES = `
   .cutie-gap {
     display: inline-flex;

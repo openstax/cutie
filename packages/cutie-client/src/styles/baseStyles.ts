@@ -29,11 +29,6 @@ const BASE_STYLES = `
   }
 
   /*
-   * QTI shared-vocabulary layout grid: qti-layout-row lays its columns out on
-   * a 12-track grid; qti-layout-col{1..12} sets a column's width and
-   * qti-layout-offset{1..11} shifts it right by that many tracks. Columns
-   * collapse to full width on narrow screens.
-   *
    * QTI Vocab §1.1.3 Layout: https://www.imsglobal.org/spec/qti/v3p0/vocab
    */
   .qti-layout-row {
