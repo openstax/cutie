@@ -57,7 +57,6 @@ const BASE_STYLES = `
       grid-template-columns: 1fr;
     }
 
-    // stack full-width
     .qti-layout-row > * {
       grid-column: 1 / -1;
     }
