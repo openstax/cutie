@@ -34,6 +34,7 @@ import * as choiceStandard from './standard-choice';
 import * as choiceMultipleStandard from './standard-choice-multiple';
 import * as textEntryStandard from './standard-text-entry';
 import * as inlineChoiceStandard from './standard-inline-choice';
+import * as inlineChoiceRationale from './standard-inline-choice-rationale';
 import * as matchStandard from './standard-match';
 import * as gapMatchStandard from './standard-gap-match';
 import * as textEntryPartialStandard from './standard-text-entry-partial';
@@ -114,6 +115,7 @@ export const standardExamples = [
   textEntryMulti,
   inlineChoiceStandard,
   inlineChoiceMulti,
+  inlineChoiceRationale,
   matchStandard,
   gapMatchStandard,
   textEntryPartialStandard,
