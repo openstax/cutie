@@ -3454,3 +3454,156 @@ describe('processResponse - Template Variable Correct Response', () => {
     expect(incorrect.variables.SCORE).toBe(0);
   });
 });
+
+describe('triad partial credit', () => {
+  // Triad is worth 2 points (1 cause, 2 effects); cause must be right for any credit; partial
+  // credit (1 point) if only 1 effect is correct
+  const triadItemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+                     identifier="rationale-triad">
+  <qti-response-declaration identifier="CAUSE" cardinality="single" base-type="identifier">
+    <qti-correct-response>
+      <qti-value>cause_correct</qti-value>
+    </qti-correct-response>
+  </qti-response-declaration>
+  <qti-response-declaration identifier="EFFECT_1" cardinality="single" base-type="identifier">
+    <qti-correct-response>
+      <qti-value>effect1_correct</qti-value>
+    </qti-correct-response>
+  </qti-response-declaration>
+  <qti-response-declaration identifier="EFFECT_2" cardinality="single" base-type="identifier">
+    <qti-correct-response>
+      <qti-value>effect2_correct</qti-value>
+    </qti-correct-response>
+  </qti-response-declaration>
+
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value><qti-value>0</qti-value></qti-default-value>
+  </qti-outcome-declaration>
+  <qti-outcome-declaration identifier="EFFECT_1_SCORE" cardinality="single" base-type="float">
+    <qti-default-value><qti-value>0</qti-value></qti-default-value>
+  </qti-outcome-declaration>
+  <qti-outcome-declaration identifier="EFFECT_2_SCORE" cardinality="single" base-type="float">
+    <qti-default-value><qti-value>0</qti-value></qti-default-value>
+  </qti-outcome-declaration>
+  <qti-outcome-declaration identifier="MAXSCORE" cardinality="single" base-type="float">
+    <qti-default-value><qti-value>2</qti-value></qti-default-value>
+  </qti-outcome-declaration>
+
+  <qti-item-body/>
+
+  <qti-response-processing>
+    <qti-response-condition>
+      <qti-response-if>
+        <qti-match>
+          <qti-variable identifier="EFFECT_1"/>
+          <qti-correct identifier="EFFECT_1"/>
+        </qti-match>
+        <qti-set-outcome-value identifier="EFFECT_1_SCORE">
+          <qti-base-value base-type="float">1</qti-base-value>
+        </qti-set-outcome-value>
+      </qti-response-if>
+      <qti-response-else>
+        <qti-set-outcome-value identifier="EFFECT_1_SCORE">
+          <qti-base-value base-type="float">0</qti-base-value>
+        </qti-set-outcome-value>
+      </qti-response-else>
+    </qti-response-condition>
+
+    <qti-response-condition>
+      <qti-response-if>
+        <qti-match>
+          <qti-variable identifier="EFFECT_2"/>
+          <qti-correct identifier="EFFECT_2"/>
+        </qti-match>
+        <qti-set-outcome-value identifier="EFFECT_2_SCORE">
+          <qti-base-value base-type="float">1</qti-base-value>
+        </qti-set-outcome-value>
+      </qti-response-if>
+      <qti-response-else>
+        <qti-set-outcome-value identifier="EFFECT_2_SCORE">
+          <qti-base-value base-type="float">0</qti-base-value>
+        </qti-set-outcome-value>
+      </qti-response-else>
+    </qti-response-condition>
+
+    <qti-response-condition>
+      <qti-response-if>
+        <qti-match>
+          <qti-variable identifier="CAUSE"/>
+          <qti-correct identifier="CAUSE"/>
+        </qti-match>
+        <qti-set-outcome-value identifier="SCORE">
+          <qti-sum>
+            <qti-variable identifier="EFFECT_1_SCORE"/>
+            <qti-variable identifier="EFFECT_2_SCORE"/>
+          </qti-sum>
+        </qti-set-outcome-value>
+      </qti-response-if>
+      <qti-response-else>
+        <qti-set-outcome-value identifier="SCORE">
+          <qti-base-value base-type="float">0</qti-base-value>
+        </qti-set-outcome-value>
+      </qti-response-else>
+    </qti-response-condition>
+  </qti-response-processing>
+</qti-assessment-item>`;
+
+  const scoreTriad = (submission: Record<string, string>): number => {
+    const itemDoc = parser.parseFromString(triadItemXml, 'text/xml');
+    const currentState: AttemptState = {
+      variables: { SCORE: 0 },
+      completionStatus: 'not_attempted',
+      score: null,
+    };
+    const newState = processResponse(itemDoc, submission, currentState);
+    return newState.variables.SCORE as number;
+  };
+
+  test('awards full credit (2) when cause and both effects are correct', () => {
+    expect(
+      scoreTriad({
+        CAUSE: 'cause_correct',
+        EFFECT_1: 'effect1_correct',
+        EFFECT_2: 'effect2_correct',
+      })
+    ).toBe(2);
+  });
+
+  test('awards partial credit (1) when cause and one effect are correct', () => {
+    expect(
+      scoreTriad({
+        CAUSE: 'cause_correct',
+        EFFECT_1: 'effect1_correct',
+        EFFECT_2: 'effect2_wrong',
+      })
+    ).toBe(1);
+    expect(
+      scoreTriad({
+        CAUSE: 'cause_correct',
+        EFFECT_1: 'effect1_wrong',
+        EFFECT_2: 'effect2_correct',
+      })
+    ).toBe(1);
+  });
+
+  test('awards no credit when cause is correct but both effects are wrong', () => {
+    expect(
+      scoreTriad({
+        CAUSE: 'cause_correct',
+        EFFECT_1: 'effect1_wrong',
+        EFFECT_2: 'effect2_wrong',
+      })
+    ).toBe(0);
+  });
+
+  test('gates all credit on the cause: wrong cause scores 0 even with correct effects', () => {
+    expect(
+      scoreTriad({
+        CAUSE: 'cause_wrong',
+        EFFECT_1: 'effect1_correct',
+        EFFECT_2: 'effect2_correct',
+      })
+    ).toBe(0);
+  });
+});
