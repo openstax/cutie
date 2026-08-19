@@ -5,7 +5,7 @@
 //   - Partial credit: 1 point for one correct effect, 2 points for both.
 // Cause gate + qti-sum of per-effect scores, with an explicit MAXSCORE of 2.
 
-export const name = "Inline Choice - Rationale";
+export const name = "Inline Choice - Rationale (Triad)";
 
 export const item = `<?xml version="1.0" encoding="UTF-8"?>
 <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"

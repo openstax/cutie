@@ -3607,3 +3607,91 @@ describe('triad partial credit', () => {
     ).toBe(0);
   });
 });
+
+describe('dyad all-or-nothing', () => {
+  // Dyad is worth 1 point (1 cause, 1 effect); BOTH parts must be correct for credit
+  // (all-or-nothing; no partial credit)
+  const dyadItemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+                     identifier="rationale-dyad">
+  <qti-response-declaration identifier="CAUSE" cardinality="single" base-type="identifier">
+    <qti-correct-response>
+      <qti-value>cause_correct</qti-value>
+    </qti-correct-response>
+  </qti-response-declaration>
+  <qti-response-declaration identifier="EFFECT" cardinality="single" base-type="identifier">
+    <qti-correct-response>
+      <qti-value>effect_correct</qti-value>
+    </qti-correct-response>
+  </qti-response-declaration>
+
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value><qti-value>0</qti-value></qti-default-value>
+  </qti-outcome-declaration>
+  <qti-outcome-declaration identifier="MAXSCORE" cardinality="single" base-type="float">
+    <qti-default-value><qti-value>1</qti-value></qti-default-value>
+  </qti-outcome-declaration>
+
+  <qti-item-body/>
+
+  <qti-response-processing>
+    <qti-response-condition>
+      <qti-response-if>
+        <qti-and>
+          <qti-match>
+            <qti-variable identifier="CAUSE"/>
+            <qti-correct identifier="CAUSE"/>
+          </qti-match>
+          <qti-match>
+            <qti-variable identifier="EFFECT"/>
+            <qti-correct identifier="EFFECT"/>
+          </qti-match>
+        </qti-and>
+        <qti-set-outcome-value identifier="SCORE">
+          <qti-base-value base-type="float">1</qti-base-value>
+        </qti-set-outcome-value>
+      </qti-response-if>
+      <qti-response-else>
+        <qti-set-outcome-value identifier="SCORE">
+          <qti-base-value base-type="float">0</qti-base-value>
+        </qti-set-outcome-value>
+      </qti-response-else>
+    </qti-response-condition>
+  </qti-response-processing>
+</qti-assessment-item>`;
+
+  const scoreDyad = (submission: Record<string, string>): number => {
+    const itemDoc = parser.parseFromString(dyadItemXml, 'text/xml');
+    const currentState: AttemptState = {
+      variables: { SCORE: 0 },
+      completionStatus: 'not_attempted',
+      score: null,
+    };
+    const newState = processResponse(itemDoc, submission, currentState);
+    return newState.variables.SCORE as number;
+  };
+
+  test('awards full credit (1) when both cause and effect are correct', () => {
+    expect(
+      scoreDyad({ CAUSE: 'cause_correct', EFFECT: 'effect_correct' })
+    ).toBe(1);
+  });
+
+  test('awards no credit when the effect is wrong', () => {
+    expect(
+      scoreDyad({ CAUSE: 'cause_correct', EFFECT: 'effect_wrong' })
+    ).toBe(0);
+  });
+
+  test('awards no credit when the cause is wrong', () => {
+    expect(
+      scoreDyad({ CAUSE: 'cause_wrong', EFFECT: 'effect_correct' })
+    ).toBe(0);
+  });
+
+  test('awards no credit when both parts are wrong', () => {
+    expect(
+      scoreDyad({ CAUSE: 'cause_wrong', EFFECT: 'effect_wrong' })
+    ).toBe(0);
+  });
+});
