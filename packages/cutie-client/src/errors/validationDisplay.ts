@@ -143,10 +143,7 @@ export function createInlineRequiredIndicator(
   // Hidden from the standalone accessibility tree so VoiceOver's linear
   // navigation doesn't stop on this span as its own node and re-read the
   // same text a second time. The message still reaches AT users once, via
-  // aria-describedby on the input — a node directly referenced that way
-  // contributes its text to the computed description even while hidden.
-  // Not a live region — the label is read on focus via aria-describedby.
-  // Announcing changes is handled explicitly by callers via announce().
+  // aria-describedby on the input.
   span.setAttribute('aria-hidden', 'true');
   span.setAttribute('aria-label', title);
   span.title = title;
