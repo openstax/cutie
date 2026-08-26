@@ -100,7 +100,6 @@ function validateHottextInteractions(
     const response = submission[responseIdentifier];
     const selectedCount = getSelectedCount(response);
 
-    // Check min-choices
     const minChoicesAttr = interaction.getAttribute('min-choices');
     if (minChoicesAttr) {
       const minChoices = parseInt(minChoicesAttr, 10);
@@ -113,7 +112,6 @@ function validateHottextInteractions(
       }
     }
 
-    // Check max-choices
     const maxChoicesAttr = interaction.getAttribute('max-choices');
     if (maxChoicesAttr) {
       const maxChoices = parseInt(maxChoicesAttr, 10);
