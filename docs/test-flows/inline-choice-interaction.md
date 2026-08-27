@@ -1,10 +1,12 @@
 ---
 name: Inline Choice Interaction
 route: /
-tags: [inline-choice, interaction, dropdown, input-width, data-prompt, validation]
+tags: [inline-choice, interaction, dropdown, input-width, data-prompt, validation, rationale, partial-credit]
 examples:
   - Inline Choice
   - Inline Choice - Multiple
+  - Inline Choice - Rationale (Dyad)
+  - Inline Choice - Rationale (Triad)
 ---
 
 # Inline Choice Interaction
@@ -89,3 +91,65 @@ scoring, feedback, input-width sizing, and custom prompt text.
    - [ ] A score out of 3 is displayed
    - [ ] All three dropdowns become disabled
    - [ ] Per-part feedback appears for each response
+
+## Rationale Scoring: All-or-Nothing (Dyad)
+
+**Setup:** Load "Inline Choice - Rationale (Dyad)" from the Supported Examples group. This is a
+Drop-down: Rationale dyad (1 cause + 1 effect) worth 1 point: both parts must be correct for
+any credit (all-or-nothing; no partial credit).
+
+The correct answers are: event = **warm front**, reading = **a rising temperature**.
+
+1. Observe the rendered item.
+   - [ ] A sentence displays two dropdowns: an event, then a reading
+   - [ ] The event dropdown shows placeholder "Choose event…"
+   - [ ] The reading dropdown shows placeholder "Choose reading…"
+   - [ ] Both dropdowns show a required indicator (`*`)
+
+2. Select **warm front** and **a rising temperature**, then click "Submit".
+   - [ ] Score displayed is **1 / 1**
+   - [ ] Correct-style feedback appears for the event and the reading
+
+3. Reset. Select **warm front** but the wrong reading (e.g. a falling temperature), then click
+   "Submit".
+   - [ ] Score displayed is **0 / 1** (no partial credit — both parts required)
+   - [ ] Reading shows incorrect-style feedback; event shows correct
+
+4. Reset. Select the wrong event (e.g. cold front) but the correct reading, then click "Submit".
+   - [ ] Score displayed is **0 / 1**
+   - [ ] Event shows incorrect-style feedback; reading shows correct
+
+5. After any submission.
+   - [ ] Both dropdowns become disabled
+
+## Rationale Scoring: Cause Gate & Partial Credit (Triad)
+
+**Setup:** Load "Inline Choice - Rationale (Triad)" from the Supported Examples group. This is a
+Drop-down: Rationale triad (1 cause + 2 effects) worth 2 points: the cause must be correct
+for any credit, with partial credit (1 point) for a single correct effect.
+
+The correct answers are: event = **cold front**, reading 1 = **a falling temperature**,
+reading 2 = **gusting winds**.
+
+1. Observe the rendered item.
+   - [ ] A sentence displays three dropdowns: an event, then two readings
+   - [ ] The event dropdown shows placeholder "Choose event…"
+   - [ ] Both reading dropdowns show placeholder "Choose reading…"
+   - [ ] All three dropdowns show a required indicator (`*`)
+
+2. Select **cold front**, **a falling temperature**, and **gusting winds**, then click "Submit".
+   - [ ] Score displayed is **2 / 2**
+   - [ ] Correct-style feedback appears for the event and both readings
+
+3. Reset. Select **cold front** and **a falling temperature**, but the wrong second reading
+   (e.g. calm winds), then click "Submit".
+   - [ ] Score displayed is **1 / 2** (partial credit)
+   - [ ] Reading 2 shows incorrect-style feedback; event and reading 1 show correct
+
+4. Reset. Select the wrong event (e.g. warm front) but both correct readings, then click
+   "Submit".
+   - [ ] Score displayed is **0 / 2** (cause gate — no credit without the correct event)
+   - [ ] Event shows incorrect-style feedback
+
+5. After any submission.
+   - [ ] All three dropdowns become disabled
