@@ -20,6 +20,7 @@ export function createTransformContext(
     ...baseContext,
     styleManager,
     transformChildren: (el: Element) => transformChildren(el, context),
+    transformNode: (el: Element) => transformNode(el, context),
   };
 
   return context;

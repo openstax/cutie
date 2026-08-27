@@ -507,6 +507,13 @@ export function GapTextPropertiesPanel({
         min="0"
       />
 
+      <PropertyField
+        label="Match Group"
+        value={attrs['match-group'] || ''}
+        onChange={(val) => handleAttributeChange('match-group', val)}
+        placeholder="e.g. actions"
+      />
+
       <PropertyCheckbox
         label="Fixed position"
         checked={attrs.fixed === 'true'}
@@ -796,6 +803,13 @@ export function GapPropertiesPanel({
         value={attrs.identifier}
         onChange={(val) => handleAttributeChange('identifier', val)}
         required
+      />
+
+      <PropertyField
+        label="Match Group"
+        value={attrs['match-group'] || ''}
+        onChange={(val) => handleAttributeChange('match-group', val)}
+        placeholder="e.g. actions"
       />
 
       <div className="gap-panel-actions">

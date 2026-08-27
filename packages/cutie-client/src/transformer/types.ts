@@ -80,6 +80,14 @@ export interface TransformContext {
   transformChildren?: (element: Element) => DocumentFragment;
 
   /**
+   * Transform a single element (preserving the element itself, not just its
+   * children). Use when a handler needs an authored wrapper — e.g. a
+   * qti-layout-row grid — to survive into the output. Injected to avoid
+   * circular dependencies.
+   */
+  transformNode?: (element: Element) => DocumentFragment;
+
+  /**
    * Item state manager for response collection and interaction state.
    * Handlers use this to register response accessors and observe state changes.
    */

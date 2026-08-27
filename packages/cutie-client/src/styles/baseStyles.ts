@@ -27,6 +27,40 @@ const BASE_STYLES = `
     max-width: 100%;
     height: auto;
   }
+
+  /*
+   * QTI Vocab §1.1.3 Layout: https://www.imsglobal.org/spec/qti/v3p0/vocab
+   */
+  .qti-layout-row {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 1.5em;
+    margin: 1em 0;
+    align-items: start;
+  }
+
+  .qti-layout-col1 { grid-column: span 1; }
+  .qti-layout-col2 { grid-column: span 2; }
+  .qti-layout-col3 { grid-column: span 3; }
+  .qti-layout-col4 { grid-column: span 4; }
+  .qti-layout-col5 { grid-column: span 5; }
+  .qti-layout-col6 { grid-column: span 6; }
+  .qti-layout-col7 { grid-column: span 7; }
+  .qti-layout-col8 { grid-column: span 8; }
+  .qti-layout-col9 { grid-column: span 9; }
+  .qti-layout-col10 { grid-column: span 10; }
+  .qti-layout-col11 { grid-column: span 11; }
+  .qti-layout-col12 { grid-column: span 12; }
+
+  @media (max-width: 40em) {
+    .qti-layout-row {
+      grid-template-columns: 1fr;
+    }
+
+    .qti-layout-row > * {
+      grid-column: 1 / -1;
+    }
+  }
 `;
 
 export function registerBaseStyles(styleManager: StyleManager): void {
