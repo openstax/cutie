@@ -1,5 +1,5 @@
-/* spell-checker: ignore hottext */
-import { beforeEach, describe, expect, it } from 'vitest';
+/* spell-checker: ignore hottext radiogroup */
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ItemStateImpl } from '../../state/itemState';
 import { registry } from '../registry';
 import type { TransformContext } from '../types';
@@ -66,6 +66,16 @@ function render(doc: Document, itemState: ItemStateImpl): HTMLElement {
   return container;
 }
 
+// `.focus()` and `document.activeElement` only work for elements attached to
+// the document, so arrow/focus tests attach the rendered container and clean up
+// in an afterEach.
+const attached: HTMLElement[] = [];
+function attach(container: HTMLElement): HTMLElement {
+  document.body.appendChild(container);
+  attached.push(container);
+  return container;
+}
+
 const MULTI_DECL = `
   <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="identifier"></qti-response-declaration>
 `;
@@ -87,6 +97,10 @@ describe('hottextInteraction', () => {
 
   beforeEach(() => {
     itemState = new ItemStateImpl();
+  });
+
+  afterEach(() => {
+    while (attached.length) attached.pop()!.remove();
   });
 
   describe('rendering', () => {
@@ -207,7 +221,45 @@ describe('hottextInteraction', () => {
     });
   });
 
-  describe('single-select behavior', () => {
+  describe('single-select behavior (radiogroup)', () => {
+    it('exposes radiogroup + radio semantics instead of aria-pressed toggles', () => {
+      const doc = createQtiDocument(
+        `<qti-hottext-interaction response-identifier="RESPONSE" max-choices="1">${passage}</qti-hottext-interaction>`,
+        SINGLE_DECL
+      );
+      const container = render(doc, itemState);
+
+      const group = container.querySelector('.cutie-hottext-interaction')!;
+      expect(group.getAttribute('role')).toBe('radiogroup');
+
+      const buttons = container.querySelectorAll<HTMLButtonElement>('button.cutie-hottext');
+      for (const button of buttons) {
+        expect(button.getAttribute('role')).toBe('radio');
+        expect(button.getAttribute('aria-checked')).toBe('false');
+        expect(button.hasAttribute('aria-pressed')).toBe(false);
+      }
+    });
+
+    it('sets aria-required when min-choices >= 1', () => {
+      const doc = createQtiDocument(
+        `<qti-hottext-interaction response-identifier="RESPONSE" max-choices="1" min-choices="1">${passage}</qti-hottext-interaction>`,
+        SINGLE_DECL
+      );
+      const container = render(doc, itemState);
+      const group = container.querySelector('.cutie-hottext-interaction')!;
+      expect(group.getAttribute('aria-required')).toBe('true');
+    });
+
+    it('does not set aria-required without a minimum', () => {
+      const doc = createQtiDocument(
+        `<qti-hottext-interaction response-identifier="RESPONSE" max-choices="1">${passage}</qti-hottext-interaction>`,
+        SINGLE_DECL
+      );
+      const container = render(doc, itemState);
+      const group = container.querySelector('.cutie-hottext-interaction')!;
+      expect(group.hasAttribute('aria-required')).toBe(false);
+    });
+
     it('clears siblings on selection and collects a scalar response', () => {
       const doc = createQtiDocument(
         `<qti-hottext-interaction response-identifier="RESPONSE" max-choices="1">${passage}</qti-hottext-interaction>`,
@@ -218,11 +270,84 @@ describe('hottextInteraction', () => {
 
       buttons[0]!.click();
       buttons[2]!.click();
-      expect(buttons[0]!.getAttribute('aria-pressed')).toBe('false');
-      expect(buttons[2]!.getAttribute('aria-pressed')).toBe('true');
+      expect(buttons[0]!.getAttribute('aria-checked')).toBe('false');
+      expect(buttons[2]!.getAttribute('aria-checked')).toBe('true');
 
       const result = itemState.collectAll();
       expect(result.responses).toEqual({ RESPONSE: 'C' });
+    });
+
+    it('does not deselect a radio when re-activated (no toggle-off)', () => {
+      const doc = createQtiDocument(
+        `<qti-hottext-interaction response-identifier="RESPONSE" max-choices="1">${passage}</qti-hottext-interaction>`,
+        SINGLE_DECL
+      );
+      const container = render(doc, itemState);
+      const buttons = container.querySelectorAll<HTMLButtonElement>('button.cutie-hottext');
+
+      buttons[2]!.click();
+      buttons[2]!.click();
+      expect(buttons[2]!.getAttribute('aria-checked')).toBe('true');
+      expect(itemState.collectAll().responses).toEqual({ RESPONSE: 'C' });
+    });
+
+    it('keeps exactly one tab stop and moves it to the selection (roving tabindex)', () => {
+      const doc = createQtiDocument(
+        `<qti-hottext-interaction response-identifier="RESPONSE" max-choices="1">${passage}</qti-hottext-interaction>`,
+        SINGLE_DECL
+      );
+      const container = render(doc, itemState);
+      const buttons = Array.from(
+        container.querySelectorAll<HTMLButtonElement>('button.cutie-hottext')
+      );
+
+      const tabbable = () => buttons.filter((b) => b.getAttribute('tabindex') === '0');
+      expect(tabbable()).toEqual([buttons[0]]);
+
+      buttons[2]!.click();
+      expect(tabbable()).toEqual([buttons[2]]);
+    });
+
+    it('moves focus and selection with arrow keys', () => {
+      const doc = createQtiDocument(
+        `<qti-hottext-interaction response-identifier="RESPONSE" max-choices="1">${passage}</qti-hottext-interaction>`,
+        SINGLE_DECL
+      );
+      const container = attach(render(doc, itemState));
+      const buttons = container.querySelectorAll<HTMLButtonElement>('button.cutie-hottext');
+
+      buttons[0]!.focus();
+      buttons[0]!.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })
+      );
+      expect(document.activeElement).toBe(buttons[1]);
+      expect(buttons[1]!.getAttribute('aria-checked')).toBe('true');
+      expect(itemState.collectAll().responses).toEqual({ RESPONSE: 'B' });
+
+      buttons[1]!.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true })
+      );
+      expect(document.activeElement).toBe(buttons[0]);
+      expect(buttons[0]!.getAttribute('aria-checked')).toBe('true');
+      expect(buttons[1]!.getAttribute('aria-checked')).toBe('false');
+      expect(itemState.collectAll().responses).toEqual({ RESPONSE: 'A' });
+    });
+
+    it('applies a scalar default and makes the checked radio the tab stop', () => {
+      const doc = createQtiDocument(
+        `<qti-hottext-interaction response-identifier="RESPONSE" max-choices="1">${passage}</qti-hottext-interaction>`,
+        `<qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier">
+          <qti-default-value><qti-value>C</qti-value></qti-default-value>
+        </qti-response-declaration>`
+      );
+      const container = render(doc, itemState);
+      const buttons = Array.from(
+        container.querySelectorAll<HTMLButtonElement>('button.cutie-hottext')
+      );
+
+      expect(buttons[2]!.getAttribute('aria-checked')).toBe('true');
+      expect(buttons.filter((b) => b.getAttribute('tabindex') === '0')).toEqual([buttons[2]]);
+      expect(itemState.collectAll().responses).toEqual({ RESPONSE: 'C' });
     });
   });
 

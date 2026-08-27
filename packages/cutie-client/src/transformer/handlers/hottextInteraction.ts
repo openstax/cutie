@@ -1,4 +1,4 @@
-/* spell-checker: ignore hottext */
+/* spell-checker: ignore hottext radiogroup deselectable */
 import {
   createInvalidAttributeError,
   createMissingAttributeError,
@@ -8,6 +8,12 @@ import {
   createConstraintMessage,
 } from '../../errors/validationDisplay';
 import { announce } from '../../utils/liveRegion';
+import {
+  focusNext,
+  focusPrev,
+  initializeRovingTabindex,
+  updateRovingTabindex,
+} from '../../utils/rovingTabindex';
 import { registry } from '../registry';
 import type { ElementHandler, TransformContext } from '../types';
 import { getDefaultValue } from './responseUtils';
@@ -159,7 +165,10 @@ class HottextInteractionHandler implements ElementHandler {
       ? `cutie-hottext-interaction ${sourceClasses}`
       : 'cutie-hottext-interaction';
     container.setAttribute('data-response-identifier', responseIdentifier);
-    container.setAttribute('role', 'group');
+    container.setAttribute('role', isSingleSelect ? 'radiogroup' : 'group');
+    if (isSingleSelect && minChoices >= 1) {
+      container.setAttribute('aria-required', 'true');
+    }
 
     const children = Array.from(element.children);
     const promptElement = children.find(
@@ -205,9 +214,30 @@ class HottextInteractionHandler implements ElementHandler {
 
     const getIdentifier = (button: HTMLButtonElement): string =>
       button.getAttribute('data-hottext-identifier') ?? '';
-    const isPressed = (button: HTMLButtonElement): boolean =>
-      button.getAttribute('aria-pressed') === 'true';
-    const pressedCount = (): number => buttons.filter(isPressed).length;
+
+    const selAttr = isSingleSelect ? 'aria-checked' : 'aria-pressed';
+    const isSelected = (button: HTMLButtonElement): boolean =>
+      button.getAttribute(selAttr) === 'true';
+    const setSelected = (button: HTMLButtonElement, on: boolean): void => {
+      button.setAttribute(selAttr, String(on));
+    };
+    const selectedCount = (): number => buttons.filter(isSelected).length;
+
+    // Convert the toggle buttons into radios for single-select
+    const radioMap = new Map<string, HTMLElement>();
+    if (isSingleSelect) {
+      for (const button of buttons) {
+        button.setAttribute('role', 'radio');
+        button.setAttribute('aria-checked', 'false');
+        button.removeAttribute('aria-pressed');
+        radioMap.set(getIdentifier(button), button);
+      }
+    }
+
+    const selectExclusive = (button: HTMLButtonElement): void => {
+      for (const other of buttons) setSelected(other, false);
+      setSelected(button, true);
+    };
 
     // Constraint message
     const minSelectionsMessage = element.getAttribute('data-min-selections-message');
@@ -237,13 +267,22 @@ class HottextInteractionHandler implements ElementHandler {
       const defaults = Array.isArray(defaultValue) ? defaultValue : [defaultValue];
       for (const button of buttons) {
         if (defaults.includes(getIdentifier(button))) {
-          button.setAttribute('aria-pressed', 'true');
+          setSelected(button, true);
         }
       }
     }
 
+    if (isSingleSelect) {
+      const checked = buttons.find(isSelected);
+      if (checked) {
+        updateRovingTabindex(radioMap, checked);
+      } else {
+        initializeRovingTabindex(radioMap);
+      }
+    }
+
     const checkValidity = (): boolean => {
-      const count = pressedCount();
+      const count = selectedCount();
       return (minChoices <= 0 || count >= minChoices) &&
              (maxChoices <= 0 || isSingleSelect || count <= maxChoices);
     };
@@ -258,7 +297,7 @@ class HottextInteractionHandler implements ElementHandler {
       container.setAttribute('aria-invalid', 'true');
       constraint?.setError(true);
 
-      const count = pressedCount();
+      const count = selectedCount();
       if (!isSingleSelect && maxChoices > 0 && count > maxChoices) {
         const msg = maxSelectionsMessage ?? hintText;
         if (msg) constraint?.setText(msg);
@@ -273,34 +312,53 @@ class HottextInteractionHandler implements ElementHandler {
       button.addEventListener('click', () => {
         if (button.disabled) return;
 
-        if (isPressed(button)) {
-          // Toggle off
-          button.setAttribute('aria-pressed', 'false');
-        } else if (isSingleSelect) {
-          // Single-select: activating one clears the others
-          for (const other of buttons) {
-            other.setAttribute('aria-pressed', 'false');
-          }
-          button.setAttribute('aria-pressed', 'true');
+        if (isSingleSelect) {
+          // Radio semantics: activating selects and clears siblings. A radio is
+          // not deselectable by re-clicking, so re-activating it is a no-op.
+          if (isSelected(button)) return;
+          selectExclusive(button);
+          updateRovingTabindex(radioMap, button);
+        } else if (isSelected(button)) {
+          // Multi-select toggle off
+          setSelected(button, false);
         } else {
           // Multi-select: block additional selections once at max
-          if (maxChoices > 0 && pressedCount() >= maxChoices) {
+          if (maxChoices > 0 && selectedCount() >= maxChoices) {
             const msg = maxSelectionsMessage ?? hintText;
             if (msg) announce(context, msg, 'assertive');
             return;
           }
-          button.setAttribute('aria-pressed', 'true');
+          setSelected(button, true);
         }
 
         // Clear any prior validation error once the selection is valid
         if (checkValidity()) clearErrors();
       });
+
+      if (isSingleSelect) {
+        button.addEventListener('keydown', (event) => {
+          if (button.disabled) return;
+          const isNext = event.key === 'ArrowDown' || event.key === 'ArrowRight';
+          const isPrev = event.key === 'ArrowUp' || event.key === 'ArrowLeft';
+          if (!isNext && !isPrev) return;
+
+          event.preventDefault();
+          const id = getIdentifier(button);
+          const moved = isNext
+            ? focusNext(radioMap, id)
+            : focusPrev(radioMap, id);
+          if (moved instanceof HTMLButtonElement) {
+            selectExclusive(moved);
+            if (checkValidity()) clearErrors();
+          }
+        });
+      }
     }
 
     // Register response accessor with itemState
     if (context.itemState) {
       const getResponse = (): string | string[] | null => {
-        const selected = buttons.filter(isPressed).map(getIdentifier);
+        const selected = buttons.filter(isSelected).map(getIdentifier);
         if (selected.length === 0) return null;
         return isSingleSelect ? (selected[0] ?? null) : selected;
       };
@@ -369,15 +427,16 @@ const HOTTEXT_STYLES = `
     outline-offset: 2px;
   }
 
-  /* Selected state — colored fill with a solid underline as a non-color cue */
-  .cutie-hottext[aria-pressed="true"] {
+  .cutie-hottext[aria-pressed="true"],
+  .cutie-hottext[aria-checked="true"] {
     background-color: var(--cutie-primary);
     color: var(--cutie-bg);
     text-decoration-style: solid;
     text-decoration-color: currentColor;
   }
 
-  .cutie-hottext[aria-pressed="true"]:hover {
+  .cutie-hottext[aria-pressed="true"]:hover,
+  .cutie-hottext[aria-checked="true"]:hover {
     background-color: var(--cutie-primary);
   }
 
@@ -390,7 +449,8 @@ const HOTTEXT_STYLES = `
     background-color: transparent;
   }
 
-  .cutie-hottext[aria-pressed="true"]:disabled {
+  .cutie-hottext[aria-pressed="true"]:disabled,
+  .cutie-hottext[aria-checked="true"]:disabled {
     background-color: var(--cutie-primary);
     opacity: 0.7;
   }
