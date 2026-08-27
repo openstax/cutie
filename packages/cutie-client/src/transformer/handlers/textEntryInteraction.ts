@@ -3,6 +3,7 @@ import {
   type ConstraintMessage,
   createInlineRequiredIndicator,
 } from '../../errors/validationDisplay';
+import { announce } from '../../utils/liveRegion';
 import { registry } from '../registry';
 import type { ElementHandler, TransformContext } from '../types';
 import { parseInputWidth } from '../vocabUtils';
@@ -132,7 +133,23 @@ class TextEntryInteractionHandler implements ElementHandler {
 
       const responseAccessor = () => {
         const value = input.value.trim();
+
+        if (hasConstraint) {
+          const isValid = new RegExp(patternMask).test(input.value);
+
+          if (!isValid) {
+            input.setAttribute('aria-invalid', 'true');
+            indicator?.setError(true);
+            announce(context, patternMessage ?? 'Required format', 'assertive');
+            return { value: value === '' ? null : value, valid: false };
+          }
+
+          input.removeAttribute('aria-invalid');
+          indicator?.setError(false);
+        }
+
         const valid = validate();
+
         return { value: value === '' ? null : value, valid };
       };
 

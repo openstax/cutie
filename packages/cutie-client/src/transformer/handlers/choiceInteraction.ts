@@ -265,10 +265,16 @@ class ChoiceInteractionHandler implements ElementHandler {
         const checkedCount = inputElements.filter((inp) => inp.checked).length;
         if (!isSingleSelect && maxChoices > 0 && checkedCount > maxChoices) {
           const msg = maxSelectionsMessage ?? hintText;
-          if (msg) constraint?.setText(msg);
+          if (msg) {
+            constraint?.setText(msg);
+            announce(context, msg, 'assertive');
+          }
         } else if (minChoices > 0 && checkedCount < minChoices) {
           const msg = minSelectionsMessage ?? hintText;
-          if (msg) constraint?.setText(msg);
+          if (msg) {
+            constraint?.setText(msg);
+            announce(context, msg, 'assertive');
+          }
         }
       };
 
@@ -291,8 +297,6 @@ class ChoiceInteractionHandler implements ElementHandler {
             const checkedCount = inputElements.filter((inp) => inp.checked).length;
             if (!isSingleSelect && maxChoices > 0 && checkedCount > maxChoices) {
               showErrors();
-              const msg = maxSelectionsMessage ?? hintText;
-              if (msg) announce(context, msg, 'assertive');
             }
           }
         });

@@ -4,6 +4,7 @@ import {
   type ConstraintMessage,
   createConstraintMessage,
 } from '../../../errors/validationDisplay';
+import { announce } from '../../../utils/liveRegion';
 import type { ElementHandler, TransformContext } from '../../types';
 import { getDefaultValue } from '../responseUtils';
 import { MatchController } from './controller';
@@ -173,6 +174,7 @@ export class MatchInteractionHandler implements ElementHandler {
         if (!isValid) {
           container.setAttribute('aria-invalid', 'true');
           constraint?.setError(true);
+          if (constraintText) announce(context, constraintText, 'assertive');
           return { value: response.length > 0 ? response : null, valid: false };
         }
 

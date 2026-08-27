@@ -8,6 +8,7 @@ import {
   createInteractionContainer,
   parseConstraints,
   processPrompt,
+  showConstraintError,
   wireConstraintDescribedBy,
 } from './utils';
 
@@ -125,7 +126,18 @@ class FormulaInteractionHandler implements ElementHandler {
     if (context.itemState) {
       context.itemState.registerResponse(responseIdentifier, () => {
         const trimmed = currentValue.trim();
+        const isValid = constraints.minStrings <= 0 || trimmed.length > 0;
+
+        if (!isValid) {
+          activeInputElement?.setAttribute('aria-invalid', 'true');
+          showConstraintError(constraintResult, constraintResult?.initialText ?? null, context);
+          return { value: trimmed === '' ? null : trimmed, valid: false };
+        }
+
+        activeInputElement?.removeAttribute('aria-invalid');
+        constraintResult?.constraint.setError(false);
         const valid = validate();
+
         return { value: trimmed === '' ? null : trimmed, valid };
       });
     }

@@ -7,11 +7,12 @@ interface LiveRegionState {
   pendingMessages: string[];
   flushScheduled: boolean;
   flushCtx: TransformContext | null;
+  announceToggle: boolean;
 }
 
 const regions: Record<Urgency, LiveRegionState> = {
-  polite: { element: null, pendingMessages: [], flushScheduled: false, flushCtx: null },
-  assertive: { element: null, pendingMessages: [], flushScheduled: false, flushCtx: null },
+  polite: { element: null, pendingMessages: [], flushScheduled: false, flushCtx: null, announceToggle: false },
+  assertive: { element: null, pendingMessages: [], flushScheduled: false, flushCtx: null, announceToggle: false },
 };
 
 function getOrCreateLiveRegion(ctx: TransformContext, urgency: Urgency): HTMLElement {
@@ -30,6 +31,17 @@ function getOrCreateLiveRegion(ctx: TransformContext, urgency: Urgency): HTMLEle
   return state.element;
 }
 
+/**
+ * Eagerly creates and inserts both live-region elements. Call once per item
+ * mount, before any announce() calls — a screen reader needs a live region to
+ * already exist in the accessibility tree before its content is mutated, or
+ * the first announcement may be missed.
+ */
+export function initLiveRegions(ctx: TransformContext): void {
+  getOrCreateLiveRegion(ctx, 'polite');
+  getOrCreateLiveRegion(ctx, 'assertive');
+}
+
 function createFlush(urgency: Urgency): () => void {
   return () => {
     const state = regions[urgency];
@@ -41,7 +53,12 @@ function createFlush(urgency: Urgency): () => void {
 
     if (!ctx || messages.length === 0) return;
 
-    getOrCreateLiveRegion(ctx, urgency).textContent = messages.join(' ');
+    // Append an invisible, alternating marker so the live region's text
+    // still changes even when a message repeats verbatim — screen readers
+    // key off content changing, not off this function having been called.
+    state.announceToggle = !state.announceToggle;
+    const marker = state.announceToggle ? '\u200B' : '';
+    getOrCreateLiveRegion(ctx, urgency).textContent = messages.join(' ') + marker;
   };
 }
 

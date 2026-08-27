@@ -84,7 +84,9 @@ export function createConstraintMessage(
   const container = document.createElement('div');
   container.className = 'cutie-constraint-text';
   container.id = id;
-  container.setAttribute('aria-hidden', 'true');
+  // Not a live region — this text is read on focus via aria-describedby.
+  // Announcing changes is handled explicitly by callers via announce(),
+  // since aria-live doesn't reliably re-announce identical repeated text.
 
   // Warning icon — hidden by default, shown via CSS in error state
   const svg = document.createElementNS(SVG_NS, 'svg');
@@ -138,6 +140,10 @@ export function createInlineRequiredIndicator(
   span.className = 'cutie-required-indicator';
   span.id = id;
   span.textContent = '*';
+  // Hidden from the standalone accessibility tree so VoiceOver's linear
+  // navigation doesn't stop on this span as its own node and re-read the
+  // same text a second time. The message still reaches AT users once, via
+  // aria-describedby on the input.
   span.setAttribute('aria-hidden', 'true');
   span.setAttribute('aria-label', title);
   span.title = title;

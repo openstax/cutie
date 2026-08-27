@@ -2,6 +2,7 @@ import {
   type ConstraintMessage,
   createConstraintMessage,
 } from '../../../errors/validationDisplay';
+import { announce } from '../../../utils/liveRegion';
 import type { StyleManager, TransformContext } from '../../types';
 
 /**
@@ -134,6 +135,23 @@ export function createConstraintElements(
   );
 
   return { constraint, initialText, minStringsText, minCharactersText, patternText, maxCharactersText };
+}
+
+/**
+ * Set constraint error text/state and announce it to screen readers in one call,
+ * so the announced message always matches what's displayed on screen — and a
+ * repeated failure is still announced even when the resulting text is unchanged.
+ */
+export function showConstraintError(
+  result: ConstraintResult | null,
+  text: string | null,
+  context: TransformContext,
+): void {
+  if (result && text) {
+    result.constraint.setText(text);
+    announce(context, text, 'assertive');
+  }
+  result?.constraint.setError(true);
 }
 
 /**

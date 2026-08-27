@@ -4,6 +4,7 @@ import {
   type ConstraintMessage,
   createInlineRequiredIndicator,
 } from '../../errors/validationDisplay';
+import { announce } from '../../utils/liveRegion';
 import { registry } from '../registry';
 import type { ElementHandler, TransformContext } from '../types';
 import { parseInputWidth } from '../vocabUtils';
@@ -110,14 +111,15 @@ class InlineChoiceInteractionHandler implements ElementHandler {
 
     // Add inline indicator if constrained
     let indicator: ConstraintMessage | undefined;
+    const customMessage = element.getAttribute('data-min-selections-message');
+    const requiredMessage = customMessage ?? 'Selection required';
     if (isConstrained) {
       select.setAttribute('aria-required', 'true');
 
-      const customMessage = element.getAttribute('data-min-selections-message');
       const constraintId = `constraint-${responseIdentifier}`;
       indicator = createInlineRequiredIndicator(
         constraintId,
-        customMessage ?? 'Selection required',
+        requiredMessage,
         context.styleManager,
       );
       select.setAttribute('aria-describedby', constraintId);
@@ -132,6 +134,7 @@ class InlineChoiceInteractionHandler implements ElementHandler {
         if (!isValid) {
           select.setAttribute('aria-invalid', 'true');
           indicator?.setError(true);
+          announce(context, requiredMessage, 'assertive');
           return { value: null, valid: false };
         }
 

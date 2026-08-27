@@ -14,6 +14,7 @@ import {
   parseCounterDirection,
   parseExpectedLength,
   processPrompt,
+  showConstraintError,
   wireConstraintDescribedBy,
 } from './utils';
 
@@ -155,30 +156,21 @@ class RichTextInteractionHandler implements ElementHandler {
       // Min-strings check: empty input when required
       if (constraints.minStrings > 0 && textContent.length === 0) {
         activeEditorRoot?.setAttribute('aria-invalid', 'true');
-        if (constraintResult?.minStringsText) {
-          constraintResult.constraint.setText(constraintResult.minStringsText);
-        }
-        constraintResult?.constraint.setError(true);
+        showConstraintError(constraintResult, constraintResult?.minStringsText ?? null, context);
         return false;
       }
 
       // Min-characters check: too short (includes empty — implies required)
       if (minCharacters !== null && textContent.length < minCharacters) {
         activeEditorRoot?.setAttribute('aria-invalid', 'true');
-        if (constraintResult?.minCharactersText) {
-          constraintResult.constraint.setText(constraintResult.minCharactersText);
-        }
-        constraintResult?.constraint.setError(true);
+        showConstraintError(constraintResult, constraintResult?.minCharactersText ?? null, context);
         return false;
       }
 
       // Max-characters check: hard character limit exceeded
       if (maxCharacters !== null && textContent.length > maxCharacters) {
         activeEditorRoot?.setAttribute('aria-invalid', 'true');
-        if (constraintResult?.maxCharactersText) {
-          constraintResult.constraint.setText(constraintResult.maxCharactersText);
-        }
-        constraintResult?.constraint.setError(true);
+        showConstraintError(constraintResult, constraintResult?.maxCharactersText ?? null, context);
         return false;
       }
 
