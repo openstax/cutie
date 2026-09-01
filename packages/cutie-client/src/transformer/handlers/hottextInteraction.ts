@@ -68,7 +68,6 @@ class HottextHandler implements ElementHandler {
   transform(element: Element, context: TransformContext): DocumentFragment {
     const fragment = document.createDocumentFragment();
 
-    // Register styles once
     if (context.styleManager && !context.styleManager.hasStyle('cutie-hottext')) {
       context.styleManager.addStyle('cutie-hottext', HOTTEXT_STYLES);
     }
@@ -85,17 +84,18 @@ class HottextHandler implements ElementHandler {
 
     // Render an inert inline toggle. Behavior is attached by the parent
     // interaction handler after it finds the button via querySelectorAll.
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'cutie-hottext';
-    button.setAttribute('data-hottext-identifier', identifier);
-    button.setAttribute('aria-pressed', 'false');
+    const span = document.createElement('span');
+    span.className = 'cutie-hottext';
+    span.setAttribute('tabindex',  '0');
+    span.setAttribute('role', 'button');
+    span.setAttribute('data-hottext-identifier', identifier);
+    span.setAttribute('aria-pressed', 'false');
 
     if (context.transformChildren) {
-      button.appendChild(context.transformChildren(element));
+      span.appendChild(context.transformChildren(element));
     }
 
-    fragment.appendChild(button);
+    fragment.appendChild(span);
     return fragment;
   }
 }
@@ -105,10 +105,6 @@ class HottextHandler implements ElementHandler {
  * Renders the surrounding flow content (which contains inline qti-hottext
  * toggles), then wires up selection, min/max enforcement, validation, a
  * response accessor, and an enabled-state observer.
- *
- * Single-vs-multi select is driven by the response declaration's cardinality,
- * not by max-choices. cardinality="single" yields a scalar response value;
- * otherwise the value is an array. max-choices governs only the max constraint.
  */
 class HottextInteractionHandler implements ElementHandler {
   canHandle(element: Element): boolean {
@@ -207,21 +203,23 @@ class HottextInteractionHandler implements ElementHandler {
     }
     container.appendChild(contentContainer);
 
-    // Collect the rendered toggle buttons
     const buttons = Array.from(
-      contentContainer.querySelectorAll<HTMLButtonElement>('[data-hottext-identifier]')
+      contentContainer.querySelectorAll<HTMLElement>('[data-hottext-identifier]')
     );
 
-    const getIdentifier = (button: HTMLButtonElement): string =>
+    const getIdentifier = (button: HTMLElement): string =>
       button.getAttribute('data-hottext-identifier') ?? '';
 
     const selAttr = isSingleSelect ? 'aria-checked' : 'aria-pressed';
-    const isSelected = (button: HTMLButtonElement): boolean =>
+    const isSelected = (button: HTMLElement): boolean =>
       button.getAttribute(selAttr) === 'true';
-    const setSelected = (button: HTMLButtonElement, on: boolean): void => {
+    const setSelected = (button: HTMLElement, on: boolean): void => {
       button.setAttribute(selAttr, String(on));
     };
     const selectedCount = (): number => buttons.filter(isSelected).length;
+
+    const isDisabled = (button: HTMLElement): boolean =>
+      button.getAttribute('aria-disabled') === 'true';
 
     // Convert the toggle buttons into radios for single-select
     const radioMap = new Map<string, HTMLElement>();
@@ -234,7 +232,7 @@ class HottextInteractionHandler implements ElementHandler {
       }
     }
 
-    const selectExclusive = (button: HTMLButtonElement): void => {
+    const selectExclusive = (button: HTMLElement): void => {
       for (const other of buttons) setSelected(other, false);
       setSelected(button, true);
     };
@@ -307,52 +305,55 @@ class HottextInteractionHandler implements ElementHandler {
       }
     };
 
-    // Wire up selection behavior
-    for (const button of buttons) {
-      button.addEventListener('click', () => {
-        if (button.disabled) return;
-
-        if (isSingleSelect) {
-          // Radio semantics: activating selects and clears siblings. A radio is
-          // not deselectable by re-clicking, so re-activating it is a no-op.
-          if (isSelected(button)) return;
-          selectExclusive(button);
-          updateRovingTabindex(radioMap, button);
-        } else if (isSelected(button)) {
-          // Multi-select toggle off
-          setSelected(button, false);
-        } else {
-          // Multi-select: block additional selections once at max
-          if (maxChoices > 0 && selectedCount() >= maxChoices) {
-            const msg = maxSelectionsMessage ?? hintText;
-            if (msg) announce(context, msg, 'assertive');
-            return;
-          }
-          setSelected(button, true);
-        }
-
-        // Clear any prior validation error once the selection is valid
-        if (checkValidity()) clearErrors();
-      });
+    const activate = (button: HTMLElement): void => {
+      if (isDisabled(button)) return;
 
       if (isSingleSelect) {
-        button.addEventListener('keydown', (event) => {
-          if (button.disabled) return;
-          const isNext = event.key === 'ArrowDown' || event.key === 'ArrowRight';
-          const isPrev = event.key === 'ArrowUp' || event.key === 'ArrowLeft';
-          if (!isNext && !isPrev) return;
-
-          event.preventDefault();
-          const id = getIdentifier(button);
-          const moved = isNext
-            ? focusNext(radioMap, id)
-            : focusPrev(radioMap, id);
-          if (moved instanceof HTMLButtonElement) {
-            selectExclusive(moved);
-            if (checkValidity()) clearErrors();
-          }
-        });
+        // Radio semantics: activating selects and clears siblings.
+        selectExclusive(button);
+        updateRovingTabindex(radioMap, button);
+      } else if (isSelected(button)) {
+        setSelected(button, false);
+      } else {
+        if (maxChoices > 0 && selectedCount() >= maxChoices) {
+          const msg = maxSelectionsMessage ?? hintText;
+          if (msg) announce(context, msg, 'assertive');
+          return;
+        }
+        setSelected(button, true);
       }
+
+      if (checkValidity()) clearErrors();
+    };
+
+    for (const button of buttons) {
+      button.addEventListener('click', () => activate(button));
+
+      button.addEventListener('keydown', (event) => {
+        if (isDisabled(button)) return;
+
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          activate(button);
+          return;
+        }
+
+        if (!isSingleSelect) return;
+
+        const isNext = event.key === 'ArrowDown' || event.key === 'ArrowRight';
+        const isPrev = event.key === 'ArrowUp' || event.key === 'ArrowLeft';
+        if (!isNext && !isPrev) return;
+
+        event.preventDefault();
+        const id = getIdentifier(button);
+        const moved = isNext
+          ? focusNext(radioMap, id)
+          : focusPrev(radioMap, id);
+        if (moved) {
+          selectExclusive(moved);
+          if (checkValidity()) clearErrors();
+        }
+      });
     }
 
     // Register response accessor with itemState
@@ -376,7 +377,11 @@ class HottextInteractionHandler implements ElementHandler {
       const updateInteractionState = (state: { interactionsEnabled: boolean }) => {
         const isEnabled = state.interactionsEnabled;
         for (const button of buttons) {
-          button.disabled = !isEnabled;
+          if (isEnabled) {
+            button.removeAttribute('aria-disabled');
+          } else {
+            button.setAttribute('aria-disabled', 'true');
+          }
         }
       };
 
@@ -440,17 +445,17 @@ const HOTTEXT_STYLES = `
     background-color: var(--cutie-primary);
   }
 
-  .cutie-hottext:disabled {
+  .cutie-hottext[aria-disabled="true"] {
     cursor: default;
     opacity: 0.7;
   }
 
-  .cutie-hottext:disabled:hover {
+  .cutie-hottext[aria-disabled="true"]:hover {
     background-color: transparent;
   }
 
-  .cutie-hottext[aria-pressed="true"]:disabled,
-  .cutie-hottext[aria-checked="true"]:disabled {
+  .cutie-hottext[aria-pressed="true"][aria-disabled="true"],
+  .cutie-hottext[aria-checked="true"][aria-disabled="true"] {
     background-color: var(--cutie-primary);
     opacity: 0.7;
   }
@@ -478,5 +483,9 @@ const HOTTEXT_INTERACTION_STYLES = `
 
   .cutie-hottext-interaction .cutie-hottext-content {
     line-height: 1.8;
+  }
+
+  .cutie-hottext-interaction .cutie-hottext-content .cutie-hottext {
+    overflow-wrap: break-word;
   }
 `;

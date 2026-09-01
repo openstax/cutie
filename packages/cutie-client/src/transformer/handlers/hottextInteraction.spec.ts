@@ -111,8 +111,13 @@ describe('hottextInteraction', () => {
       );
       const container = render(doc, itemState);
 
-      const buttons = container.querySelectorAll('button.cutie-hottext');
+      const buttons = container.querySelectorAll('.cutie-hottext');
       expect(buttons.length).toBe(4);
+      // Rendered as inline <span> (not <button>) so it can flow as running text,
+      // with the button role and a tab stop supplied explicitly.
+      expect(buttons[0]!.tagName).toBe('SPAN');
+      expect(buttons[0]!.getAttribute('role')).toBe('button');
+      expect(buttons[0]!.getAttribute('tabindex')).toBe('0');
       expect(buttons[0]!.getAttribute('data-hottext-identifier')).toBe('A');
       expect(buttons[0]!.getAttribute('aria-pressed')).toBe('false');
       expect(buttons[0]!.textContent).toContain('Item A');
@@ -126,7 +131,7 @@ describe('hottextInteraction', () => {
       const container = render(doc, itemState);
 
       expect(container.querySelector('.cutie-error-display')).not.toBeNull();
-      expect(container.querySelector('button.cutie-hottext')).toBeNull();
+      expect(container.querySelector('.cutie-hottext')).toBeNull();
     });
 
     it('renders an error span for a qti-hottext missing its identifier', () => {
@@ -177,7 +182,7 @@ describe('hottextInteraction', () => {
         MULTI_DECL
       );
       const container = render(doc, itemState);
-      const buttons = container.querySelectorAll<HTMLButtonElement>('button.cutie-hottext');
+      const buttons = container.querySelectorAll<HTMLElement>('.cutie-hottext');
 
       buttons[1]!.click();
       buttons[2]!.click();
@@ -195,7 +200,7 @@ describe('hottextInteraction', () => {
         MULTI_DECL
       );
       const container = render(doc, itemState);
-      const buttons = container.querySelectorAll<HTMLButtonElement>('button.cutie-hottext');
+      const buttons = container.querySelectorAll<HTMLElement>('.cutie-hottext');
 
       buttons[0]!.click();
       buttons[1]!.click();
@@ -221,6 +226,40 @@ describe('hottextInteraction', () => {
     });
   });
 
+  describe('keyboard activation', () => {
+    // Rendering as <span> means we lose the native button's Enter/Space
+    // activation, so the handler wires those keys up itself.
+    const press = (el: HTMLElement, key: string): boolean =>
+      el.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+
+    it('toggles a multi-select hottext on Enter', () => {
+      const doc = createQtiDocument(
+        `<qti-hottext-interaction response-identifier="RESPONSE" max-choices="2">${passage}</qti-hottext-interaction>`,
+        MULTI_DECL
+      );
+      const container = render(doc, itemState);
+      const buttons = container.querySelectorAll<HTMLElement>('.cutie-hottext');
+
+      press(buttons[1]!, 'Enter');
+      expect(buttons[1]!.getAttribute('aria-pressed')).toBe('true');
+      press(buttons[1]!, 'Enter');
+      expect(buttons[1]!.getAttribute('aria-pressed')).toBe('false');
+    });
+
+    it('activates on Space and prevents the default page scroll', () => {
+      const doc = createQtiDocument(
+        `<qti-hottext-interaction response-identifier="RESPONSE" max-choices="2">${passage}</qti-hottext-interaction>`,
+        MULTI_DECL
+      );
+      const container = render(doc, itemState);
+      const buttons = container.querySelectorAll<HTMLElement>('.cutie-hottext');
+
+      const notCancelled = press(buttons[0]!, ' ');
+      expect(buttons[0]!.getAttribute('aria-pressed')).toBe('true');
+      expect(notCancelled).toBe(false); // preventDefault() was called
+    });
+  });
+
   describe('single-select behavior (radiogroup)', () => {
     it('exposes radiogroup + radio semantics instead of aria-pressed toggles', () => {
       const doc = createQtiDocument(
@@ -232,7 +271,7 @@ describe('hottextInteraction', () => {
       const group = container.querySelector('.cutie-hottext-interaction')!;
       expect(group.getAttribute('role')).toBe('radiogroup');
 
-      const buttons = container.querySelectorAll<HTMLButtonElement>('button.cutie-hottext');
+      const buttons = container.querySelectorAll<HTMLElement>('.cutie-hottext');
       for (const button of buttons) {
         expect(button.getAttribute('role')).toBe('radio');
         expect(button.getAttribute('aria-checked')).toBe('false');
@@ -266,7 +305,7 @@ describe('hottextInteraction', () => {
         SINGLE_DECL
       );
       const container = render(doc, itemState);
-      const buttons = container.querySelectorAll<HTMLButtonElement>('button.cutie-hottext');
+      const buttons = container.querySelectorAll<HTMLElement>('.cutie-hottext');
 
       buttons[0]!.click();
       buttons[2]!.click();
@@ -283,7 +322,7 @@ describe('hottextInteraction', () => {
         SINGLE_DECL
       );
       const container = render(doc, itemState);
-      const buttons = container.querySelectorAll<HTMLButtonElement>('button.cutie-hottext');
+      const buttons = container.querySelectorAll<HTMLElement>('.cutie-hottext');
 
       buttons[2]!.click();
       buttons[2]!.click();
@@ -298,7 +337,7 @@ describe('hottextInteraction', () => {
       );
       const container = render(doc, itemState);
       const buttons = Array.from(
-        container.querySelectorAll<HTMLButtonElement>('button.cutie-hottext')
+        container.querySelectorAll<HTMLElement>('.cutie-hottext')
       );
 
       const tabbable = () => buttons.filter((b) => b.getAttribute('tabindex') === '0');
@@ -314,7 +353,7 @@ describe('hottextInteraction', () => {
         SINGLE_DECL
       );
       const container = attach(render(doc, itemState));
-      const buttons = container.querySelectorAll<HTMLButtonElement>('button.cutie-hottext');
+      const buttons = container.querySelectorAll<HTMLElement>('.cutie-hottext');
 
       buttons[0]!.focus();
       buttons[0]!.dispatchEvent(
@@ -342,7 +381,7 @@ describe('hottextInteraction', () => {
       );
       const container = render(doc, itemState);
       const buttons = Array.from(
-        container.querySelectorAll<HTMLButtonElement>('button.cutie-hottext')
+        container.querySelectorAll<HTMLElement>('.cutie-hottext')
       );
 
       expect(buttons[2]!.getAttribute('aria-checked')).toBe('true');
@@ -406,7 +445,7 @@ describe('hottextInteraction', () => {
         MULTI_DECL
       );
       const container = render(doc, itemState);
-      const buttons = container.querySelectorAll<HTMLButtonElement>('button.cutie-hottext');
+      const buttons = container.querySelectorAll<HTMLElement>('.cutie-hottext');
       const group = container.querySelector('.cutie-hottext-interaction')!;
 
       itemState.collectAll();
@@ -428,7 +467,7 @@ describe('hottextInteraction', () => {
         </qti-response-declaration>`
       );
       const container = render(doc, itemState);
-      const buttons = container.querySelectorAll<HTMLButtonElement>('button.cutie-hottext');
+      const buttons = container.querySelectorAll<HTMLElement>('.cutie-hottext');
       expect(buttons[1]!.getAttribute('aria-pressed')).toBe('true');
 
       const result = itemState.collectAll();
@@ -437,19 +476,28 @@ describe('hottextInteraction', () => {
   });
 
   describe('enabled state', () => {
-    it('disables buttons when interactions are disabled', () => {
+    it('toggles aria-disabled and blocks activation when interactions are disabled', () => {
       const doc = createQtiDocument(
         `<qti-hottext-interaction response-identifier="RESPONSE" max-choices="2">${passage}</qti-hottext-interaction>`,
         MULTI_DECL
       );
       const container = render(doc, itemState);
-      const buttons = container.querySelectorAll<HTMLButtonElement>('button.cutie-hottext');
+      const buttons = container.querySelectorAll<HTMLElement>('.cutie-hottext');
 
+      // A <span> has no native `disabled`; disabled state is conveyed via ARIA.
       itemState.setInteractionsEnabled(false);
-      expect(buttons[0]!.disabled).toBe(true);
+      expect(buttons[0]!.getAttribute('aria-disabled')).toBe('true');
+
+      // Activation is a no-op while disabled.
+      buttons[0]!.click();
+      expect(buttons[0]!.getAttribute('aria-pressed')).toBe('false');
+      expect(itemState.collectAll().responses).toEqual({ RESPONSE: null });
 
       itemState.setInteractionsEnabled(true);
-      expect(buttons[0]!.disabled).toBe(false);
+      expect(buttons[0]!.hasAttribute('aria-disabled')).toBe(false);
+
+      buttons[0]!.click();
+      expect(buttons[0]!.getAttribute('aria-pressed')).toBe('true');
     });
   });
 });
