@@ -424,7 +424,7 @@ const HOTTEXT_STYLES = `
   }
 
   .cutie-hottext:hover {
-    background-color: var(--cutie-bg-alt);
+    text-decoration-style: solid;
   }
 
   .cutie-hottext:focus-visible {
@@ -436,8 +436,7 @@ const HOTTEXT_STYLES = `
   .cutie-hottext[aria-checked="true"] {
     background-color: var(--cutie-primary);
     color: var(--cutie-bg);
-    text-decoration-style: solid;
-    text-decoration-color: currentColor;
+    text-decoration: none;
   }
 
   .cutie-hottext[aria-pressed="true"]:hover,
