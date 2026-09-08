@@ -10,11 +10,15 @@ export const item = `<?xml version="1.0" encoding="UTF-8"?>
 	<qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="identifier">
 		<qti-correct-response>
 			<qti-value>A</qti-value>
+			<qti-value>B</qti-value>
 			<qti-value>C</qti-value>
+			<qti-value>E</qti-value>
 		</qti-correct-response>
-		<qti-mapping lower-bound="0" upper-bound="2" default-value="-1">
+		<qti-mapping lower-bound="0" upper-bound="4" default-value="-1">
 			<qti-map-entry map-key="A" mapped-value="1"/>
+			<qti-map-entry map-key="B" mapped-value="1"/>
 			<qti-map-entry map-key="C" mapped-value="1"/>
+			<qti-map-entry map-key="E" mapped-value="1"/>
 		</qti-mapping>
 	</qti-response-declaration>
 	<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/>
@@ -41,7 +45,7 @@ export const item = `<?xml version="1.0" encoding="UTF-8"?>
 					</tr>
 					<tr>
 						<th scope="row">Tire pressure</th>
-						<td><qti-hottext identifier="B">32 PSI</qti-hottext></td>
+						<td><qti-hottext identifier="B">18 PSI</qti-hottext></td>
 					</tr>
 					<tr>
 						<th scope="row">Engine temperature</th>
@@ -51,11 +55,50 @@ export const item = `<?xml version="1.0" encoding="UTF-8"?>
 						<th scope="row">Oil level</th>
 						<td><qti-hottext identifier="D">Full</qti-hottext></td>
 					</tr>
+					<tr>
+						<th scope="row">Brake warning light</th>
+						<td><qti-hottext identifier="E">Illuminated</qti-hottext></td>
+					</tr>
 				</tbody>
 			</table>
 		</qti-hottext-interaction>
 	</qti-item-body>
-	<qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/map_response.xml"/>
+	<qti-response-processing>
+		<!-- Base score from the mapping: +1 per correct, -1 per incorrect, floored at 0 -->
+		<qti-set-outcome-value identifier="SCORE">
+			<qti-map-response identifier="RESPONSE"/>
+		</qti-set-outcome-value>
+		<!-- Select-all penalty: selecting every option (all 5: A-E) subtracts 2 from the
+		     mapped score. Keep this count in sync with the number of qti-hottext choices. -->
+		<qti-response-condition>
+			<qti-response-if>
+				<qti-equal tolerance-mode="exact">
+					<qti-container-size>
+						<qti-variable identifier="RESPONSE"/>
+					</qti-container-size>
+					<qti-base-value base-type="integer">5</qti-base-value>
+				</qti-equal>
+				<qti-set-outcome-value identifier="SCORE">
+					<qti-subtract>
+						<qti-variable identifier="SCORE"/>
+						<qti-base-value base-type="float">2</qti-base-value>
+					</qti-subtract>
+				</qti-set-outcome-value>
+			</qti-response-if>
+		</qti-response-condition>
+		<!-- Floor the score at 0 (minimum score = zero) -->
+		<qti-response-condition>
+			<qti-response-if>
+				<qti-lt>
+					<qti-variable identifier="SCORE"/>
+					<qti-base-value base-type="float">0</qti-base-value>
+				</qti-lt>
+				<qti-set-outcome-value identifier="SCORE">
+					<qti-base-value base-type="float">0</qti-base-value>
+				</qti-set-outcome-value>
+			</qti-response-if>
+		</qti-response-condition>
+	</qti-response-processing>
 </qti-assessment-item>`;
 
 export const interactionTypes: string[] = ['hottext'];

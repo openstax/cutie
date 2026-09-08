@@ -10,13 +10,17 @@ export const item = `<?xml version="1.0" encoding="UTF-8"?>
 	<qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="identifier">
 		<qti-correct-response>
 			<qti-value>B</qti-value>
+			<qti-value>C</qti-value>
 			<qti-value>D</qti-value>
+			<qti-value>E</qti-value>
 			<qti-value>F</qti-value>
 			<qti-value>G</qti-value>
 		</qti-correct-response>
-		<qti-mapping lower-bound="0" upper-bound="4" default-value="-1">
+		<qti-mapping lower-bound="0" upper-bound="6" default-value="-1">
 			<qti-map-entry map-key="B" mapped-value="1"/>
+			<qti-map-entry map-key="C" mapped-value="1"/>
 			<qti-map-entry map-key="D" mapped-value="1"/>
+			<qti-map-entry map-key="E" mapped-value="1"/>
 			<qti-map-entry map-key="F" mapped-value="1"/>
 			<qti-map-entry map-key="G" mapped-value="1"/>
 		</qti-mapping>
@@ -33,16 +37,49 @@ export const item = `<?xml version="1.0" encoding="UTF-8"?>
                     <p>
                         <qti-hottext identifier="A">The client keeps a consistent bedtime on weeknights.</qti-hottext>
                         <qti-hottext identifier="B">The client drinks coffee in the late afternoon.</qti-hottext>
-                        <qti-hottext identifier="C">The client dims the lights about an hour before bed.</qti-hottext>
+                        <qti-hottext identifier="C">The client scrolls on their phone in bed until falling asleep.</qti-hottext>
 		        <qti-hottext identifier="D">The client keeps the bedroom television on while falling asleep.</qti-hottext>
-		        <qti-hottext identifier="E">The client keeps the bedroom cool and quiet.</qti-hottext>
+		        <qti-hottext identifier="E">The client keeps the bedroom warm and brightly lit at night.</qti-hottext>
 		        <qti-hottext identifier="F">The client checks work email in bed each night.</qti-hottext>
 		        <qti-hottext identifier="G">The client takes long naps in the early evening.</qti-hottext>
                         <qti-hottext identifier="H">The client goes for a short walk after dinner.</qti-hottext>
                     </p>
 		</qti-hottext-interaction>
 	</qti-item-body>
-	<qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/map_response.xml"/>
+	<qti-response-processing>
+		<qti-set-outcome-value identifier="SCORE">
+			<qti-map-response identifier="RESPONSE"/>
+		</qti-set-outcome-value>
+                <qti-response-condition>
+                        <!-- Select all penalty -->
+			<qti-response-if>
+				<qti-equal tolerance-mode="exact">
+					<qti-container-size>
+						<qti-variable identifier="RESPONSE"/>
+                                        </qti-container-size>
+                                        <!-- must be kept in sync with total number of choices -->
+					<qti-base-value base-type="integer">8</qti-base-value>
+				</qti-equal>
+				<qti-set-outcome-value identifier="SCORE">
+					<qti-subtract>
+						<qti-variable identifier="SCORE"/>
+						<qti-base-value base-type="float">2</qti-base-value>
+					</qti-subtract>
+				</qti-set-outcome-value>
+			</qti-response-if>
+		</qti-response-condition>
+		<qti-response-condition>
+			<qti-response-if>
+				<qti-lt>
+					<qti-variable identifier="SCORE"/>
+					<qti-base-value base-type="float">0</qti-base-value>
+				</qti-lt>
+				<qti-set-outcome-value identifier="SCORE">
+					<qti-base-value base-type="float">0</qti-base-value>
+				</qti-set-outcome-value>
+			</qti-response-if>
+		</qti-response-condition>
+	</qti-response-processing>
 </qti-assessment-item>`;
 
 export const interactionTypes: string[] = ['hottext'];
