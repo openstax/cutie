@@ -24,6 +24,9 @@ import * as hotspot from './hotspot';
 import * as extendedText from './extended-text';
 import * as associate from './associate';
 import * as hottext from './hottext';
+import * as hottextMultiple from './hottext-multiple';
+import * as hottextHighlightFindings from './hottext-highlight-findings';
+import * as hottextHighlightTable from './hottext-highlight-table';
 import * as math from './math';
 import * as selectPoint from './select-point';
 import * as multiInput from './multi-input';
@@ -70,6 +73,9 @@ export const specExamples = [
   extendedText,
   associate,
   hottext,
+  hottextMultiple,
+  hottextHighlightFindings,
+  hottextHighlightTable,
   math,
   selectPoint,
   multiInput,
