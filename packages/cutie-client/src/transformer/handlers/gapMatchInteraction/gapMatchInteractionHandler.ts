@@ -122,12 +122,7 @@ export class GapMatchInteractionHandler implements ElementHandler {
     }
 
     // Partition choices into separate visual word-bank boxes when 2+ distinct
-    // match-groups are present (including a mix of grouped and ungrouped
-    // choices, where '' is just another bucket). Bucketing is keyed by group
-    // value rather than source-order position, so it stays correct even when
-    // choices have been shuffled server-side. With 0 or 1 distinct groups
-    // there's nothing to visually separate, so rendering is unchanged from
-    // today's single flat word bank.
+    // match-groups are present.
     const groupOrder: string[] = [];
     const seenGroups = new Set<string>();
     for (const choice of choices) {

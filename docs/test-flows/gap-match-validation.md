@@ -13,7 +13,7 @@ examples:
 Covers `min-associations` constraint validation on a gap-match interaction, verifies that
 constraint errors are announced to screen readers (not just shown visually), and covers
 gap-match's cause/effect rationale scoring pattern (an all-or-nothing dyad and a cause-gated
-partial-credit triad, using drag-and-drop word banks instead of dropdowns).
+partial-credit triad).
 
 ## Initial Display
 

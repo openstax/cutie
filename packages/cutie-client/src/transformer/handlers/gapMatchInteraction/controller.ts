@@ -100,10 +100,6 @@ export class GapMatchController {
     });
 
     // Click on word bank area (not on a choice) to return a selected choice.
-    // In grouped mode the word bank is split into per-match-group sub-containers,
-    // so a background click lands on one of those (not this.choicesContainer
-    // itself) — check containment plus "not on a choice button" rather than
-    // exact identity, which also covers the single-container (ungrouped) case.
     this.choicesContainer.addEventListener('click', (e) => {
       if (!this.enabled) return;
       const target = e.target as HTMLElement;
@@ -324,11 +320,7 @@ export class GapMatchController {
     });
 
     // Drag over - accept drops, but only for gaps already marked as valid
-    // drop targets for the item currently being dragged (that compatibility
-    // was computed via canPlaceInGap at dragstart, since dataTransfer's
-    // payload isn't readable during dragover). Leaving preventDefault()
-    // uncalled for an incompatible gap lets the browser show its native
-    // "cannot drop here" cursor instead of a misleading highlight.
+    // drop targets for the item currently being dragged.
     element.addEventListener('dragover', (e) => {
       if (!this.enabled) return;
 
