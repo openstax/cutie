@@ -4,11 +4,13 @@
 // (1 cause + 2 supporting effects) worth 2 points:
 //   - The cause must be correct for ANY credit.
 //   - Partial credit: 1 point for one correct effect gap, 2 points for both.
-// A single gap-match interaction holds all three gaps in one shared sentence,
-// with one combined word bank ordered as two groups (cause words, then effect
-// words). match-group scoping keeps each group of words restricted to its own
-// gap(s) — a cause word can't be dropped into an effect gap, or vice versa —
-// even though both groups share one physical word bank/interaction.
+// A single gap-match interaction holds all three gaps in one shared sentence.
+// Its choices are split into two visually separate word-bank boxes by
+// cutie's client renderer (one per match-group value: cause words, then
+// effect words) — see packages/cutie-client's gapMatchInteractionHandler.
+// Even though both boxes belong to one physical interaction/response,
+// match-group scoping keeps each box's words restricted to its own gap(s) —
+// a cause word can't be dropped into an effect gap, or vice versa.
 // Per-gap credit is computed with qti-member (checking whether the
 // declared-correct pair for that gap — read via qti-correct + qti-index — is
 // present in the single RESPONSE), since all three gaps are scored from one
