@@ -38,6 +38,8 @@ import * as inlineChoiceRationaleDyad from './standard-inline-choice-rationale-d
 import * as inlineChoiceRationaleTriad from './standard-inline-choice-rationale-triad';
 import * as matchStandard from './standard-match';
 import * as gapMatchStandard from './standard-gap-match';
+import * as gapMatchRationaleDyad from './standard-gap-match-rationale-dyad';
+import * as gapMatchRationaleTriad from './standard-gap-match-rationale-triad';
 import * as textEntryPartialStandard from './standard-text-entry-partial';
 import * as choiceHorizontalStandard from './standard-choice-horizontal';
 import * as choicePartialStandard from './standard-choice-partial';
@@ -120,6 +122,8 @@ export const standardExamples = [
   inlineChoiceRationaleTriad,
   matchStandard,
   gapMatchStandard,
+  gapMatchRationaleDyad,
+  gapMatchRationaleTriad,
   textEntryPartialStandard,
   choicePartialStandard,
   multiInteractionStandard,

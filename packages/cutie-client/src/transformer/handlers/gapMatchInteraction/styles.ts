@@ -1,3 +1,4 @@
+// cspell:ignore affordance
 export const GAP_STYLES = `
   .cutie-gap {
     display: inline-flex;
@@ -129,6 +130,53 @@ export const GAP_MATCH_INTERACTION_STYLES = `
 
   .cutie-gap-match-choices--drag-over {
     border: 2px dashed var(--cutie-primary);
+  }
+
+  /* Grouped mode: the outer container becomes a plain layout row for the
+     per-match-group sub-containers below, which each carry their own box
+     chrome (the same styling .cutie-gap-match-choices has above). */
+  .cutie-gap-match-choices--grouped {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5em;
+    padding: 0;
+    border: none;
+    background-color: transparent;
+  }
+
+  /* Still show a visible "valid drop area" affordance around the whole
+     grouped layout, since the outer container itself has no box of its own
+     to dash-highlight anymore. */
+  .cutie-gap-match-choices--grouped.cutie-gap-match-choices--drop-target,
+  .cutie-gap-match-choices--grouped.cutie-gap-match-choices--drag-over {
+    border: 2px dashed var(--cutie-primary);
+    border-radius: 4px;
+    padding: 0.5em;
+  }
+
+  .cutie-gap-match-choices-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: 0.5em;
+    padding: 0.75em;
+    flex: 1 1 auto;
+    min-width: 180px;
+    border: 2px solid var(--cutie-border);
+    border-radius: 4px;
+    background-color: var(--cutie-bg-alt);
+  }
+
+  /* Mobile: stack word-bank groups vertically instead of side by side */
+  @media (max-width: 600px) {
+    .cutie-gap-match-choices--grouped {
+      flex-direction: column;
+    }
+
+    .cutie-gap-match-choices-group {
+      min-width: unset;
+      width: 100%;
+    }
   }
 
   .cutie-gap-text {
