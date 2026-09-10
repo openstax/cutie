@@ -99,11 +99,20 @@ export class GapMatchController {
       }
     });
 
-    // Click on word bank area (not on a choice) to return a selected choice
+    // Click on word bank area (not on a choice) to return a selected choice.
+    // In grouped mode the word bank is split into per-match-group sub-containers,
+    // so a background click lands on one of those (not this.choicesContainer
+    // itself) — check containment plus "not on a choice button" rather than
+    // exact identity, which also covers the single-container (ungrouped) case.
     this.choicesContainer.addEventListener('click', (e) => {
       if (!this.enabled) return;
-      // Only handle clicks directly on the container, not on choices
-      if (e.target === this.choicesContainer && this.selectedChoice && this.selectedFromGap) {
+      const target = e.target as HTMLElement;
+      if (
+        this.choicesContainer.contains(target) &&
+        !target.closest('.cutie-gap-text') &&
+        this.selectedChoice &&
+        this.selectedFromGap
+      ) {
         this.removeChoiceFromGap(this.selectedFromGap);
         this.clearSelection();
       }
@@ -237,6 +246,8 @@ export class GapMatchController {
             }
             this.clearSelection();
           }
+        } else {
+          this.announceInvalidPlacement(this.selectedChoice);
         }
       } else if (currentChoiceInGap) {
         // Gap has a choice and nothing is selected - pick it up
@@ -264,6 +275,8 @@ export class GapMatchController {
               }
               this.clearSelection();
             }
+          } else {
+            this.announceInvalidPlacement(this.selectedChoice);
           }
         } else if (currentChoiceInGap) {
           this.selectChoice(currentChoiceInGap, gapId);
@@ -310,12 +323,19 @@ export class GapMatchController {
       this.choicesContainer.classList.remove('cutie-gap-match-choices--drag-over');
     });
 
-    // Drag over - accept drops
+    // Drag over - accept drops, but only for gaps already marked as valid
+    // drop targets for the item currently being dragged (that compatibility
+    // was computed via canPlaceInGap at dragstart, since dataTransfer's
+    // payload isn't readable during dragover). Leaving preventDefault()
+    // uncalled for an incompatible gap lets the browser show its native
+    // "cannot drop here" cursor instead of a misleading highlight.
     element.addEventListener('dragover', (e) => {
       if (!this.enabled) return;
 
       const data = e.dataTransfer?.types.includes('text/plain');
       if (!data) return;
+
+      if (!element.classList.contains('cutie-gap--drop-target')) return;
 
       e.preventDefault();
       element.classList.add('cutie-gap--drag-over');
@@ -338,6 +358,8 @@ export class GapMatchController {
         const choiceId = data.slice(7);
         if (this.canPlaceInGap(gapId, choiceId)) {
           this.placeChoiceInGap(gapId, choiceId);
+        } else {
+          this.announceInvalidPlacement(choiceId);
         }
       } else if (data.startsWith('gap:')) {
         // Dropping from another gap
@@ -345,9 +367,13 @@ export class GapMatchController {
         if (sourceGapId === gapId) return; // Same gap, ignore
 
         const choiceId = this.gapAssignments.get(sourceGapId);
-        if (choiceId && this.canPlaceInGap(gapId, choiceId)) {
-          this.removeChoiceFromGap(sourceGapId, true);
-          this.placeChoiceInGap(gapId, choiceId);
+        if (choiceId) {
+          if (this.canPlaceInGap(gapId, choiceId)) {
+            this.removeChoiceFromGap(sourceGapId, true);
+            this.placeChoiceInGap(gapId, choiceId);
+          } else {
+            this.announceInvalidPlacement(choiceId);
+          }
         }
       }
     });
@@ -378,6 +404,15 @@ export class GapMatchController {
       if (gapGroups.has(group)) return true;
     }
     return false;
+  }
+
+  /**
+   * Announce that a placement attempt was rejected (e.g. match-group
+   * incompatibility between the choice and the gap).
+   */
+  private announceInvalidPlacement(choiceId: string): void {
+    const content = this.choiceContents.get(choiceId) ?? '';
+    announce(this.context, `${content} cannot be placed in this gap.`);
   }
 
   /**

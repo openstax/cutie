@@ -28,6 +28,18 @@ interface ChoiceData {
 }
 
 /**
+ * A choice's "primary" match-group — the first space-separated token, if any.
+ * Used only to decide which visual word-bank box a choice's button renders
+ * into; a choice may declare multiple match-group tokens for compatibility
+ * purposes (see GapMatchController.canPlaceInGap), but can only physically
+ * live in one box.
+ */
+function getPrimaryGroup(matchGroup: string): string {
+  const trimmed = matchGroup.trim();
+  return trimmed ? trimmed.split(/\s+/)[0]! : '';
+}
+
+/**
  * Handler for qti-gap-match-interaction elements.
  * Creates a container with draggable choices and wires up all interactions.
  */
@@ -88,8 +100,6 @@ export class GapMatchInteractionHandler implements ElementHandler {
     // Create choices container
     const choicesContainer = document.createElement('div');
     choicesContainer.className = 'cutie-gap-match-choices';
-    choicesContainer.setAttribute('role', 'listbox');
-    choicesContainer.setAttribute('aria-label', 'Available choices');
 
     // Build choice data - choices are already in the correct order from the server
     const choices: ChoiceData[] = [];
@@ -109,6 +119,52 @@ export class GapMatchInteractionHandler implements ElementHandler {
         matchGroup: choiceElement.getAttribute('match-group') ?? '',
         isImage: choiceElement.tagName.toLowerCase() === 'qti-gap-img',
       });
+    }
+
+    // Partition choices into separate visual word-bank boxes when 2+ distinct
+    // match-groups are present (including a mix of grouped and ungrouped
+    // choices, where '' is just another bucket). Bucketing is keyed by group
+    // value rather than source-order position, so it stays correct even when
+    // choices have been shuffled server-side. With 0 or 1 distinct groups
+    // there's nothing to visually separate, so rendering is unchanged from
+    // today's single flat word bank.
+    const groupOrder: string[] = [];
+    const seenGroups = new Set<string>();
+    for (const choice of choices) {
+      const primaryGroup = getPrimaryGroup(choice.matchGroup);
+      if (!seenGroups.has(primaryGroup)) {
+        seenGroups.add(primaryGroup);
+        groupOrder.push(primaryGroup);
+      }
+    }
+    const groupedMode = groupOrder.length >= 2;
+
+    const groupContainers = new Map<string, HTMLElement>();
+    if (groupedMode) {
+      // A listbox must not contain nested listbox descendants, so once this
+      // becomes a pure layout wrapper for multiple word banks it drops that
+      // role in favor of the sub-containers below each carrying their own.
+      choicesContainer.classList.add('cutie-gap-match-choices--grouped');
+      choicesContainer.setAttribute('role', 'group');
+      choicesContainer.setAttribute('aria-label', 'Available choices');
+
+      groupOrder.forEach((group, index) => {
+        const groupContainer = document.createElement('div');
+        groupContainer.className = 'cutie-gap-match-choices-group';
+        groupContainer.setAttribute('role', 'listbox');
+        // match-group is a spec-opaque identifier with no display semantics
+        // (see docs/qti/interactions/gap-match.md) — there's no safe way to
+        // humanize an arbitrary author-chosen token, so each box gets a
+        // generated ordinal label, matching the existing "Gap 1"/"Gap 2"
+        // convention used below for gaps.
+        groupContainer.setAttribute('aria-label', `Word bank ${index + 1}`);
+        groupContainer.setAttribute('data-match-group', group);
+        choicesContainer.appendChild(groupContainer);
+        groupContainers.set(group, groupContainer);
+      });
+    } else {
+      choicesContainer.setAttribute('role', 'listbox');
+      choicesContainer.setAttribute('aria-label', 'Available choices');
     }
 
     container.appendChild(choicesContainer);
@@ -190,7 +246,10 @@ export class GapMatchInteractionHandler implements ElementHandler {
         choiceBtn.textContent = content;
       }
 
-      choicesContainer.appendChild(choiceBtn);
+      const target = groupedMode
+        ? groupContainers.get(getPrimaryGroup(choice.matchGroup)) ?? choicesContainer
+        : choicesContainer;
+      target.appendChild(choiceBtn);
 
       const matchGroups = choice.matchGroup ? choice.matchGroup.split(/\s+/) : [];
       controller.registerChoice(choice.identifier, choiceBtn, choice.matchMax, content, matchGroups);
