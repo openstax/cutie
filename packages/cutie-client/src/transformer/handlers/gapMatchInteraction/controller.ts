@@ -99,7 +99,7 @@ export class GapMatchController {
       }
     });
 
-    // Click on word bank area (not on a choice) to return a selected choice.
+    // Click on word bank area (not on a choice) to return a selected choice
     this.choicesContainer.addEventListener('click', (e) => {
       if (!this.enabled) return;
       const target = e.target as HTMLElement;
