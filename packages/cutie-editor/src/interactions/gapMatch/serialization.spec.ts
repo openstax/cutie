@@ -185,4 +185,63 @@ describe('Gap Match Interaction', () => {
       expect(result.xml).toContain('<qti-value>Su G2</qti-value>');
     });
   });
+
+  // A bowtie is a gap-match with per-column match-groups and a map_response
+  // mapping — the shape insertBowtieInteraction produces (the client derives
+  // the column layout from the match-group structure). These assert those
+  // bits, plus any shared-vocabulary class, survive a round-trip.
+  describe('bowtie (gap-match variant)', () => {
+    const bowtieXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+                     identifier="bowtie" title="Bowtie" adaptive="false" time-dependent="false">
+  <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="directedPair">
+    <qti-correct-response>
+      <qti-value>ACT1 GA1</qti-value>
+      <qti-value>COND1 GC1</qti-value>
+      <qti-value>PAR1 GP1</qti-value>
+    </qti-correct-response>
+    <qti-mapping default-value="0" lower-bound="0">
+      <qti-map-entry map-key="ACT1 GA1" mapped-value="1"/>
+      <qti-map-entry map-key="COND1 GC1" mapped-value="1"/>
+      <qti-map-entry map-key="PAR1 GP1" mapped-value="1"/>
+    </qti-mapping>
+  </qti-response-declaration>
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/>
+  <qti-item-body>
+    <qti-gap-match-interaction response-identifier="RESPONSE" class="qti-choices-bottom">
+      <qti-gap-text identifier="ACT1" match-max="1" match-group="actions">Action</qti-gap-text>
+      <qti-gap-text identifier="COND1" match-max="1" match-group="condition">Condition</qti-gap-text>
+      <qti-gap-text identifier="PAR1" match-max="1" match-group="parameters">Parameter</qti-gap-text>
+      <p>Actions to Take<qti-gap identifier="GA1" match-group="actions"/></p>
+      <p>Condition<qti-gap identifier="GC1" match-group="condition"/></p>
+      <p>Parameters to Monitor<qti-gap identifier="GP1" match-group="parameters"/></p>
+    </qti-gap-match-interaction>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+    it('preserves shared-vocabulary layout classes on the interaction', () => {
+      const parsed = parseXmlToSlate(bowtieXml);
+      const result = serializeSlateToQti(parsed, bowtieXml);
+
+      expect(result.xml).toContain('class="qti-choices-bottom"');
+    });
+
+    it('preserves per-column match-groups on choices and gaps', () => {
+      const parsed = parseXmlToSlate(bowtieXml);
+      const result = serializeSlateToQti(parsed, bowtieXml);
+
+      for (const group of ['actions', 'condition', 'parameters']) {
+        expect(result.xml).toContain(`match-group="${group}"`);
+      }
+    });
+
+    it('preserves the map_response mapping that floors the score at 0', () => {
+      const parsed = parseXmlToSlate(bowtieXml);
+      const result = serializeSlateToQti(parsed, bowtieXml);
+
+      expect(result.xml).toContain('lower-bound="0"');
+      expect(result.xml).toContain('map-key="ACT1 GA1"');
+      expect(result.xml).toContain('mapped-value="1"');
+    });
+  });
 });

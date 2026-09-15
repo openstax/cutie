@@ -1,5 +1,12 @@
 import { Editor, Element, Transforms } from 'slate';
+import type { CustomEditor } from '../../types';
 import { generateUniqueResponseId } from '../../utils/idGenerator';
+import {
+  type MapEntry,
+  type MappingMetadata,
+  updateMapping,
+} from '../../utils/mappingDeclaration';
+import { updateResponseProcessingMode } from '../../utils/responseProcessingTransforms';
 
 interface XmlNode {
   tagName: string;
@@ -212,6 +219,201 @@ export function insertGapMatchInteraction(
     { type: 'paragraph', children: [{ text: '' }] } as any,
     { at: interactionEntry ? [interactionEntry[1][0] + 1] : undefined }
   );
+}
+
+/**
+ * A single column of a bowtie: its match-group, heading, gaps, and choice pool
+ * (a couple of decoys per column keep the task non-trivial).
+ */
+interface BowtieColumn {
+  group: string;
+  label: string;
+  gaps: string[];
+  choices: Array<{ id: string; text: string; correctGap?: string }>;
+}
+
+/**
+ * The bowtie preset: three columns (2 gaps | 1 gap | 2 gaps) laid out with
+ * placeholder content the author replaces. Each column is its own match-group
+ * so choices can only be dropped into their own column's gaps. The columns are
+ * authored with the QTI layout grid (qti-layout-row / qti-layout-col4); the
+ * client lays them out side by side and banks each group's choices beneath its
+ * own column. A couple of decoy choices per column keep the task non-trivial.
+ */
+const BOWTIE_COLUMNS: BowtieColumn[] = [
+  {
+    group: 'group-1',
+    label: 'Column 1',
+    gaps: ['G1', 'G2'],
+    choices: [
+      { id: 'A', text: 'Choice A', correctGap: 'G1' },
+      { id: 'B', text: 'Choice B', correctGap: 'G2' },
+      { id: 'C', text: 'Choice C' },
+      { id: 'D', text: 'Choice D' },
+    ],
+  },
+  {
+    group: 'group-2',
+    label: 'Column 2',
+    gaps: ['G3'],
+    choices: [
+      { id: 'E', text: 'Choice E', correctGap: 'G3' },
+      { id: 'F', text: 'Choice F' },
+      { id: 'G', text: 'Choice G' },
+    ],
+  },
+  {
+    group: 'group-3',
+    label: 'Column 3',
+    gaps: ['G4', 'G5'],
+    choices: [
+      { id: 'H', text: 'Choice H', correctGap: 'G4' },
+      { id: 'I', text: 'Choice I', correctGap: 'G5' },
+      { id: 'J', text: 'Choice J' },
+      { id: 'K', text: 'Choice K' },
+    ],
+  },
+];
+
+/**
+ * Insert a bowtie interaction: a gap-match preset with three match-group-restricted
+ * columns and per-correct-choice scoring (+1 each, min 0). It is a standard
+ * qti-gap-match-interaction whose columns are authored with the QTI layout grid
+ * (qti-layout-row / qti-layout-col4) so the client lays them out side by side
+ * and banks each group's choices beneath its own column. The document's response
+ * processing is set to sum the mapped scores so each correct placement earns a
+ * point.
+ */
+export function insertBowtieInteraction(
+  editor: Editor,
+  config: {
+    responseIdentifier?: string;
+    shuffle?: boolean;
+  } = {}
+): void {
+  const responseId = config.responseIdentifier || generateUniqueResponseId(editor);
+
+  // Flatten the columns into the gap-text choice pool (match-group-tagged).
+  const choiceNodes = BOWTIE_COLUMNS.flatMap((column) =>
+    column.choices.map((choice) => ({
+      type: 'qti-gap-text',
+      attributes: {
+        identifier: choice.id,
+        'match-max': '1',
+        'match-group': column.group,
+      },
+      children: [{ text: choice.text }],
+    }))
+  );
+
+  // Lay the columns out with the QTI layout grid: a qti-layout-row wrapping one
+  // qti-layout-col4 per column, each holding a heading followed by a paragraph
+  // of its gaps. The heading is a real h3 so the client can name the column's
+  // choice bank after it (aria-labelledby). Empty text nodes wrap the inline
+  // void gaps as Slate requires. The client renders the columns side by side
+  // and, because each column's gaps all share a single match-group, banks that
+  // group's choices beneath the column.
+  const layoutRow = {
+    type: 'div',
+    attributes: { class: 'qti-layout-row' },
+    children: BOWTIE_COLUMNS.map((column) => {
+      const paragraphChildren: Array<Record<string, unknown>> = [{ text: '' }];
+      for (const gapId of column.gaps) {
+        paragraphChildren.push({
+          type: 'qti-gap',
+          attributes: { identifier: gapId, 'match-group': column.group },
+          children: [{ text: '' }],
+        });
+        paragraphChildren.push({ text: '' });
+      }
+      return {
+        type: 'div',
+        attributes: { class: 'qti-layout-col4' },
+        children: [
+          { type: 'heading', level: 3, attributes: {}, children: [{ text: column.label }] },
+          { type: 'paragraph', attributes: {}, children: paragraphChildren },
+        ],
+      };
+    }),
+  };
+
+  // Correct pairings ("CHOICE GAP") and a +1 map-entry for each.
+  const correctValues: string[] = [];
+  const mapEntries: MapEntry[] = [];
+  for (const column of BOWTIE_COLUMNS) {
+    for (const choice of column.choices) {
+      if (choice.correctGap) {
+        const pairing = `${choice.id} ${choice.correctGap}`;
+        correctValues.push(pairing);
+        mapEntries.push({ mapKey: pairing, mappedValue: 1 });
+      }
+    }
+  }
+
+  // Build the response declaration: correct response + a mapping that floors the
+  // score at 0 (wrong placements map to the default 0, never negative).
+  const baseDecl = {
+    tagName: 'qti-response-declaration',
+    attributes: {
+      identifier: responseId,
+      cardinality: 'multiple',
+      'base-type': 'directedPair',
+    },
+    children: [
+      {
+        tagName: 'qti-correct-response',
+        attributes: {},
+        children: correctValues.map((value) => ({
+          tagName: 'qti-value',
+          attributes: {},
+          children: [value],
+        })),
+      },
+    ],
+  };
+  const mappingMetadata: MappingMetadata = { defaultValue: 0, lowerBound: 0 };
+  const responseDeclaration = updateMapping(baseDecl as any, mappingMetadata, mapEntries);
+
+  const bowtieInteraction = {
+    type: 'qti-gap-match-interaction',
+    attributes: {
+      'response-identifier': responseId,
+      shuffle: config.shuffle ? 'true' : undefined,
+    },
+    children: [
+      { type: 'gap-match-choices', children: choiceNodes },
+      { type: 'gap-match-content', children: [layoutRow] },
+    ],
+    responseDeclaration,
+  };
+
+  // Insert at the current selection (same flow as insertGapMatchInteraction).
+  const { selection } = editor;
+  const insertPoint = selection ? Editor.start(editor, selection) : Editor.end(editor, []);
+
+  Transforms.insertNodes(editor, bowtieInteraction as any, { at: insertPoint });
+
+  const [interactionEntry] = Editor.nodes(editor, {
+    at: insertPoint,
+    match: (n) => Element.isElement(n) && 'type' in n && n.type === 'qti-gap-match-interaction',
+  });
+
+  if (interactionEntry) {
+    const [, interactionPath] = interactionEntry;
+    // Select the start of the first content region.
+    Transforms.select(editor, Editor.start(editor, [...interactionPath, 1, 0]));
+  }
+
+  // Trailing paragraph for cursor positioning after the interaction.
+  Transforms.insertNodes(
+    editor,
+    { type: 'paragraph', children: [{ text: '' }] } as any,
+    { at: interactionEntry ? [interactionEntry[1][0] + 1] : undefined }
+  );
+
+  // Partial-credit scoring: sum the mapped response so each correct placement
+  // contributes its +1. Without this the item defaults to all-or-nothing.
+  updateResponseProcessingMode(editor as unknown as CustomEditor, 'sumScores');
 }
 
 /**

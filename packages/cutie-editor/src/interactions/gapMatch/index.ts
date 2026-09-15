@@ -24,7 +24,7 @@ export {
   gapConfig,
 } from './config';
 export { gapMatchParsers, gapMatchSerializers } from './serialization';
-export { insertGapMatchInteraction, insertGapAtSelection, generateGapId, generateChoiceId } from './insertion';
+export { insertGapMatchInteraction, insertBowtieInteraction, insertGapAtSelection, generateGapId, generateChoiceId } from './insertion';
 
 // Import components for creating maps
 import {

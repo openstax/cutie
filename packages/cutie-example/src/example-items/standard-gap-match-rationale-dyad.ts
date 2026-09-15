@@ -2,13 +2,14 @@
 // Approximates the "Drop-down: Rationale" item type with a cause/effect dyad
 // (1 cause + 1 supporting effect) worth 1 point:
 //   - BOTH parts must be correct for credit (all-or-nothing; no partial credit).
-// A single gap-match interaction holds both gaps in one shared sentence. Its
-// choices are split into two visually separate word-bank boxes by cutie's
-// client renderer (one per match-group value: cause words, then effect
-// words) — see packages/cutie-client's gapMatchInteractionHandler. Even
-// though both boxes belong to one physical interaction/response, match-group
-// scoping keeps each box's words restricted to its own gap — a cause word
-// can't be dropped into the effect gap, or vice versa.
+// A single gap-match interaction holds both gaps, laid out as a two-column
+// "bowtie" (qti-layout-row / qti-layout-col*): one column for the cause gap,
+// one for the effect gap. cutie's client renderer banks each column's
+// choices into that column's own labeled word-bank box (see
+// packages/cutie-client's gapMatchInteractionHandler) — even though both
+// boxes belong to one physical interaction/response, match-group scoping
+// keeps each box's words restricted to its own gap — a cause word can't be
+// dropped into the effect gap, or vice versa.
 // Scoring is a plain qti-match against the whole (2-pair) correct response,
 // with an explicit MAXSCORE of 1.
 
@@ -42,19 +43,27 @@ adaptive="false" time-dependent="false" xml:lang="en">
   <qti-outcome-declaration identifier="FEEDBACK" cardinality="multiple" base-type="identifier"/>
 
   <qti-item-body>
-    <p>A weather station records a gradual change in conditions. Drag words to complete the
-      sentence below.</p>
+    <p>A weather station records a gradual change in conditions. Drag each word into its
+      matching blank below.</p>
 
     <qti-gap-match-interaction response-identifier="RESPONSE" shuffle="false" min-associations="2" max-associations="2">
-      <qti-prompt>Drag the event and the reading into the sentence.</qti-prompt>
-      <p>The station data most likely indicate that a <qti-gap identifier="GC" match-group="cause"/>
-        is approaching, as evidenced by <qti-gap identifier="GE" match-group="effect"/>.</p>
+      <qti-prompt>Drag the event and the reading into their blanks.</qti-prompt>
       <qti-gap-text identifier="warm_front" match-max="1" match-group="cause">warm front</qti-gap-text>
       <qti-gap-text identifier="cold_front" match-max="1" match-group="cause">cold front</qti-gap-text>
       <qti-gap-text identifier="stationary_front" match-max="1" match-group="cause">stationary front</qti-gap-text>
       <qti-gap-text identifier="rising_temperature" match-max="1" match-group="effect">a rising temperature</qti-gap-text>
       <qti-gap-text identifier="falling_temperature" match-max="1" match-group="effect">a falling temperature</qti-gap-text>
       <qti-gap-text identifier="steady_temperature" match-max="1" match-group="effect">a steady temperature</qti-gap-text>
+      <div class="qti-layout-row">
+        <div class="qti-layout-col6">
+          <h3>Event</h3>
+          <p>The station data most likely indicate that a <qti-gap identifier="GC" match-group="cause"/> is approaching.</p>
+        </div>
+        <div class="qti-layout-col6">
+          <h3>Reading</h3>
+          <p>This is evidenced by <qti-gap identifier="GE" match-group="effect"/>.</p>
+        </div>
+      </div>
     </qti-gap-match-interaction>
 
     <qti-feedback-block outcome-identifier="FEEDBACK" identifier="CAUSE_correct" show-hide="show" data-feedback-type="correct">
