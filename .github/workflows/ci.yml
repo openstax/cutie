@@ -29,8 +29,8 @@ jobs:
     - uses: actions/setup-node@v3
       with:
         node-version-file: .nvmrc
-        cache: yarn
-    - run: yarn install --immutable
-    - run: yarn build
-    - run: yarn ci
+        cache: npm
+    - run: npm ci
+    - run: npm run build
+    - run: npm run ci
       working-directory: packages/${{ matrix.module }}

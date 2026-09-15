@@ -12,11 +12,11 @@ build_order=( \
 )
 
 # all other packages
-all_packages=$(yarn --silent workspaces info | node -e "process.stdout.write(Object.keys(JSON.parse(require('fs').readFileSync('/dev/stdin').toString())).join(' '))")
+all_packages=$(npm query .workspace | node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('/dev/stdin').toString()).map(pkg => pkg.name).join(' '))")
 remaining_packages=$(echo "${build_order[@]}" "$all_packages" | tr ' ' '\n' | sort | uniq -u)
 
 # build em
 for package in "${build_order[@]}" $remaining_packages; do
   echo "building $package ..."
-  yarn workspace "$package" build:clean
+  npm run build:clean --workspace "$package"
 done
