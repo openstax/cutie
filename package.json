@@ -4,7 +4,7 @@
   "devDependencies": {
     "cspell": "^5.18.5",
     "npm-run-all2": "^9.0.3",
-    "syncpack": "^12.3.0"
+    "syncpack": "^15.3.3"
   },
   "private": true,
   "scripts": {
