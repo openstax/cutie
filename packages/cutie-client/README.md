@@ -8,7 +8,7 @@ Browser-side rendering library for QTI v3 assessment items. Parses sanitized QTI
 ```bash
 npm install @openstax/cutie-client
 # or
-yarn add @openstax/cutie-client
+npm install @openstax/cutie-client
 ```
 
 ## Usage
@@ -181,16 +181,16 @@ src/
 
 ```bash
 # Build (ESM + CJS)
-yarn build
+npm run build
 
 # Type check
-yarn ci:typecheck
+npm run ci:typecheck
 
 # Lint
-yarn ci:lint
+npm run ci:lint
 
 # Run all CI checks
-yarn ci
+npm run ci
 ```
 
 ## Future Enhancements

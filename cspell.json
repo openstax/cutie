@@ -64,7 +64,7 @@
     "LICENSE.txt",
     "cspell.json",
     "package.json",
-    "yarn.lock",
+    "package-lock.json",
     "node_modules/**",
     "**/dist/**",
     "**/*.css.map",

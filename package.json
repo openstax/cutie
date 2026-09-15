@@ -3,14 +3,15 @@
   "version": "1.0.0",
   "devDependencies": {
     "cspell": "^5.18.5",
-    "syncpack": "^12.3.0"
+    "npm-run-all2": "^9.0.3",
+    "syncpack": "^15.3.3"
   },
   "private": true,
   "scripts": {
     "build": "./scripts/build.bash",
     "ci": "CI=true npm-run-all ci:*",
     "ci:packages": "./scripts/ci.bash",
-    "ci:spelling": "yarn cspell -c ./cspell.json --exclude \"packages/**\" \"**\"",
+    "ci:spelling": "cspell -c ./cspell.json --exclude \"packages/**\" \"**\"",
     "ci:versions": "syncpack lint"
   },
   "workspaces": [

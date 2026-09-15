@@ -33,9 +33,9 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version-file: .nvmrc
-          cache: yarn
-      - run: yarn install --immutable
-      - run: yarn build
+          cache: npm
+      - run: npm ci
+      - run: npm run build
         env:
           VITE_API_KEY: ${{ secrets.API_KEY }}
       - name: Upload artifact
