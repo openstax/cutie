@@ -78,21 +78,20 @@ partial-credit triad).
 ## Rationale Scoring: All-or-Nothing (Dyad)
 
 **Setup:** Load "Gap Match - Rationale (Dyad)" from the Supported Examples group. This item is a
-single gap-match interaction laid out as a two-column "bowtie" (`qti-layout-row`/
-`qti-layout-col*`): an "Event" column holding the cause gap, and a "Reading" column holding the
-effect gap. Each column gets its own labeled word-bank box, named after the column's own
-heading. `match-group` scoping keeps each box's words restricted to its own gap. Worth 1 point:
-both gaps must be correct for any credit (all-or-nothing; no partial credit).
+single gap-match interaction whose sentence has two gaps (cause, effect), fed by two separate
+word-bank boxes side by side — one for cause words, one for effect words. `match-group` scoping
+keeps each box's words restricted to its own gap. Worth 1 point: both gaps must be correct for
+any credit (all-or-nothing; no partial credit).
 
 The correct answers are: cause gap = **warm front**, effect gap = **a rising temperature**.
 
 1. Observe the rendered item.
-   - [ ] Two columns are visible side by side, each with its own heading ("Event", "Reading"),
-     its own short phrase with a blank, and its own bordered word-bank box beneath it
-   - [ ] The "Event" column's word bank shows the cause words: "warm front", "cold front",
-     "stationary front"
-   - [ ] The "Reading" column's word bank shows the effect words: "a rising temperature", "a
-     falling temperature", "a steady temperature"
+   - [ ] One interaction is visible: a single sentence with two gaps (cause, then effect), and
+     two bordered word-bank boxes below/beside it, side by side
+   - [ ] The first box ("Word bank 1" for screen readers) shows the cause words: "warm front",
+     "cold front", "stationary front"
+   - [ ] The second box ("Word bank 2" for screen readers) shows the effect words: "a rising
+     temperature", "a falling temperature", "a steady temperature"
    - [ ] The constraint text reads "Fill at least 2 gaps."
 
 2. Try to drag an effect word (e.g. a rising temperature) into the cause gap, and a cause word
@@ -128,24 +127,22 @@ The correct answers are: cause gap = **warm front**, effect gap = **a rising tem
 ## Rationale Scoring: Cause Gate & Partial Credit (Triad)
 
 **Setup:** Load "Gap Match - Rationale (Triad)" from the Supported Examples group. This item is a
-single gap-match interaction laid out as a two-column "bowtie" (`qti-layout-row`/
-`qti-layout-col*`): an "Event" column holding the cause gap, and a "Readings" column holding
-both effect gaps. Each column gets its own labeled word-bank box, named after the column's own
-heading. `match-group` scoping keeps the "Event" box's words restricted to the cause gap, and
-the "Readings" box's words restricted to either effect gap. Worth 2 points: the cause must be
-correct for any credit, with partial credit (1 point) for a single correct effect gap.
+single gap-match interaction whose sentence has three gaps (cause, and two effects), fed by two
+separate word-bank boxes side by side — one for the cause word, one shared by both effect words.
+`match-group` scoping keeps the cause box's word restricted to the cause gap, and the effects
+box's words restricted to either effect gap. Worth 2 points: the cause must be correct for any
+credit, with partial credit (1 point) for a single correct effect gap.
 
 The correct answers are: cause gap = **cold front**, effect gap 1 = **a falling temperature**,
 effect gap 2 = **gusting winds**.
 
 1. Observe the rendered item.
-   - [ ] Two columns are visible side by side, each with its own heading ("Event", "Readings"),
-     its own short phrase (the "Readings" column has two gaps), and its own bordered word-bank
-     box beneath it
-   - [ ] The "Event" column's word bank shows the cause words: "cold front", "warm front",
-     "high-pressure system"
-   - [ ] The "Readings" column's word bank shows all four effect words: "a falling temperature",
-     "gusting winds", "a rising temperature", "calm winds"
+   - [ ] One interaction is visible: a single sentence with three gaps (cause, then two
+     effects), and two bordered word-bank boxes below/beside it, side by side
+   - [ ] The first box ("Word bank 1" for screen readers) shows the cause words: "cold front",
+     "warm front", "high-pressure system"
+   - [ ] The second box ("Word bank 2" for screen readers) shows all four effect words: "a
+     falling temperature", "gusting winds", "a rising temperature", "calm winds"
    - [ ] The constraint text reads "Fill at least 3 gaps."
 
 2. Try to drag an effect word (e.g. gusting winds) into the cause gap, and the cause word (e.g.

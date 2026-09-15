@@ -272,6 +272,44 @@ export const GAP_MATCH_INTERACTION_STYLES = `
   }
 
   /*
+   * Multiple leftover word-bank boxes: when 2+ distinct match-group values
+   * are present among choices no layout column claimed (including a flowing
+   * sentence that uses no columns at all), each group gets its own bordered
+   * box instead of one flat tray, so match-group's functional restriction is
+   * visible without splitting the sentence into columns. The row keeps the
+   * base .cutie-gap-match-choices class so the qti-choices-top/bottom/left/
+   * right rules above reposition it exactly like today's single shared tray;
+   * --multi-tray strips its own box chrome since each child box below draws
+   * its own border.
+   */
+  .cutie-gap-match-choices--multi-tray {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1em;
+    padding: 0;
+    border: none;
+    background-color: transparent;
+  }
+
+  .cutie-gap-match-choices--group {
+    flex: 1 1 auto;
+    min-width: 10em;
+    margin-bottom: 0;
+  }
+
+  /* Mobile: stack word-bank boxes vertically instead of side by side */
+  @media (max-width: 600px) {
+    .cutie-gap-match-choices--multi-tray {
+      flex-direction: column;
+    }
+
+    .cutie-gap-match-choices--group {
+      min-width: unset;
+      width: 100%;
+    }
+  }
+
+  /*
    * Per-column choice banks. When the content is laid out with the QTI layout
    * grid, each column that owns a match-group gets that group's choices banked
    * inside it (cutie-gap-match-column on the column, --column on the bank). The

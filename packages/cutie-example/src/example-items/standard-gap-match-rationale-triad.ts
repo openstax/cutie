@@ -4,14 +4,14 @@
 // (1 cause + 2 supporting effects) worth 2 points:
 //   - The cause must be correct for ANY credit.
 //   - Partial credit: 1 point for one correct effect gap, 2 points for both.
-// A single gap-match interaction holds all three gaps, laid out as a
-// two-column "bowtie" (qti-layout-row / qti-layout-col*): one column for the
-// cause gap, one column for both effect gaps. cutie's client renderer banks
-// each column's choices into that column's own labeled word-bank box (see
-// packages/cutie-client's gapMatchInteractionHandler) — even though both
-// boxes belong to one physical interaction/response, match-group scoping
-// keeps each box's words restricted to its own gap(s) — a cause word can't
-// be dropped into an effect gap, or vice versa.
+// A single gap-match interaction holds all three gaps in one shared sentence.
+// Its choices are split into two visually separate word-bank boxes by
+// cutie's client renderer (one per match-group value: cause words, then
+// effect words — see packages/cutie-client's gapMatchInteractionHandler,
+// the leftover-choices multi-tray path) — even though both boxes belong to
+// one physical interaction/response, match-group scoping keeps each box's
+// words restricted to its own gap(s) — a cause word can't be dropped into
+// an effect gap, or vice versa.
 // Per-gap credit is computed with qti-member (checking whether the
 // declared-correct pair for that gap — read via qti-correct + qti-index — is
 // present in the single RESPONSE), since all three gaps are scored from one
@@ -72,16 +72,9 @@ adaptive="false" time-dependent="false" xml:lang="en">
       <qti-gap-text identifier="gusting_winds" match-max="1" match-group="effects">gusting winds</qti-gap-text>
       <qti-gap-text identifier="rising_temperature" match-max="1" match-group="effects">a rising temperature</qti-gap-text>
       <qti-gap-text identifier="calm_winds" match-max="1" match-group="effects">calm winds</qti-gap-text>
-      <div class="qti-layout-row">
-        <div class="qti-layout-col6">
-          <h3>Event</h3>
-          <p>The station data most likely indicate that a <qti-gap identifier="GC" match-group="cause"/> is approaching.</p>
-        </div>
-        <div class="qti-layout-col6">
-          <h3>Readings</h3>
-          <p>This is evidenced by <qti-gap identifier="GE1" match-group="effects"/> and <qti-gap identifier="GE2" match-group="effects"/>.</p>
-        </div>
-      </div>
+      <p>The station data most likely indicate that a <qti-gap identifier="GC" match-group="cause"/>
+        is approaching, as evidenced by <qti-gap identifier="GE1" match-group="effects"/> and
+        <qti-gap identifier="GE2" match-group="effects"/>.</p>
     </qti-gap-match-interaction>
 
     <qti-feedback-block outcome-identifier="FEEDBACK" identifier="CAUSE_correct" show-hide="show" data-feedback-type="correct">
