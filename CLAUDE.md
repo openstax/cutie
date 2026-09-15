@@ -39,31 +39,31 @@ The architecture separates response and template processing from the presentatio
 ```bash
 # Run all CI checks (build + lint + typecheck + spelling)
 # AVOID doing this, PREFER running checks for the individual package you're working in.
-yarn ci
+npm run ci
 
 # Individual package CI checks
-yarn workspace @openstax/cutie-core ci
-yarn workspace @openstax/cutie-client ci
-yarn workspace @openstax/cutie-editor ci
-yarn workspace @openstax/cutie-example ci
+npm run ci --workspace @openstax/cutie-core
+npm run ci --workspace @openstax/cutie-client
+npm run ci --workspace @openstax/cutie-editor
+npm run ci --workspace @openstax/cutie-example
 
 # Linting
-yarn workspace @openstax/cutie-core ci:lint
-yarn workspace @openstax/cutie-client ci:lint
-yarn workspace @openstax/cutie-editor ci:lint
-yarn workspace @openstax/cutie-example ci:lint
+npm run ci:lint --workspace @openstax/cutie-core
+npm run ci:lint --workspace @openstax/cutie-client
+npm run ci:lint --workspace @openstax/cutie-editor
+npm run ci:lint --workspace @openstax/cutie-example
 
 # Type checking
-yarn workspace @openstax/cutie-core ci:typecheck
-yarn workspace @openstax/cutie-client ci:typecheck
-yarn workspace @openstax/cutie-editor ci:typecheck
-yarn workspace @openstax/cutie-example ci:typecheck
+npm run ci:typecheck --workspace @openstax/cutie-core
+npm run ci:typecheck --workspace @openstax/cutie-client
+npm run ci:typecheck --workspace @openstax/cutie-editor
+npm run ci:typecheck --workspace @openstax/cutie-example
 
 # Spell checking (root level)
-yarn ci:spelling
+npm run ci:spelling
 
 # Check package version consistency
-yarn ci:versions
+npm run ci:versions
 ```
 
 #### Spellcheck

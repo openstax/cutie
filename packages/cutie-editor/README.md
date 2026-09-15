@@ -20,7 +20,7 @@ React-based WYSIWYG editor for QTI v3 assessment items. Built with Slate.js for 
 ```bash
 npm install @openstax/cutie-editor
 # or
-yarn add @openstax/cutie-editor
+npm install @openstax/cutie-editor
 ```
 
 **Peer Dependencies:** React 18+
