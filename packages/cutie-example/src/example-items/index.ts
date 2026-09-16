@@ -53,6 +53,8 @@ import * as variantChoiceLabels from './variant-choice-labels';
 import * as variantChoiceLayout from './variant-choice-layout';
 import * as variantExtendedTextLayouts from './variant-extended-text-layouts';
 import * as variantExtendedTextPattern from './variant-extended-text-pattern';
+import * as variantGapMatchLayout from './variant-gap-match-layout';
+import * as variantBowtieLayout from './variant-bowtie-layout';
 
 /* these examples are copied exactly from examples in the spec
  * documents, they are used for verification that cutie works
@@ -103,6 +105,8 @@ export const variantExamples = [
   variantChoiceLayout,
   variantExtendedTextLayouts,
   variantExtendedTextPattern,
+  variantGapMatchLayout,
+  variantBowtieLayout,
 ];
 
 /* these examples were made for each interaction type to show editor-supported
