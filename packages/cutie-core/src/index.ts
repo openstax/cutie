@@ -1,4 +1,8 @@
 import { DOMParser } from '@xmldom/xmldom';
+import {
+  collectAssetReferences,
+  uniqueAssetUrls,
+} from './lib/collectAssetReferences';
 import { deriveMaxScore } from './lib/deriveMaxScore';
 import { initializeState } from './lib/initializeState';
 import { renderTemplate } from './lib/renderTemplate';
@@ -145,6 +149,36 @@ export async function setScore(
   const template = await renderTemplate(itemDoc, updatedState, options);
 
   return { state: updatedState, template };
+}
+
+/**
+ * Lists every asset URL referenced by an item definition.
+ *
+ * Reads the `src` and `data` attributes of the raw definition, so the
+ * result is the complete set of assets the item could ever reference --
+ * including those behind template conditionals, inside feedback that is
+ * not yet visible, and within rubric blocks hidden from the candidate.
+ * It is a superset of what any single rendered template contains.
+ *
+ * This deliberately bypasses the sanitization applied by the attempt
+ * lifecycle, so it is intended for server-side use (pre-caching,
+ * packaging, dependency checking). Exposing the result to a learner can
+ * reveal content that `beginAttempt` and `submitResponse` withhold.
+ *
+ * @param itemXml - Complete QTI v3 assessment item XML definition
+ * @returns Unique asset URLs, unresolved, in document order
+ *
+ * @example
+ * ```typescript
+ * const urls = listItemAssets(itemXml);
+ * // ['images/red_door.png', 'images/open_goat.png', ...]
+ * ```
+ */
+export function listItemAssets(itemXml: string): string[] {
+  const parser = new DOMParser();
+  const itemDoc = parser.parseFromString(itemXml.trim(), 'text/xml');
+
+  return uniqueAssetUrls(collectAssetReferences(itemDoc.documentElement));
 }
 
 export { ResponseValidationError } from './lib/validateResponses';
