@@ -44,6 +44,7 @@ import * as choicePartialStandard from './standard-choice-partial';
 import * as multiInteractionStandard from './standard-multi-interaction';
 import * as adaptiveMontyHall from './spec-adaptive-monty-hall';
 import * as templateDigging from './template-digging';
+import * as templateRounding from './template-rounding';
 import * as formulaStrict from './formula-strict';
 import * as formulaCanonical from './formula-canonical';
 import * as formulaAlgebraic from './formula-algebraic';
@@ -99,6 +100,11 @@ export const formulaExamples = [
   formulaAlgebraic,
 ];
 
+/* items using template processing to randomize values per attempt */
+export const templateExamples = [
+  templateRounding,
+];
+
 /* variant testing examples for visual verification of CSS/layout features */
 export const variantExamples = [
   variantChoiceLabels,
@@ -141,6 +147,10 @@ export const exampleGroups: ExampleGroup[] = [
   {
     label: 'Math Formula Entry',
     items: formulaExamples,
+  },
+  {
+    label: 'Templated Items',
+    items: templateExamples,
   },
   {
     label: 'Variant Testing',
