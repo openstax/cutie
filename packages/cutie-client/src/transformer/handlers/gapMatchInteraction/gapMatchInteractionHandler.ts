@@ -246,16 +246,68 @@ export class GapMatchInteractionHandler implements ElementHandler {
     }
 
     // Any choices not placed into a column — no columns at all, an ungrouped
-    // pool, or a group no column claimed — go into a single shared tray whose
-    // position follows the interaction's qti-choices-* class.
+    // pool, or a group no column claimed — go into a shared tray whose
+    // position follows the interaction's qti-choices-* class. When these
+    // leftovers span 2+ distinct match-groups (e.g. a flowing sentence whose
+    // gaps are scoped by match-group but never wrapped in layout columns),
+    // split them into one labeled box per group instead of one flat tray —
+    // this is how a continuous sentence gets visually separated word banks
+    // without being torn into qti-layout-col fragments.
     const leftoverChoices = choices.filter((choice) => !orderedChoices.includes(choice));
     if (leftoverChoices.length > 0) {
       container.classList.add('cutie-gap-match-interaction--shared-tray');
-      const tray = createBank({ label: 'Available choices' });
+
+      const bucketOrder: string[] = [];
+      const buckets = new Map<string, ChoiceData[]>();
       for (const choice of leftoverChoices) {
-        placeChoice(tray, choice);
+        const key = choice.matchGroups[0] ?? '';
+        if (!buckets.has(key)) {
+          buckets.set(key, []);
+          bucketOrder.push(key);
+        }
+        buckets.get(key)!.push(choice);
       }
-      container.appendChild(tray);
+
+      if (bucketOrder.length >= 2) {
+        // The wrapper keeps the bare cutie-gap-match-choices class (not each
+        // inner box) so it slots into the qti-choices-top/bottom/left/right
+        // positioning rules unchanged — those select a direct child of
+        // --shared-tray, which this wrapper is and the nested boxes below
+        // are not. It's a plain layout row, not itself a bank: it isn't
+        // pushed into choiceBanks, and role="group" (not "listbox") reflects
+        // that its children — not it — are the selectable listboxes.
+        const row = document.createElement('div');
+        row.className = 'cutie-gap-match-choices cutie-gap-match-choices--multi-tray';
+        row.setAttribute('role', 'group');
+        row.setAttribute('aria-label', 'Available choices');
+        if (choicesContainerWidth !== null) {
+          row.style.width = `${choicesContainerWidth}px`;
+        }
+
+        bucketOrder.forEach((key, index) => {
+          // match-group is a spec-opaque, author-chosen identifier with no
+          // display semantics (see docs/qti/interactions/gap-match.md) —
+          // there's no safe way to humanize an arbitrary token into a label,
+          // so each box gets a generated ordinal name instead, matching the
+          // existing "Gap 1"/"Gap 2" convention used below for gaps.
+          const bank = createBank({ label: `Word bank ${index + 1}` });
+          bank.classList.add('cutie-gap-match-choices--group');
+          bank.style.width = ''; // width belongs to the row, not each box
+          if (key) bank.setAttribute('data-match-group', key);
+          for (const choice of buckets.get(key)!) {
+            placeChoice(bank, choice);
+          }
+          row.appendChild(bank);
+        });
+
+        container.appendChild(row);
+      } else {
+        const tray = createBank({ label: 'Available choices' });
+        for (const choice of leftoverChoices) {
+          placeChoice(tray, choice);
+        }
+        container.appendChild(tray);
+      }
     }
 
     container.appendChild(contentContainer);

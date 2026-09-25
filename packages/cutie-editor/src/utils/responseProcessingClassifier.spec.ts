@@ -6,6 +6,8 @@ import { item as choiceFeedbackItem } from '../../../cutie-example/src/example-i
 import { item as choiceMultipleFeedbackItem } from '../../../cutie-example/src/example-items/standard-choice-multiple';
 import { item as choicePartialItem } from '../../../cutie-example/src/example-items/standard-choice-partial';
 import { item as gapMatchFeedbackItem } from '../../../cutie-example/src/example-items/standard-gap-match';
+import { item as gapMatchRationaleDyadItem } from '../../../cutie-example/src/example-items/standard-gap-match-rationale-dyad';
+import { item as gapMatchRationaleTriadItem } from '../../../cutie-example/src/example-items/standard-gap-match-rationale-triad';
 import { item as inlineChoiceFeedbackItem } from '../../../cutie-example/src/example-items/standard-inline-choice';
 import { item as matchFeedbackItem } from '../../../cutie-example/src/example-items/standard-match';
 import { item as multiInteractionItem } from '../../../cutie-example/src/example-items/standard-multi-interaction';
@@ -689,6 +691,18 @@ describe('responseProcessingClassifier', () => {
       const doc = parseItem(gapMatchFeedbackItem);
       const result = classifyResponseProcessing(doc);
       expect(result.mode).toBe('allCorrect');
+    });
+
+    it('should classify standard-gap-match-rationale-dyad.ts as allCorrect', () => {
+      const doc = parseItem(gapMatchRationaleDyadItem);
+      const result = classifyResponseProcessing(doc);
+      expect(result.mode).toBe('allCorrect');
+    });
+
+    it('should classify standard-gap-match-rationale-triad.ts as custom', () => {
+      const doc = parseItem(gapMatchRationaleTriadItem);
+      const result = classifyResponseProcessing(doc);
+      expect(result.mode).toBe('custom');
     });
 
     it('should classify standard-multi-interaction.ts as sumScores', () => {

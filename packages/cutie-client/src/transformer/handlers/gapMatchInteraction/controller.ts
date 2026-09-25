@@ -282,6 +282,8 @@ export class GapMatchController {
             }
             this.clearSelection();
           }
+        } else {
+          this.announceInvalidPlacement(this.selectedChoice);
         }
       } else if (currentChoiceInGap) {
         // Gap has a choice and nothing is selected - pick it up
@@ -309,6 +311,8 @@ export class GapMatchController {
               }
               this.clearSelection();
             }
+          } else {
+            this.announceInvalidPlacement(this.selectedChoice);
           }
         } else if (currentChoiceInGap) {
           this.selectChoice(currentChoiceInGap, gapId);
@@ -395,6 +399,8 @@ export class GapMatchController {
         const choiceId = data.slice(7);
         if (this.canPlaceInGap(gapId, choiceId)) {
           this.placeChoiceInGap(gapId, choiceId);
+        } else {
+          this.announceInvalidPlacement(choiceId);
         }
       } else if (data.startsWith('gap:')) {
         // Dropping from another gap
@@ -402,9 +408,13 @@ export class GapMatchController {
         if (sourceGapId === gapId) return; // Same gap, ignore
 
         const choiceId = this.gapAssignments.get(sourceGapId);
-        if (choiceId && this.canPlaceInGap(gapId, choiceId)) {
-          this.removeChoiceFromGap(sourceGapId, true);
-          this.placeChoiceInGap(gapId, choiceId);
+        if (choiceId) {
+          if (this.canPlaceInGap(gapId, choiceId)) {
+            this.removeChoiceFromGap(sourceGapId, true);
+            this.placeChoiceInGap(gapId, choiceId);
+          } else {
+            this.announceInvalidPlacement(choiceId);
+          }
         }
       }
     });
@@ -435,6 +445,15 @@ export class GapMatchController {
       if (gapGroups.has(group)) return true;
     }
     return false;
+  }
+
+  /**
+   * Announce that a placement attempt was rejected (e.g. match-group
+   * incompatibility between the choice and the gap).
+   */
+  private announceInvalidPlacement(choiceId: string): void {
+    const content = this.choiceContents.get(choiceId) ?? '';
+    announce(this.context, `${content} cannot be placed in this gap.`);
   }
 
   /**
