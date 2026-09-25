@@ -49,6 +49,8 @@ const BASE_STYLES = `
 
   .cutie-item-container thead th {
     background-color: var(--cutie-bg-alt);
+  }
+  
   /*
    * QTI Vocab §1.1.3 Layout: https://www.imsglobal.org/spec/qti/v3p0/vocab
    */
