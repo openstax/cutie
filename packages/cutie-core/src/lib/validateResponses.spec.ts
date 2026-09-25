@@ -20,6 +20,21 @@ const makeItem = (interactionAttrs: string) => `
   </qti-assessment-item>
 `;
 
+// spell-checker: ignore hottext
+const makeHottextItem = (attrs: string) => `
+  <qti-assessment-item xmlns="${NS}">
+    <qti-item-body>
+      <qti-hottext-interaction response-identifier="RESPONSE" ${attrs}>
+        <p>
+          Alpha <qti-hottext identifier="A">Item A</qti-hottext>
+          beta <qti-hottext identifier="B">Item B</qti-hottext>
+          gamma <qti-hottext identifier="C">Item C</qti-hottext>.
+        </p>
+      </qti-hottext-interaction>
+    </qti-item-body>
+  </qti-assessment-item>
+`;
+
 const makeTextEntryItem = (attrs: string) => `
   <qti-assessment-item xmlns="${NS}">
     <qti-item-body>
@@ -155,6 +170,55 @@ describe('validateSubmission', () => {
   it('passes when single-select max-choices="1" with one selection', () => {
     const doc = parseItem(makeItem('max-choices="1"'));
     expect(() => validateSubmission({ RESPONSE: 'A' }, doc)).not.toThrow();
+  });
+});
+
+describe('validateHottextInteractions', () => {
+  it('passes when min-choices and max-choices are satisfied', () => {
+    const doc = parseItem(makeHottextItem('min-choices="1" max-choices="2"'));
+    expect(() => validateSubmission({ RESPONSE: ['B', 'C'] }, doc)).not.toThrow();
+  });
+
+  it('fails when too few selected', () => {
+    const doc = parseItem(makeHottextItem('min-choices="2" max-choices="3"'));
+    expect(() => validateSubmission({ RESPONSE: ['B'] }, doc)).toThrow(ResponseValidationError);
+
+    try {
+      validateSubmission({ RESPONSE: ['B'] }, doc);
+    } catch (e) {
+      const err = e as ResponseValidationError;
+      expect(err.errors).toHaveLength(1);
+      expect(err.errors[0]!.constraint).toBe('min-choices');
+    }
+  });
+
+  it('fails when too many selected (server guard)', () => {
+    const doc = parseItem(makeHottextItem('max-choices="2"'));
+    expect(() => validateSubmission({ RESPONSE: ['A', 'B', 'C'] }, doc)).toThrow(
+      ResponseValidationError
+    );
+
+    try {
+      validateSubmission({ RESPONSE: ['A', 'B', 'C'] }, doc);
+    } catch (e) {
+      const err = e as ResponseValidationError;
+      expect(err.errors[0]!.constraint).toBe('max-choices');
+    }
+  });
+
+  it('fails when null response violates min-choices', () => {
+    const doc = parseItem(makeHottextItem('min-choices="1"'));
+    expect(() => validateSubmission({ RESPONSE: null }, doc)).toThrow(ResponseValidationError);
+  });
+
+  it('passes for single-select scalar response within max-choices="1"', () => {
+    const doc = parseItem(makeHottextItem('max-choices="1"'));
+    expect(() => validateSubmission({ RESPONSE: 'B' }, doc)).not.toThrow();
+  });
+
+  it('passes with no constraints', () => {
+    const doc = parseItem(makeHottextItem('max-choices="0"'));
+    expect(() => validateSubmission({ RESPONSE: [] }, doc)).not.toThrow();
   });
 });
 
