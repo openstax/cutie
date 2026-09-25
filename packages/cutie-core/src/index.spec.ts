@@ -1,6 +1,12 @@
 import { describe, expect, test } from 'vitest';
 import type { AttemptState } from './types';
-import { ResponseValidationError, setScore, submitResponse } from './index';
+import {
+  beginAttempt,
+  listItemAssets,
+  ResponseValidationError,
+  setScore,
+  submitResponse,
+} from './index';
 
 const externalScoredItem = `<?xml version="1.0" encoding="UTF-8"?>
 <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
@@ -129,5 +135,75 @@ describe('setScore', () => {
     expect(scoreResult.state.score!.scaled).toBe(0.8);
     expect(scoreResult.state.score!.min).toBe(0);
     expect(scoreResult.template).toBeTruthy();
+  });
+});
+
+const assetItem = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+                     identifier="assets" title="Assets" adaptive="false" time-dependent="false">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier">
+    <qti-correct-response>
+      <qti-value>A</qti-value>
+    </qti-correct-response>
+  </qti-response-declaration>
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/>
+  <qti-outcome-declaration identifier="FEEDBACK" cardinality="single" base-type="identifier"/>
+  <qti-item-body>
+    <object type="image/png" data="images/map.png">Map</object>
+    <qti-choice-interaction response-identifier="RESPONSE" max-choices="1">
+      <qti-simple-choice identifier="A">
+        <img src="images/visible.png" alt="Visible"/>
+      </qti-simple-choice>
+      <qti-simple-choice identifier="B" template-identifier="NEVER" show-hide="show">
+        <img src="images/conditional.png" alt="Conditional"/>
+      </qti-simple-choice>
+    </qti-choice-interaction>
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="CORRECT" show-hide="show">
+      <img src="images/correct.png" alt="Correct"/>
+    </qti-feedback-block>
+  </qti-item-body>
+  <qti-response-processing/>
+</qti-assessment-item>`;
+
+describe('listItemAssets', () => {
+  test('lists src and data references from the raw definition', () => {
+    expect(listItemAssets(assetItem)).toEqual([
+      'images/map.png',
+      'images/visible.png',
+      'images/conditional.png',
+      'images/correct.png',
+    ]);
+  });
+
+  test('includes assets the rendered template withholds', async () => {
+    const { template } = await beginAttempt(assetItem);
+
+    // Hidden behind an unmatched conditional and undisplayed feedback
+    expect(template).not.toContain('images/conditional.png');
+    expect(template).not.toContain('images/correct.png');
+
+    expect(listItemAssets(assetItem)).toContain('images/conditional.png');
+    expect(listItemAssets(assetItem)).toContain('images/correct.png');
+  });
+
+  test('returns unresolved URLs, ignoring any asset resolver', () => {
+    expect(listItemAssets(assetItem)[0]).toBe('images/map.png');
+  });
+
+  test('collapses repeated references to a single entry', () => {
+    const repeated = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+                     identifier="repeat" title="Repeat" adaptive="false" time-dependent="false">
+  <qti-item-body>
+    <img src="images/same.png" alt="One"/>
+    <img src="images/same.png" alt="Two"/>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+    expect(listItemAssets(repeated)).toEqual(['images/same.png']);
+  });
+
+  test('returns an empty array for an item with no assets', () => {
+    expect(listItemAssets(externalScoredItem)).toEqual([]);
   });
 });

@@ -1,7 +1,7 @@
 {
   "name": "@openstax/cutie-core",
   "description": "Core QTI v3 processing engine for template and response processing",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "dependencies": {
     "@cortex-js/compute-engine": "^0.24.0",
     "@xmldom/xmldom": "^0.8.10"
@@ -11,10 +11,10 @@
     "cspell": "^5.18.5",
     "eslint": "^9.39.1",
     "eslint-plugin-import": "^2.32.0",
-    "npm-run-all": "^4.1.5",
+    "npm-run-all2": "^9.0.3",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
-    "vitest": "^1.2.0"
+    "vitest": "^5.0.1"
   },
   "exports": {
     ".": {
@@ -31,12 +31,20 @@
   ],
   "license": "MIT",
   "main": "index.js",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/openstax/cutie.git",
+    "directory": "packages/cutie-core"
+  },
   "scripts": {
     "build": "./script/build.bash",
-    "build:clean": "yarn clean && yarn build",
+    "build:clean": "npm run clean && npm run build",
     "ci": "CI=true npm-run-all ci:*",
     "ci:lint": "eslint --max-warnings=0 .",
-    "ci:spelling": "yarn cspell -c ../../cspell.json \"**\"",
+    "ci:spelling": "cspell -c ../../cspell.json \"**\"",
     "ci:test": "vitest run",
     "ci:typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",

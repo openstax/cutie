@@ -47,6 +47,7 @@ import * as choicePartialStandard from './standard-choice-partial';
 import * as multiInteractionStandard from './standard-multi-interaction';
 import * as adaptiveMontyHall from './spec-adaptive-monty-hall';
 import * as templateDigging from './template-digging';
+import * as templateRounding from './template-rounding';
 import * as formulaStrict from './formula-strict';
 import * as formulaCanonical from './formula-canonical';
 import * as formulaAlgebraic from './formula-algebraic';
@@ -56,6 +57,8 @@ import * as variantChoiceLabels from './variant-choice-labels';
 import * as variantChoiceLayout from './variant-choice-layout';
 import * as variantExtendedTextLayouts from './variant-extended-text-layouts';
 import * as variantExtendedTextPattern from './variant-extended-text-pattern';
+import * as variantGapMatchLayout from './variant-gap-match-layout';
+import * as variantBowtieLayout from './variant-bowtie-layout';
 
 /* these examples are copied exactly from examples in the spec
  * documents, they are used for verification that cutie works
@@ -103,12 +106,19 @@ export const formulaExamples = [
   formulaAlgebraic,
 ];
 
+/* items using template processing to randomize values per attempt */
+export const templateExamples = [
+  templateRounding,
+];
+
 /* variant testing examples for visual verification of CSS/layout features */
 export const variantExamples = [
   variantChoiceLabels,
   variantChoiceLayout,
   variantExtendedTextLayouts,
   variantExtendedTextPattern,
+  variantGapMatchLayout,
+  variantBowtieLayout,
 ];
 
 /* these examples were made for each interaction type to show editor-supported
@@ -143,6 +153,10 @@ export const exampleGroups: ExampleGroup[] = [
   {
     label: 'Math Formula Entry',
     items: formulaExamples,
+  },
+  {
+    label: 'Templated Items',
+    items: templateExamples,
   },
   {
     label: 'Variant Testing',

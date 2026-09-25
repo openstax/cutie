@@ -1,6 +1,10 @@
 /* spell-checker: ignore inlines */
 import { XMLSerializer } from '@xmldom/xmldom';
 import { AttemptState, ProcessingOptions } from '../types';
+import {
+  collectAssetReferences,
+  uniqueAssetUrls,
+} from './collectAssetReferences';
 
 /**
  * Renders a sanitized QTI template for client consumption.
@@ -459,35 +463,13 @@ async function resolveAssetUrls(
   root: Element,
   resolver: (urls: string[]) => Promise<string[]>
 ): Promise<void> {
-  // Collect all elements with src or data attributes
-  const allElements = root.getElementsByTagName('*');
-  const elementsWithAssets: Array<{ element: Element; attr: string }> = [];
-  const urlSet = new Set<string>();
-
-  for (let i = 0; i < allElements.length; i++) {
-    const element = allElements[i];
-    if (!element) continue;
-
-    const src = element.getAttribute('src');
-    const data = element.getAttribute('data');
-
-    if (src) {
-      elementsWithAssets.push({ element, attr: 'src' });
-      urlSet.add(src);
-    }
-    if (data) {
-      elementsWithAssets.push({ element, attr: 'data' });
-      urlSet.add(data);
-    }
-  }
+  const references = collectAssetReferences(root);
+  const uniqueUrls = uniqueAssetUrls(references);
 
   // If no assets found, nothing to resolve
-  if (urlSet.size === 0) {
+  if (uniqueUrls.length === 0) {
     return;
   }
-
-  // Create ordered array of unique URLs
-  const uniqueUrls = Array.from(urlSet);
 
   // Call resolver with all unique URLs
   const resolvedUrls = await resolver(uniqueUrls);
@@ -499,13 +481,10 @@ async function resolveAssetUrls(
   }
 
   // Replace attribute values with resolved URLs
-  for (const { element, attr } of elementsWithAssets) {
-    const originalUrl = element.getAttribute(attr);
-    if (originalUrl) {
-      const resolvedUrl = urlMap.get(originalUrl);
-      if (resolvedUrl !== undefined) {
-        element.setAttribute(attr, resolvedUrl);
-      }
+  for (const { element, attr, url } of references) {
+    const resolvedUrl = urlMap.get(url);
+    if (resolvedUrl !== undefined) {
+      element.setAttribute(attr, resolvedUrl);
     }
   }
 }
