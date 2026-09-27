@@ -1,51 +1,56 @@
 // cspell:ignore tachycardia hypotension mucous
-// Variant test: bowtie (grouped gap-match) per-column choice bank placement.
-// Visual verification of qti-choices-top/bottom/left/right on a column layout —
-// the class repositions each group's bank within its own column. DOM order
-// stays gaps -> bank, so only the visual placement changes.
+// Variant test: bowtie rendered with qti-match-interaction (grouped mode).
+// A two-set match whose source choices carry match-group naming their target
+// column; the handler derives one column per target (Actions | Condition |
+// Parameters). The qti-choices-* class repositions each column's word bank
+// within its own column — DOM order stays slot -> bank, so only the visual
+// placement changes. Visual verification of qti-choices-top/bottom/left/right
+// on the grouped column layout.
 
-export const name = "Gap Match - Bowtie Layout";
+export const name = "Match - Bowtie Layout";
 
-// A compact clinical-judgment bowtie: Actions (2 gaps) | Condition (1 gap) |
-// Parameters (2 gaps). Reused per interaction with a different choice-bank class.
+// A compact clinical-judgment bowtie collapsed to three target columns:
+// Actions (accepts 2) | Condition (accepts 1) | Parameters (accepts 2). Each
+// source names its column via match-group; targets are fixed so the column
+// order survives shuffle. Reused per interaction with a different bank class.
 const buildBowtie = (rid: string, cls: string, label: string): string => `
-    <qti-gap-match-interaction response-identifier="${rid}" shuffle="true"${cls ? ` class="${cls}"` : ''}>
+    <qti-match-interaction response-identifier="${rid}" shuffle="true"${cls ? ` class="${cls}"` : ''}>
       <qti-prompt>${label}</qti-prompt>
 
-      <qti-gap-text identifier="ACT1" match-max="1" match-group="actions">Administer IV fluids</qti-gap-text>
-      <qti-gap-text identifier="ACT2" match-max="1" match-group="actions">Notify the provider</qti-gap-text>
-      <qti-gap-text identifier="ACT3" match-max="1" match-group="actions">Restrict oral fluids</qti-gap-text>
+      <qti-simple-match-set>
+        <qti-simple-associable-choice identifier="ACT1" match-max="1" match-group="T_ACTIONS">Administer IV fluids</qti-simple-associable-choice>
+        <qti-simple-associable-choice identifier="ACT2" match-max="1" match-group="T_ACTIONS">Notify the provider</qti-simple-associable-choice>
+        <qti-simple-associable-choice identifier="ACT3" match-max="1" match-group="T_ACTIONS">Restrict oral fluids</qti-simple-associable-choice>
+        <qti-simple-associable-choice identifier="COND1" match-max="1" match-group="T_CONDITION">Fluid volume deficit</qti-simple-associable-choice>
+        <qti-simple-associable-choice identifier="COND2" match-max="1" match-group="T_CONDITION">Fluid volume excess</qti-simple-associable-choice>
+        <qti-simple-associable-choice identifier="PAR1" match-max="1" match-group="T_PARAMS">Heart rate</qti-simple-associable-choice>
+        <qti-simple-associable-choice identifier="PAR2" match-max="1" match-group="T_PARAMS">Blood pressure</qti-simple-associable-choice>
+        <qti-simple-associable-choice identifier="PAR3" match-max="1" match-group="T_PARAMS">Deep tendon reflexes</qti-simple-associable-choice>
+      </qti-simple-match-set>
 
-      <qti-gap-text identifier="COND1" match-max="1" match-group="condition">Fluid volume deficit</qti-gap-text>
-      <qti-gap-text identifier="COND2" match-max="1" match-group="condition">Fluid volume excess</qti-gap-text>
-
-      <qti-gap-text identifier="PAR1" match-max="1" match-group="parameters">Heart rate</qti-gap-text>
-      <qti-gap-text identifier="PAR2" match-max="1" match-group="parameters">Blood pressure</qti-gap-text>
-      <qti-gap-text identifier="PAR3" match-max="1" match-group="parameters">Deep tendon reflexes</qti-gap-text>
-
-      <div class="qti-layout-row">
-        <div class="qti-layout-col4"><h3>Actions to Take</h3><p><qti-gap identifier="GA1" match-group="actions"/><qti-gap identifier="GA2" match-group="actions"/></p></div>
-        <div class="qti-layout-col4"><h3>Condition</h3><p><qti-gap identifier="GC1" match-group="condition"/></p></div>
-        <div class="qti-layout-col4"><h3>Parameters to Monitor</h3><p><qti-gap identifier="GP1" match-group="parameters"/><qti-gap identifier="GP2" match-group="parameters"/></p></div>
-      </div>
-    </qti-gap-match-interaction>`;
+      <qti-simple-match-set>
+        <qti-simple-associable-choice identifier="T_ACTIONS" match-max="2" fixed="true">Actions to Take</qti-simple-associable-choice>
+        <qti-simple-associable-choice identifier="T_CONDITION" match-max="1" fixed="true">Condition</qti-simple-associable-choice>
+        <qti-simple-associable-choice identifier="T_PARAMS" match-max="2" fixed="true">Parameters to Monitor</qti-simple-associable-choice>
+      </qti-simple-match-set>
+    </qti-match-interaction>`;
 
 const responseDecl = (rid: string): string => `
   <qti-response-declaration identifier="${rid}" cardinality="multiple" base-type="directedPair">
     <qti-correct-response>
-      <qti-value>ACT1 GA1</qti-value>
-      <qti-value>ACT2 GA2</qti-value>
-      <qti-value>COND1 GC1</qti-value>
-      <qti-value>PAR1 GP1</qti-value>
-      <qti-value>PAR2 GP2</qti-value>
+      <qti-value>ACT1 T_ACTIONS</qti-value>
+      <qti-value>ACT2 T_ACTIONS</qti-value>
+      <qti-value>COND1 T_CONDITION</qti-value>
+      <qti-value>PAR1 T_PARAMS</qti-value>
+      <qti-value>PAR2 T_PARAMS</qti-value>
     </qti-correct-response>
   </qti-response-declaration>`;
 
 const variants: Array<{ rid: string; cls: string; label: string }> = [
-  { rid: 'R_BOTTOM', cls: '', label: 'Default (bottom) — each bank below its column’s gaps' },
-  { rid: 'R_TOP', cls: 'qti-choices-top', label: 'qti-choices-top — each bank above its column’s gaps' },
-  { rid: 'R_LEFT', cls: 'qti-choices-left', label: 'qti-choices-left — each bank left of its column’s gaps' },
-  { rid: 'R_RIGHT', cls: 'qti-choices-right', label: 'qti-choices-right — each bank right of its column’s gaps' },
+  { rid: 'R_BOTTOM', cls: '', label: 'Default (bottom) — each bank below its column’s slot' },
+  { rid: 'R_TOP', cls: 'qti-choices-top', label: 'qti-choices-top — each bank above its column’s slot' },
+  { rid: 'R_LEFT', cls: 'qti-choices-left', label: 'qti-choices-left — each bank left of its column’s slot' },
+  { rid: 'R_RIGHT', cls: 'qti-choices-right', label: 'qti-choices-right — each bank right of its column’s slot' },
 ];
 
 export const item = `<?xml version="1.0" encoding="UTF-8"?>
@@ -63,11 +68,11 @@ ${variants.map(v => responseDecl(v.rid)).join('')}
 
   <qti-item-body>
     <p><strong>Bowtie Layout Variants</strong></p>
-    <p>Each bowtie below places its per-column choice banks with a different qti-choices-* class.</p>
+    <p>Each bowtie below is a qti-match-interaction whose per-column word banks are placed with a different qti-choices-* class.</p>
 ${variants.map(v => buildBowtie(v.rid, v.cls, v.label)).join('\n    <hr/>\n')}
   </qti-item-body>
 
   <qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>
 </qti-assessment-item>`;
 
-export const interactionTypes: string[] = ['gap-match'];
+export const interactionTypes: string[] = ['match'];

@@ -374,4 +374,149 @@ describe('matchInteraction validation', () => {
       expect(constraintEl.classList.contains('cutie-constraint-error')).toBe(true);
     });
   });
+
+  // A bowtie: source choices carry match-group naming their target column, so
+  // the handler renders one column per target with a per-group source bank.
+  const GROUPED_BOWTIE_QTI = `
+    <qti-match-interaction response-identifier="RB">
+      <qti-simple-match-set>
+        <qti-simple-associable-choice identifier="ACT1" match-max="1" match-group="T_ACTIONS">Action 1</qti-simple-associable-choice>
+        <qti-simple-associable-choice identifier="ACT2" match-max="1" match-group="T_ACTIONS">Action 2</qti-simple-associable-choice>
+        <qti-simple-associable-choice identifier="COND1" match-max="1" match-group="T_CONDITION">Condition 1</qti-simple-associable-choice>
+        <qti-simple-associable-choice identifier="COND2" match-max="1" match-group="T_CONDITION">Condition 2</qti-simple-associable-choice>
+        <qti-simple-associable-choice identifier="PAR1" match-max="1" match-group="T_PARAMS">Parameter 1</qti-simple-associable-choice>
+        <qti-simple-associable-choice identifier="PAR2" match-max="1" match-group="T_PARAMS">Parameter 2</qti-simple-associable-choice>
+      </qti-simple-match-set>
+      <qti-simple-match-set>
+        <qti-simple-associable-choice identifier="T_ACTIONS" match-max="2" fixed="true">Actions to Take</qti-simple-associable-choice>
+        <qti-simple-associable-choice identifier="T_CONDITION" match-max="1" fixed="true">Condition</qti-simple-associable-choice>
+        <qti-simple-associable-choice identifier="T_PARAMS" match-max="2" fixed="true">Parameters to Monitor</qti-simple-associable-choice>
+      </qti-simple-match-set>
+    </qti-match-interaction>
+  `;
+
+  describe('grouped bowtie layout', () => {
+    const renderGrouped = (qti = GROUPED_BOWTIE_QTI): HTMLElement => {
+      const fragment = transformInteraction(createQtiDocument(qti), itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+      return container;
+    };
+
+    it('renders one column per target with a per-group bank, not the two-set layout', () => {
+      const container = renderGrouped();
+
+      const matchContainer = container.querySelector('.cutie-match-interaction')!;
+      expect(matchContainer.classList.contains('cutie-match-interaction--grouped')).toBe(true);
+      expect(container.querySelector('.cutie-match-layout')).toBeNull();
+
+      const columns = container.querySelectorAll('.cutie-match-column');
+      expect(columns.length).toBe(3);
+
+      const groups = Array.from(container.querySelectorAll('.cutie-match-bank')).map((b) =>
+        b.getAttribute('data-match-group')
+      );
+      expect(groups).toEqual(['T_ACTIONS', 'T_CONDITION', 'T_PARAMS']);
+    });
+
+    it('banks only the sources whose match-group names that column', () => {
+      const container = renderGrouped();
+
+      const idsIn = (group: string): (string | null)[] =>
+        Array.from(
+          container.querySelectorAll(
+            `.cutie-match-bank[data-match-group="${group}"] .cutie-match-choice`
+          )
+        ).map((c) => c.getAttribute('data-identifier'));
+
+      expect(idsIn('T_ACTIONS')).toEqual(['ACT1', 'ACT2']);
+      expect(idsIn('T_CONDITION')).toEqual(['COND1', 'COND2']);
+      expect(idsIn('T_PARAMS')).toEqual(['PAR1', 'PAR2']);
+    });
+
+    it('renders the target as a slot carrying its match-max, labelling its bank', () => {
+      const container = renderGrouped();
+
+      const slot = container.querySelector('.cutie-match-slot[data-identifier="T_ACTIONS"]')!;
+      expect(slot.getAttribute('data-match-max')).toBe('2');
+
+      const bank = container.querySelector('.cutie-match-bank[data-match-group="T_ACTIONS"]')!;
+      const labelledBy = bank.getAttribute('aria-labelledby');
+      expect(labelledBy).toBeTruthy();
+      expect(container.querySelector(`#${labelledBy}`)!.textContent).toBe('Actions to Take');
+    });
+
+    it('seeds one tabbable choice per bank for roving tabindex', () => {
+      const container = renderGrouped();
+
+      for (const bank of container.querySelectorAll('.cutie-match-bank')) {
+        const choices = bank.querySelectorAll('.cutie-match-choice');
+        expect(choices[0].getAttribute('tabindex')).toBe('0');
+        for (let i = 1; i < choices.length; i++) {
+          expect(choices[i].getAttribute('tabindex')).toBe('-1');
+        }
+      }
+    });
+
+    it('allows a source to associate only with its own column', () => {
+      const container = renderGrouped();
+
+      const source = (id: string) =>
+        container.querySelector(`.cutie-match-bank .cutie-match-choice[data-identifier="${id}"]`) as HTMLElement;
+      const slot = (id: string) =>
+        container.querySelector(`.cutie-match-slot[data-identifier="${id}"]`) as HTMLElement;
+
+      // Same-group association is created.
+      source('ACT1').click();
+      slot('T_ACTIONS').click();
+      expect(itemState.collectAll().responses['RB']).toContain('ACT1 T_ACTIONS');
+
+      // Cross-group association is rejected — the wrong column can't accept it.
+      source('COND1').click();
+      slot('T_ACTIONS').click();
+      const response = itemState.collectAll().responses['RB'] as string[];
+      expect(response).not.toContain('COND1 T_ACTIONS');
+      expect(response).toEqual(['ACT1 T_ACTIONS']);
+    });
+
+    it('caps a column at its slot match-max', () => {
+      const container = renderGrouped();
+
+      const source = (id: string) =>
+        container.querySelector(`.cutie-match-bank .cutie-match-choice[data-identifier="${id}"]`) as HTMLElement;
+      const slot = (id: string) =>
+        container.querySelector(`.cutie-match-slot[data-identifier="${id}"]`) as HTMLElement;
+
+      source('COND1').click();
+      slot('T_CONDITION').click();
+      source('COND2').click();
+      slot('T_CONDITION').click();
+
+      // Condition accepts only one (match-max="1").
+      const response = itemState.collectAll().responses['RB'] as string[];
+      expect(response).toEqual(['COND1 T_CONDITION']);
+    });
+
+    it('passes the qti-choices-* class through to the container', () => {
+      const container = renderGrouped(
+        GROUPED_BOWTIE_QTI.replace(
+          'response-identifier="RB"',
+          'response-identifier="RB" class="qti-choices-top"'
+        )
+      );
+
+      const matchContainer = container.querySelector('.cutie-match-interaction')!;
+      expect(matchContainer.classList.contains('qti-choices-top')).toBe(true);
+      expect(matchContainer.classList.contains('cutie-match-interaction--grouped')).toBe(true);
+    });
+
+    it('still renders the classic two-set layout when no match-group is present', () => {
+      const container = renderGrouped(BASIC_MATCH_QTI);
+
+      expect(container.querySelector('.cutie-match-layout')).not.toBeNull();
+      expect(container.querySelector('.cutie-match-columns')).toBeNull();
+      const matchContainer = container.querySelector('.cutie-match-interaction')!;
+      expect(matchContainer.classList.contains('cutie-match-interaction--grouped')).toBe(false);
+    });
+  });
 });

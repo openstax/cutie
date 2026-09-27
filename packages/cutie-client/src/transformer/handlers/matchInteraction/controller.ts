@@ -15,6 +15,9 @@ interface ChoiceData {
   matchMax: number;
   content: string;
   connectedIds: Set<string>;
+  // Grouped (bowtie) mode: the identifiers of the opposite-set choices this
+  // choice may associate with. Empty/absent = unrestricted (classic match).
+  matchGroups: Set<string>;
 }
 
 /**
@@ -37,6 +40,11 @@ export class MatchController {
     existingAssociation?: { sourceId: string; targetId: string };
   } | null = null;
   private enabled = true;
+
+  // Grouped (bowtie) mode: sources are banked per column and each column's slot
+  // is a target. Arrow keys stay within a bank/slot-group; associations are
+  // restricted to matching groups. Off by default (classic two-set match).
+  private grouped = false;
 
   // Choice data - unified storage
   private choices = new Map<string, ChoiceData>();
@@ -81,9 +89,17 @@ export class MatchController {
   /**
    * Initialize the controller after all choices are registered.
    */
-  initialize(_sourceSetElement: HTMLElement, _targetSetElement: HTMLElement): void {
+  initialize(_sourceSetElement?: HTMLElement, _targetSetElement?: HTMLElement): void {
     // Currently no initialization needed after choices are registered.
     // Set elements are tracked via individual choice registrations.
+  }
+
+  /**
+   * Enable grouped (bowtie) mode. In this mode arrow keys stay within a source
+   * bank / the target slots, and associations are restricted by match-group.
+   */
+  enableGroupedMode(): void {
+    this.grouped = true;
   }
 
   /**
@@ -94,14 +110,58 @@ export class MatchController {
     set: 'source' | 'target',
     element: HTMLElement,
     matchMax: number,
-    content: string
+    content: string,
+    matchGroups: string[] = []
   ): void {
-    const choiceData: ChoiceData = { id, set, element, matchMax, content, connectedIds: new Set() };
+    const choiceData: ChoiceData = {
+      id,
+      set,
+      element,
+      matchMax,
+      content,
+      connectedIds: new Set(),
+      matchGroups: new Set(matchGroups),
+    };
 
     this.choices.set(id, choiceData);
     (set === 'source' ? this.sourceIds : this.targetIds).push(id);
 
     this.wireChoiceEvents(choiceData);
+  }
+
+  /**
+   * Whether a source→target association is allowed by match-group. A choice
+   * with no groups is unrestricted; where a side declares groups, it must name
+   * the other choice's identifier. Sources carry their target column's id.
+   */
+  private groupsAllow(sourceId: string, targetId: string): boolean {
+    const sourceGroups = this.choices.get(sourceId)?.matchGroups;
+    const targetGroups = this.choices.get(targetId)?.matchGroups;
+
+    if (!sourceGroups?.size && !targetGroups?.size) return true;
+    if (sourceGroups?.size && !sourceGroups.has(targetId)) return false;
+    if (targetGroups?.size && !targetGroups.has(sourceId)) return false;
+    return true;
+  }
+
+  /**
+   * The ordered choices sharing the roving group of `id` — used for arrow-key
+   * navigation. In grouped mode a source's group is its bank and a target's
+   * group is the set of slots; otherwise it is the whole set.
+   */
+  private getRovingGroup(id: string, set: 'source' | 'target'): Map<string, HTMLElement> {
+    if (this.grouped && set === 'source') {
+      const bank = this.choices.get(id)?.element.closest('.cutie-match-bank');
+      if (bank) {
+        const scoped = new Map<string, HTMLElement>();
+        for (const sourceId of this.sourceIds) {
+          const choice = this.choices.get(sourceId);
+          if (choice && bank.contains(choice.element)) scoped.set(sourceId, choice.element);
+        }
+        return scoped;
+      }
+    }
+    return this.getChoiceElementsInSet(set);
   }
 
   /**
@@ -133,17 +193,20 @@ export class MatchController {
         case 'ArrowDown':
         case 'ArrowRight':
           e.preventDefault();
-          focusNext(this.getChoiceElementsInSet(set), id);
+          focusNext(this.getRovingGroup(id, set), id);
           break;
 
         case 'ArrowUp':
         case 'ArrowLeft':
           e.preventDefault();
-          focusPrev(this.getChoiceElementsInSet(set), id);
+          focusPrev(this.getRovingGroup(id, set), id);
           break;
 
         case 'Tab': {
-          // Handle set switching on Tab
+          // Classic two-set match jumps source→target on Tab. Grouped mode has
+          // many banks/slots, each seeded with one tabbable element, so native
+          // Tab already flows between them — don't intercept it.
+          if (this.grouped) break;
           const targetSet = e.shiftKey ? 'source' : 'target';
           if ((set === 'source' && !e.shiftKey) || (set === 'target' && e.shiftKey)) {
             if (this.focusFirstInSet(targetSet)) {
@@ -233,14 +296,14 @@ export class MatchController {
             this.clearSelection();
             return;
           } else {
-            // Clicked on a different item - move the association
-            this.removeAssociation(existingAssociation.sourceId, existingAssociation.targetId);
-
+            // Clicked on a different item - move the association. Only free the
+            // old pairing if the new one is actually placeable (group-compatible
+            // and within match-max), so a disallowed target can't strand it.
             const newSourceId = originSet === 'source' ? originId : choiceId;
             const newTargetId = originSet === 'source' ? choiceId : originId;
 
-            // Use canAcceptAssociation since the origin is being freed
-            if (this.canAcceptAssociation(choiceId)) {
+            if (this.groupsAllow(newSourceId, newTargetId) && this.canAcceptAssociation(choiceId)) {
+              this.removeAssociation(existingAssociation.sourceId, existingAssociation.targetId);
               this.createAssociation(newSourceId, newTargetId);
             }
           }
@@ -307,9 +370,12 @@ export class MatchController {
         if (elId === connectedId) return false;
 
         // For a move operation, we need to check if the new partner can accept
-        // (the original choice's count will be freed when we remove the old association)
+        // (the original choice's count will be freed when we remove the old
+        // association) and that it is group-compatible with the origin.
         if (existingAssociation) {
-          return this.canAcceptAssociation(elId);
+          const sourceId = choice.set === 'source' ? originId : elId;
+          const targetId = choice.set === 'source' ? elId : originId;
+          return this.groupsAllow(sourceId, targetId) && this.canAcceptAssociation(elId);
         }
 
         // For a fresh selection, check full association validity
@@ -364,6 +430,9 @@ export class MatchController {
 
     // Check if association already exists
     if (this.associations.has(key)) return false;
+
+    // Check match-group restriction (grouped/bowtie mode)
+    if (!this.groupsAllow(sourceId, targetId)) return false;
 
     // Check max-associations
     if (this.maxAssociations > 0 && this.associations.size >= this.maxAssociations) {
