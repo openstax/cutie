@@ -4,6 +4,7 @@ import {
   focusNext,
   focusPrev,
   highlightDropTargets,
+  reportResponseChanges,
   updateRovingTabindex,
 } from '../../../utils';
 import type { TransformContext } from '../../types';
@@ -111,16 +112,16 @@ export class MatchController {
     const { id, set, element } = choice;
 
     // Click to select/connect
-    element.addEventListener('click', (e) => {
+    element.addEventListener('click', this.reportingEdits((e: MouseEvent) => {
       if (!this.enabled) return;
       // Ignore clicks on chips
       if ((e.target as HTMLElement).closest('.cutie-match-chip')) return;
 
       this.handleChoiceClick(id);
-    });
+    }));
 
     // Keyboard navigation
-    element.addEventListener('keydown', (e) => {
+    element.addEventListener('keydown', this.reportingEdits((e: KeyboardEvent) => {
       if (!this.enabled) return;
 
       switch (e.key) {
@@ -157,7 +158,7 @@ export class MatchController {
           this.clearSelection();
           break;
       }
-    });
+    }));
 
     // Drag and drop
     element.addEventListener('dragstart', (e) => {
@@ -194,7 +195,7 @@ export class MatchController {
       element.classList.remove('cutie-match-choice--drag-over');
     });
 
-    element.addEventListener('drop', (e) => {
+    element.addEventListener('drop', this.reportingEdits((e: DragEvent) => {
       if (!this.enabled) return;
       e.preventDefault();
       element.classList.remove('cutie-match-choice--drag-over');
@@ -206,7 +207,7 @@ export class MatchController {
       this.pendingChipDrag = null;
 
       this.handleChoiceClick(id);
-    });
+    }));
   }
 
   /**
@@ -502,7 +503,7 @@ export class MatchController {
 
       // Click to select chip - selecting the chip means selecting what it represents (connectedId)
       // Tap-again-to-remove: if this chip's association is already selected, remove it
-      chip.addEventListener('click', (e) => {
+      chip.addEventListener('click', this.reportingEdits((e: MouseEvent) => {
         e.stopPropagation();
         if (!this.enabled) return;
 
@@ -515,10 +516,10 @@ export class MatchController {
         }
 
         this.select(connectedId, existingAssociation, chip);
-      });
+      }));
 
       // Keyboard support for chip
-      chip.addEventListener('keydown', (e) => {
+      chip.addEventListener('keydown', this.reportingEdits((e: KeyboardEvent) => {
         if (!this.enabled) return;
 
         if (e.key === 'Enter' || e.key === ' ') {
@@ -545,7 +546,7 @@ export class MatchController {
           this.clearSelection();
           choice.element.focus();
         }
-      });
+      }));
 
       // Drag support - select the chip and set up drag data
       chip.addEventListener('dragstart', (e) => {
@@ -565,7 +566,7 @@ export class MatchController {
         chip.classList.add('cutie-match-chip--dragging');
       });
 
-      chip.addEventListener('dragend', () => {
+      chip.addEventListener('dragend', this.reportingEdits(() => {
         chip.classList.remove('cutie-match-chip--dragging');
         this.clearSelection();
 
@@ -575,7 +576,7 @@ export class MatchController {
           this.pendingChipDrag = null;
           this.removeAssociation(pendingSourceId, pendingTargetId);
         }
-      });
+      }));
 
       chipsContainer.appendChild(chip);
     }
@@ -679,6 +680,14 @@ export class MatchController {
         choice.element.setAttribute('draggable', 'false');
       }
     }
+  }
+
+  /**
+   * Wrap a learner-event listener so any response change it causes is
+   * reported once to the item state (see reportResponseChanges).
+   */
+  private reportingEdits<E extends Event>(listener: (event: E) => void): (event: E) => void {
+    return reportResponseChanges(this.context, () => this.getResponse(), listener);
   }
 
   /**

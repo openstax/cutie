@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+import { resolveDeliveryOptions } from './lib/deliveryOptions';
 import type { AttemptState } from './types';
 import {
   beginAttempt,
@@ -42,6 +43,7 @@ const regularScoredItem = `<?xml version="1.0" encoding="UTF-8"?>
 const baseState: AttemptState = {
   variables: {},
   completionStatus: 'not_attempted',
+  options: resolveDeliveryOptions(),
   score: null,
 };
 

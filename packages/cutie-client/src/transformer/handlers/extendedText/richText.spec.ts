@@ -873,4 +873,76 @@ describe('richTextInteraction', () => {
       expect(link.rel).toBe('stylesheet');
     });
   });
+
+  describe('response change reporting', () => {
+    it('reports every text-change with the raw value and no validation UI', async () => {
+      const onResponseChange = vi.fn();
+      const state = new ItemStateImpl(undefined, { onResponseChange });
+      const doc = createQtiDocument(`
+        <qti-response-declaration identifier="R1" cardinality="single" base-type="string">
+          <qti-default-value><qti-value>&lt;p&gt;start&lt;/p&gt;</qti-value></qti-default-value>
+        </qti-response-declaration>
+        <qti-extended-text-interaction response-identifier="R1" format="xhtml" min-strings="1" data-min-characters="20">
+        </qti-extended-text-interaction>
+      `);
+
+      const container = document.createElement('div');
+      container.appendChild(transformInteraction(doc, state));
+      await waitForQuill();
+
+      // Restoring the default value is not a learner edit
+      expect(onResponseChange).not.toHaveBeenCalled();
+
+      mockQuillInstance.root.innerHTML = '<p>s</p>';
+      simulateTextChange();
+      mockQuillInstance.root.innerHTML = '<p>so</p>';
+      simulateTextChange();
+
+      expect(onResponseChange).toHaveBeenCalledTimes(2);
+      expect(onResponseChange).toHaveBeenLastCalledWith({ R1: '<p>so</p>' });
+      expect(mockQuillInstance.root.hasAttribute('aria-invalid')).toBe(false);
+      expect(container.querySelector('.cutie-constraint-error')).toBeNull();
+    });
+  });
+});
+
+describe('richTextInteraction evaluation', () => {
+  let itemState: ItemStateImpl;
+
+  beforeEach(() => {
+    itemState = new ItemStateImpl();
+  });
+
+  function render(interactionAttrs: string, declaration: string): HTMLElement {
+    const doc = createQtiDocument(`
+      <qti-response-declaration identifier="R1" cardinality="single" base-type="string">
+        ${declaration}
+      </qti-response-declaration>
+      <qti-extended-text-interaction response-identifier="R1" format="xhtml" ${interactionAttrs}></qti-extended-text-interaction>
+    `);
+    const container = document.createElement('div');
+    container.appendChild(transformInteraction(doc, itemState));
+    return container;
+  }
+
+  it('renders nothing when there is no verdict or correct response', async () => {
+    const container = render('', '');
+    await waitForQuill();
+    expect(container.querySelector('.cutie-evaluation')).toBeNull();
+  });
+
+  it('describes the verdict in the constraint text and shows the sanitized HTML correct answer, linked to the editor once loaded', async () => {
+    const container = render(
+      'data-evaluation="partial"',
+      '<qti-correct-response><qti-value>&lt;p&gt;&lt;strong&gt;world&lt;/strong&gt;&lt;img src=x onerror="alert(1)"&gt;&lt;/p&gt;</qti-value></qti-correct-response>',
+    );
+    await waitForQuill();
+    expect(container.querySelector('.cutie-verdict')).toBeNull();
+    expect(container.querySelector('#constraint-R1')!.textContent).toBe('Partially correct response');
+    const summary = container.querySelector('.cutie-evaluation')!;
+    const value = summary.querySelector('.cutie-correct-answer__value')!;
+    expect(value.querySelector('strong')!.textContent).toBe('world');
+    expect(value.querySelector('img')!.hasAttribute('onerror')).toBe(false);
+    expect(container.querySelector('.ql-editor')!.getAttribute('aria-describedby')).toContain(summary.id);
+  });
 });

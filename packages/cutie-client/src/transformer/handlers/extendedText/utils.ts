@@ -2,6 +2,7 @@ import {
   type ConstraintMessage,
   createConstraintMessage,
 } from '../../../errors/validationDisplay';
+import { addAriaDescribedBy } from '../../../utils/aria';
 import { announce } from '../../../utils/liveRegion';
 import type { StyleManager, TransformContext } from '../../types';
 
@@ -17,8 +18,8 @@ export function createInteractionContainer(
   const container = document.createElement('div');
   const sourceClasses = element.getAttribute('class');
   container.className = sourceClasses
-    ? `${className} ${sourceClasses}`
-    : className;
+    ? `${className} cutie-status-rail ${sourceClasses}`
+    : `${className} cutie-status-rail`;
   container.setAttribute('data-response-identifier', responseIdentifier);
   return container;
 }
@@ -112,11 +113,16 @@ export interface ConstraintResult {
 /**
  * Create constraint message element if min-strings > 0 or pattern-mask is present.
  * Returns the constraint message and derived text, or null if no constraints apply.
+ *
+ * A finished attempt with a verdict passes its text as verdictText: the message
+ * then shows it in place of the constraint hint (whether or not there are
+ * constraints), so it is announced with the input.
  */
 export function createConstraintElements(
   constraints: ParsedConstraints,
   responseIdentifier: string,
   styleManager?: StyleManager,
+  verdictText: string | null = null,
 ): ConstraintResult | null {
   const { minStrings, patternMask, patternMessage, minCharacters, maxCharacters } = constraints;
   const minStringsText = getMinStringsText(minStrings);
@@ -124,9 +130,10 @@ export function createConstraintElements(
   const patternText = getPatternText(patternMask, patternMessage);
   const maxCharactersText = getMaxCharactersText(maxCharacters);
 
-  if (minStrings <= 0 && !patternMask && minCharacters === null && maxCharacters === null) return null;
+  const hasConstraints = minStrings > 0 || !!patternMask || minCharacters !== null || maxCharacters !== null;
+  if (!hasConstraints && !verdictText) return null;
 
-  const initialText = minCharactersText ?? minStringsText ?? patternText ?? maxCharactersText!;
+  const initialText = verdictText ?? minCharactersText ?? minStringsText ?? patternText ?? maxCharactersText!;
 
   const constraint = createConstraintMessage(
     `constraint-${responseIdentifier}`,
@@ -161,13 +168,7 @@ export function wireConstraintDescribedBy(
   inputElement: HTMLElement,
   constraintElement: HTMLElement,
 ): void {
-  const existing = inputElement.getAttribute('aria-describedby');
-  inputElement.setAttribute(
-    'aria-describedby',
-    existing
-      ? `${existing} ${constraintElement.id}`
-      : constraintElement.id,
-  );
+  addAriaDescribedBy(inputElement, constraintElement.id);
 }
 
 // ---------------------------------------------------------------------------

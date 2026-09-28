@@ -1,28 +1,19 @@
 /* spell-checker: ignore inlines */
 import { XMLSerializer } from '@xmldom/xmldom';
-import { AttemptState, ProcessingOptions } from '../types';
+import { AttemptState, FeedbackIdentity, ProcessingOptions } from '../types';
 import {
   collectAssetReferences,
   uniqueAssetUrls,
 } from './collectAssetReferences';
+import { canEvaluate } from './deliveryOptions';
+import { evaluateResponse } from './evaluateResponses';
+import { getCorrectResponse } from './responseDeclarations';
 
 /**
  * Renders a sanitized QTI template for client consumption.
  *
- * This function:
- * 1. Substitutes template and outcome variable values into the item body
- * 2. Applies conditional visibility rules based on current state
- * 3. Shows/hides feedback elements based on outcome variables
- * 4. Strips sensitive content that should not be exposed to the client:
- *    - qti-template-declaration elements
- *    - qti-template-processing rules
- *    - qti-response-processing rules
- *    - qti-correct-response, qti-mapping from response declarations
- *    - Response declarations not used in the filtered body
- *    - Hidden feedback that shouldn't be visible yet
- * 5. Injects current response values as qti-default-value elements
- * 6. Optionally resolves asset URLs via provided callback
- * 7. Serializes the sanitized document to XML string
+ * Builds the sanitized document (see buildTemplateDocument), optionally
+ * resolves asset URLs via the provided callback, and serializes it to XML.
  *
  * This runs after both initializeState and processResponse to generate
  * the template that the client will render.
@@ -37,6 +28,36 @@ export async function renderTemplate(
   state: AttemptState,
   options?: ProcessingOptions
 ): Promise<string> {
+  return serializeTemplate(buildTemplateDocument(itemDoc, state), options);
+}
+
+/**
+ * Builds the sanitized template document for an attempt state.
+ *
+ * This function:
+ * 1. Substitutes template and outcome variable values into the item body
+ * 2. Applies conditional visibility rules based on current state
+ * 3. Shows/hides feedback elements based on outcome variables, and removes
+ *    feedback the attempt withholds (see AttemptState.withheldFeedback)
+ * 4. Strips sensitive content that should not be exposed to the client:
+ *    - qti-template-declaration elements
+ *    - qti-template-processing rules
+ *    - qti-response-processing rules
+ *    - qti-correct-response, qti-mapping from response declarations
+ *    - Response declarations not used in the filtered body
+ *    - Hidden feedback that shouldn't be visible yet
+ * 5. Injects current response values as qti-default-value elements
+ * 6. Once the attempt can be evaluated, adds the evaluation its delivery options allow
+ *    (see applyEvaluation)
+ *
+ * The result depends only on the item and the state, so rendering the same
+ * state again produces the same document.
+ *
+ * @param itemDoc - Parsed QTI assessment item XML document
+ * @param state - Current attempt state with variable values
+ * @returns A sanitized copy of the item document
+ */
+export function buildTemplateDocument(itemDoc: Document, state: AttemptState): Document {
   // Clone the document to avoid mutating the original
   const clonedDoc = itemDoc.cloneNode(true) as Document;
   const root = clonedDoc.documentElement;
@@ -58,22 +79,138 @@ export async function renderTemplate(
   // Step 4: Process feedback visibility based on outcome variables
   processFeedbackVisibility(root, state.variables);
 
+  // Step 4.5: Remove feedback the attempt withholds from the learner
+  if (state.withheldFeedback) {
+    removeWithheldFeedback(root, state.withheldFeedback);
+  }
+
   // Step 5: Substitute math variables in MathML expressions
   substituteMathVariables(root, state.variables);
 
   // Step 6: Sanitize response declarations (after body is filtered)
   sanitizeResponseDeclarations(root, state.variables);
 
+  // Step 6.5: Add the evaluation the attempt's delivery options allow
+  if (canEvaluate(state)) {
+    applyEvaluation(root, itemDoc, state);
+  }
+
   // Step 7: Clean up empty text nodes and normalize whitespace
   normalizeWhitespace(root);
 
-  // Step 8: Resolve asset URLs if resolver is provided
+  return clonedDoc;
+}
+
+/**
+ * Finishes a built template document for the client: resolves asset URLs if a
+ * resolver is provided, then serializes it to an XML string. Mutates the document.
+ */
+export async function serializeTemplate(
+  doc: Document,
+  options?: ProcessingOptions
+): Promise<string> {
   if (options?.resolveAssets) {
-    await resolveAssetUrls(root, options.resolveAssets);
+    await resolveAssetUrls(doc.documentElement, options.resolveAssets);
   }
 
-  // Step 9: Serialize the sanitized document to XML string
-  return serializeToXml(clonedDoc);
+  return serializeToXml(doc);
+}
+
+/**
+ * The feedback elements visible in a built template document, in document order.
+ */
+export function collectVisibleFeedback(root: Element): FeedbackIdentity[] {
+  return getFeedbackElements(root).map(getFeedbackIdentity);
+}
+
+/**
+ * A string key for a feedback identity, for set comparisons.
+ */
+export function feedbackKey(feedback: FeedbackIdentity): string {
+  return `${feedback.tagName}|${feedback.outcomeIdentifier}|${feedback.identifier}`;
+}
+
+const FEEDBACK_TAG_NAMES = ['qti-feedback-block', 'qti-feedback-inline', 'qti-modal-feedback'];
+
+/**
+ * All feedback elements (block, inline and modal) under root
+ */
+function getFeedbackElements(root: Element): Element[] {
+  return FEEDBACK_TAG_NAMES.flatMap((tagName) =>
+    Array.from(root.getElementsByTagName(tagName))
+  );
+}
+
+function getFeedbackIdentity(element: Element): FeedbackIdentity {
+  return {
+    tagName: element.tagName,
+    outcomeIdentifier: element.getAttribute('outcome-identifier') ?? '',
+    identifier: element.getAttribute('identifier') ?? '',
+  };
+}
+
+/**
+ * Removes every feedback element matching one of the withheld identities.
+ */
+function removeWithheldFeedback(root: Element, withheld: FeedbackIdentity[]): void {
+  const withheldKeys = new Set(withheld.map(feedbackKey));
+
+  for (const element of getFeedbackElements(root)) {
+    if (withheldKeys.has(feedbackKey(getFeedbackIdentity(element)))) {
+      element.parentNode?.removeChild(element);
+    }
+  }
+}
+
+/**
+ * Adds the evaluation allowed by the attempt's showEvaluation option to the
+ * template of an attempt that can be evaluated (see canEvaluate):
+ *
+ * - `'correctness'`: a data-evaluation attribute ("correct", "incorrect" or
+ *   "partial") on each interaction whose response can be judged
+ *   (see evaluateResponse)
+ * - `'correctResponse'`: the verdict, plus a qti-correct-response holding this
+ *   attempt's correct value in each response declaration that has one
+ *
+ * Nothing else about how responses are judged (mappings, the correct response
+ * under `'correctness'`) reaches the template.
+ */
+function applyEvaluation(root: Element, itemDoc: Document, state: AttemptState): void {
+  const { showEvaluation } = state.options;
+  if (showEvaluation === 'none') return;
+
+  const itemBody = root.getElementsByTagName('qti-item-body')[0];
+  const declarations = Array.from(root.getElementsByTagName('qti-response-declaration'));
+
+  for (const declaration of declarations) {
+    const identifier = declaration.getAttribute('identifier');
+    if (!identifier) continue;
+
+    const evaluation = evaluateResponse(itemDoc, identifier, state.variables);
+    if (evaluation && itemBody) {
+      for (const interaction of findInteractions(itemBody, identifier)) {
+        interaction.setAttribute('data-evaluation', evaluation);
+      }
+    }
+
+    if (showEvaluation === 'correctResponse') {
+      const correctValue = getCorrectResponse(itemDoc, identifier, state.variables);
+      if (correctValue !== null) {
+        declaration.appendChild(
+          createValueContainer(declaration.ownerDocument, 'qti-correct-response', correctValue)
+        );
+      }
+    }
+  }
+}
+
+/**
+ * Elements in the item body bound to the given response identifier
+ */
+function findInteractions(itemBody: Element, responseIdentifier: string): Element[] {
+  return Array.from(itemBody.getElementsByTagName('*')).filter(
+    (element) => element.getAttribute('response-identifier') === responseIdentifier
+  );
 }
 
 /**
@@ -216,14 +353,7 @@ function processFeedbackVisibility(
   root: Element,
   variables: Record<string, unknown>
 ): void {
-  // Process feedback-block, feedback-inline, and modal-feedback elements
-  const feedbackElements = [
-    ...Array.from(root.getElementsByTagName('qti-feedback-block')),
-    ...Array.from(root.getElementsByTagName('qti-feedback-inline')),
-    ...Array.from(root.getElementsByTagName('qti-modal-feedback')),
-  ];
-
-  for (const element of feedbackElements) {
+  for (const element of getFeedbackElements(root)) {
     const outcomeIdentifier = element.getAttribute('outcome-identifier');
     const identifier = element.getAttribute('identifier');
     const showHide = element.getAttribute('show-hide');
@@ -374,34 +504,30 @@ function sanitizeResponseDeclarations(
         existing.parentNode?.removeChild(existing);
       }
 
-      // Create new qti-default-value element
-      const defaultValue = declaration.ownerDocument.createElement(
-        'qti-default-value'
+      // Append new qti-default-value element
+      declaration.appendChild(
+        createValueContainer(declaration.ownerDocument, 'qti-default-value', responseValue)
       );
-
-      // Handle different cardinalities
-      if (Array.isArray(responseValue)) {
-        // Multiple or ordered cardinality
-        for (const val of responseValue) {
-          const valueElement = declaration.ownerDocument.createElement(
-            'qti-value'
-          );
-          valueElement.textContent = String(val);
-          defaultValue.appendChild(valueElement);
-        }
-      } else {
-        // Single cardinality
-        const valueElement = declaration.ownerDocument.createElement(
-          'qti-value'
-        );
-        valueElement.textContent = String(responseValue);
-        defaultValue.appendChild(valueElement);
-      }
-
-      // Append to declaration
-      declaration.appendChild(defaultValue);
     }
   }
+}
+
+/**
+ * Creates a value container (e.g. qti-default-value, qti-correct-response)
+ * holding one qti-value per value: one for single cardinality, one per member
+ * for multiple or ordered.
+ */
+function createValueContainer(doc: Document, tagName: string, value: unknown): Element {
+  const container = doc.createElement(tagName);
+  const values = Array.isArray(value) ? value : [value];
+
+  for (const val of values) {
+    const valueElement = doc.createElement('qti-value');
+    valueElement.textContent = String(val);
+    container.appendChild(valueElement);
+  }
+
+  return container;
 }
 
 /**

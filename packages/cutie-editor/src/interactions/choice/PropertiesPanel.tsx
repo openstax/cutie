@@ -1,5 +1,6 @@
 import type { Path } from 'slate';
 import { PropertyField } from '../../components/properties/PropertyField';
+import { ShuffleRadioGroup } from '../../components/properties/ShuffleRadioGroup';
 import { PropertyCheckbox } from '../../components/properties/PropertyCheckbox';
 import { ToggleableFormSection } from '../../components/properties/ToggleableFormSection';
 import { MappingMetadataFields } from '../../components/properties/MappingMetadataFields';
@@ -108,16 +109,6 @@ export function ChoicePropertiesPanel({
     }
   };
 
-  const handleShuffleChange = (checked: boolean) => {
-    const newAttrs = { ...attrs };
-    if (checked) {
-      newAttrs.shuffle = 'true';
-    } else {
-      delete newAttrs.shuffle;
-    }
-    onUpdate(path, newAttrs, responseDecl);
-  };
-
   const handleCorrectValueToggle = (choiceId: string, isCorrect: boolean) => {
     let newValues = [...correctValues];
     if (isCorrect) {
@@ -206,10 +197,9 @@ export function ChoicePropertiesPanel({
         min="0"
       />
 
-      <PropertyCheckbox
-        label="Shuffle choices"
-        checked={attrs.shuffle === 'true'}
-        onChange={handleShuffleChange}
+      <ShuffleRadioGroup
+        attributes={attrs}
+        onChange={(newAttrs) => onUpdate(path, newAttrs, responseDecl)}
       />
 
       <ToggleableFormSection

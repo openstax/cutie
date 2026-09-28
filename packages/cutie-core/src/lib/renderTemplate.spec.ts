@@ -1,6 +1,7 @@
 /* spell-checker: ignore mrow COEFF */
 import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
 import { describe, expect, test } from 'vitest';
+import { resolveDeliveryOptions } from './deliveryOptions';
 import { renderTemplate } from './renderTemplate';
 
 /**
@@ -124,6 +125,7 @@ describe('renderTemplate', () => {
           MIN: 40,
         },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -168,6 +170,7 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -189,6 +192,7 @@ describe('renderTemplate', () => {
           TEXT: 'hello',
         },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -217,6 +221,7 @@ describe('renderTemplate', () => {
           SHOW_SECTION: 'section1',
         },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -242,6 +247,7 @@ describe('renderTemplate', () => {
           HIDE_SECTION: 'secret',
         },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -272,6 +278,7 @@ describe('renderTemplate', () => {
           VISIBLE_SECTIONS: ['intro', 'conclusion'],
         },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -297,6 +304,7 @@ describe('renderTemplate', () => {
           WORD_CHOICE: 'correct',
         },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -319,6 +327,7 @@ describe('renderTemplate', () => {
           HIDE_WORD: 'secret',
         },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -345,6 +354,7 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: { VARIANT: 'choiceA' },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -371,6 +381,7 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: { HIDE_OPT: 'optX' },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -399,6 +410,7 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: { VARIANT: 'src1' },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -424,6 +436,7 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: { VARIANT: 'word1' },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -448,6 +461,7 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: { VARIANT: ['img1', 'img2'] },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -471,6 +485,7 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: { VARIANT: 'gap1' },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -501,6 +516,7 @@ describe('renderTemplate', () => {
           FEEDBACK: ['correct'],
         },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -529,6 +545,7 @@ describe('renderTemplate', () => {
           HINTS: ['hint1', 'hint2'],
         },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -551,6 +568,7 @@ describe('renderTemplate', () => {
           INLINE_FEEDBACK: 'right',
         },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -578,6 +596,7 @@ describe('renderTemplate', () => {
           STATUS: 'complete',
         },
         completionStatus: 'completed',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -606,6 +625,7 @@ describe('renderTemplate', () => {
           FEEDBACK: 'correct',
         },
         completionStatus: 'completed',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -634,6 +654,7 @@ describe('renderTemplate', () => {
           FEEDBACK: ['hint1', 'hint2'],
         },
         completionStatus: 'completed',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -648,6 +669,7 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -661,6 +683,7 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -672,6 +695,7 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -683,6 +707,7 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -694,6 +719,7 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -722,6 +748,7 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -752,6 +779,7 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -780,6 +808,7 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -811,6 +840,7 @@ describe('renderTemplate', () => {
           // showExtra is not set, so template-block will be hidden
         },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -836,6 +866,7 @@ describe('renderTemplate', () => {
           RESPONSE: 'ChoiceB',
         },
         completionStatus: 'incomplete',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -862,6 +893,7 @@ describe('renderTemplate', () => {
           RESPONSE: ['A', 'C'],
         },
         completionStatus: 'incomplete',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -886,6 +918,7 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -915,6 +948,7 @@ describe('renderTemplate', () => {
           RESPONSE: 'ChoiceA',
         },
         completionStatus: 'incomplete',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -954,6 +988,7 @@ describe('renderTemplate', () => {
           B: 12,
         },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -983,6 +1018,7 @@ describe('renderTemplate', () => {
           COEFF: 3.14,
         },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -1013,6 +1049,7 @@ describe('renderTemplate', () => {
           VAR: 7,
         },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -1037,6 +1074,7 @@ describe('renderTemplate', () => {
         {
           variables: {},
           completionStatus: 'not_attempted',
+          options: resolveDeliveryOptions(),
           score: null,
         },
         {
@@ -1062,6 +1100,7 @@ describe('renderTemplate', () => {
         {
           variables: {},
           completionStatus: 'not_attempted',
+          options: resolveDeliveryOptions(),
           score: null,
         },
         {
@@ -1090,6 +1129,7 @@ describe('renderTemplate', () => {
         {
           variables: {},
           completionStatus: 'not_attempted',
+          options: resolveDeliveryOptions(),
           score: null,
         },
         {
@@ -1127,6 +1167,7 @@ describe('renderTemplate', () => {
         {
           variables: {},
           completionStatus: 'not_attempted',
+          options: resolveDeliveryOptions(),
           score: null,
         },
         {
@@ -1155,6 +1196,7 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -1176,6 +1218,7 @@ describe('renderTemplate', () => {
         {
           variables: {},
           completionStatus: 'not_attempted',
+          options: resolveDeliveryOptions(),
           score: null,
         },
         {
@@ -1207,6 +1250,7 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -1230,6 +1274,7 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -1251,6 +1296,7 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -1278,6 +1324,7 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -1300,6 +1347,7 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
       });
 
@@ -1325,6 +1373,7 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
         shuffleOrders: {
           RESPONSE: ['C', 'A', 'B'],
@@ -1356,6 +1405,7 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
         shuffleOrders: {
           RESPONSE: ['B', 'A'],
@@ -1388,6 +1438,7 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
         // No shuffleOrders provided
       });
@@ -1417,6 +1468,7 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
         shuffleOrders: {
           RESPONSE: ['Z', 'X', 'Y'],
@@ -1453,6 +1505,7 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
         shuffleOrders: {
           RESPONSE_0: ['S2', 'S1'],
@@ -1489,6 +1542,7 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
         score: null,
         shuffleOrders: {
           RESPONSE: ['W3', 'W1', 'W2'],

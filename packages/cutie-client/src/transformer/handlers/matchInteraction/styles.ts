@@ -225,4 +225,19 @@ export const MATCH_INTERACTION_STYLES = `
     box-shadow: none;
   }
 
+  /*
+   * The choice's correct answer (shown once an attempt is evaluated), between
+   * the choice and its chips: the label and the matched choices on one line
+   */
+  .cutie-match-choice-wrapper > .cutie-correct-answer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.35em;
+    margin-top: 0.35em;
+  }
+
+  .cutie-match-choice-wrapper > .cutie-correct-answer > .cutie-correct-answer__value {
+    margin-top: 0;
+  }
 `;

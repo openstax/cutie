@@ -69,6 +69,27 @@ describe('annotateInlineInteractions', () => {
     });
   });
 
+  describe('aria-hidden content', () => {
+    it('never labels an interaction, and keeps its place in the DOM', () => {
+      const fragment = fragmentFromHtml(
+        '<p>The year was <span class="wrap"><input class="cutie-text-entry-interaction"/><span aria-hidden="true" class="hidden">Incorrect. 1066</span></span>.</p>'
+      );
+
+      annotateInlineInteractions(fragment, testIdGenerator);
+
+      const input = fragment.querySelector('input')!;
+      const labelText = input.getAttribute('aria-labelledby')!.split(' ')
+        .filter((id) => id !== input.id)
+        .map((id) => fragment.getElementById(id)!.textContent)
+        .join(' ');
+      expect(normalizeHtml(labelText)).toContain('The year was');
+      expect(labelText).not.toContain('Incorrect');
+
+      // Still the input's next sibling, not moved into a context span
+      expect(input.nextElementSibling!.classList.contains('hidden')).toBe(true);
+    });
+  });
+
   describe('Example 2: Multiple interactions, shared region', () => {
     it('shares span between interactions and adds aria-describedby', () => {
       const fragment = fragmentFromHtml(

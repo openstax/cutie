@@ -4,6 +4,7 @@ import {
   focusNext,
   focusPrev,
   highlightDropTargets,
+  reportResponseChanges,
 } from '../../../utils';
 import type { TransformContext } from '../../types';
 
@@ -127,7 +128,7 @@ export class GapMatchController {
         }
       });
 
-      bank.addEventListener('drop', (e) => {
+      bank.addEventListener('drop', this.reportingEdits((e: DragEvent) => {
         if (!this.enabled) return;
         e.preventDefault();
         bank.classList.remove('cutie-gap-match-choices--drag-over');
@@ -138,10 +139,10 @@ export class GapMatchController {
           const gapId = data.slice(4);
           this.removeChoiceFromGap(gapId);
         }
-      });
+      }));
 
       // Click on word bank area (not on a choice) to return a selected choice
-      bank.addEventListener('click', (e) => {
+      bank.addEventListener('click', this.reportingEdits((e: MouseEvent) => {
         if (!this.enabled) return;
         // Only handle clicks on bank background (including group sections), not on choices
         const target = e.target as HTMLElement;
@@ -149,7 +150,7 @@ export class GapMatchController {
           this.removeChoiceFromGap(this.selectedFromGap);
           this.clearSelection();
         }
-      });
+      }));
     }
   }
 
@@ -263,7 +264,7 @@ export class GapMatchController {
    */
   private wireGapEvents(gapId: string, element: HTMLElement): void {
     // Click behavior depends on state
-    element.addEventListener('click', () => {
+    element.addEventListener('click', this.reportingEdits(() => {
       if (!this.enabled) return;
 
       const currentChoiceInGap = this.gapAssignments.get(gapId);
@@ -287,10 +288,10 @@ export class GapMatchController {
         // Gap has a choice and nothing is selected - pick it up
         this.selectChoice(currentChoiceInGap, gapId);
       }
-    });
+    }));
 
     // Keyboard: Enter/Space to place or pick up, Delete/Backspace to remove
-    element.addEventListener('keydown', (e) => {
+    element.addEventListener('keydown', this.reportingEdits((e: KeyboardEvent) => {
       if (!this.enabled) return;
 
       const currentChoiceInGap = this.gapAssignments.get(gapId);
@@ -321,7 +322,7 @@ export class GapMatchController {
       } else if (e.key === 'Escape') {
         this.clearSelection();
       }
-    });
+    }));
 
     // Drag and drop - gaps can be dragged FROM when filled
     element.addEventListener('dragstart', (e) => {
@@ -382,7 +383,7 @@ export class GapMatchController {
       element.classList.remove('cutie-gap--drag-over');
     });
 
-    element.addEventListener('drop', (e) => {
+    element.addEventListener('drop', this.reportingEdits((e: DragEvent) => {
       if (!this.enabled) return;
       e.preventDefault();
       element.classList.remove('cutie-gap--drag-over');
@@ -407,7 +408,7 @@ export class GapMatchController {
           this.placeChoiceInGap(gapId, choiceId);
         }
       }
-    });
+    }));
   }
 
   /**
@@ -421,6 +422,14 @@ export class GapMatchController {
       return false;
     }
 
+    return this.matchGroupsAllow(gapId, choiceId);
+  }
+
+  /**
+   * Whether a gap's match groups accept a choice: neither has groups, or they
+   * share at least one
+   */
+  private matchGroupsAllow(gapId: string, choiceId: string): boolean {
     const choiceGroups = this.choiceMatchGroups.get(choiceId);
     const gapGroups = this.gapMatchGroups.get(gapId);
 
@@ -435,6 +444,46 @@ export class GapMatchController {
       if (gapGroups.has(group)) return true;
     }
     return false;
+  }
+
+  /**
+   * Size each gap to the widest choice its match groups accept, so placing a
+   * choice (or showing the correct answer above a gap) never reflows the
+   * content. Measures rendered text, so the gaps must be in the document; the
+   * width is set in em so it follows the gap's font size.
+   */
+  sizeGapsToChoices(): void {
+    for (const [gapId, gap] of this.gapElements) {
+      const style = getComputedStyle(gap);
+      const fontSize = parseFloat(style.fontSize);
+      if (!(fontSize > 0)) continue;
+
+      // min-width covers the padding and border too when the host styles
+      // gaps as border-box, so add them to the measured text width
+      const boxExtra = style.boxSizing === 'border-box'
+        ? [style.paddingLeft, style.paddingRight, style.borderLeftWidth, style.borderRightWidth]
+          .reduce((sum, value) => sum + (parseFloat(value) || 0), 0)
+        : 0;
+
+      // Measure as filled-gap content, inside the gap so its styles apply
+      const probe = document.createElement('span');
+      probe.className = 'cutie-gap-content';
+      probe.setAttribute('aria-hidden', 'true');
+      probe.style.cssText = 'position: absolute; visibility: hidden; white-space: nowrap;';
+      gap.appendChild(probe);
+
+      let width = 0;
+      for (const [choiceId, content] of this.choiceContents) {
+        if (!this.matchGroupsAllow(gapId, choiceId)) continue;
+        probe.textContent = content;
+        width = Math.max(width, probe.getBoundingClientRect().width);
+      }
+      probe.remove();
+
+      if (width > 0) {
+        gap.style.setProperty('--cutie-gap-fill-width', `${(width + boxExtra) / fontSize}em`);
+      }
+    }
   }
 
   /**
@@ -698,6 +747,14 @@ export class GapMatchController {
     if (!enabled) {
       this.clearSelection();
     }
+  }
+
+  /**
+   * Wrap a learner-event listener so any response change it causes is
+   * reported once to the item state (see reportResponseChanges).
+   */
+  private reportingEdits<E extends Event>(listener: (event: E) => void): (event: E) => void {
+    return reportResponseChanges(this.context, () => this.getResponse(), listener);
   }
 
   /**

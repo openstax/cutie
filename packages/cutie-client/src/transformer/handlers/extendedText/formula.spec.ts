@@ -266,4 +266,74 @@ describe('formulaInteraction', () => {
       expect(constraintEl.classList.contains('cutie-constraint-error')).toBe(false);
     });
   });
+
+  describe('response change reporting', () => {
+    it('reports every input with the raw value and no validation UI', async () => {
+      const onResponseChange = vi.fn();
+      const state = new ItemStateImpl(undefined, { onResponseChange });
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" min-strings="1">
+        </qti-extended-text-interaction>
+      `);
+
+      const container = document.createElement('div');
+      container.appendChild(transformInteraction(doc, state));
+      await waitForMathField();
+      expect(onResponseChange).not.toHaveBeenCalled();
+
+      const mathField = container.querySelector('.cutie-formula-field') as HTMLElement & { value: string };
+      mathField.value = 'x';
+      mathField.dispatchEvent(new Event('input'));
+      mathField.value = '';
+      mathField.dispatchEvent(new Event('input'));
+
+      expect(onResponseChange).toHaveBeenCalledTimes(2);
+      expect(onResponseChange.mock.calls.map((c) => c[0])).toEqual([{ R1: 'x' }, { R1: null }]);
+      expect(mathField.hasAttribute('aria-invalid')).toBe(false);
+      expect(container.querySelector('.cutie-constraint-error')).toBeNull();
+    });
+  });
+});
+
+describe('formulaInteraction evaluation', () => {
+  let itemState: ItemStateImpl;
+
+  beforeEach(() => {
+    itemState = new ItemStateImpl();
+  });
+
+  function render(interactionAttrs: string, declaration: string): HTMLElement {
+    const doc = new DOMParser().parseFromString(`
+      <html><body>
+        <qti-response-declaration identifier="R1" base-type="string" cardinality="single" data-response-type="formula">
+          ${declaration}
+        </qti-response-declaration>
+        <qti-item-body>
+          <qti-extended-text-interaction response-identifier="R1" ${interactionAttrs}></qti-extended-text-interaction>
+        </qti-item-body>
+      </body></html>
+    `, 'text/html');
+    const container = document.createElement('div');
+    container.appendChild(transformInteraction(doc, itemState));
+    return container;
+  }
+
+  it('renders nothing when there is no verdict or correct response', async () => {
+    const container = render('', '');
+    await waitForMathField();
+    expect(container.querySelector('.cutie-evaluation')).toBeNull();
+  });
+
+  it('describes the verdict in the constraint text and shows the correct LaTeX in a math-span, linked to the math field', async () => {
+    const container = render(
+      'data-evaluation="incorrect"',
+      '<qti-correct-response><qti-value>\\frac{1}{2}</qti-value></qti-correct-response>',
+    );
+    await waitForMathField();
+    expect(container.querySelector('.cutie-verdict')).toBeNull();
+    expect(container.querySelector('#constraint-R1')!.textContent).toBe('Incorrect response');
+    const summary = container.querySelector('.cutie-evaluation')!;
+    expect(summary.querySelector('math-span')!.textContent).toBe('\\frac{1}{2}');
+    expect(container.querySelector('math-field')!.getAttribute('aria-describedby')).toContain(summary.id);
+  });
 });

@@ -1,6 +1,8 @@
 import { createMissingAttributeError } from '../../../errors/errorDisplay';
+import { addAriaDescribedBy } from '../../../utils/aria';
 import { registry } from '../../registry';
 import type { ElementHandler, TransformContext } from '../../types';
+import { createEvaluationSummary, getVerdictText, markEvaluated, readEvaluation } from '../evaluation';
 import { getDefaultValue } from '../responseUtils';
 import {
   createCharacterCounter,
@@ -126,8 +128,15 @@ class ExtendedTextInteractionHandler implements ElementHandler {
       });
     }
 
+    // Evaluation of a finished attempt, when the delivery options show one.
+    // Its verdict takes the constraint text's place.
+    const evaluation = readEvaluation(element, responseIdentifier, context.styleManager);
+    const verdictText = evaluation?.verdict ? getVerdictText(evaluation.verdict) : null;
+
     // Create constraint elements
-    const constraintResult = createConstraintElements(constraints, responseIdentifier, context.styleManager);
+    const constraintResult = createConstraintElements(
+      constraints, responseIdentifier, context.styleManager, verdictText,
+    );
 
     if (constraintResult) {
       wireConstraintDescribedBy(textarea, constraintResult.constraint.element);
@@ -143,37 +152,57 @@ class ExtendedTextInteractionHandler implements ElementHandler {
       container.appendChild(footer);
     }
 
+    // The correct answer below the textarea, described by it; the status rail
+    // is the visual verdict
+    if (evaluation) {
+      const summary = createEvaluationSummary({
+        id: `evaluation-${responseIdentifier}`,
+        verdict: null,
+        correctAnswer: evaluation.correctResponse.join(', ') || null,
+      });
+      if (summary) {
+        container.appendChild(summary);
+        addAriaDescribedBy(textarea, summary.id);
+      }
+      markEvaluated(container, evaluation.verdict);
+    }
+
     // Register response accessor with itemState
     if (context.itemState) {
-      // Validate constraints and update error UI. Returns true when valid.
-      const validate = (): boolean => {
+      // Find the first violated constraint, without touching the UI.
+      // Returns null when valid, otherwise the message text to display.
+      const findViolation = (): { text: string | null } | null => {
         const value = textarea.value.trim();
 
         // Min-strings check: empty input when required
         if (constraints.minStrings > 0 && value.length === 0) {
-          textarea.setAttribute('aria-invalid', 'true');
-          showConstraintError(constraintResult, constraintResult?.minStringsText ?? null, context);
-          return false;
+          return { text: constraintResult?.minStringsText ?? null };
         }
 
         // Min-characters check: too short (includes empty — implies required)
         if (minCharacters !== null && value.length < minCharacters) {
-          textarea.setAttribute('aria-invalid', 'true');
-          showConstraintError(constraintResult, constraintResult?.minCharactersText ?? null, context);
-          return false;
+          return { text: constraintResult?.minCharactersText ?? null };
         }
 
         // Pattern-mask check: non-empty but wrong format
         if (constraints.patternMask && !new RegExp(constraints.patternMask).test(textarea.value)) {
-          textarea.setAttribute('aria-invalid', 'true');
-          showConstraintError(constraintResult, constraintResult?.patternText ?? null, context);
-          return false;
+          return { text: constraintResult?.patternText ?? null };
         }
 
         // Max-characters check: hard character limit exceeded
         if (maxCharacters !== null && value.length > maxCharacters) {
+          return { text: constraintResult?.maxCharactersText ?? null };
+        }
+
+        return null;
+      };
+
+      // Validate constraints and update error UI. Returns true when valid.
+      const validate = (): boolean => {
+        const violation = findViolation();
+        if (violation) {
           textarea.setAttribute('aria-invalid', 'true');
-          showConstraintError(constraintResult, constraintResult?.maxCharactersText ?? null, context);
+          showConstraintError(constraintResult, violation.text, context);
           return false;
         }
 
@@ -185,9 +214,9 @@ class ExtendedTextInteractionHandler implements ElementHandler {
         return true;
       };
 
-      context.itemState.registerResponse(responseIdentifier, () => {
+      context.itemState.registerResponse(responseIdentifier, (options) => {
         const value = textarea.value.trim();
-        const valid = validate();
+        const valid = options?.silent ? findViolation() === null : validate();
         return { value: value === '' ? null : value, valid };
       });
 
@@ -196,6 +225,7 @@ class ExtendedTextInteractionHandler implements ElementHandler {
         if (textarea.hasAttribute('aria-invalid')) {
           validate();
         }
+        context.itemState?.notifyResponseChange();
       });
 
       // Observe interaction state changes to enable/disable textarea

@@ -6,6 +6,7 @@ import { MapEntryList } from '../../components/properties/MapEntryList';
 import { MappingMetadataFields } from '../../components/properties/MappingMetadataFields';
 import { PropertyCheckbox } from '../../components/properties/PropertyCheckbox';
 import { PropertyField } from '../../components/properties/PropertyField';
+import { ShuffleRadioGroup } from '../../components/properties/ShuffleRadioGroup';
 import { ToggleableFormSection } from '../../components/properties/ToggleableFormSection';
 import { useStyle } from '../../hooks/useStyle';
 import type {
@@ -169,16 +170,6 @@ export function MatchPropertiesPanel({
     onUpdate(path, newAttrs, updatedDecl);
   };
 
-  const handleShuffleChange = (checked: boolean) => {
-    const newAttrs = { ...attrs };
-    if (checked) {
-      newAttrs.shuffle = 'true';
-    } else {
-      delete newAttrs.shuffle;
-    }
-    onUpdate(path, newAttrs, responseDecl);
-  };
-
   const handleToggleCorrectAnswer = (enabled: boolean) => {
     if (enabled) {
       const updatedDecl = addEmptyCorrectResponseForMatch(responseDecl);
@@ -268,10 +259,9 @@ export function MatchPropertiesPanel({
         min="0"
       />
 
-      <PropertyCheckbox
-        label="Shuffle choices"
-        checked={attrs.shuffle === 'true'}
-        onChange={handleShuffleChange}
+      <ShuffleRadioGroup
+        attributes={attrs}
+        onChange={(newAttrs) => onUpdate(path, newAttrs, responseDecl)}
       />
 
       <ToggleableFormSection

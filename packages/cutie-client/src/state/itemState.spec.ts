@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { ItemStateImpl } from './itemState';
 
 describe('ItemStateImpl.collectAll', () => {
@@ -51,5 +51,48 @@ describe('ItemStateImpl.collectAll', () => {
     state.registerResponse('R1', () => ({ value: 'hello', valid: true }));
 
     expect(state.getResponse('R1')).toBe('hello');
+  });
+});
+
+describe('ItemStateImpl response change reporting', () => {
+  it('peekAll reads every value with silent accessors, ignoring validity', () => {
+    const state = new ItemStateImpl();
+    const accessor = vi.fn(() => ({ value: 'partial', valid: false }));
+    state.registerResponse('R1', accessor);
+
+    expect(state.peekAll()).toEqual({ R1: 'partial' });
+    expect(accessor).toHaveBeenCalledWith({ silent: true });
+  });
+
+  it('collectAll calls accessors in reporting (non-silent) mode', () => {
+    const state = new ItemStateImpl();
+    const accessor = vi.fn(() => ({ value: 'A', valid: true }));
+    state.registerResponse('R1', accessor);
+
+    state.collectAll();
+    expect(accessor).toHaveBeenCalledWith();
+  });
+
+  it('notifyResponseChange invokes the listener with current raw values', () => {
+    const onResponseChange = vi.fn();
+    const state = new ItemStateImpl(undefined, { onResponseChange });
+    state.registerResponse('R1', () => ({ value: null, valid: false }));
+    state.registerResponse('R2', () => ({ value: ['B'], valid: true }));
+
+    state.notifyResponseChange();
+    expect(onResponseChange).toHaveBeenCalledWith({ R1: null, R2: ['B'] });
+  });
+
+  it('notifyResponseChange is a no-op without a listener', () => {
+    const state = new ItemStateImpl();
+    state.registerResponse('R1', () => ({ value: 'A', valid: true }));
+    expect(() => state.notifyResponseChange()).not.toThrow();
+  });
+
+  it('setInteractionsEnabled does not report a response change', () => {
+    const onResponseChange = vi.fn();
+    const state = new ItemStateImpl(undefined, { onResponseChange });
+    state.setInteractionsEnabled(false);
+    expect(onResponseChange).not.toHaveBeenCalled();
   });
 });

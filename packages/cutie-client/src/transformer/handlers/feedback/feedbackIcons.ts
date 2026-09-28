@@ -6,13 +6,19 @@ export function isFeedbackType(value: string): value is FeedbackType {
   return FEEDBACK_TYPES.includes(value as FeedbackType);
 }
 
+/**
+ * Every icon this module draws: the feedback types, plus 'partial' for a
+ * partially correct evaluation (not a feedback type authors can use).
+ */
+export type IconType = FeedbackType | 'partial';
+
 // SVG paths from Material Symbols. viewBox is tracked per icon so
 // each path renders in its own coordinate system. The 24-grid icons are
 // inset by 0.75 units per side so their ink fills the same share of the
 // box as the 960-grid info icon.
 const ICON_CONFIG: Record<
-  FeedbackType,
-  { path: string; viewBox: string; label: string }
+  IconType,
+  { path: string; viewBox: string; label: string; fillRule?: 'evenodd' }
 > = {
   correct: {
     path: 'M9.55006 15.15L18.0251 6.675C18.2251 6.475 18.4584 6.375 18.7251 6.375C18.9917 6.375 19.2251 6.475 19.4251 6.675C19.6251 6.875 19.7251 7.11267 19.7251 7.388C19.7251 7.66333 19.6251 7.90067 19.4251 8.1L10.2501 17.3C10.0501 17.5 9.81673 17.6 9.55006 17.6C9.28339 17.6 9.05006 17.5 8.85006 17.3L4.55006 13C4.35006 12.8 4.25406 12.5627 4.26206 12.288C4.27006 12.0133 4.37439 11.7757 4.57506 11.575C4.77572 11.3743 5.01339 11.2743 5.28806 11.275C5.56272 11.2757 5.80006 11.3757 6.00006 11.575L9.55006 15.15Z',
@@ -29,11 +35,29 @@ const ICON_CONFIG: Record<
     viewBox: '0 -960 960 960',
     label: 'Information:',
   },
+  // A ring with its left half filled; evenodd leaves the right half hollow
+  partial: {
+    path: 'M12 3a9 9 0 1 1 0 18a9 9 0 1 1 0-18Zm0 2a7 7 0 1 1 0 14a7 7 0 1 1 0-14Zm0 0a7 7 0 0 0 0 14Z',
+    viewBox: '0.75 0.75 22.5 22.5',
+    label: 'Partially correct:',
+    fillRule: 'evenodd',
+  },
 };
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
-export function createFeedbackIcon(type: FeedbackType): HTMLSpanElement {
+export interface FeedbackIconOptions {
+  /**
+   * Omit the screen-reader label. Use when the icon sits beside visible text
+   * that already says the same thing, so it isn't read twice.
+   */
+  decorative?: boolean;
+}
+
+export function createFeedbackIcon(
+  type: IconType,
+  options?: FeedbackIconOptions
+): HTMLSpanElement {
   const config = ICON_CONFIG[type];
 
   const wrapper = document.createElement('span');
@@ -47,14 +71,17 @@ export function createFeedbackIcon(type: FeedbackType): HTMLSpanElement {
 
   const path = document.createElementNS(SVG_NS, 'path');
   path.setAttribute('d', config.path);
+  if (config.fillRule) path.setAttribute('fill-rule', config.fillRule);
   svg.appendChild(path);
 
-  const srText = document.createElement('span');
-  srText.className = 'cutie-feedback-sr-text';
-  srText.textContent = config.label;
-
   wrapper.appendChild(svg);
-  wrapper.appendChild(srText);
+
+  if (!options?.decorative) {
+    const srText = document.createElement('span');
+    srText.className = 'cutie-feedback-sr-text';
+    srText.textContent = config.label;
+    wrapper.appendChild(srText);
+  }
 
   return wrapper;
 }
@@ -74,6 +101,10 @@ export const FEEDBACK_ICON_STYLES = `
   }
 
   .cutie-feedback-icon--info {
+    color: var(--cutie-feedback-info);
+  }
+
+  .cutie-feedback-icon--partial {
     color: var(--cutie-feedback-info);
   }
 

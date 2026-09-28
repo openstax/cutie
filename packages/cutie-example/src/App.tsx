@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { beginAttempt, submitResponse, setScore } from '@openstax/cutie-core';
-import type { AttemptState, ProcessingOptions } from '@openstax/cutie-core';
+import type { AttemptResult, AttemptState, ProcessingOptions } from '@openstax/cutie-core';
 import type { ResponseData } from '@openstax/cutie-client';
 import { examples, exampleGroups } from './example-items';
 import { ExampleDropdown } from './ExampleDropdown';
@@ -12,6 +12,8 @@ import { Toast } from './Toast';
 import { beginQuiz, continueQuiz, DEFAULT_FAST_MODEL_ID, generateQtiItem, scoreExternalResponse } from './utils/ai';
 import type { QuizResponse, InteractionType } from './utils/ai';
 import { shouldRenewToken } from './utils/auth';
+import { loadDeliveryOptions, saveDeliveryOptions } from './utils/deliveryOptions';
+import type { ResolvedDeliveryOptions } from './utils/deliveryOptions';
 import { OpenInNewIcon } from './icons';
 import './App.css';
 
@@ -86,6 +88,8 @@ export function App() {
   const [itemXml, setItemXml] = useState('');
   const [attemptState, setAttemptState] = useState<AttemptState | null>(null);
   const [sanitizedTemplate, setSanitizedTemplate] = useState<string>('');
+  const [hasNewFeedback, setHasNewFeedback] = useState(false);
+  const [deliveryOptions, setDeliveryOptions] = useState<ResolvedDeliveryOptions>(loadDeliveryOptions);
   const [error, setError] = useState<string>('');
   const [processing, setProcessing] = useState(false);
   const [responses, setResponses] = useState<ResponseData | null>(null);
@@ -97,6 +101,21 @@ export function App() {
     nextQuestion: Promise<string> | null;
     nextQuiz: Promise<{ quiz: QuizResponse; firstQuestionXml: string }> | null;
   }>({ nextQuestion: null, nextQuiz: null });
+
+  useEffect(() => {
+    saveDeliveryOptions(deliveryOptions);
+  }, [deliveryOptions]);
+
+  const applyResult = (result: AttemptResult) => {
+    setAttemptState(result.state);
+    setSanitizedTemplate(result.template);
+    setHasNewFeedback(result.hasNewFeedback);
+  };
+
+  /** Begins a learner attempt with the current (or given) delivery options and shows it. */
+  const startAttempt = async (xml: string, options: ResolvedDeliveryOptions = deliveryOptions) => {
+    applyResult(await beginAttempt(xml, { resolveAssets }, options));
+  };
 
   const loadExample = async (exampleName: string) => {
     const example = examples.find(ex => ex.name === exampleName);
@@ -111,9 +130,7 @@ export function App() {
     setError('');
     setProcessing(true);
     try {
-      const result = await beginAttempt(example.item, { resolveAssets });
-      setAttemptState(result.state);
-      setSanitizedTemplate(result.template);
+      await startAttempt(example.item);
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : 'Unknown error occurred');
@@ -127,6 +144,8 @@ export function App() {
     if (param) {
       loadExample(param);
     }
+    // Runs once on mount to load the item from the URL
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleAIGenerate = async (xml: string) => {
@@ -137,9 +156,7 @@ export function App() {
     setError('');
     setProcessing(true);
     try {
-      const result = await beginAttempt(xml, { resolveAssets });
-      setAttemptState(result.state);
-      setSanitizedTemplate(result.template);
+      await startAttempt(xml);
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : 'Unknown error occurred');
@@ -153,9 +170,7 @@ export function App() {
     setProcessing(true);
 
     try {
-      const result = await beginAttempt(itemXml, { resolveAssets });
-      setAttemptState(result.state);
-      setSanitizedTemplate(result.template);
+      await startAttempt(itemXml);
       setResponses(null);
     } catch (err) {
       console.error(err);
@@ -190,25 +205,30 @@ export function App() {
         await new Promise(r => setTimeout(r, 1000));
       }
 
-      setAttemptState(result.state);
-      setSanitizedTemplate(result.template);
+      applyResult(result);
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : 'Error processing response');
     }
   };
 
-  const handleResetAttempt = async () => {
+  const resetAttempt = async (options: ResolvedDeliveryOptions) => {
     if (!itemXml) return;
     setError('');
     try {
-      const result = await beginAttempt(itemXml, { resolveAssets });
-      setAttemptState(result.state);
-      setSanitizedTemplate(result.template);
+      await startAttempt(itemXml, options);
       setResponses(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error resetting attempt');
     }
+  };
+
+  const handleResetAttempt = () => resetAttempt(deliveryOptions);
+
+  // Delivery options are fixed per attempt, so a change starts a new one
+  const handleDeliveryOptionsChange = (options: ResolvedDeliveryOptions) => {
+    setDeliveryOptions(options);
+    resetAttempt(options);
   };
 
   const loadQuizQuestion = async (quiz: QuizResponse, questionIndex: number, modelId?: number) => {
@@ -223,10 +243,8 @@ export function App() {
     }
 
     // Process the item
-    const result = await beginAttempt(xml, { resolveAssets });
+    await startAttempt(xml);
     setItemXml(xml);
-    setAttemptState(result.state);
-    setSanitizedTemplate(result.template);
     setResponses(null);
 
     return xml;
@@ -387,10 +405,8 @@ export function App() {
         if (xml) {
           // Use prefetched content - instant transition (or after awaiting in-progress)
           console.log('Using prefetched next question');
-          const xmlResult = await beginAttempt(xml, { resolveAssets });
+          await startAttempt(xml);
           setItemXml(xml);
-          setAttemptState(xmlResult.state);
-          setSanitizedTemplate(xmlResult.template);
           setResponses(null);
 
           quizState.currentQuiz.questions[nextIndex].xml = xml;
@@ -467,10 +483,8 @@ export function App() {
           console.log('Using prefetched next quiz');
           const { quiz: nextQuizResponse, firstQuestionXml } = nextQuizData;
 
-          const xmlResult = await beginAttempt(firstQuestionXml, { resolveAssets });
+          await startAttempt(firstQuestionXml);
           setItemXml(firstQuestionXml);
-          setAttemptState(xmlResult.state);
-          setSanitizedTemplate(xmlResult.template);
           setResponses(null);
 
           const newQuizState: QuizState = {
@@ -600,8 +614,8 @@ export function App() {
         <EditorTab
           itemXml={itemXml}
           setItemXml={setItemXml}
-          setSanitizedTemplate={setSanitizedTemplate}
-          setAttemptState={setAttemptState}
+          deliveryOptions={deliveryOptions}
+          onAttemptBegun={applyResult}
         />
       ),
     },
@@ -612,7 +626,10 @@ export function App() {
         <PreviewTab
           attemptState={attemptState}
           sanitizedTemplate={sanitizedTemplate}
+          hasNewFeedback={hasNewFeedback}
           responses={responses}
+          deliveryOptions={deliveryOptions}
+          onDeliveryOptionsChange={handleDeliveryOptionsChange}
           onSubmitResponses={handleSubmitResponses}
           onResetAttempt={handleResetAttempt}
           isLoading={processing}

@@ -1,13 +1,17 @@
 import { AttemptState, ResponseData } from '../types';
 import { getChildElements, getFirstChildElement } from '../utils/dom';
-import { deepEqual, deepEqualUnordered } from '../utils/equality';
-import { parseResponseValue } from '../utils/typeParser';
 import {
   evaluateExpression as evaluateExpressionShared,
   type SubEvaluate,
 } from './expressionEvaluator/index';
-import { compareMathExpressions, type MathComparisonMode } from './expressionEvaluator/math';
 import { getExternalScoredInfo } from './externalScoring';
+import {
+  compareResponseValues,
+  getCorrectResponse,
+  getResponseDeclaration,
+  mapResponse,
+  mapResponsePoint,
+} from './responseDeclarations';
 import { extractStandardOutcomes } from './scoreUtils';
 
 /**
@@ -21,16 +25,7 @@ function coerceResponseValue(itemDoc: Document, identifier: string, value: unkno
   }
 
   // Find the response declaration to get the base-type
-  const declarations = itemDoc.getElementsByTagName('qti-response-declaration');
-  let baseType: string | null = null;
-
-  for (let i = 0; i < declarations.length; i++) {
-    const decl = declarations[i];
-    if (decl.getAttribute('identifier') === identifier) {
-      baseType = decl.getAttribute('base-type');
-      break;
-    }
-  }
+  const baseType = getResponseDeclaration(itemDoc, identifier)?.getAttribute('base-type') ?? null;
 
   // If no declaration found or no base-type, return value as-is
   if (!baseType) {
@@ -50,84 +45,6 @@ function coerceResponseValue(itemDoc: Document, identifier: string, value: unkno
   }
 
   return value;
-}
-
-/**
- * Response declaration metadata for formula responses
- */
-interface ResponseDeclarationMeta {
-  responseType: string | null;
-  comparisonMode: string | null;
-}
-
-/**
- * Get metadata from a response declaration (data-* attributes)
- */
-function getResponseDeclarationMeta(
-  itemDoc: Document,
-  identifier: string
-): ResponseDeclarationMeta | null {
-  const declarations = itemDoc.getElementsByTagName('qti-response-declaration');
-  for (let i = 0; i < declarations.length; i++) {
-    const decl = declarations[i];
-    if (decl.getAttribute('identifier') === identifier) {
-      return {
-        responseType: decl.getAttribute('data-response-type'),
-        comparisonMode: decl.getAttribute('data-comparison-mode'),
-      };
-    }
-  }
-  return null;
-}
-
-/**
- * Get the cardinality of a response declaration
- */
-function getResponseCardinality(
-  itemDoc: Document,
-  identifier: string
-): string {
-  const declarations = itemDoc.getElementsByTagName('qti-response-declaration');
-  for (let i = 0; i < declarations.length; i++) {
-    const decl = declarations[i];
-    if (decl.getAttribute('identifier') === identifier) {
-      return decl.getAttribute('cardinality') || 'single';
-    }
-  }
-  return 'single';
-}
-
-/**
- * Compare response values, using formula comparison when appropriate
- *
- * This is the single source of truth for response comparison. It detects
- * formula responses via data-response-type="formula" and routes to
- * Compute Engine comparison with the specified mode.
- */
-export function compareResponseValues(
-  itemDoc: Document,
-  responseIdentifier: string,
-  responseValue: unknown,
-  correctValue: unknown
-): boolean {
-  const meta = getResponseDeclarationMeta(itemDoc, responseIdentifier);
-
-  if (meta?.responseType === 'formula') {
-    const mode = (meta.comparisonMode || 'canonical') as MathComparisonMode;
-    return compareMathExpressions(
-      String(responseValue ?? ''),
-      String(correctValue ?? ''),
-      mode
-    );
-  }
-
-  // Multiple cardinality responses are unordered sets; order should not matter
-  const cardinality = getResponseCardinality(itemDoc, responseIdentifier);
-  if (cardinality === 'multiple') {
-    return deepEqualUnordered(responseValue, correctValue);
-  }
-
-  return deepEqual(responseValue, correctValue);
 }
 
 /**
@@ -192,6 +109,8 @@ export function processResponse(
     variables,
     completionStatus,
     score,
+    // Delivery options are fixed for the life of the attempt
+    options: currentState.options,
     // Preserve shuffle orders from input state
     ...(currentState.shuffleOrders && { shuffleOrders: currentState.shuffleOrders }),
     // Signal that external scoring is needed
@@ -256,39 +175,7 @@ function executeMatchCorrectTemplate(itemDoc: Document, variables: Record<string
  * If RESPONSE is null, sets SCORE to 0.0
  */
 function executeMapResponseTemplate(itemDoc: Document, variables: Record<string, unknown>): void {
-  const responseValue = variables['RESPONSE'];
-
-  if (responseValue === null || responseValue === undefined) {
-    variables['SCORE'] = 0.0;
-    return;
-  }
-
-  const mapping = getResponseMapping(itemDoc, 'RESPONSE');
-  if (!mapping) {
-    variables['SCORE'] = 0.0;
-    return;
-  }
-
-  let score = 0;
-
-  // Handle single or multiple values
-  if (Array.isArray(responseValue)) {
-    for (const value of responseValue) {
-      score += getMappedValue(value, mapping);
-    }
-  } else {
-    score = getMappedValue(responseValue, mapping);
-  }
-
-  // Apply bounds if specified
-  if (mapping.lowerBound !== null && score < mapping.lowerBound) {
-    score = mapping.lowerBound;
-  }
-  if (mapping.upperBound !== null && score > mapping.upperBound) {
-    score = mapping.upperBound;
-  }
-
-  variables['SCORE'] = score;
+  variables['SCORE'] = mapResponse(itemDoc, 'RESPONSE', variables);
 }
 
 /**
@@ -297,250 +184,7 @@ function executeMapResponseTemplate(itemDoc: Document, variables: Record<string,
  * If RESPONSE is null, sets SCORE to 0
  */
 function executeMapResponsePointTemplate(itemDoc: Document, variables: Record<string, unknown>): void {
-  const responseValue = variables['RESPONSE'];
-
-  if (responseValue === null || responseValue === undefined) {
-    variables['SCORE'] = 0;
-    return;
-  }
-
-  const areaMapping = getAreaMapping(itemDoc, 'RESPONSE');
-  if (!areaMapping) {
-    variables['SCORE'] = 0;
-    return;
-  }
-
-  let score = 0;
-
-  // Handle single or multiple points
-  if (Array.isArray(responseValue)) {
-    for (const point of responseValue) {
-      score += getAreaMappedValue(point, areaMapping);
-    }
-  } else {
-    score = getAreaMappedValue(responseValue, areaMapping);
-  }
-
-  variables['SCORE'] = score;
-}
-
-/**
- * Get the correct response value from a response declaration
- */
-function getCorrectResponse(itemDoc: Document, identifier: string, variables: Record<string, unknown>): unknown {
-  const templateCorrect = variables[`__correct_${identifier}`];
-  if (templateCorrect !== undefined) return templateCorrect;
-
-  const declarations = itemDoc.getElementsByTagName('qti-response-declaration');
-
-  for (let i = 0; i < declarations.length; i++) {
-    const declaration = declarations[i];
-    if (declaration.getAttribute('identifier') === identifier) {
-      const correctResponse = declaration.getElementsByTagName('qti-correct-response')[0];
-      if (correctResponse) {
-        const cardinality = declaration.getAttribute('cardinality') || 'single';
-        const baseType = declaration.getAttribute('base-type') || 'identifier';
-
-        const valueElements = correctResponse.getElementsByTagName('qti-value');
-
-        if (cardinality === 'single') {
-          if (valueElements.length > 0) {
-            return parseResponseValue(valueElements[0].textContent || '', baseType);
-          }
-        } else if (cardinality === 'multiple' || cardinality === 'ordered') {
-          const values: unknown[] = [];
-          for (let j = 0; j < valueElements.length; j++) {
-            values.push(parseResponseValue(valueElements[j].textContent || '', baseType));
-          }
-          return values;
-        }
-      }
-    }
-  }
-
-  return null;
-}
-
-/**
- * Get the response mapping from a response declaration
- */
-function getResponseMapping(itemDoc: Document, identifier: string): ResponseMapping | null {
-  const declarations = itemDoc.getElementsByTagName('qti-response-declaration');
-
-  for (let i = 0; i < declarations.length; i++) {
-    const declaration = declarations[i];
-    if (declaration.getAttribute('identifier') === identifier) {
-      const mappingElement = declaration.getElementsByTagName('qti-mapping')[0];
-      if (mappingElement) {
-        const defaultValue = parseFloat(mappingElement.getAttribute('default-value') || '0');
-        const lowerBound = mappingElement.getAttribute('lower-bound');
-        const upperBound = mappingElement.getAttribute('upper-bound');
-
-        const mapEntries: MapEntry[] = [];
-        const mapEntryElements = mappingElement.getElementsByTagName('qti-map-entry');
-
-        for (let j = 0; j < mapEntryElements.length; j++) {
-          const entry = mapEntryElements[j];
-          const mapKey = entry.getAttribute('map-key');
-          const mappedValue = entry.getAttribute('mapped-value');
-          const caseSensitive = entry.getAttribute('case-sensitive') === 'true';
-          if (mapKey && mappedValue) {
-            mapEntries.push({
-              mapKey,
-              mappedValue: parseFloat(mappedValue),
-              caseSensitive
-            });
-          }
-        }
-
-        return {
-          defaultValue,
-          lowerBound: lowerBound !== null ? parseFloat(lowerBound) : null,
-          upperBound: upperBound !== null ? parseFloat(upperBound) : null,
-          entries: mapEntries
-        };
-      }
-    }
-  }
-
-  return null;
-}
-
-/**
- * Get mapped value for a given response value.
- * Per QTI spec, string mapping is case-insensitive by default.
- * Individual map entries can override this with case-sensitive="true".
- */
-function getMappedValue(value: unknown, mapping: ResponseMapping): number {
-  const key = String(value);
-
-  for (const entry of mapping.entries) {
-    const matches = entry.caseSensitive
-      ? key === entry.mapKey
-      : key.toLowerCase() === entry.mapKey.toLowerCase();
-
-    if (matches) {
-      return entry.mappedValue;
-    }
-  }
-
-  return mapping.defaultValue;
-}
-
-/**
- * Get area mapping from a response declaration
- */
-function getAreaMapping(itemDoc: Document, identifier: string): AreaMapping | null {
-  const declarations = itemDoc.getElementsByTagName('qti-response-declaration');
-
-  for (let i = 0; i < declarations.length; i++) {
-    const declaration = declarations[i];
-    if (declaration.getAttribute('identifier') === identifier) {
-      const areaMappingElement = declaration.getElementsByTagName('qti-area-mapping')[0];
-      if (areaMappingElement) {
-        const defaultValue = parseFloat(areaMappingElement.getAttribute('default-value') || '0');
-
-        const areaMapEntries: AreaMapEntry[] = [];
-        const entryElements = areaMappingElement.getElementsByTagName('qti-area-map-entry');
-
-        for (let j = 0; j < entryElements.length; j++) {
-          const entry = entryElements[j];
-          const shape = entry.getAttribute('shape');
-          const coords = entry.getAttribute('coords');
-          const mappedValue = entry.getAttribute('mapped-value');
-
-          if (shape && coords && mappedValue) {
-            areaMapEntries.push({
-              shape,
-              coords: coords.split(',').map(c => parseFloat(c.trim())),
-              mappedValue: parseFloat(mappedValue)
-            });
-          }
-        }
-
-        return {
-          defaultValue,
-          entries: areaMapEntries
-        };
-      }
-    }
-  }
-
-  return null;
-}
-
-/**
- * Get mapped value for a point based on area mapping
- */
-function getAreaMappedValue(point: unknown, areaMapping: AreaMapping): number {
-  // Parse point - can be string like "100 100" or array [100, 100]
-  let x: number, y: number;
-
-  if (typeof point === 'string') {
-    const parts = point.trim().split(/\s+/);
-    x = parseFloat(parts[0]);
-    y = parseFloat(parts[1]);
-  } else if (Array.isArray(point) && point.length >= 2) {
-    x = Number(point[0]);
-    y = Number(point[1]);
-  } else {
-    return areaMapping.defaultValue;
-  }
-
-  // Check each area to see if point is inside
-  for (const entry of areaMapping.entries) {
-    if (isPointInArea(x, y, entry.shape, entry.coords)) {
-      return entry.mappedValue;
-    }
-  }
-
-  return areaMapping.defaultValue;
-}
-
-/**
- * Check if a point is inside a defined area
- */
-function isPointInArea(x: number, y: number, shape: string, coords: number[]): boolean {
-  switch (shape) {
-    case 'circle':
-      // coords: [centerX, centerY, radius]
-      if (coords.length >= 3) {
-        const [cx, cy, r] = coords;
-        const distance = Math.sqrt(Math.pow(x - cx, 2) + Math.pow(y - cy, 2));
-        return distance <= r;
-      }
-      return false;
-
-    case 'rect':
-      // coords: [x1, y1, x2, y2]
-      if (coords.length >= 4) {
-        const [x1, y1, x2, y2] = coords;
-        return x >= x1 && x <= x2 && y >= y1 && y <= y2;
-      }
-      return false;
-
-    case 'poly': {
-      // coords: [x1, y1, x2, y2, x3, y3, ...]
-      // Use ray casting algorithm
-      if (coords.length < 6) return false;
-
-      let inside = false;
-      for (let i = 0, j = coords.length - 2; i < coords.length; i += 2) {
-        const xi = coords[i], yi = coords[i + 1];
-        const xj = coords[j], yj = coords[j + 1];
-
-        const intersect = ((yi > y) !== (yj > y))
-          && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-        if (intersect) inside = !inside;
-
-        j = i;
-      }
-      return inside;
-    }
-
-    default:
-      return false;
-  }
+  variables['SCORE'] = mapResponsePoint(itemDoc, 'RESPONSE', variables);
 }
 
 /**
@@ -700,37 +344,7 @@ function evaluateMapResponse(
   variables: Record<string, unknown>,
   _subEvaluate: SubEvaluate
 ): number {
-  const identifier = element.getAttribute('identifier') || 'RESPONSE';
-  const responseValue = variables[identifier];
-
-  if (responseValue === null || responseValue === undefined) {
-    return 0.0;
-  }
-
-  const mapping = getResponseMapping(itemDoc, identifier);
-  if (!mapping) {
-    return 0.0;
-  }
-
-  let score = 0;
-
-  if (Array.isArray(responseValue)) {
-    for (const value of responseValue) {
-      score += getMappedValue(value, mapping);
-    }
-  } else {
-    score = getMappedValue(responseValue, mapping);
-  }
-
-  // Apply bounds
-  if (mapping.lowerBound !== null && score < mapping.lowerBound) {
-    score = mapping.lowerBound;
-  }
-  if (mapping.upperBound !== null && score > mapping.upperBound) {
-    score = mapping.upperBound;
-  }
-
-  return score;
+  return mapResponse(itemDoc, element.getAttribute('identifier') || 'RESPONSE', variables);
 }
 
 function evaluateMapResponsePoint(
@@ -739,58 +353,7 @@ function evaluateMapResponsePoint(
   variables: Record<string, unknown>,
   _subEvaluate: SubEvaluate
 ): number {
-  const identifier = element.getAttribute('identifier') || 'RESPONSE';
-  const responseValue = variables[identifier];
-
-  if (responseValue === null || responseValue === undefined) {
-    return 0;
-  }
-
-  const areaMapping = getAreaMapping(itemDoc, identifier);
-  if (!areaMapping) {
-    return 0;
-  }
-
-  let score = 0;
-
-  if (Array.isArray(responseValue)) {
-    for (const point of responseValue) {
-      score += getAreaMappedValue(point, areaMapping);
-    }
-  } else {
-    score = getAreaMappedValue(responseValue, areaMapping);
-  }
-
-  return score;
-}
-
-// Helper functions
-
-
-// Type definitions
-
-interface MapEntry {
-  mapKey: string;
-  mappedValue: number;
-  caseSensitive: boolean;
-}
-
-interface ResponseMapping {
-  defaultValue: number;
-  lowerBound: number | null;
-  upperBound: number | null;
-  entries: MapEntry[];
-}
-
-interface AreaMapping {
-  defaultValue: number;
-  entries: AreaMapEntry[];
-}
-
-interface AreaMapEntry {
-  shape: string;
-  coords: number[];
-  mappedValue: number;
+  return mapResponsePoint(itemDoc, element.getAttribute('identifier') || 'RESPONSE', variables);
 }
 
 /**

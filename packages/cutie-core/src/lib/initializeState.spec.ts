@@ -2235,7 +2235,7 @@ describe('initializeState', () => {
           identifier="mapping-test" title="Mapping Test">
           <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier">
             <qti-mapping default-value="0" upper-bound="5">
-              <qti-map-entry map-key="A" mapped-value="1"/>
+              <qti-map-entry map-key="A" mapped-value="6"/>
               <qti-map-entry map-key="B" mapped-value="2"/>
             </qti-mapping>
           </qti-response-declaration>

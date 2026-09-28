@@ -10,7 +10,6 @@ export function insertChoiceInteraction(
     responseIdentifier?: string;
     maxChoices?: string;
     minChoices?: string;
-    shuffle?: boolean;
     choices?: Array<{ identifier: string; text?: string }>;
   } = {}
 ): void {
@@ -28,7 +27,6 @@ export function insertChoiceInteraction(
       'response-identifier': responseId,
       'max-choices': maxChoices,
       'min-choices': config.minChoices,
-      shuffle: config.shuffle ? 'true' : undefined,
     },
     children: [
       {

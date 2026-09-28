@@ -1,19 +1,36 @@
 // cspell:ignore subgrid
 export const GAP_STYLES = `
+  /*
+   * Gaps are sized to the widest choice they accept (--cutie-gap-fill-width,
+   * set by the controller), so filling one never reflows the text. The top
+   * margin reserves the slot for the correct-answer overline, and the gap sits
+   * on the text baseline, so the slot only adds room above the line.
+   */
   .cutie-gap {
+    position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 4em;
+    min-width: max(4em, var(--cutie-gap-fill-width, 0px));
     min-height: 1.5em;
     padding: 0.125em 0.5em;
-    margin: 0 0.25em;
+    margin: var(--cutie-overline-slot) 0.25em 0;
     border: 2px solid var(--cutie-border);
     border-radius: 4px;
     background-color: var(--cutie-bg-alt);
     cursor: pointer;
-    vertical-align: middle;
+    vertical-align: baseline;
     transition: border-color 0.2s, background-color 0.2s, border-style 0.2s;
+  }
+
+  /* The correct answer, centered in the slot just above the gap's border */
+  .cutie-gap .cutie-correct-answer-overline {
+    position: absolute;
+    bottom: calc(100% + 2px);
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    pointer-events: none;
   }
 
   .cutie-gap:focus {
@@ -387,11 +404,13 @@ export const GAP_MATCH_INTERACTION_STYLES = `
     margin-bottom: 0;
   }
 
+  /* Column gaps take the column's width rather than the derived one */
   .cutie-gap-match-column .cutie-gap {
     display: flex;
     width: 100%;
+    min-width: 0;
     min-height: 3em;
-    margin: 0.25em 0;
+    margin: calc(var(--cutie-overline-slot) + 0.25em) 0 0.25em;
     box-sizing: border-box;
   }
 `;

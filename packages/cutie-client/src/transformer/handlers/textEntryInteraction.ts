@@ -5,8 +5,9 @@ import {
 } from '../../errors/validationDisplay';
 import { announce } from '../../utils/liveRegion';
 import { registry } from '../registry';
-import type { ElementHandler, TransformContext } from '../types';
+import type { ElementHandler, ResponseAccessorOptions, TransformContext } from '../types';
 import { parseInputWidth } from '../vocabUtils';
+import { readEvaluation, wrapInlineEvaluation } from './evaluation';
 import { getDefaultValue } from './responseUtils';
 
 /**
@@ -115,6 +116,15 @@ class TextEntryInteractionHandler implements ElementHandler {
       input.setAttribute('aria-describedby', constraintId);
     }
 
+    // Evaluation of a finished attempt: the verdict icon and the correct
+    // answer above the input, describing it
+    let placed: HTMLElement = input;
+    const evaluation = readEvaluation(element, responseIdentifier, context.styleManager);
+    if (evaluation) {
+      const correctText = evaluation.correctResponse.join(', ');
+      placed = wrapInlineEvaluation(input, `evaluation-${responseIdentifier}`, evaluation, correctText || null);
+    }
+
     // Register response accessor with itemState if available
     if (context.itemState) {
       // Check the pattern-mask constraint and decorate the input's error state.
@@ -131,8 +141,13 @@ class TextEntryInteractionHandler implements ElementHandler {
         return isValid;
       };
 
-      const responseAccessor = () => {
+      const responseAccessor = (options?: ResponseAccessorOptions) => {
         const value = input.value.trim();
+
+        if (options?.silent) {
+          const valid = !hasConstraint || new RegExp(patternMask).test(input.value);
+          return { value: value === '' ? null : value, valid };
+        }
 
         if (hasConstraint) {
           const isValid = new RegExp(patternMask).test(input.value);
@@ -155,12 +170,11 @@ class TextEntryInteractionHandler implements ElementHandler {
 
       context.itemState.registerResponse(responseIdentifier, responseAccessor);
 
-      // Clear the error in real time once the field is already in an error state.
-      if (hasConstraint) {
-        input.addEventListener('input', () => {
-          if (input.hasAttribute('aria-invalid')) validate();
-        });
-      }
+      input.addEventListener('input', () => {
+        // Clear the error in real time once the field is already in an error state.
+        if (input.hasAttribute('aria-invalid')) validate();
+        context.itemState?.notifyResponseChange();
+      });
 
       // Observe interaction enabled state to enable/disable input
       const observer = (state: { interactionsEnabled: boolean }) => {
@@ -173,7 +187,7 @@ class TextEntryInteractionHandler implements ElementHandler {
       input.disabled = !context.itemState.interactionsEnabled;
     }
 
-    fragment.appendChild(input);
+    fragment.appendChild(placed);
     if (indicator) {
       fragment.appendChild(indicator.element);
     }
@@ -183,9 +197,10 @@ class TextEntryInteractionHandler implements ElementHandler {
 }
 
 const TEXT_ENTRY_INTERACTION_STYLES = `
+  /* The top margin reserves the slot for the evaluation overline, above the text line */
   .cutie-text-entry-interaction {
     display: inline-block;
-    margin: 0 0.25em;
+    margin: var(--cutie-overline-slot) 0.25em 0;
     padding: 0.25em 0.5em;
     border: 1px solid var(--cutie-border);
     border-radius: 3px;

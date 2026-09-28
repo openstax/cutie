@@ -603,3 +603,75 @@ describe('textEntryInteraction', () => {
     });
   });
 });
+
+describe('textEntryInteraction evaluation', () => {
+  let itemState: ItemStateImpl;
+
+  beforeEach(() => {
+    itemState = new ItemStateImpl();
+  });
+
+  function render(interactionAttrs: string, declaration: string, cardinality = 'single'): HTMLElement {
+    const doc = createQtiDocument(`
+      <qti-response-declaration identifier="R1" cardinality="${cardinality}" base-type="string">
+        ${declaration}
+      </qti-response-declaration>
+      <p>Answer: <qti-text-entry-interaction response-identifier="R1" ${interactionAttrs}></qti-text-entry-interaction></p>
+    `);
+    const container = document.createElement('div');
+    container.appendChild(transformInteraction(doc, itemState));
+    return container;
+  }
+
+  it('renders nothing when there is no verdict or correct response', () => {
+    const container = render('', '<qti-default-value><qti-value>york</qti-value></qti-default-value>');
+    expect(container.querySelector('.cutie-correct-answer-overline')).toBeNull();
+    expect(container.querySelector('.cutie-inline-evaluation')).toBeNull();
+    expect(container.querySelector('input')!.classList.contains('cutie-evaluated')).toBe(false);
+  });
+
+  it('shows the verdict icon and correct answer above the input, describing it', () => {
+    const container = render(
+      'data-evaluation="incorrect"',
+      `<qti-default-value><qti-value>york</qti-value></qti-default-value>
+       <qti-correct-response><qti-value>York</qti-value></qti-correct-response>`,
+    );
+    const input = container.querySelector('input')!;
+    const wrapper = input.parentElement!;
+    expect(wrapper.classList.contains('cutie-inline-evaluation')).toBe(true);
+
+    const overline = wrapper.querySelector('.cutie-correct-answer-overline')!;
+    const icon = overline.querySelector('.cutie-feedback-icon--incorrect') as HTMLElement;
+    expect(icon.title).toBe('Incorrect');
+    // Visible: the icon and the value; hidden text completes the description
+    expect(overline.textContent).toBe('Incorrect. Correct answer: York');
+    expect(overline.getAttribute('aria-hidden')).toBe('true');
+    expect(input.getAttribute('aria-describedby')).toContain(overline.id);
+
+    expect(input.classList.contains('cutie-evaluated--incorrect')).toBe(true);
+    expect(input.value).toBe('york');
+  });
+
+  it('shows only the verdict icon when no correct response is sent', () => {
+    const container = render('data-evaluation="correct"', '');
+    const overline = container.querySelector('.cutie-correct-answer-overline')!;
+    expect(overline.querySelector('.cutie-feedback-icon--correct')).not.toBeNull();
+    expect(overline.textContent).toBe('Correct. ');
+  });
+
+  it('shows the correct answer without a verdict when the response could not be judged', () => {
+    const container = render('', '<qti-correct-response><qti-value>York</qti-value></qti-correct-response>');
+    const overline = container.querySelector('.cutie-correct-answer-overline')!;
+    expect(overline.querySelector('.cutie-feedback-icon')).toBeNull();
+    expect(overline.textContent).toBe('Correct answer: York');
+  });
+
+  it('joins multiple correct values', () => {
+    const container = render(
+      'data-evaluation="correct"',
+      '<qti-correct-response><qti-value>a</qti-value><qti-value>b</qti-value></qti-correct-response>',
+      'multiple',
+    );
+    expect(container.querySelector('.cutie-correct-answer-overline')!.textContent).toBe('Correct. Correct answer: a, b');
+  });
+});

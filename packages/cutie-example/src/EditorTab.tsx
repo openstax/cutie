@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { beginAttempt } from '@openstax/cutie-core';
-import type { AttemptState } from '@openstax/cutie-core';
+import type { AttemptResult, DeliveryOptions } from '@openstax/cutie-core';
 import { SlateEditor } from '@openstax/cutie-editor';
 import type { EditorAssetHandlers } from '@openstax/cutie-editor';
 import { useDebouncedEffect } from './utils/useDebouncedEffect';
@@ -8,8 +8,8 @@ import { useDebouncedEffect } from './utils/useDebouncedEffect';
 interface EditorTabProps {
   itemXml: string;
   setItemXml: (xml: string) => void;
-  setSanitizedTemplate: (template: string) => void;
-  setAttemptState: (state: AttemptState | null) => void;
+  deliveryOptions: DeliveryOptions;
+  onAttemptBegun: (result: AttemptResult) => void;
 }
 
 const assetHandlers: EditorAssetHandlers = {
@@ -32,7 +32,7 @@ const assetHandlers: EditorAssetHandlers = {
   },
 };
 
-export function EditorTab({ itemXml, setItemXml, setSanitizedTemplate, setAttemptState }: EditorTabProps) {
+export function EditorTab({ itemXml, setItemXml, deliveryOptions, onAttemptBegun }: EditorTabProps) {
   const [error, setError] = useState<string>('');
   const [processing, setProcessing] = useState(false);
 
@@ -42,11 +42,8 @@ export function EditorTab({ itemXml, setItemXml, setSanitizedTemplate, setAttemp
     setError('');
     setProcessing(true);
 
-    beginAttempt(itemXml)
-      .then((result) => {
-        setAttemptState(result.state);
-        setSanitizedTemplate(result.template);
-      })
+    beginAttempt(itemXml, undefined, deliveryOptions)
+      .then(onAttemptBegun)
       .catch((err) => {
         setError(err instanceof Error ? err.message : 'Unknown error occurred');
       })
