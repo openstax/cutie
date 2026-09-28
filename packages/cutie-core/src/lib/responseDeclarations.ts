@@ -1,5 +1,5 @@
 import { deepEqual, deepEqualUnordered } from '../utils/equality';
-import { parseResponseValue } from '../utils/typeParser';
+import { normalizePair, parseResponseValue } from '../utils/typeParser';
 import { compareMathExpressions, type MathComparisonMode } from './expressionEvaluator/math';
 
 /**
@@ -113,6 +113,7 @@ export function getResponseMapping(itemDoc: Document, identifier: string): Respo
   const lowerBound = mappingElement.getAttribute('lower-bound');
   const upperBound = mappingElement.getAttribute('upper-bound');
 
+  const isPair = declaration?.getAttribute('base-type') === 'pair';
   const mapEntries: MapEntry[] = [];
   const mapEntryElements = mappingElement.getElementsByTagName('qti-map-entry');
 
@@ -123,7 +124,7 @@ export function getResponseMapping(itemDoc: Document, identifier: string): Respo
     const caseSensitive = entry.getAttribute('case-sensitive') === 'true';
     if (mapKey && mappedValue) {
       mapEntries.push({
-        mapKey,
+        mapKey: isPair ? normalizePair(mapKey) : mapKey,
         mappedValue: parseFloat(mappedValue),
         caseSensitive
       });

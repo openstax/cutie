@@ -243,7 +243,7 @@ describe('initializeState', () => {
       const itemDoc = parser.parseFromString(xml, 'text/xml');
       const state = initializeState(itemDoc);
 
-      expect(state.variables.POINT_VAR).toEqual([100, 200]);
+      expect(state.variables.POINT_VAR).toBe('100 200');
     });
 
     test('declares template variable with directedPair base type', () => {
@@ -262,7 +262,7 @@ describe('initializeState', () => {
       const itemDoc = parser.parseFromString(xml, 'text/xml');
       const state = initializeState(itemDoc);
 
-      expect(state.variables.DPAIR_VAR).toEqual(['A', 'B']);
+      expect(state.variables.DPAIR_VAR).toBe('A B');
     });
 
     test('declares template variable with pair base type', () => {
@@ -281,7 +281,7 @@ describe('initializeState', () => {
       const itemDoc = parser.parseFromString(xml, 'text/xml');
       const state = initializeState(itemDoc);
 
-      expect(state.variables.PAIR_VAR).toEqual(['A', 'B']);
+      expect(state.variables.PAIR_VAR).toBe('A B');
     });
 
     test('declares template variable with duration base type', () => {

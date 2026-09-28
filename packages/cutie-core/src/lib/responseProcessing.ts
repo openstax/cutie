@@ -1,5 +1,6 @@
 import { AttemptState, ResponseData } from '../types';
 import { getChildElements, getFirstChildElement } from '../utils/dom';
+import { normalizePair } from '../utils/typeParser';
 import {
   evaluateExpression as evaluateExpressionShared,
   type SubEvaluate,
@@ -32,8 +33,16 @@ function coerceResponseValue(itemDoc: Document, identifier: string, value: unkno
     return value;
   }
 
-  // Coerce string values to numbers for numeric types
+  // Coerce each member of a multiple or ordered response
+  if (Array.isArray(value)) {
+    return value.map((member) => coerceResponseValue(itemDoc, identifier, member));
+  }
+
+  // Coerce string values to numbers for numeric types, and pairs to canonical form
   if (typeof value === 'string') {
+    if (baseType === 'pair') {
+      return normalizePair(value);
+    }
     if (baseType === 'integer') {
       const parsed = parseInt(value, 10);
       return isNaN(parsed) ? value : parsed;
