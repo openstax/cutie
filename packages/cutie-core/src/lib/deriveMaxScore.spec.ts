@@ -492,6 +492,35 @@ describe('deriveMaxScore', () => {
       expect(result).toBe(3); // sum: 1 + 2 for multiple cardinality
     });
 
+    test('makes no guess for multiple cardinality with a positive default and no upper-bound', () => {
+      const itemDoc = parseXML(`
+        <qti-assessment-item>
+          <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="string">
+            <qti-mapping default-value="0.5">
+              <qti-map-entry map-key="A" mapped-value="1"/>
+            </qti-mapping>
+          </qti-response-declaration>
+        </qti-assessment-item>
+      `);
+
+      // Every unmapped value earns the default, so there is no limit
+      expect(deriveMaxScore(itemDoc, { SCORE: 0 })).toBeNull();
+    });
+
+    test('uses the upper-bound for multiple cardinality with a positive default', () => {
+      const itemDoc = parseXML(`
+        <qti-assessment-item>
+          <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="string">
+            <qti-mapping default-value="0.5" upper-bound="4">
+              <qti-map-entry map-key="A" mapped-value="1"/>
+            </qti-mapping>
+          </qti-response-declaration>
+        </qti-assessment-item>
+      `);
+
+      expect(deriveMaxScore(itemDoc, { SCORE: 0 })).toBe(4);
+    });
+
     test('should return sum of positive mapped values for multiple cardinality with lower-bound', () => {
       const itemDoc = parseXML(`
         <qti-assessment-item>

@@ -102,6 +102,13 @@ export function getCorrectResponse(
 }
 
 /**
+ * Read an optional numeric bound attribute, or null when it is absent
+ */
+function parseBound(element: Element, name: string): number | null {
+  return element.hasAttribute(name) ? parseFloat(element.getAttribute(name)!) : null;
+}
+
+/**
  * Get the response mapping from a response declaration
  */
 export function getResponseMapping(itemDoc: Document, identifier: string): ResponseMapping | null {
@@ -110,8 +117,6 @@ export function getResponseMapping(itemDoc: Document, identifier: string): Respo
   if (!mappingElement) return null;
 
   const defaultValue = parseFloat(mappingElement.getAttribute('default-value') || '0');
-  const lowerBound = mappingElement.getAttribute('lower-bound');
-  const upperBound = mappingElement.getAttribute('upper-bound');
 
   const isPair = declaration?.getAttribute('base-type') === 'pair';
   const mapEntries: MapEntry[] = [];
@@ -133,8 +138,8 @@ export function getResponseMapping(itemDoc: Document, identifier: string): Respo
 
   return {
     defaultValue,
-    lowerBound: lowerBound !== null ? parseFloat(lowerBound) : null,
-    upperBound: upperBound !== null ? parseFloat(upperBound) : null,
+    lowerBound: parseBound(mappingElement, 'lower-bound'),
+    upperBound: parseBound(mappingElement, 'upper-bound'),
     entries: mapEntries
   };
 }
@@ -206,16 +211,10 @@ export function mapResponse(
 /**
  * The highest value a response can map to: the best single entry for single
  * cardinality, or every positive entry for multiple and ordered, within the
- * mapping's bounds.
+ * mapping's bounds. Returns null when that can't be known.
  */
-export function getMaxMappedValue(mapping: ResponseMapping, cardinality: string): number {
-  const values = mapping.entries.map((entry) => entry.mappedValue);
-
-  const max = cardinality === 'single'
-    ? Math.max(mapping.defaultValue, ...values)
-    : values.filter((value) => value > 0).reduce((sum, value) => sum + value, 0);
-
-  return applyMappingBounds(max, mapping);
+export function getMaxMappedValue(mapping: ResponseMapping, cardinality: string): number | null {
+  return getMaxMapped(mapping.entries.map((entry) => entry.mappedValue), mapping, cardinality);
 }
 
 /**
@@ -227,8 +226,6 @@ export function getAreaMapping(itemDoc: Document, identifier: string): AreaMappi
   if (!areaMappingElement) return null;
 
   const defaultValue = parseFloat(areaMappingElement.getAttribute('default-value') || '0');
-  const lowerBound = areaMappingElement.getAttribute('lower-bound');
-  const upperBound = areaMappingElement.getAttribute('upper-bound');
 
   const areaMapEntries: AreaMapEntry[] = [];
   const entryElements = areaMappingElement.getElementsByTagName('qti-area-map-entry');
@@ -250,8 +247,8 @@ export function getAreaMapping(itemDoc: Document, identifier: string): AreaMappi
 
   return {
     defaultValue,
-    lowerBound: lowerBound !== null ? parseFloat(lowerBound) : null,
-    upperBound: upperBound !== null ? parseFloat(upperBound) : null,
+    lowerBound: parseBound(areaMappingElement, 'lower-bound'),
+    upperBound: parseBound(areaMappingElement, 'upper-bound'),
     entries: areaMapEntries
   };
 }
@@ -324,16 +321,32 @@ export function mapResponsePoint(
 /**
  * The highest value a point response can map to: the best single area for
  * single cardinality, or every positive area for multiple, within the
- * mapping's bounds.
+ * mapping's bounds. Returns null when that can't be known.
  */
-export function getMaxAreaMappedValue(areaMapping: AreaMapping, cardinality: string): number {
-  const values = areaMapping.entries.map((entry) => entry.mappedValue);
+export function getMaxAreaMappedValue(areaMapping: AreaMapping, cardinality: string): number | null {
+  return getMaxMapped(areaMapping.entries.map((entry) => entry.mappedValue), areaMapping, cardinality);
+}
 
-  const max = cardinality === 'single'
-    ? Math.max(areaMapping.defaultValue, ...values)
-    : values.filter((value) => value > 0).reduce((sum, value) => sum + value, 0);
+/**
+ * The highest total a set of mapped values can reach. For multiple and ordered
+ * responses every unmapped value earns the default, so a positive default has
+ * no limit but the upper bound: without one the maximum is unknown (null).
+ */
+function getMaxMapped(
+  values: number[],
+  mapping: { defaultValue: number; lowerBound: number | null; upperBound: number | null },
+  cardinality: string
+): number | null {
+  if (cardinality === 'single') {
+    return applyMappingBounds(Math.max(mapping.defaultValue, ...values), mapping);
+  }
 
-  return applyMappingBounds(max, areaMapping);
+  if (mapping.defaultValue > 0) {
+    return mapping.upperBound;
+  }
+
+  const max = values.filter((value) => value > 0).reduce((sum, value) => sum + value, 0);
+  return applyMappingBounds(max, mapping);
 }
 
 /**

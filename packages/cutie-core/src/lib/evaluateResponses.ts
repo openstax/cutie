@@ -19,8 +19,8 @@ export type ResponseEvaluation = 'correct' | 'incorrect' | 'partial';
  * Judges one response variable against its own declaration, using the same
  * machinery response processing scores with:
  *
- * 1. A mapping (qti-mapping or qti-area-mapping): full credit is `correct`,
- *    no credit is `incorrect`, anything between is `partial`.
+ * 1. A mapping (qti-mapping or qti-area-mapping) with a known maximum: full
+ *    credit is `correct`, no credit is `incorrect`, anything between is `partial`.
  * 2. Otherwise a correct response: a match is `correct`, anything else `incorrect`.
  * 3. Neither: `null`, the response cannot be judged on its own.
  *
@@ -37,20 +37,17 @@ export function evaluateResponse(
 
   const cardinality = declaration.getAttribute('cardinality') || 'single';
 
+  // A mapping whose maximum can't be known gives way to the correct response
   const mapping = getResponseMapping(itemDoc, identifier);
-  if (mapping) {
-    return evaluateMappedValue(
-      mapResponse(itemDoc, identifier, variables),
-      getMaxMappedValue(mapping, cardinality)
-    );
+  const mappingMax = mapping && getMaxMappedValue(mapping, cardinality);
+  if (mappingMax !== null) {
+    return evaluateMappedValue(mapResponse(itemDoc, identifier, variables), mappingMax);
   }
 
   const areaMapping = getAreaMapping(itemDoc, identifier);
-  if (areaMapping) {
-    return evaluateMappedValue(
-      mapResponsePoint(itemDoc, identifier, variables),
-      getMaxAreaMappedValue(areaMapping, cardinality)
-    );
+  const areaMappingMax = areaMapping && getMaxAreaMappedValue(areaMapping, cardinality);
+  if (areaMappingMax !== null) {
+    return evaluateMappedValue(mapResponsePoint(itemDoc, identifier, variables), areaMappingMax);
   }
 
   const correctValue = getCorrectResponse(itemDoc, identifier, variables);

@@ -106,16 +106,33 @@ export function App() {
     saveDeliveryOptions(deliveryOptions);
   }, [deliveryOptions]);
 
+  // Counts attempt operations, so a result that arrives after a newer operation began is dropped
+  const attemptOperationRef = useRef(0);
+
   const applyResult = (result: AttemptResult) => {
     setAttemptState(result.state);
     setSanitizedTemplate(result.template);
     setHasNewFeedback(result.hasNewFeedback);
   };
 
-  /** Begins a learner attempt with the current (or given) delivery options and shows it. */
-  const startAttempt = async (xml: string, options: ResolvedDeliveryOptions = deliveryOptions) => {
-    applyResult(await beginAttempt(xml, { resolveAssets }, options));
+  /** Shows a result that is already current, superseding any operation still in flight. */
+  const showResult = (result: AttemptResult) => {
+    attemptOperationRef.current++;
+    applyResult(result);
   };
+
+  /** Runs an attempt operation and shows its result, unless a newer operation has begun since. */
+  const runAttemptOperation = async (operation: () => Promise<AttemptResult>) => {
+    const operationId = ++attemptOperationRef.current;
+    const result = await operation();
+    if (operationId === attemptOperationRef.current) {
+      applyResult(result);
+    }
+  };
+
+  /** Begins a learner attempt with the current (or given) delivery options and shows it. */
+  const startAttempt = (xml: string, options: ResolvedDeliveryOptions = deliveryOptions) =>
+    runAttemptOperation(() => beginAttempt(xml, { resolveAssets }, options));
 
   const loadExample = async (exampleName: string) => {
     const example = examples.find(ex => ex.name === exampleName);
@@ -185,27 +202,29 @@ export function App() {
 
     setResponses(newResponses);
     try {
-      let result = await submitResponse(newResponses, attemptState, itemXml, { resolveAssets });
+      await runAttemptOperation(async () => {
+        let result = await submitResponse(newResponses, attemptState, itemXml, { resolveAssets });
 
-      if (result.state.pendingManualScoring) {
-        if (shouldRenewToken()) {
-          setError('AI scoring unavailable — please log in');
+        if (result.state.pendingManualScoring) {
+          if (shouldRenewToken()) {
+            setError('AI scoring unavailable — please log in');
+          } else {
+            const scoringModelId = quizState.isActive ? quizState.fastModelId : DEFAULT_FAST_MODEL_ID;
+            const aiResult = await scoreExternalResponse(
+              scoringModelId,
+              itemXml,
+              result.state.pendingManualScoring.maxScore,
+              newResponses,
+            );
+            result = await setScore(aiResult.score, aiResult.comments, result.state, itemXml, { resolveAssets });
+          }
         } else {
-          const scoringModelId = quizState.isActive ? quizState.fastModelId : DEFAULT_FAST_MODEL_ID;
-          const aiResult = await scoreExternalResponse(
-            scoringModelId,
-            itemXml,
-            result.state.pendingManualScoring.maxScore,
-            newResponses,
-          );
-          result = await setScore(aiResult.score, aiResult.comments, result.state, itemXml, { resolveAssets });
+          // Brief delay to show submitting state when scoring is instant
+          await new Promise(r => setTimeout(r, 1000));
         }
-      } else {
-        // Brief delay to show submitting state when scoring is instant
-        await new Promise(r => setTimeout(r, 1000));
-      }
 
-      applyResult(result);
+        return result;
+      });
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : 'Error processing response');
@@ -615,7 +634,7 @@ export function App() {
           itemXml={itemXml}
           setItemXml={setItemXml}
           deliveryOptions={deliveryOptions}
-          onAttemptBegun={applyResult}
+          onAttemptBegun={showResult}
         />
       ),
     },
