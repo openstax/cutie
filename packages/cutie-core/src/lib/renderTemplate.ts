@@ -1,6 +1,7 @@
 /* spell-checker: ignore inlines */
 import { XMLSerializer } from '@xmldom/xmldom';
 import { AttemptState, FeedbackIdentity, ProcessingOptions } from '../types';
+import { isAdaptive } from './adaptive';
 import {
   collectAssetReferences,
   uniqueAssetUrls,
@@ -9,7 +10,7 @@ import { canEvaluate } from './deliveryOptions';
 import { evaluateResponse, ResponseEvaluation } from './evaluateResponses';
 import { getCorrectResponse } from './responseDeclarations';
 import { processTemplateConditionals, valueContains } from './templateConditionals';
-import { evaluateTry, isAdaptive } from './tries';
+import { evaluateTry } from './tries';
 
 /**
  * Renders a sanitized QTI template for client consumption.

@@ -48,8 +48,11 @@ export interface AttemptState {
    *
    * Values:
    * - "not_attempted": No response has been submitted yet
-   * - "incomplete": Responses submitted but item allows further attempts
-   * - "completed": Item attempt is finished, no further submissions allowed
+   * - "incomplete": Responses submitted but item allows further attempts (an
+   *   adaptive item that isn't complete, or a fresh try)
+   * - "completed": Item attempt is finished, no further submissions allowed,
+   *   except resubmitting a response that awaits manual scoring
+   *   (`pendingManualScoring`)
    * - "unknown": Completion status cannot be determined
    *
    * This is the primary field the host application uses to determine if

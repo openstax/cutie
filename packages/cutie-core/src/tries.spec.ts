@@ -312,6 +312,23 @@ describe('tries', () => {
       expect(itemVerdictOf(result.template)).toBe('partial');
     });
 
+    test('ends a try on every submission, even when response processing says incomplete', async () => {
+      // Only adaptive items decide their completion (QTI 2.1 §5.2.1)
+      const item = choiceItem.replace(
+        '<qti-response-processing>',
+        `<qti-response-processing>
+    <qti-set-outcome-value identifier="completionStatus"><qti-base-value base-type="identifier">incomplete</qti-base-value></qti-set-outcome-value>`
+      );
+      const begun = await begin(item, { maxTries: 2 });
+      const retry = await submitResponse({ RESPONSE: 'B' }, begun.state, item);
+      expect(retry.tryConsumed).toBe(true);
+      expect(retry.state.triesRemaining).toBe(1);
+
+      const result = await submitResponse({ RESPONSE: 'C' }, retry.state, item);
+      expect(result.tryConsumed).toBe(true);
+      expect(result.state.completionStatus).toBe('completed');
+    });
+
     test('starts another fresh try after another try that falls short', async () => {
       const begun = await begin(choiceItem, { maxTries: 3 });
       const first = await submitResponse({ RESPONSE: 'B' }, begun.state, choiceItem);

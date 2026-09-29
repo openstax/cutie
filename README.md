@@ -39,7 +39,8 @@ Response and template processing are separated from the presentational layer usi
 
 **Learner state**: A serializable `AttemptState` object representing a learner's attempt at an item, containing:
 - Opaque `variables` object managed by QTI processing (host application doesn't interpret)
-- Standardized `completionStatus` field: `completed` once the attempt is terminal, with no further submissions
+- Standardized `completionStatus` field: `completed` once the attempt is terminal. No further submissions are
+  taken, except that a response awaiting manual scoring (`pendingManualScoring`) can still be resubmitted
 - `score`, the xAPI-style score of the attempt (the last try's, with [multiple tries](#multiple-tries))
 - `options`, the [delivery options](#delivery-extensions) the attempt began under, and `triesRemaining`
 
@@ -170,8 +171,11 @@ Every operation returns an `AttemptResult`:
   for the life of the attempt.
 - `resumeAttempt` re-renders a state without advancing it: the template is identical to the one the state was
   produced with, and nothing is re-randomized.
-- The attempt is **terminal** when `completionStatus === 'completed'`. Evaluation additionally waits for
-  manual scoring (`pendingManualScoring`) to be cleared by `setScore`.
+- The attempt is **terminal** when `completionStatus === 'completed'`. Until `setScore` clears
+  `pendingManualScoring`, the response can still be resubmitted (so hosts shouldn't lock editing on
+  `completionStatus` alone), and evaluation waits.
+- Only an adaptive item (`adaptive="true"`) can leave the attempt open with `completionStatus: 'incomplete'`, as
+  QTI says. Any other item is complete after each submission, whatever its response processing sets.
 
 ### Delivery options
 
@@ -220,7 +224,8 @@ submission an adaptive item sets `completionStatus` to `completed` on. A try is 
 built-in `numAttempts` counts every submission.
 
 - **Terminal** after a fully correct try, the last try, or a try that awaits manual scoring. `triesRemaining`
-  is then `0`. Resubmitting while a try awaits manual scoring edits that try.
+  is then `0`. The attempt is `completed`, but while a try awaits manual scoring its response can still be
+  resubmitted, which edits that try rather than using another.
 - **Fresh try** after a try that falls short (incorrect or partial) with tries left:
   - `completionStatus` is `incomplete`, `triesRemaining` counts down, and `retryVerdict` holds the last try's
     verdict until the fresh try ends. The verdict is drawn until the fresh try's first submission.

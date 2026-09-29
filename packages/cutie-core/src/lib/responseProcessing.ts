@@ -1,6 +1,7 @@
 import { AttemptState, ResponseData } from '../types';
 import { getChildElements, getFirstChildElement } from '../utils/dom';
 import { normalizePair } from '../utils/typeParser';
+import { isAdaptive } from './adaptive';
 import {
   evaluateExpression as evaluateExpressionShared,
   type SubEvaluate,
@@ -109,9 +110,11 @@ export function processResponse(
   }
 
   // Step 3: Return updated state
-  // Trust completionStatus set by response processing, default to 'completed'
+  // An adaptive item decides when it is complete (QTI: it must maintain
+  // completionStatus); any other item is complete after every submission,
+  // whatever its response processing sets
   const score = extractStandardOutcomes(variables, itemDoc);
-  const completionStatus = variables.completionStatus === 'incomplete'
+  const completionStatus = isAdaptive(itemDoc) && variables.completionStatus === 'incomplete'
     ? 'incomplete'
     : 'completed';
 

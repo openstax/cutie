@@ -1,4 +1,5 @@
 import { AttemptState } from '../types';
+import { isAdaptive } from './adaptive';
 import { evaluateResponse, ResponseEvaluation } from './evaluateResponses';
 import { resetOutcomeVariables } from './initializeState';
 
@@ -111,14 +112,6 @@ function beginNextTry(
     triesRemaining: ended.triesRemaining,
     retryVerdict: verdict,
   };
-}
-
-/**
- * Whether the item is adaptive (`adaptive="true"`): it decides for itself when
- * each try is complete, over as many submissions as it takes.
- */
-export function isAdaptive(itemDoc: Document): boolean {
-  return itemDoc.documentElement.getAttribute('adaptive') === 'true';
 }
 
 function responseIdentifiers(itemDoc: Document): string[] {
