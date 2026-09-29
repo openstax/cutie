@@ -405,6 +405,15 @@ describe('tries', () => {
       expect(ended.state.score?.raw).toBe(1);
     });
 
+    test('recognizes adaptive="1"', async () => {
+      const item = adaptiveItem.replace('adaptive="true"', 'adaptive="1"');
+      const begun = await begin(item, { maxTries: 2 });
+      const hinted = await submitResponse({ RESPONSE: 'B' }, begun.state, item);
+
+      expect(hinted.tryConsumed).toBe(false);
+      expect(hinted.state.completionStatus).toBe('incomplete');
+    });
+
     test('uses the adaptiveRetryMessage given', async () => {
       const begun = await begin(adaptiveItem, { maxTries: 3, adaptiveRetryMessage: '{n} left. {n}!' });
       const hinted = await submitResponse({ RESPONSE: 'B' }, begun.state, adaptiveItem);
@@ -429,6 +438,55 @@ describe('tries', () => {
       const begun = await beginAttempt(choiceItem);
       const result = await submitResponse({ RESPONSE: 'B' }, begun.state, choiceItem);
       await expect(submitResponse({ RESPONSE: 'A' }, result.state, choiceItem)).rejects.toThrow(/complete/);
+    });
+  });
+
+  describe('without a score to judge by', () => {
+    /** Without a score, tries are judged by the interactions' own verdicts */
+    const noScoreItem = (body: string, declarations: string, templateProcessing = '') => `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="no-score" title="No score">
+  <qti-response-declaration identifier="CHOICE" cardinality="single" base-type="identifier">
+    <qti-correct-response><qti-value>A</qti-value></qti-correct-response>
+  </qti-response-declaration>
+  ${declarations}
+  ${templateProcessing}
+  <qti-item-body>
+    <qti-choice-interaction response-identifier="CHOICE" max-choices="1">
+      <qti-simple-choice identifier="A">A</qti-simple-choice>
+      <qti-simple-choice identifier="B">B</qti-simple-choice>
+    </qti-choice-interaction>
+    ${body}
+  </qti-item-body>
+</qti-assessment-item>`;
+
+    test('is not correct while a response can\'t be judged', async () => {
+      const item = noScoreItem(
+        '<qti-extended-text-interaction response-identifier="ESSAY"/>',
+        '<qti-response-declaration identifier="ESSAY" cardinality="single" base-type="string"/>'
+      );
+      const begun = await begin(item, { maxTries: 2, showEvaluation: 'correctness' });
+      const result = await submitResponse({ CHOICE: 'A', ESSAY: 'Words' }, begun.state, item);
+
+      // Unknown, so the attempt ends, without claiming the response is correct
+      expect(result.state.completionStatus).toBe('completed');
+      expect(evaluationOf(result.template, 'CHOICE')).toBe('correct');
+      expect(itemVerdictOf(result.template)).toBeNull();
+    });
+
+    test('ignores the responses of interactions this variant hides', async () => {
+      const item = noScoreItem(
+        `<qti-template-block template-identifier="HARD" show-hide="show">
+          <p><qti-text-entry-interaction response-identifier="EXTRA"/></p>
+        </qti-template-block>`,
+        `<qti-response-declaration identifier="EXTRA" cardinality="single" base-type="string">
+          <qti-correct-response><qti-value>x</qti-value></qti-correct-response>
+        </qti-response-declaration>`
+      );
+      const begun = await begin(item, { maxTries: 2, showEvaluation: 'correctness' });
+      const result = await submitResponse({ CHOICE: 'A' }, begun.state, item);
+
+      expect(result.state.completionStatus).toBe('completed');
+      expect(itemVerdictOf(result.template)).toBe('correct');
     });
   });
 
@@ -533,6 +591,13 @@ describe('tries', () => {
         itemWithBody(`
           <qti-choice-interaction response-identifier="R1">${choices(6)}</qti-choice-interaction>
           <qti-extended-text-interaction response-identifier="R2"/>`),
+      ],
+      [
+        'external machine scoring',
+        itemWithBody(
+          `<qti-choice-interaction response-identifier="R">${choices(6)}</qti-choice-interaction>`,
+          '<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float" external-scored="externalMachine"/>'
+        ),
       ],
       [
         'external scoring',

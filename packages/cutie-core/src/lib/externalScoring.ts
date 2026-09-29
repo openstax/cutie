@@ -8,8 +8,18 @@ export interface ExternalScoredInfo {
 }
 
 /**
- * Whether an item is externally scored: its SCORE outcome declaration has
- * `external-scored="human"`.
+ * Whether any outcome of the item is scored outside response processing
+ * (`external-scored`, by a human or an external machine).
+ */
+export function hasExternalScoring(itemDoc: Document): boolean {
+  return Array.from(itemDoc.getElementsByTagName('qti-outcome-declaration')).some((decl) =>
+    ['human', 'externalMachine'].includes(decl.getAttribute('external-scored') ?? '')
+  );
+}
+
+/**
+ * Whether an item is scored by a human: its SCORE outcome declaration has
+ * `external-scored="human"`. Such an item awaits manual scoring once submitted.
  */
 export function isExternallyScored(itemDoc: Document): boolean {
   return Array.from(itemDoc.getElementsByTagName('qti-outcome-declaration')).some(

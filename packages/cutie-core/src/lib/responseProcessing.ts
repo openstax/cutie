@@ -83,7 +83,8 @@ export function processResponse(
   // Create a copy of the current state's variables
   const variables: Record<string, unknown> = { ...currentState.variables };
 
-  // The built-in numAttempts counts submissions, from the start of each one
+  // The built-in numAttempts counts submissions within a try, from the start
+  // of each one (a fresh try restarts it)
   variables.numAttempts = (typeof variables.numAttempts === 'number' ? variables.numAttempts : 0) + 1;
 
   // Step 1: Update response variables from submission

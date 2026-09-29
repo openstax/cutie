@@ -174,7 +174,7 @@ Every operation returns an `AttemptResult`:
 - The attempt is **terminal** when `completionStatus === 'completed'`, and `submitResponse` rejects further
   submissions. The exception: until `setScore` clears `pendingManualScoring`, the response can still be
   resubmitted (so hosts shouldn't lock editing on `completionStatus` alone), and evaluation waits.
-- Within a try, only an adaptive item (`adaptive="true"`) can leave the attempt `incomplete`, as QTI says; any
+- Within a try, only an adaptive item (`adaptive="true"` or `"1"`) can leave the attempt `incomplete`, as QTI says; any
   other item's try ends with each submission, whatever its response processing sets. Between tries (see
   [Multiple tries](#multiple-tries)), any item's attempt is `incomplete`.
 
@@ -211,7 +211,8 @@ the one before it:
   this attempt's value (including one set by `qti-set-correct-response`).
 
 The response as a whole also gets a verdict, as `data-evaluation` on `qti-item-body`: by the score when the
-item's maximum is known, otherwise from the interactions' verdicts.
+item's maximum is known, otherwise from the verdicts of the interactions the variant shows. It is only
+correct when every one of those responses was judged correct.
 
 `cutie-client` draws a verdict as a colored status rail with text or an icon (never color alone), and the
 correct response alongside the learner's response, per interaction type. The item-level verdict is announced
@@ -221,8 +222,9 @@ with it. A verdict clears once the learner edits that response.
 ### Multiple tries
 
 A **try** ends when response processing completes the item: every submission for a non-adaptive item, or the
-submission an adaptive item sets `completionStatus` to `completed` on. A try is not a QTI attempt; QTI's
-built-in `numAttempts` counts every submission.
+submission an adaptive item sets `completionStatus` to `completed` on. A try is not a QTI attempt: QTI's
+built-in `numAttempts` counts every submission within a try, restarting with each fresh try, so an adaptive
+item's rules (e.g. a hint after the second submission) start over too.
 
 - **Terminal** after a fully correct try, the last try, or a try that awaits manual scoring. `triesRemaining`
   is then `0`. The attempt is `completed`, but while a try awaits manual scoring its response can still be
@@ -253,7 +255,8 @@ built-in `numAttempts` counts every submission.
   | match | the target set (second `qti-simple-match-set`) |
   | text entry | sets no limit |
 
-  Any other interaction, an externally scored item, or an item nothing limits gets one try.
+  Any other interaction, an externally scored item (`external-scored` by a human or machine), or an item
+  nothing limits gets one try.
 
 ### Shuffle override (`shuffleOverride`)
 

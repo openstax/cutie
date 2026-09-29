@@ -2,6 +2,7 @@ import { AttemptState } from '../types';
 import { isAdaptive } from './adaptive';
 import { evaluateResponse, ResponseEvaluation } from './evaluateResponses';
 import { resetOutcomeVariables } from './initializeState';
+import { processTemplateConditionals } from './templateConditionals';
 
 /**
  * The state a submission leaves the attempt in, and whether it ended a try.
@@ -55,8 +56,9 @@ function continueTry(priorState: AttemptState, processedState: AttemptState): At
 
 /**
  * Judges a finished try as a whole: by its score when the item's maximum is
- * known, otherwise by the verdicts of its responses (see evaluateResponse).
- * Null when neither can judge it.
+ * known, otherwise by the verdicts of the responses to the interactions this
+ * variant shows (see evaluateResponse). A try is only correct when every one of
+ * those responses was judged correct. Null when neither can judge it.
  */
 export function evaluateTry(itemDoc: Document, state: AttemptState): ResponseEvaluation | null {
   if (state.score) {
@@ -66,14 +68,34 @@ export function evaluateTry(itemDoc: Document, state: AttemptState): ResponseEva
     return raw <= 0 ? 'incorrect' : 'partial';
   }
 
-  const verdicts = responseIdentifiers(itemDoc)
-    .map((identifier) => evaluateResponse(itemDoc, identifier, state.variables))
-    .filter((verdict): verdict is ResponseEvaluation => verdict !== null);
+  const evaluations = visibleResponseIdentifiers(itemDoc, state.variables).map((identifier) =>
+    evaluateResponse(itemDoc, identifier, state.variables)
+  );
+  const verdicts = evaluations.filter((verdict): verdict is ResponseEvaluation => verdict !== null);
 
   if (verdicts.length === 0) return null;
-  if (verdicts.every((verdict) => verdict === 'correct')) return 'correct';
+  if (verdicts.every((verdict) => verdict === 'correct')) {
+    // A response that can't be judged might not be correct
+    return verdicts.length === evaluations.length ? 'correct' : null;
+  }
   if (verdicts.every((verdict) => verdict === 'incorrect')) return 'incorrect';
   return 'partial';
+}
+
+/**
+ * The responses of the interactions this variant shows, after template conditionals.
+ */
+function visibleResponseIdentifiers(itemDoc: Document, variables: Record<string, unknown>): string[] {
+  const authoredBody = itemDoc.getElementsByTagName('qti-item-body')[0];
+  if (!authoredBody) return [];
+
+  const itemBody = authoredBody.cloneNode(true) as Element;
+  processTemplateConditionals(itemBody, variables);
+
+  const identifiers = Array.from(itemBody.getElementsByTagName('*'))
+    .map((element) => element.getAttribute('response-identifier'))
+    .filter((identifier): identifier is string => !!identifier);
+  return Array.from(new Set(identifiers));
 }
 
 /**

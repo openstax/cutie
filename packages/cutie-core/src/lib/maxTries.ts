@@ -1,5 +1,5 @@
 import { DeliveryOptions } from '../types';
-import { isExternallyScored } from './externalScoring';
+import { hasExternalScoring } from './externalScoring';
 import { processTemplateConditionals } from './templateConditionals';
 
 /**
@@ -60,7 +60,7 @@ const UNGUESSABLE_INTERACTIONS = new Set(['qti-text-entry-interaction']);
  * one try.
  */
 export function deriveSmartMaxTries(itemDoc: Document, variables: Record<string, unknown>): number {
-  if (isExternallyScored(itemDoc)) return 1;
+  if (hasExternalScoring(itemDoc)) return 1;
 
   const authoredBody = itemDoc.getElementsByTagName('qti-item-body')[0];
   if (!authoredBody) return 1;
