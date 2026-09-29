@@ -74,7 +74,8 @@ export async function completeTurn(
   const state = decideWithheldFeedback(itemDoc, priorState, priorDoc, nextState);
   const nextDoc = buildTemplateDocument(itemDoc, state);
 
-  const hasNewFeedback = !!state.retryVerdict || hasNewReveals(priorDoc, nextDoc);
+  const startsFreshTry = tryConsumed && !!state.retryVerdict;
+  const hasNewFeedback = startsFreshTry || hasNewReveals(priorDoc, nextDoc);
   const template = await serializeTemplate(nextDoc, processing);
 
   return { state, template, hasNewFeedback, tryConsumed };

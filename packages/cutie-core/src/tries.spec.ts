@@ -142,7 +142,7 @@ const mappedItem = `<?xml version="1.0" encoding="UTF-8"?>
 
 /**
  * Adaptive item: a first wrong answer shows a HINT and keeps the try open; a
- * second wrong answer (numAttempts 2) completes the try with no credit. The
+ * second wrong answer (numAttempts 2) completes the try with half credit. The
  * right answer completes it with full credit.
  */
 const adaptiveItem = `<?xml version="1.0" encoding="UTF-8"?>
@@ -176,6 +176,7 @@ const adaptiveItem = `<?xml version="1.0" encoding="UTF-8"?>
       </qti-response-if>
       <qti-response-else-if>
         <qti-gte><qti-variable identifier="numAttempts"/><qti-base-value base-type="integer">2</qti-base-value></qti-gte>
+        <qti-set-outcome-value identifier="SCORE"><qti-base-value base-type="float">0.5</qti-base-value></qti-set-outcome-value>
         <qti-set-outcome-value identifier="completionStatus"><qti-base-value base-type="identifier">completed</qti-base-value></qti-set-outcome-value>
       </qti-response-else-if>
       <qti-response-else>
@@ -311,7 +312,7 @@ describe('tries', () => {
       expect(itemVerdictOf(result.template)).toBe('partial');
     });
 
-    test('clears the retry verdict on the next submission', async () => {
+    test('starts another fresh try after another try that falls short', async () => {
       const begun = await begin(choiceItem, { maxTries: 3 });
       const first = await submitResponse({ RESPONSE: 'B' }, begun.state, choiceItem);
       const second = await submitResponse({ RESPONSE: 'C' }, first.state, choiceItem);
@@ -344,7 +345,8 @@ describe('tries', () => {
       expect(result.hasNewFeedback).toBe(true);
       expect(result.state.completionStatus).toBe('incomplete');
       expect(result.state.triesRemaining).toBe(1);
-      expect(result.state.retryVerdict).toBe('incorrect');
+      expect(result.state.retryVerdict).toBe('partial');
+      expect(result.state.score?.raw).toBe(0.5);
       expect(result.state.variables.RESPONSE).toBeUndefined();
       expect(result.state.variables.numAttempts).toBe(0);
 
@@ -353,14 +355,14 @@ describe('tries', () => {
       expect(evaluationOf(result.template, 'RESPONSE')).toBeNull();
       expect(itemVerdictOf(result.template)).toBeNull();
       expect(retryMessageOf(result.template)).toEqual({
-        verdict: 'incorrect',
+        verdict: 'partial',
         text: 'That wasn\'t quite right. Tries remaining: 1',
       });
 
       await expectResumable(result, adaptiveItem);
     });
 
-    test('runs the fresh try from the start, and drops the message on the next submission', async () => {
+    test('runs the fresh try from the start, keeping the last try\'s verdict and score until it ends', async () => {
       const begun = await begin(adaptiveItem, { maxTries: 2 });
       const hinted = await submitResponse({ RESPONSE: 'B' }, begun.state, adaptiveItem);
       const retry = await submitResponse({ RESPONSE: 'B' }, hinted.state, adaptiveItem);
@@ -370,7 +372,20 @@ describe('tries', () => {
       expect(result.tryConsumed).toBe(false);
       expect(result.state.completionStatus).toBe('incomplete');
       expect(feedbackIdentifiers(result.template)).toEqual(['HINT']);
+      // The message only leads the fresh try
       expect(retryMessageOf(result.template)).toBeNull();
+      expect(result.hasNewFeedback).toBe(true);
+
+      // The step's score belongs to a try in progress; the last try's stands
+      expect(result.state.retryVerdict).toBe('partial');
+      expect(result.state.score?.raw).toBe(0.5);
+      expect(result.state.triesRemaining).toBe(1);
+
+      // The fresh try's end replaces both
+      const ended = await submitResponse({ RESPONSE: 'A' }, result.state, adaptiveItem);
+      expect(ended.state.completionStatus).toBe('completed');
+      expect(ended.state.retryVerdict).toBeUndefined();
+      expect(ended.state.score?.raw).toBe(1);
     });
 
     test('uses the adaptiveRetryMessage given', async () => {
@@ -422,7 +437,7 @@ describe('tries', () => {
       [6, 3],
     ])('allows a choice interaction with %i choices %i tries', (count, tries) => {
       const item = itemWithBody(`<qti-choice-interaction response-identifier="R">${choices(count)}</qti-choice-interaction>`);
-      expect(deriveSmartMaxTries(parser.parseFromString(item, 'text/xml'))).toBe(tries);
+      expect(deriveSmartMaxTries(parser.parseFromString(item, 'text/xml'), {})).toBe(tries);
     });
 
     test('takes the fewest any interaction allows', () => {
@@ -432,7 +447,7 @@ describe('tries', () => {
           <qti-inline-choice identifier="a">a</qti-inline-choice><qti-inline-choice identifier="b">b</qti-inline-choice>
           <qti-inline-choice identifier="c">c</qti-inline-choice><qti-inline-choice identifier="d">d</qti-inline-choice>
         </qti-inline-choice-interaction></p>`);
-      expect(deriveSmartMaxTries(parser.parseFromString(item, 'text/xml'))).toBe(2);
+      expect(deriveSmartMaxTries(parser.parseFromString(item, 'text/xml'), {})).toBe(2);
     });
 
     test('counts the target set of a match interaction, and the choices of a gap match', () => {
@@ -446,21 +461,43 @@ describe('tries', () => {
             ${['T1', 'T2', 'T3', 'T4', 'T5', 'T6'].map((id) => `<qti-simple-associable-choice identifier="${id}" match-max="1">${id}</qti-simple-associable-choice>`).join('')}
           </qti-simple-match-set>
         </qti-match-interaction>`);
-      expect(deriveSmartMaxTries(parser.parseFromString(match, 'text/xml'))).toBe(3);
+      expect(deriveSmartMaxTries(parser.parseFromString(match, 'text/xml'), {})).toBe(3);
 
       const gapMatch = itemWithBody(`
         <qti-gap-match-interaction response-identifier="R">
           ${['W1', 'W2', 'W3', 'W4'].map((id) => `<qti-gap-text identifier="${id}" match-max="1">${id}</qti-gap-text>`).join('')}
           <p>A <qti-gap identifier="G1"/> and <qti-gap identifier="G2"/></p>
         </qti-gap-match-interaction>`);
-      expect(deriveSmartMaxTries(parser.parseFromString(gapMatch, 'text/xml'))).toBe(2);
+      expect(deriveSmartMaxTries(parser.parseFromString(gapMatch, 'text/xml'), {})).toBe(2);
+    });
+
+    test('counts only the choices and interactions this variant shows', () => {
+      const conditional = (id: string, showHide: string) =>
+        `<qti-simple-choice identifier="${id}" template-identifier="${id}" show-hide="${showHide}">${id}</qti-simple-choice>`;
+      const item = itemWithBody(`
+        <qti-choice-interaction response-identifier="R1">
+          ${choices(2)}${conditional('X1', 'show')}${conditional('X2', 'show')}${conditional('X3', 'hide')}${conditional('X4', 'hide')}
+        </qti-choice-interaction>
+        <qti-template-block template-identifier="HARD" show-hide="show">
+          <qti-choice-interaction response-identifier="R2">${choices(2)}</qti-choice-interaction>
+        </qti-template-block>`);
+      const doc = parser.parseFromString(item, 'text/xml');
+
+      // The plain choices, X3 and X4 show: 4 choices, 2 tries; the block is hidden
+      expect(deriveSmartMaxTries(doc, {})).toBe(2);
+      // All six show: 3 tries
+      expect(deriveSmartMaxTries(doc, { SHOWN: ['X1', 'X2'] })).toBe(3);
+      // Only the plain choices show: 1 try
+      expect(deriveSmartMaxTries(doc, { HIDDEN: ['X3', 'X4'] })).toBe(1);
+      // The block's two-choice interaction shows too, and limits the item: 1 try
+      expect(deriveSmartMaxTries(doc, { SHOWN: ['X1', 'X2', 'HARD'] })).toBe(1);
     });
 
     test('ignores text entries', () => {
       const item = itemWithBody(`
         <qti-choice-interaction response-identifier="R1">${choices(6)}</qti-choice-interaction>
         <p><qti-text-entry-interaction response-identifier="R2"/></p>`);
-      expect(deriveSmartMaxTries(parser.parseFromString(item, 'text/xml'))).toBe(3);
+      expect(deriveSmartMaxTries(parser.parseFromString(item, 'text/xml'), {})).toBe(3);
     });
 
     test.each([
@@ -480,7 +517,7 @@ describe('tries', () => {
         ),
       ],
     ])('allows one try for an item with %s', (_, item) => {
-      expect(deriveSmartMaxTries(parser.parseFromString(item, 'text/xml'))).toBe(1);
+      expect(deriveSmartMaxTries(parser.parseFromString(item, 'text/xml'), {})).toBe(1);
     });
   });
 });

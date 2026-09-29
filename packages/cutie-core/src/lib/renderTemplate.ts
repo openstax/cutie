@@ -8,6 +8,7 @@ import {
 import { canEvaluate } from './deliveryOptions';
 import { evaluateResponse, ResponseEvaluation } from './evaluateResponses';
 import { getCorrectResponse } from './responseDeclarations';
+import { processTemplateConditionals, valueContains } from './templateConditionals';
 import { evaluateTry, isAdaptive } from './tries';
 
 /**
@@ -49,7 +50,8 @@ export async function renderTemplate(
  *    - Hidden feedback that shouldn't be visible yet
  * 5. Injects current response values as qti-default-value elements
  * 6. Once the attempt can be evaluated, adds the evaluation its delivery options allow
- *    (see applyEvaluation); on a fresh try, the last try's verdict (see applyRetryVerdict)
+ *    (see applyEvaluation); at the start of a fresh try, the last try's verdict
+ *    (see applyRetryVerdict)
  *
  * The result depends only on the item and the state, so rendering the same
  * state again produces the same document.
@@ -94,7 +96,7 @@ export function buildTemplateDocument(itemDoc: Document, state: AttemptState): D
   // Step 6.5: Add the evaluation the attempt's delivery options allow
   if (canEvaluate(state)) {
     applyEvaluation(root, itemDoc, state);
-  } else if (state.retryVerdict) {
+  } else if (state.retryVerdict && state.variables.numAttempts === 0) {
     applyRetryVerdict(root, itemDoc, state, state.retryVerdict);
   }
 
@@ -202,8 +204,9 @@ function applyEvaluation(root: Element, itemDoc: Document, state: AttemptState):
 }
 
 /**
- * Shows the verdict of the try that fell short on the fresh try that follows
- * it, whatever showEvaluation allows once the attempt is terminal:
+ * Shows the verdict of the try that fell short at the start of the fresh try
+ * that follows it (before its first submission), whatever showEvaluation
+ * allows once the attempt is terminal:
  *
  * - a non-adaptive item keeps the learner's responses, so each interaction gets
  *   its data-evaluation, and the item body the try's, as under `'correctness'`
@@ -346,63 +349,6 @@ function removeSensitiveElements(root: Element): void {
 }
 
 /**
- * Processes elements with template-identifier/show-hide for conditional visibility.
- *
- * Applies to qti-template-block, qti-template-inline, and choice elements
- * (qti-simple-choice, qti-inline-choice, qti-simple-associable-choice,
- * qti-gap-text, qti-gap-img, qti-gap).
- *
- * These elements have a template-identifier attribute that should match values in template variables.
- * - If show-hide="show": element is visible only when template-identifier matches a variable value
- * - If show-hide="hide": element is hidden when template-identifier matches a variable value
- *
- * The matching is done by finding a variable (any variable) that contains the template-identifier.
- * Variables can be single values or arrays (multiple cardinality).
- *
- * Elements without a template-identifier attribute are skipped, so normal choices are unaffected.
- */
-function processTemplateConditionals(
-  root: Element,
-  variables: Record<string, unknown>
-): void {
-  // Process template-block, template-inline, and choice elements
-  const templateElements = [
-    ...Array.from(root.getElementsByTagName('qti-template-block')),
-    ...Array.from(root.getElementsByTagName('qti-template-inline')),
-    ...Array.from(root.getElementsByTagName('qti-simple-choice')),
-    ...Array.from(root.getElementsByTagName('qti-inline-choice')),
-    ...Array.from(root.getElementsByTagName('qti-simple-associable-choice')),
-    ...Array.from(root.getElementsByTagName('qti-gap-text')),
-    ...Array.from(root.getElementsByTagName('qti-gap-img')),
-    ...Array.from(root.getElementsByTagName('qti-gap')),
-  ];
-
-  for (const element of templateElements) {
-    const templateIdentifier = element.getAttribute('template-identifier');
-    const showHide = element.getAttribute('show-hide');
-
-    if (!templateIdentifier) continue;
-
-    // Check if any variable contains this template identifier
-    const isMatch = checkVariableContains(variables, templateIdentifier);
-
-    // Determine if element should be removed
-    let shouldRemove = false;
-    if (showHide === 'show') {
-      // Remove if it doesn't match
-      shouldRemove = !isMatch;
-    } else if (showHide === 'hide') {
-      // Remove if it does match
-      shouldRemove = isMatch;
-    }
-
-    if (shouldRemove) {
-      element.parentNode?.removeChild(element);
-    }
-  }
-}
-
-/**
  * Processes qti-feedback-block and qti-feedback-inline elements for conditional visibility.
  *
  * These elements have an outcome-identifier and identifier attribute.
@@ -471,33 +417,6 @@ function substituteMathVariables(
     // Replace the text content with the variable value
     mathElement.textContent = String(value);
   }
-}
-
-/**
- * Checks if any variable in the variables object contains the given identifier.
- * Handles both single values and arrays (multiple cardinality).
- */
-function checkVariableContains(
-  variables: Record<string, unknown>,
-  identifier: string
-): boolean {
-  for (const value of Object.values(variables)) {
-    if (valueContains(value, identifier)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-/**
- * Checks if a value contains the given identifier.
- * Handles both single values and arrays.
- */
-function valueContains(value: unknown, identifier: string): boolean {
-  if (Array.isArray(value)) {
-    return value.includes(identifier);
-  }
-  return value === identifier;
 }
 
 /**

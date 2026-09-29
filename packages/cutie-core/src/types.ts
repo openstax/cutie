@@ -110,7 +110,8 @@ export interface AttemptState {
   /**
    * How the learner's last try was judged, when it fell short and the attempt
    * continued with a fresh try. Present from the submission that ended that try
-   * until the next submission, and drawn on the template in the meantime.
+   * until the fresh try ends, and drawn on the template until the fresh try's
+   * first submission. Meanwhile `score` stays the last try's.
    */
   retryVerdict?: 'incorrect' | 'partial';
 }

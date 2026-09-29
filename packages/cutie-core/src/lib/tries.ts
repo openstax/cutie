@@ -16,7 +16,8 @@ export interface TryOutcome {
  *
  * A try ends when response processing completes the item. Resubmitting while
  * a try awaits manual scoring edits that try rather than ending another.
- * Once the attempt is terminal, no tries remain.
+ * Once the attempt is terminal, no tries remain. Within a fresh try, the last
+ * try's verdict and score stand until the try ends.
  *
  * @param itemDoc - Parsed QTI assessment item XML document
  * @param priorState - The state the submission was made to
@@ -24,7 +25,7 @@ export interface TryOutcome {
  */
 export function endTry(itemDoc: Document, priorState: AttemptState, processedState: AttemptState): TryOutcome {
   if (processedState.completionStatus !== 'completed' || priorState.pendingManualScoring) {
-    return { state: processedState, tryConsumed: false };
+    return { state: continueTry(priorState, processedState), tryConsumed: false };
   }
 
   const terminal: TryOutcome = { state: { ...processedState, triesRemaining: 0 }, tryConsumed: true };
@@ -39,6 +40,16 @@ export function endTry(itemDoc: Document, priorState: AttemptState, processedSta
     state: beginNextTry(itemDoc, { ...processedState, triesRemaining }, verdict),
     tryConsumed: true,
   };
+}
+
+/**
+ * A submission that doesn't end a try. Within a fresh try, the last try's
+ * verdict and score stand: the score response processing produced belongs to
+ * a try still in progress.
+ */
+function continueTry(priorState: AttemptState, processedState: AttemptState): AttemptState {
+  if (!priorState.retryVerdict) return processedState;
+  return { ...processedState, score: priorState.score, retryVerdict: priorState.retryVerdict };
 }
 
 /**

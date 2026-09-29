@@ -67,7 +67,7 @@ export function initializeState(
     completionStatus: 'not_attempted',
     score,
     options,
-    triesRemaining: resolveMaxTries(itemDoc, options.maxTries),
+    triesRemaining: resolveMaxTries(itemDoc, options.maxTries, variables),
     ...(shuffleOrders && { shuffleOrders }),
   };
 }

@@ -1,14 +1,21 @@
 import { DeliveryOptions } from '../types';
 import { isExternallyScored } from './externalScoring';
+import { processTemplateConditionals } from './templateConditionals';
 
 /**
  * Resolves the `maxTries` delivery option to the number of tries an attempt
  * at the item gets.
  *
+ * @param variables - The attempt's variables once template processing has run,
+ *   which decide the choices this variant shows
  * @throws When given a number that is not a positive integer
  */
-export function resolveMaxTries(itemDoc: Document, maxTries: Required<DeliveryOptions>['maxTries']): number {
-  if (maxTries === 'smart') return deriveSmartMaxTries(itemDoc);
+export function resolveMaxTries(
+  itemDoc: Document,
+  maxTries: Required<DeliveryOptions>['maxTries'],
+  variables: Record<string, unknown>
+): number {
+  if (maxTries === 'smart') return deriveSmartMaxTries(itemDoc, variables);
 
   if (!Number.isInteger(maxTries) || maxTries < 1) {
     throw new Error(`maxTries must be a positive integer or 'smart', got ${maxTries}`);
@@ -46,16 +53,20 @@ const UNGUESSABLE_INTERACTIONS = new Set(['qti-text-entry-interaction']);
  * The `'smart'` number of tries: enough to correct a mistake, too few to guess
  * through the options.
  *
- * Each guessable interaction allows half its options, rounded down, and at
- * least one; the item allows the fewest any interaction does. A text entry
- * sets no limit. An item with any other interaction, an externally scored item,
- * or an item nothing limits gets one try.
+ * Each guessable interaction allows half the options this variant shows (after
+ * template conditionals), rounded down, and at least one; the item allows the
+ * fewest any interaction does. A text entry sets no limit. An item with any
+ * other interaction, an externally scored item, or an item nothing limits gets
+ * one try.
  */
-export function deriveSmartMaxTries(itemDoc: Document): number {
+export function deriveSmartMaxTries(itemDoc: Document, variables: Record<string, unknown>): number {
   if (isExternallyScored(itemDoc)) return 1;
 
-  const itemBody = itemDoc.getElementsByTagName('qti-item-body')[0];
-  if (!itemBody) return 1;
+  const authoredBody = itemDoc.getElementsByTagName('qti-item-body')[0];
+  if (!authoredBody) return 1;
+
+  const itemBody = authoredBody.cloneNode(true) as Element;
+  processTemplateConditionals(itemBody, variables);
 
   const interactions = descendants(itemBody, '*').filter((element) =>
     element.tagName.endsWith('-interaction')
