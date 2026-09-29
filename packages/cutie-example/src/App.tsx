@@ -121,18 +121,31 @@ export function App() {
     applyResult(result);
   };
 
-  /** Runs an attempt operation and shows its result, unless a newer operation has begun since. */
-  const runAttemptOperation = async (operation: () => Promise<AttemptResult>) => {
+  /**
+   * Runs an attempt operation and applies its result, unless a newer operation has begun
+   * since. Everything that depends on the result belongs in `apply`, so it is dropped too.
+   */
+  const runAttemptOperation = async (
+    operation: () => Promise<AttemptResult>,
+    apply: (result: AttemptResult) => void = applyResult
+  ) => {
     const operationId = ++attemptOperationRef.current;
     const result = await operation();
     if (operationId === attemptOperationRef.current) {
-      applyResult(result);
+      apply(result);
     }
   };
 
-  /** Begins a learner attempt with the current (or given) delivery options and shows it. */
+  /**
+   * Begins a learner attempt on the given item with the current (or given) delivery
+   * options, and shows it: the item, its state and template, and no responses yet.
+   */
   const startAttempt = (xml: string, options: ResolvedDeliveryOptions = deliveryOptions) =>
-    runAttemptOperation(() => beginAttempt(xml, { resolveAssets }, options));
+    runAttemptOperation(() => beginAttempt(xml, { resolveAssets }, options), (result) => {
+      applyResult(result);
+      setItemXml(xml);
+      setResponses(null);
+    });
 
   const loadExample = async (exampleName: string) => {
     const example = examples.find(ex => ex.name === exampleName);
@@ -188,7 +201,6 @@ export function App() {
 
     try {
       await startAttempt(itemXml);
-      setResponses(null);
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : 'Unknown error occurred');
@@ -236,7 +248,6 @@ export function App() {
     setError('');
     try {
       await startAttempt(itemXml, options);
-      setResponses(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error resetting attempt');
     }
@@ -263,8 +274,6 @@ export function App() {
 
     // Process the item
     await startAttempt(xml);
-    setItemXml(xml);
-    setResponses(null);
 
     return xml;
   };
@@ -425,8 +434,6 @@ export function App() {
           // Use prefetched content - instant transition (or after awaiting in-progress)
           console.log('Using prefetched next question');
           await startAttempt(xml);
-          setItemXml(xml);
-          setResponses(null);
 
           quizState.currentQuiz.questions[nextIndex].xml = xml;
           const updatedQuizState = {
@@ -503,8 +510,6 @@ export function App() {
           const { quiz: nextQuizResponse, firstQuestionXml } = nextQuizData;
 
           await startAttempt(firstQuestionXml);
-          setItemXml(firstQuestionXml);
-          setResponses(null);
 
           const newQuizState: QuizState = {
             ...quizState,
