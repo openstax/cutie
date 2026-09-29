@@ -253,14 +253,26 @@ describe('deriveMaxScore', () => {
     });
   });
 
-  describe('Mapping with upper-bound (existing behavior)', () => {
-    test('should return mapping upper-bound when present', () => {
+  describe('Mapping bounds', () => {
+    test('caps the mapped maximum at upper-bound', () => {
+      const itemDoc = parseXML(`
+        <qti-assessment-item>
+          <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="identifier">
+            <qti-mapping upper-bound="2">
+              <qti-map-entry map-key="A" mapped-value="2"/>
+              <qti-map-entry map-key="B" mapped-value="1"/>
+            </qti-mapping>
+          </qti-response-declaration>
+        </qti-assessment-item>
+      `);
+
+      expect(deriveMaxScore(itemDoc, {})).toBe(2);
+    });
+
+    test('ignores an upper-bound the mapping cannot reach', () => {
       const itemDoc = parseXML(`
         <qti-assessment-item>
           <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier">
-            <qti-correct-response>
-              <qti-value>A</qti-value>
-            </qti-correct-response>
             <qti-mapping upper-bound="3">
               <qti-map-entry map-key="A" mapped-value="2"/>
               <qti-map-entry map-key="B" mapped-value="1"/>
@@ -269,12 +281,140 @@ describe('deriveMaxScore', () => {
         </qti-assessment-item>
       `);
 
-      const variables: Record<string, unknown> = {
-        SCORE: 0
-      };
+      expect(deriveMaxScore(itemDoc, {})).toBe(2);
+    });
+  });
 
-      const result = deriveMaxScore(itemDoc, variables);
-      expect(result).toBe(3);
+  describe('Mapping with negative entries', () => {
+    test('sums only positive entries for multiple cardinality without lower-bound', () => {
+      // Choosing A and B, and not C, scores 2
+      const itemDoc = parseXML(`
+        <qti-assessment-item>
+          <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="identifier">
+            <qti-mapping>
+              <qti-map-entry map-key="A" mapped-value="1"/>
+              <qti-map-entry map-key="B" mapped-value="1"/>
+              <qti-map-entry map-key="C" mapped-value="-1"/>
+            </qti-mapping>
+          </qti-response-declaration>
+        </qti-assessment-item>
+      `);
+
+      expect(deriveMaxScore(itemDoc, {})).toBe(2);
+    });
+
+    test('counts a positive default-value for single cardinality', () => {
+      const itemDoc = parseXML(`
+        <qti-assessment-item>
+          <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier">
+            <qti-mapping default-value="2">
+              <qti-map-entry map-key="A" mapped-value="1"/>
+            </qti-mapping>
+          </qti-response-declaration>
+        </qti-assessment-item>
+      `);
+
+      expect(deriveMaxScore(itemDoc, {})).toBe(2);
+    });
+  });
+
+  describe('Area mapping', () => {
+    test('returns the best area for single cardinality', () => {
+      const itemDoc = parseXML(`
+        <qti-assessment-item>
+          <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="point">
+            <qti-area-mapping>
+              <qti-area-map-entry shape="circle" coords="100,100,10" mapped-value="5"/>
+              <qti-area-map-entry shape="circle" coords="200,200,10" mapped-value="2"/>
+            </qti-area-mapping>
+          </qti-response-declaration>
+          <qti-response-processing template="map_response_point"/>
+        </qti-assessment-item>
+      `);
+
+      expect(deriveMaxScore(itemDoc, {})).toBe(5);
+    });
+
+    test('sums the positive areas for multiple cardinality', () => {
+      const itemDoc = parseXML(`
+        <qti-assessment-item>
+          <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="point">
+            <qti-area-mapping>
+              <qti-area-map-entry shape="circle" coords="100,100,10" mapped-value="2"/>
+              <qti-area-map-entry shape="circle" coords="200,200,10" mapped-value="3"/>
+              <qti-area-map-entry shape="circle" coords="300,300,10" mapped-value="-1"/>
+            </qti-area-mapping>
+          </qti-response-declaration>
+          <qti-response-processing template="map_response_point"/>
+        </qti-assessment-item>
+      `);
+
+      expect(deriveMaxScore(itemDoc, {})).toBe(5);
+    });
+
+    test('caps the maximum at upper-bound', () => {
+      const itemDoc = parseXML(`
+        <qti-assessment-item>
+          <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="point">
+            <qti-area-mapping upper-bound="4">
+              <qti-area-map-entry shape="circle" coords="100,100,10" mapped-value="2"/>
+              <qti-area-map-entry shape="circle" coords="200,200,10" mapped-value="3"/>
+            </qti-area-mapping>
+          </qti-response-declaration>
+          <qti-response-processing template="map_response_point"/>
+        </qti-assessment-item>
+      `);
+
+      expect(deriveMaxScore(itemDoc, {})).toBe(4);
+    });
+
+    test('makes no guess when an area mapping and a mapping are both present', () => {
+      const itemDoc = parseXML(`
+        <qti-assessment-item>
+          <qti-response-declaration identifier="POINT" cardinality="single" base-type="point">
+            <qti-area-mapping>
+              <qti-area-map-entry shape="circle" coords="100,100,10" mapped-value="1"/>
+            </qti-area-mapping>
+          </qti-response-declaration>
+          <qti-response-declaration identifier="CHOICE" cardinality="single" base-type="identifier">
+            <qti-mapping><qti-map-entry map-key="A" mapped-value="1"/></qti-mapping>
+          </qti-response-declaration>
+        </qti-assessment-item>
+      `);
+
+      expect(deriveMaxScore(itemDoc, {})).toBeNull();
+    });
+  });
+
+  describe('Several mappings', () => {
+    test('makes no guess from mappings when several declarations have one', () => {
+      const itemDoc = parseXML(`
+        <qti-assessment-item>
+          <qti-response-declaration identifier="R1" cardinality="single" base-type="identifier">
+            <qti-mapping><qti-map-entry map-key="A" mapped-value="1"/></qti-mapping>
+          </qti-response-declaration>
+          <qti-response-declaration identifier="R2" cardinality="single" base-type="identifier">
+            <qti-mapping><qti-map-entry map-key="B" mapped-value="1"/></qti-mapping>
+          </qti-response-declaration>
+        </qti-assessment-item>
+      `);
+
+      expect(deriveMaxScore(itemDoc, {})).toBeNull();
+    });
+
+    test('still uses MAXSCORE when several declarations have mappings', () => {
+      const itemDoc = parseXML(`
+        <qti-assessment-item>
+          <qti-response-declaration identifier="R1" cardinality="single" base-type="identifier">
+            <qti-mapping><qti-map-entry map-key="A" mapped-value="1"/></qti-mapping>
+          </qti-response-declaration>
+          <qti-response-declaration identifier="R2" cardinality="single" base-type="identifier">
+            <qti-mapping><qti-map-entry map-key="B" mapped-value="1"/></qti-mapping>
+          </qti-response-declaration>
+        </qti-assessment-item>
+      `);
+
+      expect(deriveMaxScore(itemDoc, { MAXSCORE: 5 })).toBe(5);
     });
   });
 
@@ -352,6 +492,35 @@ describe('deriveMaxScore', () => {
       expect(result).toBe(3); // sum: 1 + 2 for multiple cardinality
     });
 
+    test('makes no guess for multiple cardinality with a positive default and no upper-bound', () => {
+      const itemDoc = parseXML(`
+        <qti-assessment-item>
+          <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="string">
+            <qti-mapping default-value="0.5">
+              <qti-map-entry map-key="A" mapped-value="1"/>
+            </qti-mapping>
+          </qti-response-declaration>
+        </qti-assessment-item>
+      `);
+
+      // Every unmapped value earns the default, so there is no limit
+      expect(deriveMaxScore(itemDoc, { SCORE: 0 })).toBeNull();
+    });
+
+    test('uses the upper-bound for multiple cardinality with a positive default', () => {
+      const itemDoc = parseXML(`
+        <qti-assessment-item>
+          <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="string">
+            <qti-mapping default-value="0.5" upper-bound="4">
+              <qti-map-entry map-key="A" mapped-value="1"/>
+            </qti-mapping>
+          </qti-response-declaration>
+        </qti-assessment-item>
+      `);
+
+      expect(deriveMaxScore(itemDoc, { SCORE: 0 })).toBe(4);
+    });
+
     test('should return sum of positive mapped values for multiple cardinality with lower-bound', () => {
       const itemDoc = parseXML(`
         <qti-assessment-item>
@@ -416,19 +585,15 @@ describe('deriveMaxScore', () => {
       expect(result).toBe(1);
     });
 
-    test('should return 1 for map_response_point template', () => {
+    test('makes no guess from the map_response_point template alone', () => {
+      // Its maximum comes from the area mapping, not the template
       const itemDoc = parseXML(`
         <qti-assessment-item>
           <qti-response-processing template="map_response_point"/>
         </qti-assessment-item>
       `);
 
-      const variables: Record<string, unknown> = {
-        SCORE: 0
-      };
-
-      const result = deriveMaxScore(itemDoc, variables);
-      expect(result).toBe(1);
+      expect(deriveMaxScore(itemDoc, {})).toBeNull();
     });
   });
 

@@ -1,33 +1,16 @@
 import { DOMParser } from '@xmldom/xmldom';
+import { AttemptResult, completeTurn, presentState } from './lib/attemptTurn';
 import {
   collectAssetReferences,
   uniqueAssetUrls,
 } from './lib/collectAssetReferences';
+import { resolveDeliveryOptions } from './lib/deliveryOptions';
 import { deriveMaxScore } from './lib/deriveMaxScore';
 import { initializeState } from './lib/initializeState';
-import { renderTemplate } from './lib/renderTemplate';
 import { processResponse } from './lib/responseProcessing';
 import { buildScore } from './lib/scoreUtils';
 import { validateSubmission } from './lib/validateResponses';
-import { AttemptState, ProcessingOptions, ResponseData } from './types';
-
-/**
- * Result of attempt operations containing updated state and template.
- */
-export interface AttemptResult {
-  /**
-   * Updated learner state after processing.
-   * Should be persisted and passed to subsequent operations.
-   */
-  state: AttemptState;
-
-  /**
-   * Sanitized QTI XML template ready for client rendering.
-   * Contains resolved variables, applied visibility rules, and
-   * stripped sensitive content (response processing, correct answers, etc.).
-   */
-  template: string;
-}
+import { AttemptState, DeliveryOptions, ProcessingOptions, ResponseData } from './types';
 
 /**
  * Initializes a new attempt at a QTI assessment item.
@@ -36,7 +19,9 @@ export interface AttemptResult {
  * the first template with any randomized template variables resolved.
  *
  * @param itemXml - Complete QTI v3 assessment item XML definition
- * @param options - Optional processing options (e.g., asset resolver)
+ * @param processing - Optional processing options (e.g., asset resolver)
+ * @param options - Delivery options the attempt is fixed to for its life;
+ *   recorded, defaults filled in, in `state.options`
  * @returns Promise resolving to initial state and sanitized template XML
  *
  * @example
@@ -47,19 +32,36 @@ export interface AttemptResult {
  */
 export async function beginAttempt(
   itemXml: string,
-  options?: ProcessingOptions
+  processing?: ProcessingOptions,
+  options?: DeliveryOptions
 ): Promise<AttemptResult> {
-  // Parse the QTI XML document
-  const parser = new DOMParser();
-  const itemDoc = parser.parseFromString(itemXml.trim(), 'text/xml');
+  const itemDoc = parseItem(itemXml);
 
   // Initialize state by processing template declarations and template processing
-  const state = initializeState(itemDoc);
+  const state = initializeState(itemDoc, resolveDeliveryOptions(options));
 
-  // Render the sanitized template with resolved variables
-  const template = await renderTemplate(itemDoc, state, options);
+  return presentState(itemDoc, state, processing);
+}
 
-  return { state, template };
+/**
+ * Renders an existing attempt state without advancing it.
+ *
+ * Returns the template exactly as the call that produced `state` rendered it,
+ * and `state` unchanged. Nothing is processed or re-randomized: choices keep the
+ * order the attempt began with, under the delivery options in `state.options`.
+ * Use it when a learner returns to an attempt the host holds.
+ *
+ * @param state - Attempt state from a previous operation
+ * @param itemXml - Complete QTI v3 assessment item XML definition
+ * @param processing - Optional processing options (e.g., asset resolver)
+ * @returns Promise resolving to the unchanged state and its sanitized template XML
+ */
+export async function resumeAttempt(
+  state: AttemptState,
+  itemXml: string,
+  processing?: ProcessingOptions
+): Promise<AttemptResult> {
+  return presentState(parseItem(itemXml), state, processing);
 }
 
 /**
@@ -67,12 +69,13 @@ export async function beginAttempt(
  *
  * Runs response processing to score the submission, update outcome variables,
  * and determine completion status. Then generates an updated template with
- * any newly visible feedback or content changes.
+ * any newly visible feedback or content changes, under the delivery options
+ * the attempt began with.
  *
  * @param submission - Learner's response data (response IDs mapped to values)
  * @param state - Current attempt state from previous operation
  * @param itemXml - Complete QTI v3 assessment item XML definition
- * @param options - Optional processing options (e.g., asset resolver)
+ * @param processing - Optional processing options (e.g., asset resolver)
  * @returns Promise resolving to updated state and sanitized template XML
  *
  * @example
@@ -90,11 +93,9 @@ export async function submitResponse(
   submission: ResponseData,
   state: AttemptState,
   itemXml: string,
-  options?: ProcessingOptions
+  processing?: ProcessingOptions
 ): Promise<AttemptResult> {
-  // Parse the QTI XML document
-  const parser = new DOMParser();
-  const itemDoc = parser.parseFromString(itemXml.trim(), 'text/xml');
+  const itemDoc = parseItem(itemXml);
 
   // Validate response constraints before processing
   validateSubmission(submission, itemDoc);
@@ -103,9 +104,7 @@ export async function submitResponse(
   const updatedState = processResponse(itemDoc, submission, state);
 
   // Render the updated template with new state (feedback may now be visible)
-  const template = await renderTemplate(itemDoc, updatedState, options);
-
-  return { state: updatedState, template };
+  return completeTurn(itemDoc, state, updatedState, processing);
 }
 
 /**
@@ -120,7 +119,7 @@ export async function submitResponse(
  * @param comments - Feedback or comments from the external scorer
  * @param state - Current attempt state (should have `pendingManualScoring`)
  * @param itemXml - Complete QTI v3 assessment item XML definition
- * @param options - Optional processing options (e.g., asset resolver)
+ * @param processing - Optional processing options (e.g., asset resolver)
  * @returns Promise resolving to updated state and sanitized template XML
  */
 export async function setScore(
@@ -128,10 +127,9 @@ export async function setScore(
   comments: string,
   state: AttemptState,
   itemXml: string,
-  options?: ProcessingOptions
+  processing?: ProcessingOptions
 ): Promise<AttemptResult> {
-  const parser = new DOMParser();
-  const itemDoc = parser.parseFromString(itemXml.trim(), 'text/xml');
+  const itemDoc = parseItem(itemXml);
 
   const maxScore = deriveMaxScore(itemDoc, state.variables);
   if (maxScore === null) {
@@ -146,9 +144,7 @@ export async function setScore(
     pendingManualScoring: undefined,
   };
 
-  const template = await renderTemplate(itemDoc, updatedState, options);
-
-  return { state: updatedState, template };
+  return completeTurn(itemDoc, state, updatedState, processing);
 }
 
 /**
@@ -175,18 +171,26 @@ export async function setScore(
  * ```
  */
 export function listItemAssets(itemXml: string): string[] {
-  const parser = new DOMParser();
-  const itemDoc = parser.parseFromString(itemXml.trim(), 'text/xml');
+  return uniqueAssetUrls(collectAssetReferences(parseItem(itemXml).documentElement));
+}
 
-  return uniqueAssetUrls(collectAssetReferences(itemDoc.documentElement));
+/**
+ * Parses a QTI item definition
+ */
+function parseItem(itemXml: string): Document {
+  return new DOMParser().parseFromString(itemXml.trim(), 'text/xml');
 }
 
 export { ResponseValidationError } from './lib/validateResponses';
 
 // Re-export types for convenience
+export type { AttemptResult } from './lib/attemptTurn';
+export type { ResponseEvaluation } from './lib/evaluateResponses';
 export type {
   AssetResolver,
   AttemptState,
+  DeliveryOptions,
+  FeedbackIdentity,
   ProcessingOptions,
   ResponseData,
   Score,

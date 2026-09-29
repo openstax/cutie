@@ -64,7 +64,7 @@ export interface AttemptState {
   score: Score | null;
 
   /**
-   * Shuffle orders for interactions with shuffle="true".
+   * Shuffle orders for interactions that are shuffled (see `DeliveryOptions.shuffleOverride`).
    * Maps response identifiers to ordered arrays of choice identifiers.
    * Generated during initializeState and applied during renderTemplate.
    *
@@ -84,6 +84,65 @@ export interface AttemptState {
    * Contains metadata for the scorer to use. Cleared by `setScore()`.
    */
   pendingManualScoring?: { maxScore: number };
+
+  /**
+   * The delivery options this attempt began under, defaults filled in.
+   * Fixed for the life of the attempt; every later operation follows them.
+   */
+  options: Required<DeliveryOptions>;
+
+  /**
+   * Feedback withheld from the learner under `showFeedback: false`.
+   * Decided on the turn the attempt becomes terminal and applied as-is on every
+   * later render, so resuming the attempt reproduces the same template.
+   */
+  withheldFeedback?: FeedbackIdentity[];
+}
+
+/**
+ * Identifies a feedback element by its tag, outcome-identifier and identifier.
+ */
+export interface FeedbackIdentity {
+  tagName: string;
+  outcomeIdentifier: string;
+  identifier: string;
+}
+
+/**
+ * Options that govern how an attempt is delivered to the learner.
+ *
+ * Chosen when an attempt begins and fixed for its life. The defaults follow QTI:
+ * feedback as the item's rules decide, no evaluation of the response beyond what
+ * the item renders, and choices shuffled only where the item says `shuffle="true"`.
+ * None of the options changes scoring.
+ */
+export interface DeliveryOptions {
+  /**
+   * Show feedback that appears when the attempt becomes terminal.
+   * Feedback shown on earlier turns is unaffected. Defaults to `true`.
+   */
+  showFeedback?: boolean;
+
+  /**
+   * What the learner is told about how their response was judged, once the
+   * attempt is terminal. Each level includes the one before it:
+   * - `'none'`: nothing beyond what the item renders
+   * - `'correctness'`: each interaction is marked correct, incorrect or partial
+   * - `'correctResponse'`: the verdict, plus each interaction's correct response
+   *
+   * Defaults to `'none'`.
+   */
+  showEvaluation?: 'none' | 'correctness' | 'correctResponse';
+
+  /**
+   * Overrides the item's `shuffle` attributes:
+   * - `'none'`: follow them, as QTI does
+   * - `'shuffle'`: shuffle every interaction that supports shuffling unless it says `shuffle="false"`
+   * - `'never'`: never shuffle
+   *
+   * Choices marked `fixed` keep their position under every value. Defaults to `'none'`.
+   */
+  shuffleOverride?: 'none' | 'shuffle' | 'never';
 }
 
 /**

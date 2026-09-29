@@ -18,6 +18,16 @@ const BASE_STYLES = `
     --cutie-feedback-incorrect: #d32f2f;
     --cutie-feedback-info: #4a90e2;
     --cutie-line-height: 1.5;
+    /* Width of the colored leading border that marks feedback and evaluated interactions */
+    --cutie-status-rail-width: 0.5em;
+    /* Space between an interaction's status rail and its content */
+    --cutie-status-rail-gap: 0.75em;
+    /*
+     * Room reserved above an answer option (a choice's text, a gap) for its
+     * correct-answer overline, so showing the overline shifts nothing.
+     * Matches the overline's line box (see .cutie-correct-answer-overline).
+     */
+    --cutie-overline-slot: 1.125em;
     color: var(--cutie-text);
     background-color: var(--cutie-bg);
     line-height: var(--cutie-line-height);
@@ -26,6 +36,16 @@ const BASE_STYLES = `
   .cutie-item-container img {
     max-width: 100%;
     height: auto;
+  }
+
+  /*
+   * Reserves an interaction's status rail in every state (transparent until
+   * the interaction is evaluated, see .cutie-evaluated), so coloring it once
+   * an attempt is finished shifts nothing.
+   */
+  .cutie-status-rail {
+    border-inline-start: var(--cutie-status-rail-width) solid transparent;
+    padding-inline-start: var(--cutie-status-rail-gap);
   }
 
   /*

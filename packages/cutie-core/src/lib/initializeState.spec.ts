@@ -243,7 +243,7 @@ describe('initializeState', () => {
       const itemDoc = parser.parseFromString(xml, 'text/xml');
       const state = initializeState(itemDoc);
 
-      expect(state.variables.POINT_VAR).toEqual([100, 200]);
+      expect(state.variables.POINT_VAR).toBe('100 200');
     });
 
     test('declares template variable with directedPair base type', () => {
@@ -262,7 +262,7 @@ describe('initializeState', () => {
       const itemDoc = parser.parseFromString(xml, 'text/xml');
       const state = initializeState(itemDoc);
 
-      expect(state.variables.DPAIR_VAR).toEqual(['A', 'B']);
+      expect(state.variables.DPAIR_VAR).toBe('A B');
     });
 
     test('declares template variable with pair base type', () => {
@@ -281,7 +281,7 @@ describe('initializeState', () => {
       const itemDoc = parser.parseFromString(xml, 'text/xml');
       const state = initializeState(itemDoc);
 
-      expect(state.variables.PAIR_VAR).toEqual(['A', 'B']);
+      expect(state.variables.PAIR_VAR).toBe('A B');
     });
 
     test('declares template variable with duration base type', () => {
@@ -2235,7 +2235,7 @@ describe('initializeState', () => {
           identifier="mapping-test" title="Mapping Test">
           <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier">
             <qti-mapping default-value="0" upper-bound="5">
-              <qti-map-entry map-key="A" mapped-value="1"/>
+              <qti-map-entry map-key="A" mapped-value="6"/>
               <qti-map-entry map-key="B" mapped-value="2"/>
             </qti-mapping>
           </qti-response-declaration>

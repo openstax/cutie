@@ -6,8 +6,9 @@ import {
 } from '../../errors/validationDisplay';
 import { announce } from '../../utils/liveRegion';
 import { registry } from '../registry';
-import type { ElementHandler, TransformContext } from '../types';
+import type { ElementHandler, ResponseAccessorOptions, TransformContext } from '../types';
 import { parseInputWidth } from '../vocabUtils';
+import { readEvaluation, wrapInlineEvaluation } from './evaluation';
 import { getDefaultValue } from './responseUtils';
 
 /**
@@ -125,11 +126,26 @@ class InlineChoiceInteractionHandler implements ElementHandler {
       select.setAttribute('aria-describedby', constraintId);
     }
 
+    // Evaluation of a finished attempt: the verdict icon and the correct
+    // answer (the choice's displayed text) above the select, describing it
+    let placed: HTMLElement = select;
+    const evaluation = readEvaluation(element, responseIdentifier, context.styleManager);
+    if (evaluation) {
+      const correctText = evaluation.correctResponse
+        .map((id) => Array.from(select.options).find((option) => option.value === id)?.textContent ?? id)
+        .join(', ');
+      placed = wrapInlineEvaluation(select, `evaluation-${responseIdentifier}`, evaluation, correctText || null);
+    }
+
     // Register response accessor with itemState if available
     if (context.itemState) {
-      const responseAccessor = () => {
+      const responseAccessor = (options?: ResponseAccessorOptions) => {
         const value = select.value;
         const isValid = !isConstrained || value !== '';
+
+        if (options?.silent) {
+          return { value: value === '' ? null : value, valid: isValid };
+        }
 
         if (!isValid) {
           select.setAttribute('aria-invalid', 'true');
@@ -151,6 +167,7 @@ class InlineChoiceInteractionHandler implements ElementHandler {
           select.removeAttribute('aria-invalid');
           indicator?.setError(false);
         }
+        context.itemState?.notifyResponseChange();
       });
 
       // Observe interaction enabled state to enable/disable select
@@ -164,7 +181,7 @@ class InlineChoiceInteractionHandler implements ElementHandler {
       select.disabled = !context.itemState.interactionsEnabled;
     }
 
-    fragment.appendChild(select);
+    fragment.appendChild(placed);
     if (indicator) {
       fragment.appendChild(indicator.element);
     }
@@ -174,9 +191,10 @@ class InlineChoiceInteractionHandler implements ElementHandler {
 }
 
 const INLINE_CHOICE_INTERACTION_STYLES = `
+  /* The top margin reserves the slot for the evaluation overline, above the text line */
   .cutie-inline-choice-interaction {
     display: inline-block;
-    margin: 0 0.25em;
+    margin: var(--cutie-overline-slot) 0.25em 0;
     padding: 0.25em 0.5em;
     border: 1px solid var(--cutie-border);
     border-radius: 3px;

@@ -15,3 +15,7 @@ export {
 } from './rovingTabindex';
 
 export { highlightDropTargets, clearDropTargetHighlights } from './dragDrop';
+
+export { reportResponseChanges } from './responseChange';
+
+export { addAriaDescribedBy } from './aria';

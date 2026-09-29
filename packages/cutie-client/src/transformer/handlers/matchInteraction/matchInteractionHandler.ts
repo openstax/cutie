@@ -4,8 +4,17 @@ import {
   type ConstraintMessage,
   createConstraintMessage,
 } from '../../../errors/validationDisplay';
+import { addAriaDescribedBy } from '../../../utils/aria';
 import { announce } from '../../../utils/liveRegion';
 import type { ElementHandler, TransformContext } from '../../types';
+import {
+  cloneLabel,
+  createCorrectAnswer,
+  getVerdictText,
+  markEvaluated,
+  parseDirectedPair,
+  readEvaluation,
+} from '../evaluation';
 import { getDefaultValue } from '../responseUtils';
 import { MatchController } from './controller';
 import { MATCH_INTERACTION_STYLES } from './styles';
@@ -67,7 +76,7 @@ export class MatchInteractionHandler implements ElementHandler {
 
     // Create main container
     const container = document.createElement('div');
-    container.className = 'cutie-match-interaction';
+    container.className = 'cutie-match-interaction cutie-status-rail';
     container.setAttribute('data-response-identifier', responseIdentifier);
     container.setAttribute('role', 'group');
 
@@ -135,9 +144,17 @@ export class MatchInteractionHandler implements ElementHandler {
 
     container.appendChild(layoutContainer);
 
-    // Add constraint message if min-associations > 0
+    // Evaluation of a finished attempt, when the delivery options show one
+    const evaluation = readEvaluation(element, responseIdentifier, context.styleManager);
+
+    // Add constraint message if min-associations > 0. A finished attempt with
+    // a verdict describes the response in its place, so it is announced with
+    // the group; the status rail is the visual verdict.
     let constraint: ConstraintMessage | undefined;
-    const constraintText = buildMatchConstraintText(minAssociations, maxAssociations);
+    const verdict = evaluation?.verdict ?? null;
+    const constraintText = verdict
+      ? getVerdictText(verdict)
+      : buildMatchConstraintText(minAssociations, maxAssociations);
     if (constraintText) {
       constraint = createConstraintMessage(
         `constraint-${responseIdentifier}`,
@@ -165,11 +182,56 @@ export class MatchInteractionHandler implements ElementHandler {
       controller.initializeFromDefaults(defaults);
     }
 
+    // Draw the evaluation: the status rail, and under each choice (above its
+    // chips, and reciprocally, like the chips) the choices it is correctly
+    // matched with, by their displayed labels. Each choice is described by
+    // its own correct answer. The verdict is in the constraint text.
+    if (evaluation) {
+      const choices = new Map<string, HTMLElement>();
+      for (const choice of layoutContainer.querySelectorAll<HTMLElement>('.cutie-match-choice')) {
+        const id = choice.getAttribute('data-identifier');
+        if (id) choices.set(id, choice);
+      }
+
+      const partners = new Map<string, string[]>();
+      const addPartner = (id: string, partner: string) => {
+        partners.set(id, [...(partners.get(id) ?? []), partner]);
+      };
+      for (const pair of evaluation.correctResponse.map(parseDirectedPair)) {
+        if (!pair) continue;
+        addPartner(pair.source, pair.target);
+        addPartner(pair.target, pair.source);
+      }
+
+      for (const [id, partnerIds] of partners) {
+        const choice = choices.get(id);
+        const chips = choice?.parentElement?.querySelector('.cutie-match-choice-chips');
+        if (!choice || !chips) continue;
+
+        const content = document.createDocumentFragment();
+        partnerIds.forEach((partnerId, index) => {
+          if (index > 0) content.append(', ');
+          const label = choices.get(partnerId)?.querySelector('.cutie-match-choice-label');
+          content.append(label ? cloneLabel(label) : partnerId);
+        });
+
+        const answer = createCorrectAnswer(content);
+        answer.id = `evaluation-${responseIdentifier}-${id}`;
+        chips.before(answer);
+        addAriaDescribedBy(choice, answer.id);
+      }
+      markEvaluated(container, evaluation.verdict);
+    }
+
     // Register response accessor with itemState
     if (context.itemState) {
-      context.itemState.registerResponse(responseIdentifier, () => {
+      context.itemState.registerResponse(responseIdentifier, (options) => {
         const response = controller.getResponse();
         const isValid = minAssociations <= 0 || response.length >= minAssociations;
+
+        if (options?.silent) {
+          return { value: response.length > 0 ? response : null, valid: isValid };
+        }
 
         if (!isValid) {
           container.setAttribute('aria-invalid', 'true');

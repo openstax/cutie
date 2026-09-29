@@ -1,4 +1,16 @@
-import type { CollectResult, ItemState, ResponseAccessor, ResponseData, StateObserver } from '../transformer/types';
+import type {
+  CollectResult,
+  ItemState,
+  ResponseAccessor,
+  ResponseChangeListener,
+  ResponseData,
+  StateObserver,
+} from '../transformer/types';
+
+export interface ItemStateOptions {
+  /** Called with the current raw responses whenever a handler reports a learner edit */
+  onResponseChange?: ResponseChangeListener;
+}
 
 /**
  * Implementation of ItemState interface.
@@ -8,11 +20,13 @@ export class ItemStateImpl implements ItemState {
   private responseAccessors: Map<string, ResponseAccessor> = new Map();
   private observers: Set<StateObserver> = new Set();
   private _interactionsEnabled = true;
+  private readonly onResponseChange?: ResponseChangeListener;
 
-  constructor(previousState?: ItemState) {
+  constructor(previousState?: ItemState, options?: ItemStateOptions) {
     if (previousState) {
       this._interactionsEnabled = previousState.interactionsEnabled;
     }
+    this.onResponseChange = options?.onResponseChange;
   }
 
   /**
@@ -55,6 +69,25 @@ export class ItemStateImpl implements ItemState {
     }
 
     return { responses, valid: invalidCount === 0, invalidCount };
+  }
+
+  /**
+   * Read the current value of every registered response without validating:
+   * no validation UI is rendered and nothing is announced.
+   */
+  peekAll(): ResponseData {
+    const responses: ResponseData = {};
+    for (const [identifier, accessor] of this.responseAccessors) {
+      responses[identifier] = accessor({ silent: true }).value;
+    }
+    return responses;
+  }
+
+  /**
+   * Report a learner edit to the response change listener, if any.
+   */
+  notifyResponseChange(): void {
+    this.onResponseChange?.(this.peekAll());
   }
 
   /**

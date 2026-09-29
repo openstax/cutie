@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ItemStateImpl } from '../../../state/itemState';
 import { registry } from '../../registry';
 import type { TransformContext } from '../../types';
@@ -678,5 +678,127 @@ describe('gapMatchInteraction', () => {
         container.remove();
       }
     });
+  });
+});
+
+describe('gapMatchInteraction evaluation', () => {
+  let itemState: ItemStateImpl;
+
+  beforeEach(() => {
+    itemState = new ItemStateImpl();
+  });
+
+  function render(interactionAttrs: string, declaration: string): HTMLElement {
+    const doc = createQtiDocument(`
+      <qti-response-declaration identifier="R1" cardinality="multiple" base-type="directedPair">
+        ${declaration}
+      </qti-response-declaration>
+      ${BASIC_GAP_MATCH_QTI.replace('response-identifier="R1"', `response-identifier="R1" ${interactionAttrs}`)}
+    `);
+    const container = document.createElement('div');
+    container.appendChild(transformInteraction(doc, itemState));
+    return container;
+  }
+
+  it('renders nothing when there is no verdict or correct response', () => {
+    const container = render('', '<qti-default-value><qti-value>C1 G1</qti-value></qti-default-value>');
+    expect(container.querySelector('.cutie-correct-answer-overline')).toBeNull();
+    expect(container.querySelector('.cutie-evaluated')).toBeNull();
+    // The rail is reserved regardless, so evaluation shifts nothing
+    expect(container.querySelector('.cutie-gap-match-interaction')!.classList.contains('cutie-status-rail')).toBe(true);
+  });
+
+  it('describes the response in the constraint text, announced with the group', () => {
+    const container = render('data-evaluation="incorrect"', '');
+    const group = container.querySelector('.cutie-gap-match-interaction')!;
+    const constraint = container.querySelector('#constraint-R1')!;
+    expect(constraint.textContent).toBe('Incorrect response');
+    expect(group.getAttribute('aria-describedby')).toContain('constraint-R1');
+    expect(group.classList.contains('cutie-evaluated--incorrect')).toBe(true);
+  });
+
+  it('shows the correct choice above each gap, described by the gap', () => {
+    const container = render(
+      'data-evaluation="incorrect"',
+      `<qti-default-value><qti-value>C1 G1</qti-value></qti-default-value>
+       <qti-correct-response><qti-value>C2 G1</qti-value><qti-value>C1 G2</qti-value></qti-correct-response>`,
+    );
+    const gaps = Array.from(container.querySelectorAll<HTMLElement>('.cutie-gap'));
+    expect(gaps).toHaveLength(2);
+    for (const [gap, label] of [[gaps[0]!, 'Choice 2'], [gaps[1]!, 'Choice 1']] as const) {
+      const overline = gap.querySelector('.cutie-correct-answer-overline--value')!;
+      // Visible value, with a hidden prefix for the description
+      expect(overline.querySelector('.cutie-evaluation-sr-only')!.textContent).toBe('Correct answer: ');
+      expect(overline.textContent).toBe(`Correct answer: ${label}`);
+      expect(gap.getAttribute('aria-describedby')).toContain(overline.id);
+    }
+    // The learner's placement is untouched
+    expect(gaps[0]!.getAttribute('data-choice-identifier')).toBe('C1');
+    expect(gaps[0]!.querySelector('.cutie-gap-content')!.textContent).toBe('Choice 1');
+  });
+});
+
+describe('gapMatchInteraction gap sizing', () => {
+  const GROUPED_QTI = `
+    <qti-gap-match-interaction response-identifier="R1">
+      <qti-gap-text identifier="S1" match-group="short">at</qti-gap-text>
+      <qti-gap-text identifier="S2" match-group="short">atom</qti-gap-text>
+      <qti-gap-text identifier="L1" match-group="long">wavelength</qti-gap-text>
+      <p><qti-gap identifier="GS" match-group="short"></qti-gap> <qti-gap identifier="GL" match-group="long"></qti-gap></p>
+    </qti-gap-match-interaction>
+  `;
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('sizes each gap, once mounted, to the widest choice it accepts', () => {
+    // jsdom has no layout: 16px font, 8px per character of measured text
+    vi.spyOn(window, 'getComputedStyle').mockReturnValue({ fontSize: '16px' } as CSSStyleDeclaration);
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      return { width: (this.textContent?.length ?? 0) * 8 } as DOMRect;
+    });
+
+    const mountCallbacks: Array<() => void> = [];
+    const doc = createQtiDocument(GROUPED_QTI);
+    const container = document.createElement('div');
+    container.appendChild(transformInteraction(doc, new ItemStateImpl(), {
+      onMount: (callback) => mountCallbacks.push(callback),
+    }));
+    const gap = (id: string) => container.querySelector<HTMLElement>(`.cutie-gap[data-identifier="${id}"]`)!;
+
+    expect(gap('GS').style.getPropertyValue('--cutie-gap-fill-width')).toBe('');
+    mountCallbacks.forEach((callback) => callback());
+
+    // "atom" (32px) is the widest choice GS accepts; GL accepts only "wavelength" (80px)
+    expect(gap('GS').style.getPropertyValue('--cutie-gap-fill-width')).toBe('2em');
+    expect(gap('GL').style.getPropertyValue('--cutie-gap-fill-width')).toBe('5em');
+    // The measuring probe is removed
+    expect(container.querySelectorAll('.cutie-gap-content')).toHaveLength(2);
+  });
+
+  it('adds padding and border when gaps are border-box', () => {
+    vi.spyOn(window, 'getComputedStyle').mockReturnValue({
+      fontSize: '16px',
+      boxSizing: 'border-box',
+      paddingLeft: '8px',
+      paddingRight: '8px',
+      borderLeftWidth: '2px',
+      borderRightWidth: '2px',
+    } as CSSStyleDeclaration);
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      return { width: (this.textContent?.length ?? 0) * 8 } as DOMRect;
+    });
+
+    const mountCallbacks: Array<() => void> = [];
+    const container = document.createElement('div');
+    container.appendChild(transformInteraction(createQtiDocument(GROUPED_QTI), new ItemStateImpl(), {
+      onMount: (callback) => mountCallbacks.push(callback),
+    }));
+    mountCallbacks.forEach((callback) => callback());
+
+    // 32px of text + 20px of padding and border
+    const gap = container.querySelector<HTMLElement>('.cutie-gap[data-identifier="GS"]')!;
+    expect(gap.style.getPropertyValue('--cutie-gap-fill-width')).toBe('3.25em');
   });
 });

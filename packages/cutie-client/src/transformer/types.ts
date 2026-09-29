@@ -16,9 +16,26 @@ export interface CollectResult {
 }
 
 /**
+ * Options for reading a response through its accessor
+ */
+export interface ResponseAccessorOptions {
+  /**
+   * When true, report the value and validity without side effects: no
+   * validation message is rendered and nothing is announced. Defaults to false
+   * (submit-time behavior: validation errors are shown and announced).
+   */
+  silent?: boolean;
+}
+
+/**
  * Function that retrieves current response value from an interaction
  */
-export type ResponseAccessor = () => ResponseAccessorResult;
+export type ResponseAccessor = (options?: ResponseAccessorOptions) => ResponseAccessorResult;
+
+/**
+ * Listener invoked with the current raw value of every response, valid or not
+ */
+export type ResponseChangeListener = (responses: ResponseData) => void;
 
 /**
  * Response data format expected by cutie-core
@@ -61,6 +78,13 @@ export interface ItemState {
   collectAll(): CollectResult;
   getResponseIdentifiers(): string[];
   unregisterResponse(responseIdentifier: string): void;
+
+  /**
+   * Signal that a learner edit changed a response value. Handlers call this
+   * from learner-edit event paths only — never when restoring values
+   * programmatically (e.g. from qti-default-value).
+   */
+  notifyResponseChange(): void;
 
   // State management with observer pattern
   readonly interactionsEnabled: boolean;

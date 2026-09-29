@@ -9,7 +9,6 @@ export function insertInlineChoiceInteraction(
   editor: Editor,
   config: {
     responseIdentifier?: string;
-    shuffle?: boolean;
     choices?: InlineChoiceOption[];
   } = {}
 ): void {
@@ -26,7 +25,6 @@ export function insertInlineChoiceInteraction(
     children: [{ text: '' }],
     attributes: {
       'response-identifier': responseId,
-      ...(config.shuffle && { shuffle: 'true' }),
     },
     choices: defaultChoices,
     responseDeclaration: {

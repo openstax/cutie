@@ -1,5 +1,6 @@
 import type { Path } from 'slate';
 import { PropertyField } from '../../components/properties/PropertyField';
+import { ShuffleRadioGroup } from '../../components/properties/ShuffleRadioGroup';
 import { ToggleableFormSection } from '../../components/properties/ToggleableFormSection';
 import { MappingMetadataFields } from '../../components/properties/MappingMetadataFields';
 import { MapEntryList } from '../../components/properties/MapEntryList';
@@ -76,16 +77,6 @@ export function InlineChoicePropertiesPanel({
     }
 
     onUpdate(path, newAttrs, updatedDecl);
-  };
-
-  const handleShuffleChange = (checked: boolean) => {
-    const newAttrs = { ...attrs };
-    if (checked) {
-      newAttrs.shuffle = 'true';
-    } else {
-      delete newAttrs.shuffle;
-    }
-    onUpdate(path, newAttrs, responseDecl);
   };
 
   const handleToggleCorrectAnswer = (enabled: boolean) => {
@@ -190,17 +181,10 @@ export function InlineChoicePropertiesPanel({
         required
       />
 
-      <div className="property-field">
-        <label className="property-label">
-          <input
-            type="checkbox"
-            checked={attrs.shuffle === 'true'}
-            onChange={(e) => handleShuffleChange(e.target.checked)}
-            style={{ marginRight: '8px' }}
-          />
-          Shuffle choices
-        </label>
-      </div>
+      <ShuffleRadioGroup
+        attributes={attrs}
+        onChange={(newAttrs) => onUpdate(path, newAttrs, responseDecl)}
+      />
 
       {/* Choices list */}
       <div style={{ marginTop: '16px', marginBottom: '16px' }}>

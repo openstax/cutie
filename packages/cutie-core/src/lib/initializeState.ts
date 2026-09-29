@@ -1,7 +1,8 @@
-import { AttemptState } from '../types';
+import { AttemptState, DeliveryOptions } from '../types';
 import { getChildElements, getFirstChildElement } from '../utils/dom';
 import { generateShuffleOrder, ShuffleItem } from '../utils/shuffle';
 import { parseValue } from '../utils/typeParser';
+import { resolveDeliveryOptions } from './deliveryOptions';
 import {
   evaluateExpression as evaluateExpressionShared,
   type SubEvaluate,
@@ -22,9 +23,13 @@ import { extractStandardOutcomes } from './scoreUtils';
  * Template variables remain constant throughout the attempt.
  *
  * @param itemDoc - Parsed QTI assessment item XML document
+ * @param options - Resolved delivery options the attempt begins under
  * @returns Initial attempt state with template and outcome variables
  */
-export function initializeState(itemDoc: Document): AttemptState {
+export function initializeState(
+  itemDoc: Document,
+  options: Required<DeliveryOptions> = resolveDeliveryOptions()
+): AttemptState {
   const variables: Record<string, unknown> = {};
   const MAX_CONSTRAINT_RETRIES = 1000; // Prevent infinite loops
 
@@ -50,13 +55,14 @@ export function initializeState(itemDoc: Document): AttemptState {
 
   const score = extractStandardOutcomes(variables, itemDoc);
 
-  // Generate shuffle orders for interactions with shuffle="true"
-  const shuffleOrders = initializeShuffleOrders(itemDoc);
+  // Generate shuffle orders for interactions that are shuffled
+  const shuffleOrders = initializeShuffleOrders(itemDoc, options.shuffleOverride);
 
   return {
     variables,
     completionStatus: 'not_attempted',
     score,
+    options,
     ...(shuffleOrders && { shuffleOrders }),
   };
 }
@@ -336,25 +342,45 @@ function evaluateExpression(element: Element, itemDoc: Document, variables: Reco
   return evaluateExpressionShared(element, itemDoc, variables, subEvaluate);
 }
 
+type ShuffleOverride = Required<DeliveryOptions>['shuffleOverride'];
+
 /**
- * Initialize shuffle orders for interactions with shuffle="true".
+ * Whether an interaction's choices are shuffled, given its shuffle attribute
+ * and the attempt's shuffle override.
+ */
+function shouldShuffle(interaction: Element, shuffleOverride: ShuffleOverride): boolean {
+  switch (shuffleOverride) {
+    case 'never':
+      return false;
+    case 'shuffle':
+      return interaction.getAttribute('shuffle') !== 'false';
+    case 'none':
+      return interaction.getAttribute('shuffle') === 'true';
+  }
+}
+
+/**
+ * Initialize shuffle orders for interactions that are shuffled (see shouldShuffle).
  * Returns a record mapping response identifiers to ordered arrays of choice identifiers,
  * or undefined if no shuffled interactions are found.
  */
-function initializeShuffleOrders(itemDoc: Document): Record<string, string[]> | undefined {
+function initializeShuffleOrders(
+  itemDoc: Document,
+  shuffleOverride: ShuffleOverride
+): Record<string, string[]> | undefined {
   const shuffleOrders: Record<string, string[]> = {};
 
   // Process choice interactions
-  processChoiceInteractions(itemDoc, shuffleOrders);
+  processChoiceInteractions(itemDoc, shuffleOrders, shuffleOverride);
 
   // Process inline-choice interactions
-  processInlineChoiceInteractions(itemDoc, shuffleOrders);
+  processInlineChoiceInteractions(itemDoc, shuffleOrders, shuffleOverride);
 
   // Process match interactions (has two match sets)
-  processMatchInteractions(itemDoc, shuffleOrders);
+  processMatchInteractions(itemDoc, shuffleOrders, shuffleOverride);
 
   // Process gap-match interactions
-  processGapMatchInteractions(itemDoc, shuffleOrders);
+  processGapMatchInteractions(itemDoc, shuffleOrders, shuffleOverride);
 
   // Return undefined if no shuffle orders were generated
   return Object.keys(shuffleOrders).length > 0 ? shuffleOrders : undefined;
@@ -365,13 +391,14 @@ function initializeShuffleOrders(itemDoc: Document): Record<string, string[]> | 
  */
 function processChoiceInteractions(
   itemDoc: Document,
-  shuffleOrders: Record<string, string[]>
+  shuffleOrders: Record<string, string[]>,
+  shuffleOverride: ShuffleOverride
 ): void {
   const interactions = itemDoc.getElementsByTagName('qti-choice-interaction');
 
   for (let i = 0; i < interactions.length; i++) {
     const interaction = interactions[i];
-    if (interaction.getAttribute('shuffle') !== 'true') continue;
+    if (!shouldShuffle(interaction, shuffleOverride)) continue;
 
     const responseId = interaction.getAttribute('response-identifier');
     if (!responseId) continue;
@@ -401,13 +428,14 @@ function processChoiceInteractions(
  */
 function processInlineChoiceInteractions(
   itemDoc: Document,
-  shuffleOrders: Record<string, string[]>
+  shuffleOrders: Record<string, string[]>,
+  shuffleOverride: ShuffleOverride
 ): void {
   const interactions = itemDoc.getElementsByTagName('qti-inline-choice-interaction');
 
   for (let i = 0; i < interactions.length; i++) {
     const interaction = interactions[i];
-    if (interaction.getAttribute('shuffle') !== 'true') continue;
+    if (!shouldShuffle(interaction, shuffleOverride)) continue;
 
     const responseId = interaction.getAttribute('response-identifier');
     if (!responseId) continue;
@@ -438,13 +466,14 @@ function processInlineChoiceInteractions(
  */
 function processMatchInteractions(
   itemDoc: Document,
-  shuffleOrders: Record<string, string[]>
+  shuffleOrders: Record<string, string[]>,
+  shuffleOverride: ShuffleOverride
 ): void {
   const interactions = itemDoc.getElementsByTagName('qti-match-interaction');
 
   for (let i = 0; i < interactions.length; i++) {
     const interaction = interactions[i];
-    if (interaction.getAttribute('shuffle') !== 'true') continue;
+    if (!shouldShuffle(interaction, shuffleOverride)) continue;
 
     const responseId = interaction.getAttribute('response-identifier');
     if (!responseId) continue;
@@ -481,13 +510,14 @@ function processMatchInteractions(
  */
 function processGapMatchInteractions(
   itemDoc: Document,
-  shuffleOrders: Record<string, string[]>
+  shuffleOrders: Record<string, string[]>,
+  shuffleOverride: ShuffleOverride
 ): void {
   const interactions = itemDoc.getElementsByTagName('qti-gap-match-interaction');
 
   for (let i = 0; i < interactions.length; i++) {
     const interaction = interactions[i];
-    if (interaction.getAttribute('shuffle') !== 'true') continue;
+    if (!shouldShuffle(interaction, shuffleOverride)) continue;
 
     const responseId = interaction.getAttribute('response-identifier');
     if (!responseId) continue;

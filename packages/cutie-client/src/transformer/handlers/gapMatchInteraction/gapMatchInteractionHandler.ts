@@ -3,9 +3,17 @@ import {
   type ConstraintMessage,
   createConstraintMessage,
 } from '../../../errors/validationDisplay';
+import { addAriaDescribedBy } from '../../../utils/aria';
 import { announce } from '../../../utils/liveRegion';
 import type { ElementHandler, TransformContext } from '../../types';
 import { parseChoicesContainerWidth } from '../../vocabUtils';
+import {
+  createCorrectAnswerOverline,
+  getVerdictText,
+  markEvaluated,
+  parseDirectedPair,
+  readEvaluation,
+} from '../evaluation';
 import { getDefaultValue } from '../responseUtils';
 import { GapMatchController } from './controller';
 import { GAP_MATCH_INTERACTION_STYLES } from './styles';
@@ -59,8 +67,8 @@ export class GapMatchInteractionHandler implements ElementHandler {
     const container = document.createElement('div');
     const sourceClasses = element.getAttribute('class');
     container.className = sourceClasses
-      ? `cutie-gap-match-interaction ${sourceClasses}`
-      : 'cutie-gap-match-interaction';
+      ? `cutie-gap-match-interaction cutie-status-rail ${sourceClasses}`
+      : 'cutie-gap-match-interaction cutie-status-rail';
     container.setAttribute('data-response-identifier', responseIdentifier);
     container.setAttribute('role', 'group');
 
@@ -264,9 +272,17 @@ export class GapMatchInteractionHandler implements ElementHandler {
     const minAssociations = parseInt(element.getAttribute('min-associations') ?? '0', 10) || 0;
     const maxAssociations = parseInt(element.getAttribute('max-associations') ?? '0', 10) || 0;
 
-    // Add constraint message if min-associations > 0
+    // Evaluation of a finished attempt, when the delivery options show one
+    const evaluation = readEvaluation(element, responseIdentifier, context.styleManager);
+
+    // Add constraint message if min-associations > 0. A finished attempt with
+    // a verdict describes the response in its place, so it is announced with
+    // the group; the status rail is the visual verdict.
     let constraint: ConstraintMessage | undefined;
-    const constraintText = buildGapMatchConstraintText(minAssociations, maxAssociations);
+    const verdict = evaluation?.verdict ?? null;
+    const constraintText = verdict
+      ? getVerdictText(verdict)
+      : buildGapMatchConstraintText(minAssociations, maxAssociations);
     if (constraintText) {
       constraint = createConstraintMessage(
         `constraint-${responseIdentifier}`,
@@ -320,13 +336,50 @@ export class GapMatchInteractionHandler implements ElementHandler {
       controller.initializeFromDefaults(defaults);
     }
 
+    // Draw the evaluation: the status rail, and above each gap, in the slot
+    // every gap reserves for it, the choice that belongs there (described by
+    // the gap). The verdict is in the constraint text.
+    if (evaluation) {
+      const correctByGap = new Map<string, string[]>();
+      for (const pair of evaluation.correctResponse.map(parseDirectedPair)) {
+        if (!pair) continue;
+        correctByGap.set(pair.target, [...(correctByGap.get(pair.target) ?? []), pair.source]);
+      }
+
+      for (const gapElement of gapElements) {
+        const gapId = gapElement.getAttribute('data-identifier');
+        const correctChoiceIds = gapId ? correctByGap.get(gapId) : undefined;
+        if (!gapId || !correctChoiceIds) continue;
+
+        const value = correctChoiceIds
+          .map((choiceId) => choiceButtons.get(choiceId)?.content ?? choiceId)
+          .join(', ');
+        const overline = createCorrectAnswerOverline(value);
+        overline.id = `evaluation-${responseIdentifier}-${gapId}`;
+        gapElement.appendChild(overline);
+        addAriaDescribedBy(gapElement, overline.id);
+      }
+      markEvaluated(container, evaluation.verdict);
+    }
+
+    // Size gaps to their widest acceptable choice once they are in the
+    // document, and again when web fonts have loaded and changed the text width
+    context.onMount?.(() => {
+      controller.sizeGapsToChoices();
+      void document.fonts?.ready.then(() => controller.sizeGapsToChoices());
+    });
+
     // Register response accessor with itemState
     if (context.itemState) {
-      context.itemState.registerResponse(responseIdentifier, () => {
+      context.itemState.registerResponse(responseIdentifier, (options) => {
         const response = controller.getResponse();
         const isValid =
           (minAssociations <= 0 || response.length >= minAssociations) &&
           (maxAssociations <= 0 || response.length <= maxAssociations);
+
+        if (options?.silent) {
+          return { value: response.length > 0 ? response : null, valid: isValid };
+        }
 
         if (!isValid) {
           container.setAttribute('aria-invalid', 'true');

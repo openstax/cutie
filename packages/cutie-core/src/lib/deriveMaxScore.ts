@@ -1,3 +1,10 @@
+import {
+  getAreaMapping,
+  getMaxAreaMappedValue,
+  getMaxMappedValue,
+  getResponseMapping,
+} from './responseDeclarations';
+
 /**
  * Derives the maximum score for an assessment item by analyzing the response processing rules.
  *
@@ -5,10 +12,10 @@
  * 1. Check for explicit MAXSCORE variable
  * 1b. Check for normal-maximum attribute on SCORE outcome declaration
  * 2. Try pattern: Sum of outcome variables (e.g., SCORE = SCORE1 + SCORE2 + SCORE3 + SCORE4)
- * 3. Try pattern: Mapping upper-bound
- * 4. Try pattern: Sum of map-entries
- * 5. Try pattern: Response processing template
- * 6. Return null (graceful failure)
+ * 3. Try pattern: The most the item's single response mapping can award
+ *    (skipped when several declarations have mappings)
+ * 4. Try pattern: Response processing template
+ * 5. Return null (graceful failure)
  *
  * @param itemDoc The QTI assessment item document
  * @param variables The current variable state (used to check for explicit MAXSCORE)
@@ -36,25 +43,19 @@ export function deriveMaxScore(
     return sumPatternResult;
   }
 
-  // 3. Try pattern: Mapping upper-bound
-  const mappingUpperBound = tryDeriveMappingUpperBound(itemDoc);
-  if (mappingUpperBound !== null) {
-    return mappingUpperBound;
+  // 3. Try pattern: The item's single response mapping
+  const mappingMax = tryDeriveFromSingleMapping(itemDoc);
+  if (mappingMax !== null) {
+    return mappingMax;
   }
 
-  // 4. Try pattern: Sum of map-entries
-  const mapEntriesSum = tryDeriveSumOfMapEntries(itemDoc);
-  if (mapEntriesSum !== null) {
-    return mapEntriesSum;
-  }
-
-  // 5. Try pattern: Response processing template
+  // 4. Try pattern: Response processing template
   const templateScore = tryDeriveFromTemplate(itemDoc);
   if (templateScore !== null) {
     return templateScore;
   }
 
-  // 6. Return null (graceful failure)
+  // 5. Return null (graceful failure)
   return null;
 }
 
@@ -231,95 +232,41 @@ function extractBaseValueFloats(assignments: Element[]): number[] {
 }
 
 /**
- * Try to derive maxScore from mapping upper-bound attribute.
+ * Try to derive maxScore from the item's response mapping.
+ *
+ * Only when exactly one response declaration has a mapping (qti-mapping or
+ * qti-area-mapping): the most that mapping can award is then the most SCORE can
+ * be. With several mappings, how they combine into SCORE is up to response
+ * processing, so no guess is made.
  */
-function tryDeriveMappingUpperBound(itemDoc: Document): number | null {
-  const responseDeclarations = itemDoc.getElementsByTagName('qti-response-declaration');
+function tryDeriveFromSingleMapping(itemDoc: Document): number | null {
+  const mappedDeclarations = Array.from(
+    itemDoc.getElementsByTagName('qti-response-declaration')
+  ).filter((declaration) =>
+    declaration.getElementsByTagName('qti-mapping').length > 0 ||
+    declaration.getElementsByTagName('qti-area-mapping').length > 0
+  );
 
-  for (let i = 0; i < responseDeclarations.length; i++) {
-    const declaration = responseDeclarations[i];
-    const mappingElements = declaration.getElementsByTagName('qti-mapping');
-
-    if (mappingElements.length > 0) {
-      const mappingElement = mappingElements[0];
-      const upperBound = mappingElement.getAttribute('upper-bound');
-
-      if (upperBound !== null) {
-        const parsed = parseFloat(upperBound);
-        if (!isNaN(parsed)) {
-          return parsed;
-        }
-      }
-    }
+  if (mappedDeclarations.length !== 1) {
+    return null;
   }
 
-  return null;
-}
+  const declaration = mappedDeclarations[0];
+  const identifier = declaration.getAttribute('identifier');
+  if (!identifier) {
+    return null;
+  }
 
-/**
- * Try to derive maxScore from map-entries.
- * For single cardinality: returns the maximum mapped value (only one can be selected).
- * For multiple/ordered cardinality: sums positive mapped values.
- * Respects lower-bound if present.
- */
-function tryDeriveSumOfMapEntries(itemDoc: Document): number | null {
-  const responseDeclarations = itemDoc.getElementsByTagName('qti-response-declaration');
+  const cardinality = declaration.getAttribute('cardinality') || 'single';
 
-  for (let i = 0; i < responseDeclarations.length; i++) {
-    const declaration = responseDeclarations[i];
-    const mappingElements = declaration.getElementsByTagName('qti-mapping');
+  const mapping = getResponseMapping(itemDoc, identifier);
+  if (mapping) {
+    return mapping.entries.length > 0 ? getMaxMappedValue(mapping, cardinality) : null;
+  }
 
-    if (mappingElements.length > 0) {
-      const mappingElement = mappingElements[0];
-      const mapEntries = mappingElement.getElementsByTagName('qti-map-entry');
-
-      if (mapEntries.length === 0) {
-        continue;
-      }
-
-      const values: number[] = [];
-      for (let j = 0; j < mapEntries.length; j++) {
-        const mapEntry = mapEntries[j];
-        const mappedValue = mapEntry.getAttribute('mapped-value');
-
-        if (mappedValue !== null) {
-          const parsed = parseFloat(mappedValue);
-          if (!isNaN(parsed)) {
-            values.push(parsed);
-          }
-        }
-      }
-
-      if (values.length === 0) {
-        continue;
-      }
-
-      // Get cardinality from the response declaration
-      const cardinality = declaration.getAttribute('cardinality') || 'single';
-      const isSingleCardinality = cardinality === 'single';
-
-      // Check for lower-bound
-      const lowerBound = mappingElement.getAttribute('lower-bound');
-      const hasLowerBound = lowerBound !== null;
-
-      // For single cardinality, only one value can be selected, so take the max
-      // For multiple/ordered cardinality, sum the values (respecting lower-bound)
-      let maxScore: number;
-      if (isSingleCardinality) {
-        // Single cardinality: max of positive values (or all values if no lower-bound constraint)
-        const positiveValues = values.filter(v => v > 0);
-        maxScore = positiveValues.length > 0 ? Math.max(...positiveValues) : 0;
-      } else if (hasLowerBound) {
-        // Multiple/ordered with lower-bound: sum only positive values
-        const positiveValues = values.filter(v => v > 0);
-        maxScore = positiveValues.reduce((sum, v) => sum + v, 0);
-      } else {
-        // Multiple/ordered without lower-bound: sum all values
-        maxScore = values.reduce((sum, v) => sum + v, 0);
-      }
-
-      return maxScore;
-    }
+  const areaMapping = getAreaMapping(itemDoc, identifier);
+  if (areaMapping) {
+    return areaMapping.entries.length > 0 ? getMaxAreaMappedValue(areaMapping, cardinality) : null;
   }
 
   return null;
@@ -345,7 +292,6 @@ function tryDeriveFromTemplate(itemDoc: Document): number | null {
   // match_correct template and similar templates always score 0 or 1
   if (
     templateName === 'match_correct' ||
-    templateName === 'map_response_point' ||
     templateName === 'CC2_match_basic' ||
     templateName === 'CC2_match'
   ) {

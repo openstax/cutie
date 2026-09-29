@@ -48,7 +48,15 @@ export interface MountItemOptions {
   feedbackIncorrectColor?: string;
   /** Info feedback icon and border color (default `#4a90e2`). Must meet 3:1 against `bgColor`. */
   feedbackInfoColor?: string;
+  /**
+   * Called after every learner edit, with the current value of every interaction —
+   * whether or not the response is valid to submit.
+   */
+  onResponseChange?: (responses: ResponseData) => void;
 }
+
+/** Keys of MountItemOptions that map to theme CSS custom properties */
+type ThemeOptionKey = Exclude<keyof MountItemOptions, 'onResponseChange'>;
 
 /**
  * Controller object for a mounted QTI item
@@ -106,7 +114,7 @@ export function mountItem(
   // Current render's teardown — called on update() and unmount()
   let teardownCurrentRender: (() => void) | null = null;
 
-  const CSS_VAR_MAP: Array<[keyof MountItemOptions, string]> = [
+  const CSS_VAR_MAP: Array<[ThemeOptionKey, string]> = [
     ['textColor', '--cutie-text'],
     ['textMutedColor', '--cutie-text-muted'],
     ['bgColor', '--cutie-bg'],
@@ -136,7 +144,9 @@ export function mountItem(
   }
 
   function doRender(xml: string): void {
-    const itemState = new ItemStateImpl(currentItemState ?? undefined);
+    const itemState = new ItemStateImpl(currentItemState ?? undefined, {
+      onResponseChange: options?.onResponseChange,
+    });
     currentItemState = itemState;
 
     const styleManager = new DefaultStyleManager();

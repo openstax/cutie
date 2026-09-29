@@ -136,7 +136,6 @@ export function insertGapMatchInteraction(
   editor: Editor,
   config: {
     responseIdentifier?: string;
-    shuffle?: boolean;
   } = {}
 ): void {
   const responseId = config.responseIdentifier || generateUniqueResponseId(editor);
@@ -145,7 +144,6 @@ export function insertGapMatchInteraction(
     type: 'qti-gap-match-interaction',
     attributes: {
       'response-identifier': responseId,
-      shuffle: config.shuffle ? 'true' : undefined,
     },
     children: [
       {

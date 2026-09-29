@@ -1,9 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import type { AttemptState } from '@openstax/cutie-core';
-import { mountItem } from '@openstax/cutie-client';
-import type { MountedItem, MountItemOptions, ResponseData } from '@openstax/cutie-client';
+import type { MountItemOptions, ResponseData } from '@openstax/cutie-client';
+import { CutieItemView } from './CutieItemView';
+import type { CutieItemHandle } from './CutieItemView';
 import { isEffectivelyEmptyTemplate } from './utils/qtiUtils';
 import { TopicScores } from './TopicScores';
+import { DeliveryOptionsPanel } from './DeliveryOptionsPanel';
+import type { ResolvedDeliveryOptions } from './utils/deliveryOptions';
 
 const MenuIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor">
@@ -28,7 +31,10 @@ interface QuizModeProps {
 interface PreviewTabProps {
   attemptState: AttemptState | null;
   sanitizedTemplate: string;
+  hasNewFeedback: boolean;
   responses: ResponseData | null;
+  deliveryOptions: ResolvedDeliveryOptions;
+  onDeliveryOptionsChange: (options: ResolvedDeliveryOptions) => void;
   onSubmitResponses: (responses: ResponseData) => Promise<void>;
   onResetAttempt: () => void;
   isLoading?: boolean;
@@ -37,60 +43,16 @@ interface PreviewTabProps {
   themeOptions?: MountItemOptions;
 }
 
-export function PreviewTab({ attemptState, sanitizedTemplate, responses, onSubmitResponses, onResetAttempt, isLoading, onOpenGenerateDialog, quizMode, themeOptions }: PreviewTabProps) {
+export function PreviewTab({ attemptState, sanitizedTemplate, hasNewFeedback, responses, deliveryOptions, onDeliveryOptionsChange, onSubmitResponses, onResetAttempt, isLoading, onOpenGenerateDialog, quizMode, themeOptions }: PreviewTabProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
-  const previewRef = useRef<HTMLDivElement>(null);
-  const mountedItemRef = useRef<MountedItem | null>(null);
-  const prevCompletionStatusRef = useRef<string | undefined>(undefined);
+  const itemRef = useRef<CutieItemHandle>(null);
 
   // Derived - no state needed
   const interactionsEnabled = !isSubmitting && attemptState?.completionStatus !== 'completed';
 
-  // Mount/update item when sanitizedTemplate or attemptState changes
-  // Uses update() on submit transitions to preserve announcement state,
-  // and fresh mountItem() on reset or new item load
-  useEffect(() => {
-    if (!previewRef.current || !sanitizedTemplate) {
-      // Clean up previous mounted item when template is cleared
-      mountedItemRef.current?.unmount();
-      mountedItemRef.current = null;
-      return;
-    }
-
-    const prevStatus = prevCompletionStatusRef.current;
-    prevCompletionStatusRef.current = attemptState?.completionStatus;
-
-    // Use update() when transitioning to 'completed' (submit with feedback)
-    const isSubmitTransition = mountedItemRef.current
-      && attemptState?.completionStatus === 'completed'
-      && prevStatus !== 'completed';
-
-    if (isSubmitTransition) {
-      mountedItemRef.current!.update(sanitizedTemplate);
-      return;
-    }
-
-    // Fresh mount: initial, reset, or new item
-    mountedItemRef.current?.unmount();
-    mountedItemRef.current = mountItem(previewRef.current, sanitizedTemplate, themeOptions);
-  }, [sanitizedTemplate, attemptState, themeOptions]);
-
-  // Sync interaction enabled state
-  useEffect(() => {
-    mountedItemRef.current?.setInteractionsEnabled(interactionsEnabled);
-  }, [interactionsEnabled]);
-
-  // Cleanup on component unmount
-  useEffect(() => () => {
-    mountedItemRef.current?.unmount();
-    mountedItemRef.current = null;
-  }, []);
-
   const handleSubmit = async () => {
-    if (!mountedItemRef.current) return;
-
-    const collectedResponses = mountedItemRef.current.collectResponses();
+    const collectedResponses = itemRef.current?.collectResponses();
     if (!collectedResponses) return; // validation failed, handlers decorated their UI
 
     setIsSubmitting(true);
@@ -123,6 +85,17 @@ export function PreviewTab({ attemptState, sanitizedTemplate, responses, onSubmi
             <MenuIcon />
           </button>
         </div>
+
+        <DeliveryOptionsPanel options={deliveryOptions} onChange={onDeliveryOptionsChange} />
+
+        <details className="panel" open>
+          <summary>
+            <h2>Latest Result</h2>
+          </summary>
+          <pre className="output-display">
+            {attemptState ? JSON.stringify({ hasNewFeedback }, null, 2) : 'No result yet'}
+          </pre>
+        </details>
 
         <details className="panel" open>
           <summary>
@@ -172,7 +145,13 @@ export function PreviewTab({ attemptState, sanitizedTemplate, responses, onSubmi
           </div>
         ) : (
           <div className="preview-card">
-            <div className="preview-item" ref={previewRef} />
+            <CutieItemView
+              ref={itemRef}
+              template={sanitizedTemplate}
+              attemptState={attemptState}
+              interactionsEnabled={interactionsEnabled}
+              themeOptions={themeOptions}
+            />
             {attemptState?.completionStatus === 'completed' && attemptState.score && (
               <div className="score-display">
                 <span>Score: {attemptState.score.raw} / {attemptState.score.max}</span>

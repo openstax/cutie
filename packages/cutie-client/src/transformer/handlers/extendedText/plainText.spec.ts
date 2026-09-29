@@ -1405,3 +1405,61 @@ describe('extendedTextInteraction', () => {
     });
   });
 });
+
+describe('extendedTextInteraction evaluation', () => {
+  let itemState: ItemStateImpl;
+
+  beforeEach(() => {
+    itemState = new ItemStateImpl();
+  });
+
+  function render(interactionAttrs: string, declaration: string): HTMLElement {
+    const doc = createQtiDocument(`
+      <qti-response-declaration identifier="R1" cardinality="single" base-type="string">
+        ${declaration}
+      </qti-response-declaration>
+      <qti-extended-text-interaction response-identifier="R1" ${interactionAttrs}></qti-extended-text-interaction>
+    `);
+    const container = document.createElement('div');
+    container.appendChild(transformInteraction(doc, itemState));
+    return container;
+  }
+
+  it('renders nothing when there is no verdict or correct response', () => {
+    const container = render('', '<qti-default-value><qti-value>hello</qti-value></qti-default-value>');
+    expect(container.querySelector('.cutie-evaluation')).toBeNull();
+  });
+
+  it('describes the response in the constraint text and shows the correct answer below the textarea', () => {
+    const container = render(
+      'data-evaluation="incorrect"',
+      `<qti-default-value><qti-value>hello</qti-value></qti-default-value>
+       <qti-correct-response><qti-value>world</qti-value></qti-correct-response>`,
+    );
+    const textarea = container.querySelector('textarea')!;
+    const interaction = container.querySelector('.cutie-extended-text-interaction')!;
+
+    // No verdict pill: the rail is the visual verdict, the constraint text announces it
+    expect(container.querySelector('.cutie-verdict')).toBeNull();
+    expect(interaction.classList.contains('cutie-evaluated--incorrect')).toBe(true);
+    const constraint = container.querySelector('#constraint-R1')!;
+    expect(constraint.textContent).toBe('Incorrect response');
+    expect(textarea.getAttribute('aria-describedby')).toContain('constraint-R1');
+
+    const summary = container.querySelector('.cutie-evaluation')!;
+    expect(summary.querySelector('.cutie-correct-answer')!.textContent).toBe('Correct answer: world');
+    expect(textarea.getAttribute('aria-describedby')).toContain(summary.id);
+    expect(textarea.value).toBe('hello');
+  });
+
+  it('shows only the verdict text under correctness', () => {
+    const container = render('data-evaluation="correct"', '');
+    expect(container.querySelector('#constraint-R1')!.textContent).toBe('Correct response');
+    expect(container.querySelector('.cutie-correct-answer')).toBeNull();
+  });
+
+  it('reserves the status rail in every state', () => {
+    const container = render('', '');
+    expect(container.querySelector('.cutie-extended-text-interaction')!.classList.contains('cutie-status-rail')).toBe(true);
+  });
+});

@@ -983,3 +983,91 @@ describe('choiceInteraction validation', () => {
     });
   });
 });
+
+describe('choiceInteraction evaluation', () => {
+  let itemState: ItemStateImpl;
+
+  beforeEach(() => {
+    itemState = new ItemStateImpl();
+  });
+
+  function render(interactionAttrs: string, declaration: string, maxChoices = '1', prompt = ''): HTMLElement {
+    const doc = createQtiDocument(`
+      <qti-response-declaration identifier="R1" cardinality="${maxChoices === '1' ? 'single' : 'multiple'}" base-type="identifier">
+        ${declaration}
+      </qti-response-declaration>
+      <qti-choice-interaction response-identifier="R1" max-choices="${maxChoices}" ${interactionAttrs}>
+        ${prompt}
+        <qti-simple-choice identifier="A">Alpha</qti-simple-choice>
+        <qti-simple-choice identifier="B">Beta</qti-simple-choice>
+        <qti-simple-choice identifier="C">Gamma</qti-simple-choice>
+      </qti-choice-interaction>
+    `);
+    const container = document.createElement('div');
+    container.appendChild(transformInteraction(doc, itemState));
+    return container;
+  }
+
+  const markedChoices = (container: HTMLElement) =>
+    Array.from(container.querySelectorAll('.cutie-correct-answer-overline'))
+      .map((marker) => marker.closest('label')!.querySelector('input')!.value);
+
+  it('renders nothing when there is no verdict or correct response', () => {
+    const container = render('', '<qti-default-value><qti-value>B</qti-value></qti-default-value>');
+    expect(container.querySelector('.cutie-correct-answer-overline')).toBeNull();
+    expect(container.querySelector('.cutie-evaluated')).toBeNull();
+    // The rail is reserved regardless, so evaluation shifts nothing
+    expect(container.querySelector('.cutie-choice-interaction')!.classList.contains('cutie-status-rail')).toBe(true);
+  });
+
+  it('describes the response in the constraint text, announced with the fieldset', () => {
+    const container = render(
+      'data-evaluation="incorrect"',
+      '<qti-default-value><qti-value>B</qti-value></qti-default-value>',
+    );
+    const interaction = container.querySelector('.cutie-choice-interaction')!;
+    expect(interaction.classList.contains('cutie-evaluated--incorrect')).toBe(true);
+
+    const constraint = container.querySelector('#constraint-R1')!;
+    expect(constraint.textContent).toBe('Incorrect response');
+    // The normal hint state: no error styling, so its warning icon stays hidden
+    expect(constraint.classList.contains('cutie-constraint-error')).toBe(false);
+    expect(container.querySelector('fieldset')!.getAttribute('aria-describedby')).toBe('constraint-R1');
+
+    expect(container.querySelector<HTMLInputElement>('input[value="B"]')!.checked).toBe(true);
+    // Correctness only: no correct-answer markers
+    expect(markedChoices(container)).toEqual([]);
+  });
+
+  it('replaces the constraint hint with the verdict', () => {
+    const evaluated = render('data-evaluation="correct" min-choices="1"', '');
+    expect(evaluated.querySelector('#constraint-R1')!.textContent).toBe('Correct response');
+
+    const unevaluated = render('min-choices="1"', '');
+    expect(unevaluated.querySelector('#constraint-R1')!.textContent).toBe('Select an answer.');
+  });
+
+  it('puts a correct-answer overline on the correct choice', () => {
+    const container = render(
+      'data-evaluation="incorrect"',
+      `<qti-default-value><qti-value>B</qti-value></qti-default-value>
+       <qti-correct-response><qti-value>A</qti-value></qti-correct-response>`,
+    );
+    expect(markedChoices(container)).toEqual(['A']);
+    // First in the choice's content, so the name reads "Correct answer Alpha"
+    const content = container.querySelector('input[value="A"]')!.closest('label')!
+      .querySelector('.cutie-simple-choice-content')!;
+    expect(content.firstElementChild!.classList.contains('cutie-correct-answer-overline')).toBe(true);
+    expect(content.textContent).toBe('Correct answerAlpha');
+  });
+
+  it('marks every correct choice for multiple cardinality', () => {
+    const container = render(
+      'data-evaluation="partial"',
+      '<qti-correct-response><qti-value>A</qti-value><qti-value>C</qti-value></qti-correct-response>',
+      '3',
+    );
+    expect(markedChoices(container)).toEqual(['A', 'C']);
+    expect(container.querySelector('#constraint-R1')!.textContent).toBe('Partially correct response');
+  });
+});
