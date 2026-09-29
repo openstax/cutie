@@ -3,6 +3,7 @@ import { renderToContainer } from './renderer/domRenderer';
 import { ItemStateImpl } from './state/itemState';
 import { registerBaseStyles } from './styles';
 import { createTransformContext, transformChildren, transformNode } from './transformer/elementTransformer';
+import { announceItemVerdict } from './transformer/handlers/evaluation';
 import { DefaultStyleManager } from './transformer/styleManager';
 import type { ResponseData, TransformContext } from './transformer/types';
 import { announce, initLiveRegions } from './utils/liveRegion';
@@ -168,6 +169,9 @@ export function mountItem(
     });
     currentContext = context;
     initLiveRegions(context);
+
+    // Announced before the feedback the render announces
+    announceItemVerdict(parsed.itemBody, context);
 
     const fragment = transformChildren(parsed.itemBody, context);
 

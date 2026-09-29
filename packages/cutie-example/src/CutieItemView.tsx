@@ -35,18 +35,19 @@ export function CutieItemView({ template, attemptState, interactionsEnabled, the
     collectResponses: () => mountedItemRef.current?.collectResponses(),
   }), []);
 
-  // Uses update() on submit transitions to preserve announcement state,
-  // and a fresh mountItem() for a new attempt or item
+  // Uses update() on submissions within an attempt to preserve announcement
+  // state, and a fresh mountItem() for a new attempt or item
   useEffect(() => {
     if (!containerRef.current) return;
 
     const prevStatus = prevCompletionStatusRef.current;
     prevCompletionStatusRef.current = attemptState?.completionStatus;
 
-    // Use update() when transitioning to 'completed' (submit with feedback)
+    // Use update() for a submission to an attempt still open: one that ends it,
+    // an adaptive item's next step, or a fresh try
     const isSubmitTransition = mountedItemRef.current
-      && attemptState?.completionStatus === 'completed'
-      && prevStatus !== 'completed';
+      && attemptState !== null && attemptState.completionStatus !== 'not_attempted'
+      && prevStatus !== undefined && prevStatus !== 'completed';
 
     if (isSubmitTransition) {
       mountedItemRef.current!.update(template);

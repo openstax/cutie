@@ -6,8 +6,9 @@ import {
   uniqueAssetUrls,
 } from './collectAssetReferences';
 import { canEvaluate } from './deliveryOptions';
-import { evaluateResponse } from './evaluateResponses';
+import { evaluateResponse, ResponseEvaluation } from './evaluateResponses';
 import { getCorrectResponse } from './responseDeclarations';
+import { evaluateTry, isAdaptive } from './tries';
 
 /**
  * Renders a sanitized QTI template for client consumption.
@@ -48,7 +49,7 @@ export async function renderTemplate(
  *    - Hidden feedback that shouldn't be visible yet
  * 5. Injects current response values as qti-default-value elements
  * 6. Once the attempt can be evaluated, adds the evaluation its delivery options allow
- *    (see applyEvaluation)
+ *    (see applyEvaluation); on a fresh try, the last try's verdict (see applyRetryVerdict)
  *
  * The result depends only on the item and the state, so rendering the same
  * state again produces the same document.
@@ -93,6 +94,8 @@ export function buildTemplateDocument(itemDoc: Document, state: AttemptState): D
   // Step 6.5: Add the evaluation the attempt's delivery options allow
   if (canEvaluate(state)) {
     applyEvaluation(root, itemDoc, state);
+  } else if (state.retryVerdict) {
+    applyRetryVerdict(root, itemDoc, state, state.retryVerdict);
   }
 
   // Step 7: Clean up empty text nodes and normalize whitespace
@@ -168,7 +171,8 @@ function removeWithheldFeedback(root: Element, withheld: FeedbackIdentity[]): vo
  *
  * - `'correctness'`: a data-evaluation attribute ("correct", "incorrect" or
  *   "partial") on each interaction whose response can be judged
- *   (see evaluateResponse)
+ *   (see evaluateResponse), and on the item body for the attempt as a whole
+ *   (see evaluateTry)
  * - `'correctResponse'`: the verdict, plus a qti-correct-response holding this
  *   attempt's correct value in each response declaration that has one
  *
@@ -179,26 +183,84 @@ function applyEvaluation(root: Element, itemDoc: Document, state: AttemptState):
   const { showEvaluation } = state.options;
   if (showEvaluation === 'none') return;
 
-  const itemBody = root.getElementsByTagName('qti-item-body')[0];
-  const declarations = Array.from(root.getElementsByTagName('qti-response-declaration'));
+  markInteractionVerdicts(root, itemDoc, state);
+  markItemVerdict(root, evaluateTry(itemDoc, state));
 
-  for (const declaration of declarations) {
-    const identifier = declaration.getAttribute('identifier');
-    if (!identifier) continue;
+  if (showEvaluation === 'correctResponse') {
+    for (const declaration of Array.from(root.getElementsByTagName('qti-response-declaration'))) {
+      const identifier = declaration.getAttribute('identifier');
+      if (!identifier) continue;
 
-    const evaluation = evaluateResponse(itemDoc, identifier, state.variables);
-    if (evaluation && itemBody) {
-      for (const interaction of findInteractions(itemBody, identifier)) {
-        interaction.setAttribute('data-evaluation', evaluation);
-      }
-    }
-
-    if (showEvaluation === 'correctResponse') {
       const correctValue = getCorrectResponse(itemDoc, identifier, state.variables);
       if (correctValue !== null) {
         declaration.appendChild(
           createValueContainer(declaration.ownerDocument, 'qti-correct-response', correctValue)
         );
+      }
+    }
+  }
+}
+
+/**
+ * Shows the verdict of the try that fell short on the fresh try that follows
+ * it, whatever showEvaluation allows once the attempt is terminal:
+ *
+ * - a non-adaptive item keeps the learner's responses, so each interaction gets
+ *   its data-evaluation, and the item body the try's, as under `'correctness'`
+ * - an adaptive item starts over, so a message leads the item body instead:
+ *   the adaptiveRetryMessage, in an element with data-cutie-retry set to the verdict
+ */
+function applyRetryVerdict(
+  root: Element,
+  itemDoc: Document,
+  state: AttemptState,
+  verdict: 'incorrect' | 'partial'
+): void {
+  if (!isAdaptive(itemDoc)) {
+    markInteractionVerdicts(root, itemDoc, state);
+    markItemVerdict(root, verdict);
+    return;
+  }
+
+  const itemBody = root.getElementsByTagName('qti-item-body')[0];
+  if (!itemBody) return;
+
+  const message = itemBody.ownerDocument.createElementNS(itemBody.namespaceURI, 'div');
+  message.setAttribute('data-cutie-retry', verdict);
+  message.appendChild(
+    itemBody.ownerDocument.createTextNode(
+      state.options.adaptiveRetryMessage.split('{n}').join(String(state.triesRemaining))
+    )
+  );
+  itemBody.insertBefore(message, itemBody.firstChild);
+}
+
+/**
+ * Adds a data-evaluation attribute to the item body for the response as a
+ * whole, when it can be judged: the one clients announce, where each
+ * interaction's is read with the interaction.
+ */
+function markItemVerdict(root: Element, verdict: ResponseEvaluation | null): void {
+  const itemBody = root.getElementsByTagName('qti-item-body')[0];
+  if (itemBody && verdict) itemBody.setAttribute('data-evaluation', verdict);
+}
+
+/**
+ * Adds a data-evaluation attribute ("correct", "incorrect" or "partial") to
+ * each interaction whose response can be judged (see evaluateResponse)
+ */
+function markInteractionVerdicts(root: Element, itemDoc: Document, state: AttemptState): void {
+  const itemBody = root.getElementsByTagName('qti-item-body')[0];
+  if (!itemBody) return;
+
+  for (const declaration of Array.from(root.getElementsByTagName('qti-response-declaration'))) {
+    const identifier = declaration.getAttribute('identifier');
+    if (!identifier) continue;
+
+    const evaluation = evaluateResponse(itemDoc, identifier, state.variables);
+    if (evaluation) {
+      for (const interaction of findInteractions(itemBody, identifier)) {
+        interaction.setAttribute('data-evaluation', evaluation);
       }
     }
   }

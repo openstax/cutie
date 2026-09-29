@@ -8,7 +8,7 @@ import { announce } from '../../utils/liveRegion';
 import { registry } from '../registry';
 import type { ElementHandler, ResponseAccessorOptions, TransformContext } from '../types';
 import { parseInputWidth } from '../vocabUtils';
-import { readEvaluation, wrapInlineEvaluation } from './evaluation';
+import { clearInlineVerdict, clearVerdictOnEdit, readEvaluation, wrapInlineEvaluation } from './evaluation';
 import { getDefaultValue } from './responseUtils';
 
 /**
@@ -126,8 +126,8 @@ class InlineChoiceInteractionHandler implements ElementHandler {
       select.setAttribute('aria-describedby', constraintId);
     }
 
-    // Evaluation of a finished attempt: the verdict icon and the correct
-    // answer (the choice's displayed text) above the select, describing it
+    // Evaluation of a finished attempt or a fresh try: the verdict icon and
+    // the correct answer (the choice's displayed text) above the select, describing it
     let placed: HTMLElement = select;
     const evaluation = readEvaluation(element, responseIdentifier, context.styleManager);
     if (evaluation) {
@@ -136,6 +136,9 @@ class InlineChoiceInteractionHandler implements ElementHandler {
         .join(', ');
       placed = wrapInlineEvaluation(select, `evaluation-${responseIdentifier}`, evaluation, correctText || null);
     }
+    clearVerdictOnEdit(context, responseIdentifier, evaluation, () =>
+      clearInlineVerdict(select, `evaluation-${responseIdentifier}`)
+    );
 
     // Register response accessor with itemState if available
     if (context.itemState) {
@@ -167,7 +170,7 @@ class InlineChoiceInteractionHandler implements ElementHandler {
           select.removeAttribute('aria-invalid');
           indicator?.setError(false);
         }
-        context.itemState?.notifyResponseChange();
+        context.itemState?.notifyResponseChange(responseIdentifier);
       });
 
       // Observe interaction enabled state to enable/disable select

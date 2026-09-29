@@ -97,6 +97,22 @@ export interface AttemptState {
    * later render, so resuming the attempt reproduces the same template.
    */
   withheldFeedback?: FeedbackIdentity[];
+
+  /**
+   * Tries the learner has left under `DeliveryOptions.maxTries`, counting the
+   * one in progress. A try ends when response processing completes the item.
+   * When a try ends short of fully correct with tries left, the attempt
+   * continues with a fresh try (see `retryVerdict`); otherwise it is terminal,
+   * and no tries remain.
+   */
+  triesRemaining: number;
+
+  /**
+   * How the learner's last try was judged, when it fell short and the attempt
+   * continued with a fresh try. Present from the submission that ended that try
+   * until the next submission, and drawn on the template in the meantime.
+   */
+  retryVerdict?: 'incorrect' | 'partial';
 }
 
 /**
@@ -143,6 +159,30 @@ export interface DeliveryOptions {
    * Choices marked `fixed` keep their position under every value. Defaults to `'none'`.
    */
   shuffleOverride?: 'none' | 'shuffle' | 'never';
+
+  /**
+   * How many tries the learner gets. A try ends when response processing
+   * completes the item: every submission for a non-adaptive item, or the
+   * submission an adaptive item completes itself on.
+   *
+   * A try that ends short of fully correct, with tries left, starts a fresh try:
+   * the item's outcomes are reset, and its feedback waits for the attempt to be
+   * terminal. A non-adaptive item keeps the learner's responses, each
+   * interaction marked with its verdict; an adaptive item starts over, with the
+   * `adaptiveRetryMessage` at the top.
+   *
+   * The attempt is terminal once a try is fully correct, the tries run out, or
+   * a try awaits manual scoring. `'smart'` derives the number from the item's
+   * interactions. Defaults to `1`.
+   */
+  maxTries?: number | 'smart';
+
+  /**
+   * Shown at the top of an adaptive item when it starts a fresh try, with `{n}`
+   * replaced by the tries remaining. Defaults to
+   * `"That wasn't quite right. Tries remaining: {n}"`.
+   */
+  adaptiveRetryMessage?: string;
 }
 
 /**

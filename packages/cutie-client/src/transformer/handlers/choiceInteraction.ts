@@ -11,6 +11,9 @@ import { initializeRovingTabindex, updateRovingTabindex } from '../../utils/rovi
 import { registry } from '../registry';
 import type { ElementHandler, ResponseAccessorOptions, TransformContext } from '../types';
 import {
+  clearConstraintVerdict,
+  clearEvaluated,
+  clearVerdictOnEdit,
   createCorrectAnswerOverline,
   getVerdictText,
   markEvaluated,
@@ -185,7 +188,8 @@ class ChoiceInteractionHandler implements ElementHandler {
 
     container.appendChild(choicesContainer);
 
-    // Evaluation of a finished attempt, when the delivery options show one
+    // Evaluation of a finished attempt when the delivery options show one,
+    // or the last try's verdict on a fresh try
     const evaluation = readEvaluation(element, responseIdentifier, context.styleManager);
 
     // Add constraint text if applicable. A finished attempt with a verdict
@@ -195,9 +199,8 @@ class ChoiceInteractionHandler implements ElementHandler {
     const minSelectionsMessage = element.getAttribute('data-min-selections-message');
     const maxSelectionsMessage = element.getAttribute('data-max-selections-message');
     const verdict = evaluation?.verdict ?? null;
-    const hintText = verdict
-      ? getVerdictText(verdict)
-      : buildConstraintText(minChoices, maxChoices, isSingleSelect);
+    const constraintText = buildConstraintText(minChoices, maxChoices, isSingleSelect);
+    let hintText = verdict ? getVerdictText(verdict) : constraintText;
     if (hintText) {
       constraint = createConstraintMessage(
         `constraint-${responseIdentifier}`,
@@ -239,6 +242,11 @@ class ChoiceInteractionHandler implements ElementHandler {
       }
       markEvaluated(container, evaluation.verdict);
     }
+    clearVerdictOnEdit(context, responseIdentifier, evaluation, () => {
+      clearEvaluated(container);
+      clearConstraintVerdict(constraint, choicesContainer, constraintText);
+      hintText = constraintText;
+    });
 
     // For single-select (radio), use roving tabindex to ensure Tab always
     // enters the group at the correct radio. Without this, browsers remember
@@ -328,7 +336,7 @@ class ChoiceInteractionHandler implements ElementHandler {
               showErrors();
             }
           }
-          context.itemState?.notifyResponseChange();
+          context.itemState?.notifyResponseChange(responseIdentifier);
         });
       });
 

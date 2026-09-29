@@ -687,7 +687,7 @@ export class MatchController {
    * reported once to the item state (see reportResponseChanges).
    */
   private reportingEdits<E extends Event>(listener: (event: E) => void): (event: E) => void {
-    return reportResponseChanges(this.context, () => this.getResponse(), listener);
+    return reportResponseChanges(this.context, this.responseIdentifier, () => this.getResponse(), listener);
   }
 
   /**

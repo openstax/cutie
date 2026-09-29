@@ -6,6 +6,7 @@ import { examples, exampleGroups } from './example-items';
 import { ExampleDropdown } from './ExampleDropdown';
 import { EditorTab } from './EditorTab';
 import { PreviewTab } from './PreviewTab';
+import type { LatestResult } from './PreviewTab';
 import { GenerateDialog } from './GenerateDialog';
 import { Tabs, TabList, TabPanel } from './Tabs';
 import { Toast } from './Toast';
@@ -88,7 +89,7 @@ export function App() {
   const [itemXml, setItemXml] = useState('');
   const [attemptState, setAttemptState] = useState<AttemptState | null>(null);
   const [sanitizedTemplate, setSanitizedTemplate] = useState<string>('');
-  const [hasNewFeedback, setHasNewFeedback] = useState(false);
+  const [latestResult, setLatestResult] = useState<LatestResult>({ hasNewFeedback: false, tryConsumed: false });
   const [deliveryOptions, setDeliveryOptions] = useState<ResolvedDeliveryOptions>(loadDeliveryOptions);
   const [error, setError] = useState<string>('');
   const [processing, setProcessing] = useState(false);
@@ -112,7 +113,7 @@ export function App() {
   const applyResult = (result: AttemptResult) => {
     setAttemptState(result.state);
     setSanitizedTemplate(result.template);
-    setHasNewFeedback(result.hasNewFeedback);
+    setLatestResult({ hasNewFeedback: result.hasNewFeedback, tryConsumed: result.tryConsumed });
   };
 
   /** Shows a result that is already current, superseding any operation still in flight. */
@@ -650,7 +651,7 @@ export function App() {
         <PreviewTab
           attemptState={attemptState}
           sanitizedTemplate={sanitizedTemplate}
-          hasNewFeedback={hasNewFeedback}
+          latestResult={latestResult}
           responses={responses}
           deliveryOptions={deliveryOptions}
           onDeliveryOptionsChange={handleDeliveryOptionsChange}

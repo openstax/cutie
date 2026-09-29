@@ -284,6 +284,8 @@ describe('delivery options', () => {
         showFeedback: true,
         showEvaluation: 'none',
         shuffleOverride: 'none',
+        maxTries: 1,
+        adaptiveRetryMessage: 'That wasn\'t quite right. Tries remaining: {n}',
       });
     });
 
@@ -295,6 +297,8 @@ describe('delivery options', () => {
         showFeedback: true,
         showEvaluation: 'correctness',
         shuffleOverride: 'none',
+        maxTries: 1,
+        adaptiveRetryMessage: 'That wasn\'t quite right. Tries remaining: {n}',
       });
     });
 
@@ -303,6 +307,8 @@ describe('delivery options', () => {
         showFeedback: false,
         showEvaluation: 'correctResponse',
         shuffleOverride: 'never',
+        maxTries: 2,
+        adaptiveRetryMessage: 'Try again ({n} left)',
       };
       const begun = await beginAttempt(externalScoredItem, undefined, options);
       const submitted = await submitResponse({ CHOICE: 'A', ESSAY: 'Text' }, begun.state, externalScoredItem);
@@ -528,6 +534,19 @@ describe('delivery options', () => {
 
       expect(correctResponseOf(result.template, 'CITY')).toEqual(['Paris']);
       expect(correctResponseOf(result.template, 'COUNT')).toEqual(['4']);
+    });
+
+    test('judges the response as a whole on the item body, by its score', async () => {
+      const begun = await beginAttempt(multiInteractionItem, undefined, { showEvaluation: 'correctness' });
+      const itemVerdict = (template: string) =>
+        parseTemplate(template).getElementsByTagName('qti-item-body')[0]?.getAttribute('data-evaluation') || null;
+      expect(itemVerdict(begun.template)).toBeNull();
+
+      // Each interaction is correct, but the item's processing only awards CITY: 1 of 2
+      const result = await submitResponse({ CITY: 'Paris', COUNT: '4' }, begun.state, multiInteractionItem);
+      expect(evaluationOf(result.template, 'CITY')).toBe('correct');
+      expect(evaluationOf(result.template, 'COUNT')).toBe('correct');
+      expect(itemVerdict(result.template)).toBe('partial');
     });
 
     test('uses this attempt\'s correct response when template processing sets it', async () => {

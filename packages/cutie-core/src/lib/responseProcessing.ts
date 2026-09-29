@@ -82,6 +82,9 @@ export function processResponse(
   // Create a copy of the current state's variables
   const variables: Record<string, unknown> = { ...currentState.variables };
 
+  // The built-in numAttempts counts submissions, from the start of each one
+  variables.numAttempts = (typeof variables.numAttempts === 'number' ? variables.numAttempts : 0) + 1;
+
   // Step 1: Update response variables from submission
   // Coerce string values to appropriate types based on response declarations
   for (const [identifier, value] of Object.entries(submission)) {
@@ -120,6 +123,8 @@ export function processResponse(
     score,
     // Delivery options are fixed for the life of the attempt
     options: currentState.options,
+    // Tries are counted once the submission's turn ends (see endTry)
+    triesRemaining: currentState.triesRemaining,
     // Preserve shuffle orders from input state
     ...(currentState.shuffleOrders && { shuffleOrders: currentState.shuffleOrders }),
     // Signal that external scoring is needed

@@ -2,10 +2,18 @@ import { createMissingAttributeError } from '../../../errors/errorDisplay';
 import { addAriaDescribedBy } from '../../../utils/aria';
 import { registry } from '../../registry';
 import type { ElementHandler, TransformContext } from '../../types';
-import { createEvaluationSummary, getVerdictText, markEvaluated, readEvaluation } from '../evaluation';
+import {
+  clearEvaluated,
+  clearVerdictOnEdit,
+  createEvaluationSummary,
+  getVerdictText,
+  markEvaluated,
+  readEvaluation,
+} from '../evaluation';
 import { getDefaultValue } from '../responseUtils';
 import { loadMathLive } from './mathFieldLoader';
 import {
+  clearConstraintResultVerdict,
   createConstraintElements,
   createInteractionContainer,
   parseConstraints,
@@ -86,8 +94,9 @@ class FormulaInteractionHandler implements ElementHandler {
 
     container.appendChild(mathFieldWrapper);
 
-    // Evaluation of a finished attempt, when the delivery options show one.
-    // Its verdict takes the constraint text's place.
+    // Evaluation of a finished attempt when the delivery options show one, or
+    // the last try's verdict on a fresh try. Its verdict takes the constraint
+    // text's place.
     const evaluation = readEvaluation(element, responseIdentifier, context.styleManager);
     const verdictText = evaluation?.verdict ? getVerdictText(evaluation.verdict) : null;
 
@@ -137,6 +146,11 @@ class FormulaInteractionHandler implements ElementHandler {
 
     // Track active input element for aria-describedby/aria-invalid
     let activeInputElement: HTMLElement | null = null;
+
+    clearVerdictOnEdit(context, responseIdentifier, evaluation, () => {
+      clearEvaluated(container);
+      clearConstraintResultVerdict(constraintResult, activeInputElement);
+    });
 
     // Check the required (min-strings) constraint and decorate the error state.
     const validate = (): boolean => {
@@ -206,7 +220,7 @@ class FormulaInteractionHandler implements ElementHandler {
           currentValue = mathField.value;
           // Clear the error in real time once already in an error state.
           if (activeInputElement?.hasAttribute('aria-invalid')) validate();
-          context.itemState?.notifyResponseChange();
+          context.itemState?.notifyResponseChange(responseIdentifier);
         });
 
         // Handle interaction state

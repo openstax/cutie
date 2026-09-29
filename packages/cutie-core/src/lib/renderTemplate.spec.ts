@@ -126,6 +126,7 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -171,6 +172,7 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -193,6 +195,7 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -222,6 +225,7 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -248,6 +252,7 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -279,6 +284,7 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -305,6 +311,7 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -328,6 +335,7 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -355,6 +363,7 @@ describe('renderTemplate', () => {
         variables: { VARIANT: 'choiceA' },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -382,6 +391,7 @@ describe('renderTemplate', () => {
         variables: { HIDE_OPT: 'optX' },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -411,6 +421,7 @@ describe('renderTemplate', () => {
         variables: { VARIANT: 'src1' },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -437,6 +448,7 @@ describe('renderTemplate', () => {
         variables: { VARIANT: 'word1' },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -462,6 +474,7 @@ describe('renderTemplate', () => {
         variables: { VARIANT: ['img1', 'img2'] },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -486,6 +499,7 @@ describe('renderTemplate', () => {
         variables: { VARIANT: 'gap1' },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -517,6 +531,7 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -546,6 +561,7 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -569,6 +585,7 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -597,6 +614,7 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'completed',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -626,6 +644,7 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'completed',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -655,6 +674,7 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'completed',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -670,6 +690,7 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -684,6 +705,7 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -696,6 +718,7 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -708,6 +731,7 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -720,6 +744,7 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -749,6 +774,7 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -780,6 +806,7 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -809,6 +836,7 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -841,6 +869,7 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -867,6 +896,7 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'incomplete',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -894,6 +924,7 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'incomplete',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -919,6 +950,7 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -949,6 +981,7 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'incomplete',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -989,6 +1022,7 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -1019,6 +1053,7 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -1050,6 +1085,7 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -1075,6 +1111,7 @@ describe('renderTemplate', () => {
           variables: {},
           completionStatus: 'not_attempted',
           options: resolveDeliveryOptions(),
+          triesRemaining: 1,
           score: null,
         },
         {
@@ -1101,6 +1138,7 @@ describe('renderTemplate', () => {
           variables: {},
           completionStatus: 'not_attempted',
           options: resolveDeliveryOptions(),
+          triesRemaining: 1,
           score: null,
         },
         {
@@ -1130,6 +1168,7 @@ describe('renderTemplate', () => {
           variables: {},
           completionStatus: 'not_attempted',
           options: resolveDeliveryOptions(),
+          triesRemaining: 1,
           score: null,
         },
         {
@@ -1168,6 +1207,7 @@ describe('renderTemplate', () => {
           variables: {},
           completionStatus: 'not_attempted',
           options: resolveDeliveryOptions(),
+          triesRemaining: 1,
           score: null,
         },
         {
@@ -1197,6 +1237,7 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -1219,6 +1260,7 @@ describe('renderTemplate', () => {
           variables: {},
           completionStatus: 'not_attempted',
           options: resolveDeliveryOptions(),
+          triesRemaining: 1,
           score: null,
         },
         {
@@ -1251,6 +1293,7 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -1275,6 +1318,7 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -1297,6 +1341,7 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -1325,6 +1370,7 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -1348,6 +1394,7 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
       });
 
@@ -1374,6 +1421,7 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
         shuffleOrders: {
           RESPONSE: ['C', 'A', 'B'],
@@ -1406,6 +1454,7 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
         shuffleOrders: {
           RESPONSE: ['B', 'A'],
@@ -1439,6 +1488,7 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
         // No shuffleOrders provided
       });
@@ -1469,6 +1519,7 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
         shuffleOrders: {
           RESPONSE: ['Z', 'X', 'Y'],
@@ -1506,6 +1557,7 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
         shuffleOrders: {
           RESPONSE_0: ['S2', 'S1'],
@@ -1543,6 +1595,7 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesRemaining: 1,
         score: null,
         shuffleOrders: {
           RESPONSE: ['W3', 'W1', 'W2'],

@@ -1,6 +1,7 @@
 /**
  * Evaluation display: draws the evaluation cutie-core adds to the template
- * once an attempt is finished (see the showEvaluation delivery option).
+ * once an attempt is finished (see the showEvaluation delivery option), and
+ * the verdict of the last try on a fresh try (see the maxTries delivery option).
  *
  * Nothing about correctness is computed here — the client only renders what
  * core sent:
@@ -11,9 +12,15 @@
  * and decide where to place them. The verdict is never conveyed by color alone
  * (WCAG 1.4.1): colored marks are paired with an icon or text that carries
  * the verdict, and screen readers get the same information as text.
+ *
+ * A verdict describes the response it was given for, so it is cleared once the
+ * learner edits that response (see clearVerdictOnEdit). The correct response
+ * does not depend on the learner's response and stays.
  */
-import { addAriaDescribedBy } from '../../../utils/aria';
-import type { StyleManager } from '../../types';
+import type { ConstraintMessage } from '../../../errors/validationDisplay';
+import { addAriaDescribedBy, removeAriaDescribedBy } from '../../../utils/aria';
+import { announce } from '../../../utils/liveRegion';
+import type { StyleManager, TransformContext } from '../../types';
 import {
   createFeedbackIcon,
   FEEDBACK_ICON_STYLES,
@@ -123,6 +130,38 @@ export function markEvaluated(target: HTMLElement, verdict: Verdict | null, inli
   if (!verdict) return;
   target.classList.add('cutie-evaluated', `cutie-evaluated--${verdict}`);
   if (inline) target.classList.add('cutie-evaluated--inline');
+}
+
+/**
+ * Remove the verdict colors markEvaluated added.
+ */
+export function clearEvaluated(target: HTMLElement): void {
+  target.classList.remove(
+    'cutie-evaluated',
+    'cutie-evaluated--inline',
+    ...VERDICTS.map((verdict) => `cutie-evaluated--${verdict}`)
+  );
+}
+
+/**
+ * Call `clear` the first time the learner edits the response an interaction's
+ * verdict describes, so the verdict no longer shows for a response that isn't
+ * there. Does nothing when there is no verdict.
+ */
+export function clearVerdictOnEdit(
+  context: TransformContext,
+  responseIdentifier: string,
+  evaluation: InteractionEvaluation | null,
+  clear: () => void
+): void {
+  if (!evaluation?.verdict || !context.itemState) return;
+
+  let cleared = false;
+  context.itemState.onResponseEdit(responseIdentifier, () => {
+    if (cleared) return;
+    cleared = true;
+    clear();
+  });
 }
 
 /**
@@ -240,6 +279,44 @@ export function wrapInlineEvaluation(
   return wrapper;
 }
 
+/**
+ * Replace the verdict text shown in a constraint message with the message's
+ * own text or, when it has none, remove the message and its description of
+ * the interaction.
+ */
+export function clearConstraintVerdict(
+  constraint: ConstraintMessage | undefined,
+  described: Element | null,
+  text: string | null
+): void {
+  if (!constraint) return;
+
+  if (text) {
+    constraint.setText(text);
+    return;
+  }
+
+  constraint.element.remove();
+  if (described) removeAriaDescribedBy(described, constraint.element.id);
+}
+
+/**
+ * Remove the verdict wrapInlineEvaluation showed on a control, keeping the
+ * correct answer if there is one. With nothing left to show, the overline goes too.
+ */
+export function clearInlineVerdict(control: HTMLElement, id: string): void {
+  clearEvaluated(control);
+
+  const overline = Array.from(control.parentElement?.children ?? []).find((element) => element.id === id);
+  if (!overline) return;
+
+  overline.querySelector('.cutie-feedback-icon')?.remove();
+  if (!overline.textContent) {
+    overline.remove();
+    removeAriaDescribedBy(control, id);
+  }
+}
+
 function createSrText(text: string): HTMLSpanElement {
   const span = document.createElement('span');
   span.className = 'cutie-evaluation-sr-only';
@@ -260,6 +337,25 @@ const VERDICT_RESPONSE_TEXT: Record<Verdict, string> = {
   incorrect: 'Incorrect response',
   partial: 'Partially correct response',
 };
+
+const ITEM_VERDICT_TEXT: Record<Verdict, string> = {
+  correct: 'Response is correct',
+  incorrect: 'Response is incorrect',
+  partial: 'Response is partially correct',
+};
+
+/**
+ * Announce the verdict core placed on the item body for the response as a
+ * whole, on renders after the first: each is a new turn (a finished attempt,
+ * or a fresh try), while the first render resumes one. Interactions' own
+ * verdicts are read with them instead.
+ */
+export function announceItemVerdict(itemBody: Element, context: TransformContext): void {
+  const verdict = getVerdict(itemBody);
+  if (verdict && context.state?.get('isUpdate') === true) {
+    announce(context, ITEM_VERDICT_TEXT[verdict]);
+  }
+}
 
 export interface EvaluationSummaryOptions {
   /** Id for the summary, so the interaction can reference it via aria-describedby */

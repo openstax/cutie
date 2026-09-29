@@ -2,9 +2,17 @@ import { createMissingAttributeError } from '../../../errors/errorDisplay';
 import { addAriaDescribedBy } from '../../../utils/aria';
 import { registry } from '../../registry';
 import type { ElementHandler, TransformContext } from '../../types';
-import { createEvaluationSummary, getVerdictText, markEvaluated, readEvaluation } from '../evaluation';
+import {
+  clearEvaluated,
+  clearVerdictOnEdit,
+  createEvaluationSummary,
+  getVerdictText,
+  markEvaluated,
+  readEvaluation,
+} from '../evaluation';
 import { getDefaultValue } from '../responseUtils';
 import {
+  clearConstraintResultVerdict,
   createCharacterCounter,
   createConstraintElements,
   createInteractionContainer,
@@ -128,8 +136,9 @@ class ExtendedTextInteractionHandler implements ElementHandler {
       });
     }
 
-    // Evaluation of a finished attempt, when the delivery options show one.
-    // Its verdict takes the constraint text's place.
+    // Evaluation of a finished attempt when the delivery options show one, or
+    // the last try's verdict on a fresh try. Its verdict takes the constraint
+    // text's place.
     const evaluation = readEvaluation(element, responseIdentifier, context.styleManager);
     const verdictText = evaluation?.verdict ? getVerdictText(evaluation.verdict) : null;
 
@@ -166,6 +175,10 @@ class ExtendedTextInteractionHandler implements ElementHandler {
       }
       markEvaluated(container, evaluation.verdict);
     }
+    clearVerdictOnEdit(context, responseIdentifier, evaluation, () => {
+      clearEvaluated(container);
+      clearConstraintResultVerdict(constraintResult, textarea);
+    });
 
     // Register response accessor with itemState
     if (context.itemState) {
@@ -225,7 +238,7 @@ class ExtendedTextInteractionHandler implements ElementHandler {
         if (textarea.hasAttribute('aria-invalid')) {
           validate();
         }
-        context.itemState?.notifyResponseChange();
+        context.itemState?.notifyResponseChange(responseIdentifier);
       });
 
       // Observe interaction state changes to enable/disable textarea

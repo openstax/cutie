@@ -9,6 +9,7 @@ import { deriveMaxScore } from './lib/deriveMaxScore';
 import { initializeState } from './lib/initializeState';
 import { processResponse } from './lib/responseProcessing';
 import { buildScore } from './lib/scoreUtils';
+import { endTry } from './lib/tries';
 import { validateSubmission } from './lib/validateResponses';
 import { AttemptState, DeliveryOptions, ProcessingOptions, ResponseData } from './types';
 
@@ -68,7 +69,9 @@ export async function resumeAttempt(
  * Processes a response submission and updates the attempt state.
  *
  * Runs response processing to score the submission, update outcome variables,
- * and determine completion status. Then generates an updated template with
+ * and determine completion status. A submission that ends a try short of fully
+ * correct, with tries left, starts a fresh try (see `DeliveryOptions.maxTries`).
+ * Then generates an updated template with
  * any newly visible feedback or content changes, under the delivery options
  * the attempt began with.
  *
@@ -101,10 +104,13 @@ export async function submitResponse(
   validateSubmission(submission, itemDoc);
 
   // Process the response submission to update state
-  const updatedState = processResponse(itemDoc, submission, state);
+  const processedState = processResponse(itemDoc, submission, state);
+
+  // Count the try it ended, continuing with a fresh one if it fell short
+  const { state: updatedState, tryConsumed } = endTry(itemDoc, state, processedState);
 
   // Render the updated template with new state (feedback may now be visible)
-  return completeTurn(itemDoc, state, updatedState, processing);
+  return completeTurn(itemDoc, state, updatedState, processing, tryConsumed);
 }
 
 /**

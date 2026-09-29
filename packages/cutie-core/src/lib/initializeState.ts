@@ -7,6 +7,7 @@ import {
   evaluateExpression as evaluateExpressionShared,
   type SubEvaluate,
 } from './expressionEvaluator/index';
+import { resolveMaxTries } from './maxTries';
 import { extractStandardOutcomes } from './scoreUtils';
 
 /**
@@ -16,8 +17,10 @@ import { extractStandardOutcomes } from './scoreUtils';
  * This function:
  * 1. Parses qti-template-declaration elements to identify template variables
  * 2. Executes qti-template-processing rules to set initial values (randomization, etc.)
- * 3. Initializes outcome variables to their default values
- * 4. Creates the initial AttemptState with all variables
+ * 3. Initializes outcome variables to their default values, and the
+ *    built-in numAttempts to 0
+ * 4. Creates the initial AttemptState with all variables, and the tries the
+ *    delivery options allow
  *
  * Template processing only runs once at the beginning of an attempt.
  * Template variables remain constant throughout the attempt.
@@ -35,6 +38,7 @@ export function initializeState(
 
   // Initialize outcome variables with default values
   initializeOutcomeVariables(itemDoc, variables);
+  variables.numAttempts = 0;
 
   // Execute template processing with constraint retry logic
   let retryCount = 0;
@@ -63,6 +67,7 @@ export function initializeState(
     completionStatus: 'not_attempted',
     score,
     options,
+    triesRemaining: resolveMaxTries(itemDoc, options.maxTries),
     ...(shuffleOrders && { shuffleOrders }),
   };
 }
@@ -84,6 +89,29 @@ class ExitTemplateError extends Error {
   constructor() {
     super('Exit template');
     this.name = 'ExitTemplateError';
+  }
+}
+
+/**
+ * Resets outcome variables to their default values, including defaults set by
+ * template processing (qti-set-default-value), for a fresh try.
+ */
+export function resetOutcomeVariables(itemDoc: Document, variables: Record<string, unknown>): void {
+  const outcomeDeclarations = itemDoc.getElementsByTagName('qti-outcome-declaration');
+
+  for (let i = 0; i < outcomeDeclarations.length; i++) {
+    const identifier = outcomeDeclarations[i].getAttribute('identifier');
+    if (identifier) delete variables[identifier];
+  }
+
+  initializeOutcomeVariables(itemDoc, variables);
+
+  for (let i = 0; i < outcomeDeclarations.length; i++) {
+    const identifier = outcomeDeclarations[i].getAttribute('identifier');
+    const defaultKey = `__default_${identifier}`;
+    if (identifier && defaultKey in variables) {
+      variables[identifier] = variables[defaultKey];
+    }
   }
 }
 
@@ -330,6 +358,8 @@ function executeSetDefaultValue(rule: Element, itemDoc: Document, variables: Rec
   }
   const value = evaluateExpression(child, itemDoc, variables);
   variables[identifier] = value;
+  // Remembered so a fresh try resets the variable to it (see resetOutcomeVariables)
+  variables[`__default_${identifier}`] = value;
 }
 
 /**
