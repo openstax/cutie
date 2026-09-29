@@ -171,11 +171,12 @@ Every operation returns an `AttemptResult`:
   for the life of the attempt.
 - `resumeAttempt` re-renders a state without advancing it: the template is identical to the one the state was
   produced with, and nothing is re-randomized.
-- The attempt is **terminal** when `completionStatus === 'completed'`. Until `setScore` clears
-  `pendingManualScoring`, the response can still be resubmitted (so hosts shouldn't lock editing on
-  `completionStatus` alone), and evaluation waits.
-- Only an adaptive item (`adaptive="true"`) can leave the attempt open with `completionStatus: 'incomplete'`, as
-  QTI says. Any other item is complete after each submission, whatever its response processing sets.
+- The attempt is **terminal** when `completionStatus === 'completed'`, and `submitResponse` rejects further
+  submissions. The exception: until `setScore` clears `pendingManualScoring`, the response can still be
+  resubmitted (so hosts shouldn't lock editing on `completionStatus` alone), and evaluation waits.
+- Within a try, only an adaptive item (`adaptive="true"`) can leave the attempt `incomplete`, as QTI says; any
+  other item's try ends with each submission, whatever its response processing sets. Between tries (see
+  [Multiple tries](#multiple-tries)), any item's attempt is `incomplete`.
 
 ### Delivery options
 

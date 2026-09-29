@@ -4,7 +4,7 @@ import {
   collectAssetReferences,
   uniqueAssetUrls,
 } from './lib/collectAssetReferences';
-import { resolveDeliveryOptions } from './lib/deliveryOptions';
+import { isTerminal, resolveDeliveryOptions } from './lib/deliveryOptions';
 import { deriveMaxScore } from './lib/deriveMaxScore';
 import { initializeState } from './lib/initializeState';
 import { processResponse } from './lib/responseProcessing';
@@ -80,6 +80,9 @@ export async function resumeAttempt(
  * @param itemXml - Complete QTI v3 assessment item XML definition
  * @param processing - Optional processing options (e.g., asset resolver)
  * @returns Promise resolving to updated state and sanitized template XML
+ * @throws When the attempt is complete (terminal), unless its response awaits
+ *   manual scoring; and a ResponseValidationError when the submission breaks
+ *   the item's response constraints
  *
  * @example
  * ```typescript
@@ -98,6 +101,12 @@ export async function submitResponse(
   itemXml: string,
   processing?: ProcessingOptions
 ): Promise<AttemptResult> {
+  // A finished attempt takes no more submissions, except to edit a response
+  // that awaits manual scoring
+  if (isTerminal(state) && !state.pendingManualScoring) {
+    throw new Error('The attempt is complete; it takes no further submissions');
+  }
+
   const itemDoc = parseItem(itemXml);
 
   // Validate response constraints before processing

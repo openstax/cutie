@@ -584,9 +584,10 @@ describe('delivery options', () => {
     });
 
     test('is false when the same feedback stays visible', async () => {
-      const begun = await beginAttempt(feedbackChoiceItem);
-      const first = await submitResponse({ RESPONSE: 'B' }, begun.state, feedbackChoiceItem);
-      const second = await submitResponse({ RESPONSE: 'C' }, first.state, feedbackChoiceItem);
+      const begun = await beginAttempt(adaptiveItem);
+      const first = await submitResponse({ RESPONSE: 'B' }, begun.state, adaptiveItem);
+      const second = await submitResponse({ RESPONSE: 'B' }, first.state, adaptiveItem);
+      expect(feedbackIdentifiers(second.template)).toEqual(['HINT']);
       expect(second.hasNewFeedback).toBe(false);
     });
 

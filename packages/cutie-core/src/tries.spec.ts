@@ -424,6 +424,14 @@ describe('tries', () => {
     });
   });
 
+  describe('a finished attempt', () => {
+    test('takes no further submissions', async () => {
+      const begun = await beginAttempt(choiceItem);
+      const result = await submitResponse({ RESPONSE: 'B' }, begun.state, choiceItem);
+      await expect(submitResponse({ RESPONSE: 'A' }, result.state, choiceItem)).rejects.toThrow(/complete/);
+    });
+  });
+
   describe('manual scoring', () => {
     test('ends the attempt on the first try, and resubmissions edit it', async () => {
       const begun = await begin(essayItem, { maxTries: 3 });
