@@ -4,6 +4,7 @@ import { ItemStateImpl } from './state/itemState';
 import { registerBaseStyles } from './styles';
 import { createTransformContext, transformChildren, transformNode } from './transformer/elementTransformer';
 import { announceItemVerdict } from './transformer/handlers/evaluation';
+import { beginFeedbackRender, endFeedbackRender } from './transformer/handlers/feedback/feedbackAnnouncer';
 import { DefaultStyleManager } from './transformer/styleManager';
 import type { ResponseData, TransformContext } from './transformer/types';
 import { announce, initLiveRegions } from './utils/liveRegion';
@@ -172,12 +173,14 @@ export function mountItem(
 
     // Announced before the feedback the render announces
     announceItemVerdict(parsed.itemBody, context);
+    beginFeedbackRender(state);
 
     const fragment = transformChildren(parsed.itemBody, context);
 
     for (const modalFeedback of parsed.modalFeedbacks) {
       fragment.appendChild(transformNode(modalFeedback, context));
     }
+    endFeedbackRender(state);
 
     const unmountDom = renderToContainer(container, fragment);
 
