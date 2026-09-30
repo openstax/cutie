@@ -22,25 +22,26 @@ interface PreviewTabProps {
  * correct answers and, unless compact, all of its feedback.
  */
 export function PreviewTab({ itemXml, previewOptions, onPreviewOptionsChange, onError, isLoading, onOpenGenerateDialog }: PreviewTabProps) {
-  const [preview, setPreview] = useState<{ itemXml: string; template: string } | null>(null);
+  const [preview, setPreview] = useState<{ itemXml: string; compact: boolean; template: string } | null>(null);
+  const compact = previewOptions.compact ?? false;
 
   useEffect(() => {
     if (!itemXml.trim()) return;
 
     let current = true;
-    renderPreview(itemXml, { resolveAssets }, previewOptions)
+    renderPreview(itemXml, { resolveAssets }, { compact })
       .then((template) => {
-        if (current) setPreview({ itemXml, template });
+        if (current) setPreview({ itemXml, compact, template });
       })
       .catch((err) => {
         console.error(err);
         if (current) onError(err instanceof Error ? err.message : 'Error rendering preview');
       });
     return () => { current = false; };
-  }, [itemXml, previewOptions, onError]);
+  }, [itemXml, compact, onError]);
 
-  // A preview of an earlier item isn't shown for this one
-  const template = preview && preview.itemXml === itemXml ? preview.template : '';
+  // A preview of an earlier item, or in the other mode, isn't shown for this one
+  const template = preview && preview.itemXml === itemXml && preview.compact === compact ? preview.template : '';
 
   return (
     <SidebarLayout
