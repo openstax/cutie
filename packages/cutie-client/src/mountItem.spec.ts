@@ -404,6 +404,30 @@ describe('mountItem cleanup lifetimes', () => {
     container.remove();
   });
 
+  it('drops an unmounted item\'s queued announcements while another item still holds the regions', async () => {
+    const first = document.createElement('div');
+    const second = document.createElement('div');
+    document.body.append(first, second);
+    const withRetry = (text: string) =>
+      MATCH_XML.replace('<qti-item-body>', `<qti-item-body><div data-cutie-retry="incorrect">${text}</div>`);
+
+    const a = mountItem(first, MATCH_XML);
+    const b = mountItem(second, MATCH_XML);
+
+    a.update(withRetry('From A')); // queues A's announcement
+    b.update(withRetry('From B')); // and B's
+    a.unmount(); // before the queue flushes
+    await Promise.resolve();
+
+    const polite = q(document.body, '[aria-live="polite"]');
+    expect(polite.textContent).toContain('From B');
+    expect(polite.textContent).not.toContain('From A');
+
+    b.unmount();
+    first.remove();
+    second.remove();
+  });
+
   it('keeps the live regions across update() and removes them on unmount()', () => {
     const container = document.createElement('div');
     document.body.appendChild(container);

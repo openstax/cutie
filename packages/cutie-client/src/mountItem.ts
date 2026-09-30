@@ -110,7 +110,7 @@ export function mountItem(
   const unmountCallbacks: Array<() => void> = [];
 
   // The shared live regions, held for as long as this item is mounted
-  unmountCallbacks.push(acquireLiveRegions());
+  unmountCallbacks.push(acquireLiveRegions(state));
 
   // Mutable reference to current render's itemState and context
   let currentItemState: ItemStateImpl | null = null;

@@ -2,18 +2,31 @@ import type { TransformContext } from '../transformer/types';
 
 type Urgency = 'polite' | 'assertive';
 
+/** A queued message, with the mounted item it came from */
+interface PendingMessage {
+  message: string;
+  source: object;
+}
+
 interface LiveRegionState {
   element: HTMLElement | null;
-  pendingMessages: string[];
+  pendingMessages: PendingMessage[];
   flushScheduled: boolean;
-  flushCtx: TransformContext | null;
   announceToggle: boolean;
 }
 
 const regions: Record<Urgency, LiveRegionState> = {
-  polite: { element: null, pendingMessages: [], flushScheduled: false, flushCtx: null, announceToggle: false },
-  assertive: { element: null, pendingMessages: [], flushScheduled: false, flushCtx: null, announceToggle: false },
+  polite: { element: null, pendingMessages: [], flushScheduled: false, announceToggle: false },
+  assertive: { element: null, pendingMessages: [], flushScheduled: false, announceToggle: false },
 };
+
+/**
+ * The mounted item a context renders: its persistent state, shared by every
+ * render of the item, or the context itself when it has none.
+ */
+function sourceOf(ctx: TransformContext): object {
+  return ctx.state ?? ctx;
+}
 
 /** Mounted items holding the live regions (see acquireLiveRegions) */
 let holders = 0;
@@ -37,7 +50,6 @@ function removeLiveRegions(): void {
     // Drop anything queued, so a later flush neither recreates a region no
     // one holds nor announces a stale message in another item's regions
     state.pendingMessages = [];
-    state.flushCtx = null;
   }
 }
 
@@ -48,8 +60,12 @@ function removeLiveRegions(): void {
  * them. Call once per mount, before any announce() calls — a screen reader
  * needs a live region to already exist in the accessibility tree before its
  * content is mutated, or the first announcement may be missed.
+ *
+ * @param holder - The mounted item: the `state` its render contexts carry.
+ *   Releasing drops the messages it queued that have not been announced yet,
+ *   so an item that is gone is never heard from.
  */
-export function acquireLiveRegions(): () => void {
+export function acquireLiveRegions(holder: object): () => void {
   holders++;
   getOrCreateLiveRegion('polite');
   getOrCreateLiveRegion('assertive');
@@ -59,6 +75,9 @@ export function acquireLiveRegions(): () => void {
     if (released) return;
     released = true;
     holders--;
+    for (const state of Object.values(regions)) {
+      state.pendingMessages = state.pendingMessages.filter((pending) => pending.source !== holder);
+    }
     if (holders === 0) removeLiveRegions();
   };
 }
@@ -66,13 +85,11 @@ export function acquireLiveRegions(): () => void {
 function createFlush(urgency: Urgency): () => void {
   return () => {
     const state = regions[urgency];
-    const ctx = state.flushCtx;
-    const messages = state.pendingMessages;
+    const messages = state.pendingMessages.map((pending) => pending.message);
     state.pendingMessages = [];
     state.flushScheduled = false;
-    state.flushCtx = null;
 
-    if (!ctx || messages.length === 0) return;
+    if (messages.length === 0) return;
 
     // Append an invisible, alternating marker so the live region's text
     // still changes even when a message repeats verbatim — screen readers
@@ -99,8 +116,7 @@ export function announce(
   urgency: Urgency = 'polite'
 ): void {
   const state = regions[urgency];
-  state.pendingMessages.push(message);
-  state.flushCtx = ctx;
+  state.pendingMessages.push({ message, source: sourceOf(ctx) });
 
   if (!state.flushScheduled) {
     state.flushScheduled = true;
