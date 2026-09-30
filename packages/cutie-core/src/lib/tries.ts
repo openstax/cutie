@@ -123,9 +123,14 @@ function beginNextTry(
   delete variables.completionStatus;
   variables.numAttempts = 0;
 
+  // An adaptive item's responses start over as they began: without a value,
+  // or with the default template processing set
   if (isAdaptive(itemDoc)) {
     for (const identifier of responseIdentifiers(itemDoc)) {
       delete variables[identifier];
+      if (ended.defaultValues && identifier in ended.defaultValues) {
+        variables[identifier] = ended.defaultValues[identifier];
+      }
     }
   }
 

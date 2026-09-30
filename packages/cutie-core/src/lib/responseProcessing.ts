@@ -119,7 +119,9 @@ export function processResponse(
     ? 'completed'
     : 'incomplete';
 
-  const externalInfo = getExternalScoredInfo(itemDoc, variables);
+  // A human-scored item awaits its score once the submission completes it; an
+  // adaptive item's earlier steps have nothing to score yet
+  const externalInfo = completionStatus === 'completed' ? getExternalScoredInfo(itemDoc, variables) : null;
 
   return {
     variables,

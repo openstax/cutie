@@ -37,6 +37,10 @@ function replaceCorrectResponse(itemDoc: Document, identifier: string, value: un
 
   const isNull = value === null || value === undefined || (Array.isArray(value) && value.length === 0);
   if (!isNull) {
-    declaration.appendChild(createValueContainer(itemDoc, 'qti-correct-response', value));
+    // QTI orders qti-correct-response before any qti-mapping or qti-area-mapping
+    const mapping = Array.from(declaration.childNodes).find(
+      (node) => node.nodeType === 1 && ['qti-mapping', 'qti-area-mapping'].includes((node as Element).tagName)
+    );
+    declaration.insertBefore(createValueContainer(itemDoc, 'qti-correct-response', value), mapping ?? null);
   }
 }

@@ -232,3 +232,24 @@ stores its value in `state.correctResponses` (kept apart from the item's
 variables). The template sent to the client is sanitized properly, but anyone
 with the `AttemptState` can read the correct answer. Hosts must never send the
 state to the client.
+
+## 13. Record-cardinality correct responses are not supported
+
+**Files:** `packages/cutie-core/src/lib/responseDeclarations.ts` (`getCorrectResponse`),
+`packages/cutie-core/src/utils/valueContainer.ts` (`createValueContainer`)
+
+**Spec:** A response declaration may have record cardinality, with a
+`qti-correct-response` of `qti-field-value` entries. Template processing may set
+one with `qti-set-correct-response` and a `qti-record` expression.
+
+**Cutie:** `getCorrectResponse` reads single, multiple and ordered correct
+responses only, so a record correct response (authored or set by template
+processing) is never read. A record set by template processing is also written
+into the attempt's declaration as a single `qti-value` (`[object Object]`),
+since `createValueContainer` doesn't write `qti-field-value` entries.
+
+**When this matters:** Record responses come from custom interactions and PCIs,
+which cutie doesn't support, so no supported interaction produces one today.
+
+**Suggested fix:** Read and write `qti-field-value` entries (with each field's
+base type) for record cardinality in both places.

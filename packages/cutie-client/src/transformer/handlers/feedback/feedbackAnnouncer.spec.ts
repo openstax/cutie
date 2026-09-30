@@ -56,4 +56,12 @@ describe('feedback announcements', () => {
     mounted.update(itemWith('HINT'));
     expect(announced()).toEqual(['HINT text', 'HINT text']);
   });
+
+  it('announces feedback of another kind with the same outcome and identifier', () => {
+    const inline = itemWith().replace('<p>Question</p>', '<p>Question <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="HINT" show-hide="show">inline hint</qti-feedback-inline></p>');
+    mounted = mountItem(container, itemWith());
+    mounted.update(inline);
+    mounted.update(itemWith('HINT'));
+    expect(announced()).toEqual(['inline hint', 'HINT text']);
+  });
 });

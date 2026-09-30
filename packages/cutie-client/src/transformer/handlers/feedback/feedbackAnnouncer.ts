@@ -25,8 +25,10 @@ export function endFeedbackRender(state: Map<string, unknown>): void {
 /**
  * Announces newly-visible feedback to screen readers.
  *
- * Feedback is identified by a composite key (outcome-identifier and
- * identifier). Each render records the feedback it shows, and a render after
+ * Feedback is identified by its visibility condition (tag, outcome-identifier
+ * and identifier), as cutie-core's hasNewFeedback identifies it: elements that
+ * share a condition appear and disappear together. Each render records the
+ * feedback it shows, and a render after
  * the first (after `update()`, per the `isUpdate` flag `mountItem` sets)
  * announces feedback the previous render did not show. Feedback that stays
  * visible is not repeated; feedback that went away and comes back (e.g. a
@@ -67,7 +69,8 @@ export function announceFeedback(
 }
 
 function feedbackKey(element: Element): string {
-  return `${element.getAttribute('outcome-identifier') ?? ''}:${element.getAttribute('identifier') ?? ''}`;
+  const outcomeIdentifier = element.getAttribute('outcome-identifier') ?? '';
+  return `${element.tagName.toLowerCase()}|${outcomeIdentifier}|${element.getAttribute('identifier') ?? ''}`;
 }
 
 function hasNewFeedbackAncestor(element: Element, shownKeys: Set<string>): boolean {

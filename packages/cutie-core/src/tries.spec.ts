@@ -429,6 +429,24 @@ describe('tries', () => {
       expect(result.state.triesRemaining).toBe(2);
     });
 
+    test('restores response defaults template processing set on a fresh try', async () => {
+      const item = adaptiveItem.replace(
+        '<qti-item-body>',
+        `<qti-template-processing>
+    <qti-set-default-value identifier="RESPONSE"><qti-base-value base-type="identifier">B</qti-base-value></qti-set-default-value>
+  </qti-template-processing>
+  <qti-item-body>`
+      );
+      const begun = await begin(item, { maxTries: 2 });
+      expect(begun.state.variables.RESPONSE).toBe('B');
+      const hinted = await submitResponse({ RESPONSE: 'B' }, begun.state, item);
+      const retry = await submitResponse({ RESPONSE: 'B' }, hinted.state, item);
+
+      expect(retry.state.retryVerdict).toBeDefined();
+      expect(retry.state.variables.RESPONSE).toBe('B');
+      expect(defaultValueOf(retry.template, 'RESPONSE')).toEqual(['B']);
+    });
+
     test('uses the adaptiveRetryMessage given', async () => {
       const begun = await begin(adaptiveItem, { maxTries: 3, adaptiveRetryMessage: '{n} left. {n}!' });
       const hinted = await submitResponse({ RESPONSE: 'B' }, begun.state, adaptiveItem);
@@ -533,6 +551,34 @@ describe('tries', () => {
   });
 
   describe('manual scoring', () => {
+    test('an adaptive item awaits its score only once it completes', async () => {
+      // A human-scored adaptive item: a first step, then a final one
+      const item = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="adaptive-essay" title="Adaptive Essay" adaptive="true">
+  <qti-response-declaration identifier="ESSAY" cardinality="single" base-type="string"/>
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float" external-scored="human" normal-maximum="5"/>
+  <qti-item-body><qti-extended-text-interaction response-identifier="ESSAY"/></qti-item-body>
+  <qti-response-processing>
+    <qti-response-condition>
+      <qti-response-if>
+        <qti-gte><qti-variable identifier="numAttempts"/><qti-base-value base-type="integer">2</qti-base-value></qti-gte>
+        <qti-set-outcome-value identifier="completionStatus"><qti-base-value base-type="identifier">completed</qti-base-value></qti-set-outcome-value>
+      </qti-response-if>
+    </qti-response-condition>
+  </qti-response-processing>
+</qti-assessment-item>`;
+      const begun = await begin(item, { maxTries: 2 });
+      const step = await submitResponse({ ESSAY: 'Draft' }, begun.state, item);
+      expect(step.state.completionStatus).toBe('incomplete');
+      expect(step.state.pendingManualScoring).toBeUndefined();
+
+      const done = await submitResponse({ ESSAY: 'Final' }, step.state, item);
+      expect(done.state.completionStatus).toBe('completed');
+      expect(done.state.pendingManualScoring).toBeDefined();
+      expect(done.tryConsumed).toBe(true);
+      expect(done.state.triesRemaining).toBe(0);
+    });
+
     test('ends the attempt on the first try, and resubmissions edit it', async () => {
       const begun = await begin(essayItem, { maxTries: 3 });
       const submitted = await submitResponse({ ESSAY: 'Draft' }, begun.state, essayItem);

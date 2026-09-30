@@ -376,6 +376,20 @@ describe('mountItem cleanup lifetimes', () => {
     second.remove();
   });
 
+  it('drops announcements still queued when the last item unmounts', async () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const item = mountItem(container, MATCH_XML);
+    const retry = MATCH_XML.replace('<qti-item-body>', '<qti-item-body><div data-cutie-retry="incorrect">Try again</div>');
+
+    item.update(retry); // queues the retry message's announcement
+    item.unmount(); // before the queue flushes
+    await Promise.resolve();
+
+    expect(document.querySelectorAll('[aria-live]')).toHaveLength(0);
+    container.remove();
+  });
+
   it('keeps the live regions across update() and removes them on unmount()', () => {
     const container = document.createElement('div');
     document.body.appendChild(container);

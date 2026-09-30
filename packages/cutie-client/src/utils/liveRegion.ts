@@ -34,6 +34,10 @@ function removeLiveRegions(): void {
   for (const state of Object.values(regions)) {
     state.element?.remove();
     state.element = null;
+    // Drop anything queued, so a later flush neither recreates a region no
+    // one holds nor announces a stale message in another item's regions
+    state.pendingMessages = [];
+    state.flushCtx = null;
   }
 }
 
