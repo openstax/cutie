@@ -560,6 +560,28 @@ describe('delivery options', () => {
       expect(correctResponseOf(result.template, 'RESPONSE')).toEqual(['B']);
     });
 
+    test('treats a correct response template processing sets to NULL as no correct response', async () => {
+      const item = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+                     identifier="null-correct" title="Null Correct" adaptive="false" time-dependent="false">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="string">
+    <qti-correct-response><qti-value>x</qti-value></qti-correct-response>
+  </qti-response-declaration>
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/>
+  <qti-template-processing>
+    <qti-set-correct-response identifier="RESPONSE"><qti-null/></qti-set-correct-response>
+  </qti-template-processing>
+  <qti-item-body><p><qti-text-entry-interaction response-identifier="RESPONSE"/></p></qti-item-body>
+  <qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct.xml"/>
+</qti-assessment-item>`;
+      const begun = await beginAttempt(item, undefined, { showEvaluation: 'correctResponse' });
+      const result = await submitResponse({ RESPONSE: 'null' }, begun.state, item);
+
+      expect(result.state.variables.SCORE).toBe(0);
+      expect(evaluationOf(result.template, 'RESPONSE')).toBeNull();
+      expect(correctResponseOf(result.template, 'RESPONSE')).toBeNull();
+    });
+
     test('shows nothing while manual scoring is pending', async () => {
       const begun = await beginAttempt(externalScoredItem, undefined, { showEvaluation: 'correctResponse' });
       const submitted = await submitResponse({ CHOICE: 'A', ESSAY: 'Text' }, begun.state, externalScoredItem);

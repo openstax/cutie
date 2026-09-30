@@ -357,6 +357,25 @@ describe('mountItem cleanup lifetimes', () => {
     container.remove();
   });
 
+  it('shares the live regions between mounted items until the last unmounts', () => {
+    const first = document.createElement('div');
+    const second = document.createElement('div');
+    document.body.append(first, second);
+
+    const a = mountItem(first, MATCH_XML);
+    const b = mountItem(second, MATCH_XML);
+    const regions = Array.from(document.querySelectorAll('[aria-live]'));
+    expect(regions).toHaveLength(2);
+
+    a.unmount();
+    expect(Array.from(document.querySelectorAll('[aria-live]'))).toEqual(regions);
+
+    b.unmount();
+    expect(document.querySelectorAll('[aria-live]')).toHaveLength(0);
+    first.remove();
+    second.remove();
+  });
+
   it('keeps the live regions across update() and removes them on unmount()', () => {
     const container = document.createElement('div');
     document.body.appendChild(container);

@@ -111,13 +111,13 @@ export function processResponse(
   }
 
   // Step 3: Return updated state
-  // An adaptive item decides when it is complete (QTI 3 Information Model
-  // §2.2.2.3); any other item is complete after every submission, whatever
-  // its response processing sets
+  // An adaptive item is complete only once its response processing sets
+  // completionStatus to completed (QTI 3 Information Model §2.2.2.3); any
+  // other item is complete after every submission, whatever it sets
   const score = extractStandardOutcomes(variables, itemDoc);
-  const completionStatus = isAdaptive(itemDoc) && variables.completionStatus === 'incomplete'
-    ? 'incomplete'
-    : 'completed';
+  const completionStatus = !isAdaptive(itemDoc) || variables.completionStatus === 'completed'
+    ? 'completed'
+    : 'incomplete';
 
   const externalInfo = getExternalScoredInfo(itemDoc, variables);
 

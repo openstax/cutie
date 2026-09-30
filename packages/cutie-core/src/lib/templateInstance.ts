@@ -20,7 +20,9 @@ export function instantiateTemplate(itemDoc: Document, state: AttemptState): Doc
 }
 
 /**
- * Replaces a response declaration's qti-correct-response with one holding the given value
+ * Replaces a response declaration's qti-correct-response with one holding the
+ * given value. A NULL value (null, or an empty container) means there is no
+ * correct response, so the declaration is left without one.
  */
 function replaceCorrectResponse(itemDoc: Document, identifier: string, value: unknown): void {
   const declaration = Array.from(itemDoc.getElementsByTagName('qti-response-declaration')).find(
@@ -31,11 +33,10 @@ function replaceCorrectResponse(itemDoc: Document, identifier: string, value: un
   const existing = Array.from(declaration.childNodes).find(
     (node): node is Element => node.nodeType === 1 && (node as Element).tagName === 'qti-correct-response'
   );
-  const replacement = createValueContainer(itemDoc, 'qti-correct-response', value);
+  if (existing) declaration.removeChild(existing);
 
-  if (existing) {
-    declaration.replaceChild(replacement, existing);
-  } else {
-    declaration.appendChild(replacement);
+  const isNull = value === null || value === undefined || (Array.isArray(value) && value.length === 0);
+  if (!isNull) {
+    declaration.appendChild(createValueContainer(itemDoc, 'qti-correct-response', value));
   }
 }

@@ -99,6 +99,23 @@ describe('verdicts on a fresh try', () => {
       expect(container.querySelector('.cutie-evaluated')).toBeNull();
     });
 
+    it('choice interaction: an edit over max-choices announces the constraint, not the verdict', () => {
+      mount(itemXml(
+        declaration('R1', 'multiple', 'identifier', ['A', 'B']),
+        `<qti-choice-interaction response-identifier="R1" max-choices="2" data-cutie-evaluation="incorrect">
+          <qti-simple-choice identifier="A">A</qti-simple-choice>
+          <qti-simple-choice identifier="B">B</qti-simple-choice>
+          <qti-simple-choice identifier="C">C</qti-simple-choice>
+        </qti-choice-interaction>`,
+      ));
+
+      check(container.querySelectorAll<HTMLInputElement>('input')[2]!);
+
+      const messages = vi.mocked(announce).mock.calls.map((call) => call[1]);
+      expect(messages).not.toContain('Incorrect response');
+      expect(q(container, '#constraint-R1').textContent).not.toBe('Incorrect response');
+    });
+
     it('text entry interaction: drops the verdict overline', () => {
       mount(itemXml(
         declaration('R1', 'single', 'string', ['Lyon']),

@@ -7,7 +7,7 @@ import { announceItemVerdict } from './transformer/handlers/evaluation';
 import { beginFeedbackRender, endFeedbackRender } from './transformer/handlers/feedback/feedbackAnnouncer';
 import { DefaultStyleManager } from './transformer/styleManager';
 import type { ResponseData, TransformContext } from './transformer/types';
-import { announce, initLiveRegions } from './utils/liveRegion';
+import { acquireLiveRegions, announce } from './utils/liveRegion';
 
 /**
  * Theming options for a mounted QTI item.
@@ -109,6 +109,9 @@ export function mountItem(
   // Unmount callbacks — for resources that persist across renders, called on unmount()
   const unmountCallbacks: Array<() => void> = [];
 
+  // The shared live regions, held for as long as this item is mounted
+  unmountCallbacks.push(acquireLiveRegions());
+
   // Mutable reference to current render's itemState and context
   let currentItemState: ItemStateImpl | null = null;
   let currentContext: TransformContext | null = null;
@@ -172,7 +175,6 @@ export function mountItem(
       state,
     });
     currentContext = context;
-    initLiveRegions(context);
 
     // Announced before the feedback the render announces
     announceItemVerdict(parsed.itemBody, context);

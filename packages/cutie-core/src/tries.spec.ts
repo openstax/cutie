@@ -415,6 +415,20 @@ describe('tries', () => {
       expect(hinted.state.completionStatus).toBe('incomplete');
     });
 
+    test('is incomplete until its response processing sets completed', async () => {
+      // Response processing that never touches completionStatus
+      const item = adaptiveItem.replace(
+        /<qti-response-processing>[\s\S]*<\/qti-response-processing>/,
+        '<qti-response-processing><qti-set-outcome-value identifier="SCORE"><qti-base-value base-type="float">0</qti-base-value></qti-set-outcome-value></qti-response-processing>'
+      );
+      const begun = await begin(item, { maxTries: 2 });
+      const result = await submitResponse({ RESPONSE: 'B' }, begun.state, item);
+
+      expect(result.state.completionStatus).toBe('incomplete');
+      expect(result.tryConsumed).toBe(false);
+      expect(result.state.triesRemaining).toBe(2);
+    });
+
     test('uses the adaptiveRetryMessage given', async () => {
       const begun = await begin(adaptiveItem, { maxTries: 3, adaptiveRetryMessage: '{n} left. {n}!' });
       const hinted = await submitResponse({ RESPONSE: 'B' }, begun.state, adaptiveItem);

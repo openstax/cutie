@@ -29,8 +29,8 @@ const resolveAssets: ProcessingOptions['resolveAssets'] = async (urls) => {
     if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('/') || url.startsWith('data:')) {
       return url;
     }
-    // Prepend / to make it resolve from public/
-    return `/${url}`;
+    // Resolve from public/, under the app's base path (e.g. /cutie/)
+    return `${import.meta.env.BASE_URL}${url}`;
   });
 };
 

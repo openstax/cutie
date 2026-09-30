@@ -327,6 +327,9 @@ class ChoiceInteractionHandler implements ElementHandler {
       // Real-time validation on user interaction
       inputElements.forEach((input) => {
         input.addEventListener('change', () => {
+          // Report the edit first: it clears a verdict the constraint message
+          // may be showing, so validation below uses the constraint's own text
+          context.itemState?.notifyResponseChange(responseIdentifier);
           if (checkValidity()) {
             clearErrors();
           } else {
@@ -336,7 +339,6 @@ class ChoiceInteractionHandler implements ElementHandler {
               showErrors();
             }
           }
-          context.itemState?.notifyResponseChange(responseIdentifier);
         });
       });
 

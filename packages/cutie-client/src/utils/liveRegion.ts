@@ -15,7 +15,10 @@ const regions: Record<Urgency, LiveRegionState> = {
   assertive: { element: null, pendingMessages: [], flushScheduled: false, flushCtx: null, announceToggle: false },
 };
 
-function getOrCreateLiveRegion(ctx: TransformContext, urgency: Urgency): HTMLElement {
+/** Mounted items holding the live regions (see acquireLiveRegions) */
+let holders = 0;
+
+function getOrCreateLiveRegion(urgency: Urgency): HTMLElement {
   const state = regions[urgency];
   if (!state.element) {
     state.element = document.createElement('div');
@@ -23,23 +26,37 @@ function getOrCreateLiveRegion(ctx: TransformContext, urgency: Urgency): HTMLEle
     state.element.setAttribute('aria-atomic', 'true');
     state.element.style.cssText = LIVE_REGION_STYLES;
     document.body.appendChild(state.element);
-    ctx.onUnmount?.(() => {
-      state.element?.remove();
-      state.element = null;
-    });
   }
   return state.element;
 }
 
+function removeLiveRegions(): void {
+  for (const state of Object.values(regions)) {
+    state.element?.remove();
+    state.element = null;
+  }
+}
+
 /**
- * Eagerly creates and inserts both live-region elements. Call once per item
- * mount, before any announce() calls — a screen reader needs a live region to
- * already exist in the accessibility tree before its content is mutated, or
- * the first announcement may be missed.
+ * Takes a hold on the live regions for a mounted item, creating and inserting
+ * both if no other mounted item holds them, and returns a release. The regions
+ * are shared by every mounted item and removed when the last holder releases
+ * them. Call once per mount, before any announce() calls — a screen reader
+ * needs a live region to already exist in the accessibility tree before its
+ * content is mutated, or the first announcement may be missed.
  */
-export function initLiveRegions(ctx: TransformContext): void {
-  getOrCreateLiveRegion(ctx, 'polite');
-  getOrCreateLiveRegion(ctx, 'assertive');
+export function acquireLiveRegions(): () => void {
+  holders++;
+  getOrCreateLiveRegion('polite');
+  getOrCreateLiveRegion('assertive');
+
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    holders--;
+    if (holders === 0) removeLiveRegions();
+  };
 }
 
 function createFlush(urgency: Urgency): () => void {
@@ -58,7 +75,7 @@ function createFlush(urgency: Urgency): () => void {
     // key off content changing, not off this function having been called.
     state.announceToggle = !state.announceToggle;
     const marker = state.announceToggle ? '\u200B' : '';
-    getOrCreateLiveRegion(ctx, urgency).textContent = messages.join(' ') + marker;
+    getOrCreateLiveRegion(urgency).textContent = messages.join(' ') + marker;
   };
 }
 

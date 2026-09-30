@@ -155,10 +155,13 @@ implementations of those attributes, and a caller passing none gets standard QTI
 ```typescript
 import { beginAttempt, resumeAttempt, setScore, submitResponse } from '@openstax/cutie-core';
 
-let { state, template } = await beginAttempt(itemXml, { resolveAssets }, { showEvaluation: 'correctness', maxTries: 'smart' });
-({ state, template } = await submitResponse(responses, state, itemXml));
-({ state, template } = await resumeAttempt(state, itemXml)); // same template, state unchanged
-({ state, template } = await setScore(4, 'Good work', state, itemXml)); // for manual scoring
+// Processing options (e.g. the asset resolver) go to every operation; delivery options only to beginAttempt
+const processing = { resolveAssets };
+
+let { state, template } = await beginAttempt(itemXml, processing, { showEvaluation: 'correctness', maxTries: 'smart' });
+({ state, template } = await submitResponse(responses, state, itemXml, processing));
+({ state, template } = await resumeAttempt(state, itemXml, processing)); // same template, state unchanged
+({ state, template } = await setScore(4, 'Good work', state, itemXml, processing)); // for manual scoring
 ```
 
 Every operation returns an `AttemptResult`:

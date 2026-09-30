@@ -144,8 +144,7 @@ export interface TransformContext {
 
   /**
    * Register a teardown callback to run only when the item is unmounted. Use for
-   * resources that must persist across renders (e.g., live regions on
-   * document.body, which have to exist before an announcement is made).
+   * resources that must persist across renders.
    */
   onUnmount?: (callback: () => void) => void;
 
