@@ -1022,7 +1022,7 @@ describe('choiceInteraction evaluation', () => {
 
   it('describes the response in the constraint text, announced with the fieldset', () => {
     const container = render(
-      'data-evaluation="incorrect"',
+      'data-cutie-evaluation="incorrect"',
       '<qti-default-value><qti-value>B</qti-value></qti-default-value>',
     );
     const interaction = container.querySelector('.cutie-choice-interaction')!;
@@ -1040,7 +1040,7 @@ describe('choiceInteraction evaluation', () => {
   });
 
   it('replaces the constraint hint with the verdict', () => {
-    const evaluated = render('data-evaluation="correct" min-choices="1"', '');
+    const evaluated = render('data-cutie-evaluation="correct" min-choices="1"', '');
     expect(evaluated.querySelector('#constraint-R1')!.textContent).toBe('Correct response');
 
     const unevaluated = render('min-choices="1"', '');
@@ -1049,7 +1049,7 @@ describe('choiceInteraction evaluation', () => {
 
   it('puts a correct-answer overline on the correct choice', () => {
     const container = render(
-      'data-evaluation="incorrect"',
+      'data-cutie-evaluation="incorrect"',
       `<qti-default-value><qti-value>B</qti-value></qti-default-value>
        <qti-correct-response><qti-value>A</qti-value></qti-correct-response>`,
     );
@@ -1063,7 +1063,7 @@ describe('choiceInteraction evaluation', () => {
 
   it('marks every correct choice for multiple cardinality', () => {
     const container = render(
-      'data-evaluation="partial"',
+      'data-cutie-evaluation="partial"',
       '<qti-correct-response><qti-value>A</qti-value><qti-value>C</qti-value></qti-correct-response>',
       '3',
     );

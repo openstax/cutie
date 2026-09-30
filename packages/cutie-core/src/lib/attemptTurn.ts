@@ -135,10 +135,10 @@ function collectReveals(root: Element): string[] {
   const feedback = collectVisibleFeedback(root).map((identity) => `feedback:${feedbackKey(identity)}`);
 
   const evaluations = Array.from(root.getElementsByTagName('*'))
-    .filter((element) => element.hasAttribute('data-evaluation'))
+    .filter((element) => element.hasAttribute('data-cutie-evaluation'))
     .map(
       (element) =>
-        `evaluation:${element.getAttribute('response-identifier') ?? ''}:${element.getAttribute('data-evaluation')}`
+        `evaluation:${element.getAttribute('response-identifier') ?? ''}:${element.getAttribute('data-cutie-evaluation')}`
     );
 
   const correctResponses = Array.from(root.getElementsByTagName('qti-correct-response')).map(

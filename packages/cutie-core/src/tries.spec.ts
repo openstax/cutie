@@ -27,12 +27,12 @@ function evaluationOf(template: string, responseIdentifier: string): string | nu
   const interaction = Array.from(doc.getElementsByTagName('*')).find(
     (el) => el.getAttribute('response-identifier') === responseIdentifier
   );
-  return interaction?.getAttribute('data-evaluation') || null;
+  return interaction?.getAttribute('data-cutie-evaluation') || null;
 }
 
 function itemVerdictOf(template: string): string | null {
   const itemBody = parseTemplate(template).getElementsByTagName('qti-item-body')[0];
-  return itemBody?.getAttribute('data-evaluation') || null;
+  return itemBody?.getAttribute('data-cutie-evaluation') || null;
 }
 
 function defaultValueOf(template: string, responseIdentifier: string): string[] {
@@ -220,7 +220,7 @@ describe('tries', () => {
       expect(feedbackIdentifiers(result.template)).toEqual(['WRONG']);
     });
 
-    test.each([0, -1, 1.5, NaN])('rejects %s', async (maxTries) => {
+    test.each([0, -1, 1.5, NaN, 1e100])('rejects %s', async (maxTries) => {
       await expect(begin(choiceItem, { maxTries })).rejects.toThrow(/maxTries/);
     });
   });
@@ -253,6 +253,7 @@ describe('tries', () => {
     test('resets outcomes and numAttempts for the fresh try, keeping template defaults', async () => {
       const begun = await begin(choiceItem, { maxTries: 2 });
       expect(begun.state.variables.BONUS).toBe(7);
+      expect(begun.state.defaultValues).toEqual({ BONUS: 7 });
       expect(begun.state.variables.numAttempts).toBe(0);
 
       const result = await submitResponse({ RESPONSE: 'B' }, begun.state, choiceItem);
@@ -313,7 +314,7 @@ describe('tries', () => {
     });
 
     test('ends a try on every submission, even when response processing says incomplete', async () => {
-      // Only adaptive items decide their completion (QTI 2.1 §5.2.1)
+      // Only adaptive items decide their completion (QTI 3 Information Model §2.2.2.3)
       const item = choiceItem.replace(
         '<qti-response-processing>',
         `<qti-response-processing>
@@ -433,6 +434,19 @@ describe('tries', () => {
     });
   });
 
+  describe('reserved markup', () => {
+    test('authored verdicts and retry messages never reach the client', async () => {
+      const item = choiceItem
+        .replace('<qti-item-body>', '<qti-item-body data-cutie-evaluation="correct"><div data-cutie-retry="incorrect">Fake</div>')
+        .replace('<qti-choice-interaction response-identifier="RESPONSE"', '<qti-choice-interaction data-cutie-evaluation="correct" response-identifier="RESPONSE"');
+      const { template } = await beginAttempt(item);
+
+      expect(itemVerdictOf(template)).toBeNull();
+      expect(evaluationOf(template, 'RESPONSE')).toBeNull();
+      expect(retryMessageOf(template)).toBeNull();
+    });
+  });
+
   describe('a finished attempt', () => {
     test('takes no further submissions', async () => {
       const begun = await beginAttempt(choiceItem);
@@ -443,13 +457,12 @@ describe('tries', () => {
 
   describe('without a score to judge by', () => {
     /** Without a score, tries are judged by the interactions' own verdicts */
-    const noScoreItem = (body: string, declarations: string, templateProcessing = '') => `<?xml version="1.0" encoding="UTF-8"?>
+    const noScoreItem = (body: string, declarations: string) => `<?xml version="1.0" encoding="UTF-8"?>
 <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="no-score" title="No score">
   <qti-response-declaration identifier="CHOICE" cardinality="single" base-type="identifier">
     <qti-correct-response><qti-value>A</qti-value></qti-correct-response>
   </qti-response-declaration>
   ${declarations}
-  ${templateProcessing}
   <qti-item-body>
     <qti-choice-interaction response-identifier="CHOICE" max-choices="1">
       <qti-simple-choice identifier="A">A</qti-simple-choice>
@@ -473,11 +486,9 @@ describe('tries', () => {
       expect(itemVerdictOf(result.template)).toBeNull();
     });
 
-    test('ignores the responses of interactions this variant hides', async () => {
+    test('ignores declarations no interaction uses', async () => {
       const item = noScoreItem(
-        `<qti-template-block template-identifier="HARD" show-hide="show">
-          <p><qti-text-entry-interaction response-identifier="EXTRA"/></p>
-        </qti-template-block>`,
+        '',
         `<qti-response-declaration identifier="EXTRA" cardinality="single" base-type="string">
           <qti-correct-response><qti-value>x</qti-value></qti-correct-response>
         </qti-response-declaration>`
@@ -554,26 +565,23 @@ describe('tries', () => {
       expect(deriveSmartMaxTries(parser.parseFromString(gapMatch, 'text/xml'), {})).toBe(2);
     });
 
-    test('counts only the choices and interactions this variant shows', () => {
+    test('counts only the choices this variant shows', () => {
       const conditional = (id: string, showHide: string) =>
-        `<qti-simple-choice identifier="${id}" template-identifier="${id}" show-hide="${showHide}">${id}</qti-simple-choice>`;
-      const item = itemWithBody(`
-        <qti-choice-interaction response-identifier="R1">
+        `<qti-simple-choice identifier="${id}" template-identifier="SHOWN" show-hide="${showHide}">${id}</qti-simple-choice>`;
+      const item = itemWithBody(
+        `<qti-choice-interaction response-identifier="R1">
           ${choices(2)}${conditional('X1', 'show')}${conditional('X2', 'show')}${conditional('X3', 'hide')}${conditional('X4', 'hide')}
-        </qti-choice-interaction>
-        <qti-template-block template-identifier="HARD" show-hide="show">
-          <qti-choice-interaction response-identifier="R2">${choices(2)}</qti-choice-interaction>
-        </qti-template-block>`);
+        </qti-choice-interaction>`,
+        '<qti-template-declaration identifier="SHOWN" cardinality="multiple" base-type="identifier"/>'
+      );
       const doc = parser.parseFromString(item, 'text/xml');
 
-      // The plain choices, X3 and X4 show: 4 choices, 2 tries; the block is hidden
+      // The plain choices, X3 and X4 show: 4 choices, 2 tries
       expect(deriveSmartMaxTries(doc, {})).toBe(2);
       // All six show: 3 tries
       expect(deriveSmartMaxTries(doc, { SHOWN: ['X1', 'X2'] })).toBe(3);
       // Only the plain choices show: 1 try
-      expect(deriveSmartMaxTries(doc, { HIDDEN: ['X3', 'X4'] })).toBe(1);
-      // The block's two-choice interaction shows too, and limits the item: 1 try
-      expect(deriveSmartMaxTries(doc, { SHOWN: ['X1', 'X2', 'HARD'] })).toBe(1);
+      expect(deriveSmartMaxTries(doc, { SHOWN: ['X3', 'X4'] })).toBe(1);
     });
 
     test('ignores text entries', () => {

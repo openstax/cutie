@@ -9,6 +9,7 @@ import { deriveMaxScore } from './lib/deriveMaxScore';
 import { initializeState } from './lib/initializeState';
 import { processResponse } from './lib/responseProcessing';
 import { buildScore } from './lib/scoreUtils';
+import { instantiateTemplate } from './lib/templateInstance';
 import { endTry } from './lib/tries';
 import { validateSubmission } from './lib/validateResponses';
 import { AttemptState, DeliveryOptions, ProcessingOptions, ResponseData } from './types';
@@ -41,7 +42,7 @@ export async function beginAttempt(
   // Initialize state by processing template declarations and template processing
   const state = initializeState(itemDoc, resolveDeliveryOptions(options));
 
-  return presentState(itemDoc, state, processing);
+  return presentState(instantiateTemplate(itemDoc, state), state, processing);
 }
 
 /**
@@ -62,7 +63,7 @@ export async function resumeAttempt(
   itemXml: string,
   processing?: ProcessingOptions
 ): Promise<AttemptResult> {
-  return presentState(parseItem(itemXml), state, processing);
+  return presentState(instantiateTemplate(parseItem(itemXml), state), state, processing);
 }
 
 /**
@@ -107,7 +108,7 @@ export async function submitResponse(
     throw new Error('The attempt is complete; it takes no further submissions');
   }
 
-  const itemDoc = parseItem(itemXml);
+  const itemDoc = instantiateTemplate(parseItem(itemXml), state);
 
   // Validate response constraints before processing
   validateSubmission(submission, itemDoc);
@@ -144,7 +145,7 @@ export async function setScore(
   itemXml: string,
   processing?: ProcessingOptions
 ): Promise<AttemptResult> {
-  const itemDoc = parseItem(itemXml);
+  const itemDoc = instantiateTemplate(parseItem(itemXml), state);
 
   const maxScore = deriveMaxScore(itemDoc, state.variables);
   if (maxScore === null) {

@@ -2,7 +2,6 @@ import { AttemptState } from '../types';
 import { isAdaptive } from './adaptive';
 import { evaluateResponse, ResponseEvaluation } from './evaluateResponses';
 import { resetOutcomeVariables } from './initializeState';
-import { processTemplateConditionals } from './templateConditionals';
 
 /**
  * The state a submission leaves the attempt in, and whether it ended a try.
@@ -56,9 +55,9 @@ function continueTry(priorState: AttemptState, processedState: AttemptState): At
 
 /**
  * Judges a finished try as a whole: by its score when the item's maximum is
- * known, otherwise by the verdicts of the responses to the interactions this
- * variant shows (see evaluateResponse). A try is only correct when every one of
- * those responses was judged correct. Null when neither can judge it.
+ * known, otherwise by the verdicts of the responses the item's interactions
+ * collect (see evaluateResponse). A try is only correct when every one of those
+ * responses was judged correct. Null when neither can judge it.
  */
 export function evaluateTry(itemDoc: Document, state: AttemptState): ResponseEvaluation | null {
   if (state.score) {
@@ -68,7 +67,7 @@ export function evaluateTry(itemDoc: Document, state: AttemptState): ResponseEva
     return raw <= 0 ? 'incorrect' : 'partial';
   }
 
-  const evaluations = visibleResponseIdentifiers(itemDoc, state.variables).map((identifier) =>
+  const evaluations = interactionResponseIdentifiers(itemDoc).map((identifier) =>
     evaluateResponse(itemDoc, identifier, state.variables)
   );
   const verdicts = evaluations.filter((verdict): verdict is ResponseEvaluation => verdict !== null);
@@ -83,14 +82,12 @@ export function evaluateTry(itemDoc: Document, state: AttemptState): ResponseEva
 }
 
 /**
- * The responses of the interactions this variant shows, after template conditionals.
+ * The responses the item's interactions collect. Interactions are never
+ * conditional (QTI 3: a qti-template-block must not contain any interactions).
  */
-function visibleResponseIdentifiers(itemDoc: Document, variables: Record<string, unknown>): string[] {
-  const authoredBody = itemDoc.getElementsByTagName('qti-item-body')[0];
-  if (!authoredBody) return [];
-
-  const itemBody = authoredBody.cloneNode(true) as Element;
-  processTemplateConditionals(itemBody, variables);
+function interactionResponseIdentifiers(itemDoc: Document): string[] {
+  const itemBody = itemDoc.getElementsByTagName('qti-item-body')[0];
+  if (!itemBody) return [];
 
   const identifiers = Array.from(itemBody.getElementsByTagName('*'))
     .map((element) => element.getAttribute('response-identifier'))
@@ -101,8 +98,9 @@ function visibleResponseIdentifiers(itemDoc: Document, variables: Record<string,
 /**
  * Starts a fresh try after one that fell short.
  *
- * Template variables, shuffle orders and delivery options carry over, so the
- * learner sees the same variant. Outcomes and numAttempts start over, so no
+ * Template variables, template processing's results, shuffle orders and
+ * delivery options carry over, so the learner sees the same variant.
+ * Outcomes and numAttempts start over, so no
  * feedback from the last try shows. A non-adaptive item keeps the learner's
  * responses; an adaptive item, whose responses belong to steps it has moved
  * past, starts over entirely. The score stays the last try's until the next
@@ -131,6 +129,8 @@ function beginNextTry(
     score: ended.score,
     options: ended.options,
     ...(ended.shuffleOrders && { shuffleOrders: ended.shuffleOrders }),
+    ...(ended.correctResponses && { correctResponses: ended.correctResponses }),
+    ...(ended.defaultValues && { defaultValues: ended.defaultValues }),
     triesRemaining: ended.triesRemaining,
     retryVerdict: verdict,
   };

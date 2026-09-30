@@ -64,20 +64,11 @@ export function compareResponseValues(
 }
 
 /**
- * Get the correct response value for a response variable.
- *
- * A value set by qti-set-correct-response during template processing takes
- * precedence over the declared qti-correct-response. Returns null when there
- * is neither.
+ * Get the correct response value for a response variable, from its
+ * qti-correct-response: the attempt's own when template processing set one
+ * (see instantiateTemplate). Returns null when there is none.
  */
-export function getCorrectResponse(
-  itemDoc: Document,
-  identifier: string,
-  variables: Record<string, unknown>
-): unknown {
-  const templateCorrect = variables[`__correct_${identifier}`];
-  if (templateCorrect !== undefined) return templateCorrect;
-
+export function getCorrectResponse(itemDoc: Document, identifier: string): unknown {
   const declaration = getResponseDeclaration(itemDoc, identifier);
   const correctResponse = declaration?.getElementsByTagName('qti-correct-response')[0];
   if (!declaration || !correctResponse) return null;

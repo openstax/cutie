@@ -4,6 +4,7 @@ import { describe, expect, test } from 'vitest';
 import { AttemptState } from '../types';
 import { resolveDeliveryOptions } from './deliveryOptions';
 import { processResponse } from './responseProcessing';
+import { instantiateTemplate } from './templateInstance';
 
 const parser = new DOMParser();
 
@@ -3568,9 +3569,9 @@ describe('processResponse - Formula Response Processing', () => {
 });
 
 describe('processResponse - Template Variable Correct Response', () => {
-  test('match_correct uses __correct_ variable set by qti-set-correct-response', () => {
-    // Minimal item with no static <qti-correct-response> — correct answer
-    // is set dynamically via template processing into __correct_RESPONSE
+  test('match_correct uses the correct response set by qti-set-correct-response', () => {
+    // Minimal item with no static <qti-correct-response>: the correct answer
+    // is set by template processing, and kept in state.correctResponses
     const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
 <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
                      identifier="template-item"
@@ -3582,14 +3583,15 @@ describe('processResponse - Template Variable Correct Response', () => {
     template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>
 </qti-assessment-item>`;
 
-    const itemDoc = parser.parseFromString(itemXml, 'text/xml');
     const currentState: AttemptState = {
-      variables: { SCORE: 0, __correct_RESPONSE: 20.0 },
+      variables: { SCORE: 0 },
       completionStatus: 'not_attempted',
       options: resolveDeliveryOptions(),
       triesRemaining: 1,
       score: null,
+      correctResponses: { RESPONSE: 20.0 },
     };
+    const itemDoc = instantiateTemplate(parser.parseFromString(itemXml, 'text/xml'), currentState);
 
     // Correct answer
     const correct = processResponse(itemDoc, { RESPONSE: '20' }, currentState);
@@ -3600,7 +3602,7 @@ describe('processResponse - Template Variable Correct Response', () => {
     expect(incorrect.variables.SCORE).toBe(0);
   });
 
-  test('qti-correct expression uses __correct_ variable', () => {
+  test('qti-correct uses the correct response set by qti-set-correct-response', () => {
     // Item with inline response processing using <qti-correct>
     const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
 <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
@@ -3629,14 +3631,15 @@ describe('processResponse - Template Variable Correct Response', () => {
   </qti-response-processing>
 </qti-assessment-item>`;
 
-    const itemDoc = parser.parseFromString(itemXml, 'text/xml');
     const currentState: AttemptState = {
-      variables: { SCORE: 0, __correct_RESPONSE: 15.0 },
+      variables: { SCORE: 0 },
       completionStatus: 'not_attempted',
       options: resolveDeliveryOptions(),
       triesRemaining: 1,
       score: null,
+      correctResponses: { RESPONSE: 15.0 },
     };
+    const itemDoc = instantiateTemplate(parser.parseFromString(itemXml, 'text/xml'), currentState);
 
     const correct = processResponse(itemDoc, { RESPONSE: '15' }, currentState);
     expect(correct.variables.SCORE).toBe(1);

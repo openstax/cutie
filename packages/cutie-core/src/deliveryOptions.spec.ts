@@ -28,8 +28,8 @@ function evaluationOf(template: string, responseIdentifier: string): string | nu
   const interaction = Array.from(doc.getElementsByTagName('*')).find(
     (el) => el.getAttribute('response-identifier') === responseIdentifier
   );
-  return interaction?.hasAttribute('data-evaluation')
-    ? interaction.getAttribute('data-evaluation')
+  return interaction?.hasAttribute('data-cutie-evaluation')
+    ? interaction.getAttribute('data-cutie-evaluation')
     : null;
 }
 
@@ -539,7 +539,7 @@ describe('delivery options', () => {
     test('judges the response as a whole on the item body, by its score', async () => {
       const begun = await beginAttempt(multiInteractionItem, undefined, { showEvaluation: 'correctness' });
       const itemVerdict = (template: string) =>
-        parseTemplate(template).getElementsByTagName('qti-item-body')[0]?.getAttribute('data-evaluation') || null;
+        parseTemplate(template).getElementsByTagName('qti-item-body')[0]?.getAttribute('data-cutie-evaluation') || null;
       expect(itemVerdict(begun.template)).toBeNull();
 
       // Each interaction is correct, but the item's processing only awards CITY: 1 of 2
@@ -551,6 +551,9 @@ describe('delivery options', () => {
 
     test('uses this attempt\'s correct response when template processing sets it', async () => {
       const begun = await beginAttempt(templatedCorrectItem, undefined, { showEvaluation: 'correctResponse' });
+      // Kept in the state, apart from the item's variables
+      expect(begun.state.correctResponses).toEqual({ RESPONSE: 'B' });
+      expect(Object.keys(begun.state.variables)).toEqual(expect.not.arrayContaining(['__correct_RESPONSE']));
       const result = await submitResponse({ RESPONSE: 'B' }, begun.state, templatedCorrectItem);
 
       expect(evaluationOf(result.template, 'RESPONSE')).toBe('correct');

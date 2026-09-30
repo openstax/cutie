@@ -43,6 +43,7 @@ import * as choiceHorizontalStandard from './standard-choice-horizontal';
 import * as choicePartialStandard from './standard-choice-partial';
 import * as multiInteractionStandard from './standard-multi-interaction';
 import * as adaptiveMontyHall from './spec-adaptive-monty-hall';
+import * as templateImage from './spec-template-image';
 import * as templateDigging from './template-digging';
 import * as templateRounding from './template-rounding';
 import * as formulaStrict from './formula-strict';
@@ -78,6 +79,7 @@ export const specExamples = [
   multiInput,
   adaptiveMontyHall,
   templateDigging,
+  templateImage,
 ];
 
 /* these were made just to show different types of feedback */

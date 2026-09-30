@@ -1,79 +1,39 @@
 /**
- * Processes elements with template-identifier/show-hide for conditional visibility.
+ * Applies template-controlled visibility (QTI 3 Information Model: TemplateBlock
+ * §5.145, TemplateInline §5.155, and the choices, gaps and hotspot choices that carry
+ * `template-identifier`, e.g. SimpleChoice §5.132).
  *
- * Applies to qti-template-block, qti-template-inline, and choice elements
- * (qti-simple-choice, qti-inline-choice, qti-simple-associable-choice,
- * qti-gap-text, qti-gap-img, qti-gap).
+ * `template-identifier` names a template variable, of identifier base-type and
+ * single or multiple cardinality. The element's own `identifier` is compared
+ * with that variable's value:
+ * - `show-hide="show"` (the default): shown only if the variable matches, or
+ *   contains, the identifier
+ * - `show-hide="hide"`: hidden if the variable matches, or contains, the identifier
  *
- * These elements have a template-identifier attribute that should match values in template variables.
- * - If show-hide="show": element is visible only when template-identifier matches a variable value
- * - If show-hide="hide": element is hidden when template-identifier matches a variable value
- *
- * The matching is done by finding a variable (any variable) that contains the template-identifier.
- * Variables can be single values or arrays (multiple cardinality).
- *
- * Elements without a template-identifier attribute are skipped, so normal choices are unaffected.
+ * Hidden elements are removed. Elements without `template-identifier` are left alone.
  */
 export function processTemplateConditionals(
   root: Element,
   variables: Record<string, unknown>
 ): void {
-  // Process template-block, template-inline, and choice elements
-  const templateElements = [
-    ...Array.from(root.getElementsByTagName('qti-template-block')),
-    ...Array.from(root.getElementsByTagName('qti-template-inline')),
-    ...Array.from(root.getElementsByTagName('qti-simple-choice')),
-    ...Array.from(root.getElementsByTagName('qti-inline-choice')),
-    ...Array.from(root.getElementsByTagName('qti-simple-associable-choice')),
-    ...Array.from(root.getElementsByTagName('qti-gap-text')),
-    ...Array.from(root.getElementsByTagName('qti-gap-img')),
-    ...Array.from(root.getElementsByTagName('qti-gap')),
-  ];
+  const templateElements = Array.from(root.getElementsByTagName('*')).filter((element) =>
+    element.hasAttribute('template-identifier')
+  );
 
   for (const element of templateElements) {
-    const templateIdentifier = element.getAttribute('template-identifier');
-    const showHide = element.getAttribute('show-hide');
+    const templateIdentifier = element.getAttribute('template-identifier') ?? '';
+    const identifier = element.getAttribute('identifier') ?? '';
+    const isMatch = valueContains(variables[templateIdentifier], identifier);
+    const shown = element.getAttribute('show-hide') === 'hide' ? !isMatch : isMatch;
 
-    if (!templateIdentifier) continue;
-
-    // Check if any variable contains this template identifier
-    const isMatch = checkVariableContains(variables, templateIdentifier);
-
-    // Determine if element should be removed
-    let shouldRemove = false;
-    if (showHide === 'show') {
-      // Remove if it doesn't match
-      shouldRemove = !isMatch;
-    } else if (showHide === 'hide') {
-      // Remove if it does match
-      shouldRemove = isMatch;
-    }
-
-    if (shouldRemove) {
+    if (!shown) {
       element.parentNode?.removeChild(element);
     }
   }
 }
 
 /**
- * Checks if any variable in the variables object contains the given identifier.
- * Handles both single values and arrays (multiple cardinality).
- */
-function checkVariableContains(
-  variables: Record<string, unknown>,
-  identifier: string
-): boolean {
-  for (const value of Object.values(variables)) {
-    if (valueContains(value, identifier)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-/**
- * Checks if a value contains the given identifier.
- * Handles both single values and arrays.
+ * Checks if a value matches, or (for multiple cardinality) contains, the given identifier.
  */
 export function valueContains(value: unknown, identifier: string): boolean {
   if (Array.isArray(value)) {

@@ -19,16 +19,16 @@ function parse(html: string): Document {
 }
 
 describe('getVerdict', () => {
-  it.each(['correct', 'incorrect', 'partial'])('reads data-evaluation="%s"', (value) => {
+  it.each(['correct', 'incorrect', 'partial'])('reads data-cutie-evaluation="%s"', (value) => {
     const el = document.createElement('qti-choice-interaction');
-    el.setAttribute('data-evaluation', value);
+    el.setAttribute('data-cutie-evaluation', value);
     expect(getVerdict(el)).toBe(value);
   });
 
   it('returns null when absent or unrecognized', () => {
     const el = document.createElement('qti-choice-interaction');
     expect(getVerdict(el)).toBeNull();
-    el.setAttribute('data-evaluation', 'bogus');
+    el.setAttribute('data-cutie-evaluation', 'bogus');
     expect(getVerdict(el)).toBeNull();
   });
 });
@@ -51,7 +51,7 @@ describe('readEvaluation', () => {
         <qti-default-value><qti-value>B</qti-value></qti-default-value>
         <qti-correct-response><qti-value>A</qti-value><qti-value>C</qti-value></qti-correct-response>
       </qti-response-declaration>
-      <qti-choice-interaction response-identifier="R1" data-evaluation="partial"></qti-choice-interaction>
+      <qti-choice-interaction response-identifier="R1" data-cutie-evaluation="partial"></qti-choice-interaction>
     `);
     const el = doc.querySelector('qti-choice-interaction')!;
     expect(readEvaluation(el, 'R1')).toEqual({ verdict: 'partial', correctResponse: ['A', 'C'] });
@@ -65,7 +65,7 @@ describe('readEvaluation', () => {
     readEvaluation(el, 'R1', styleManager);
     expect(styleManager.hasStyle('cutie-evaluation')).toBe(false);
 
-    el.setAttribute('data-evaluation', 'correct');
+    el.setAttribute('data-cutie-evaluation', 'correct');
     readEvaluation(el, 'R1', styleManager);
     expect(styleManager.hasStyle('cutie-evaluation')).toBe(true);
     expect(styleManager.hasStyle('cutie-feedback-icon')).toBe(true);

@@ -156,7 +156,8 @@ export function PreviewTab({ attemptState, sanitizedTemplate, latestResult, resp
               themeOptions={themeOptions}
             />
             {attemptState && attemptState.completionStatus !== 'completed' && attemptState.options.maxTries !== 1 && (
-              <div className="tries-remaining">Tries remaining: {attemptState.triesRemaining}</div>
+              // A status region, so screen readers hear the count change after each try
+              <div className="tries-remaining" role="status">Tries remaining: {attemptState.triesRemaining}</div>
             )}
             {attemptState?.completionStatus === 'completed' && attemptState.score && (
               <div className="score-display">

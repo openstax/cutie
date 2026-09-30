@@ -41,16 +41,18 @@ export function initializeState(
   variables.numAttempts = 0;
 
   // Execute template processing with constraint retry logic
+  let results: TemplateResults = { correctResponses: {}, defaultValues: {} };
   let retryCount = 0;
   while (retryCount < MAX_CONSTRAINT_RETRIES) {
     try {
-      executeTemplateProcessing(itemDoc, variables);
+      executeTemplateProcessing(itemDoc, variables, results);
       break; // Success, exit retry loop
     } catch (error) {
       if (error instanceof ConstraintViolationError) {
-        // Reset template variables and retry
+        // Reset template variables and what processing set, and retry
         retryCount++;
         resetTemplateVariables(itemDoc, variables);
+        results = { correctResponses: {}, defaultValues: {} };
       } else {
         throw error;
       }
@@ -69,7 +71,19 @@ export function initializeState(
     options,
     triesRemaining: resolveMaxTries(itemDoc, options.maxTries, variables),
     ...(shuffleOrders && { shuffleOrders }),
+    ...(Object.keys(results.correctResponses).length > 0 && { correctResponses: results.correctResponses }),
+    ...(Object.keys(results.defaultValues).length > 0 && { defaultValues: results.defaultValues }),
   };
+}
+
+/**
+ * The correct responses and default values template processing sets, which
+ * belong to the attempt's state rather than its variables (see
+ * AttemptState.correctResponses and AttemptState.defaultValues).
+ */
+interface TemplateResults {
+  correctResponses: Record<string, unknown>;
+  defaultValues: Record<string, unknown>;
 }
 
 /**
@@ -93,8 +107,9 @@ class ExitTemplateError extends Error {
 }
 
 /**
- * Resets outcome variables to their default values, including defaults set by
- * template processing (qti-set-default-value), for a fresh try.
+ * Resets outcome variables to their default values, for a fresh try. The item
+ * document must carry the attempt's template-set defaults (see
+ * instantiateTemplate).
  */
 export function resetOutcomeVariables(itemDoc: Document, variables: Record<string, unknown>): void {
   const outcomeDeclarations = itemDoc.getElementsByTagName('qti-outcome-declaration');
@@ -105,14 +120,6 @@ export function resetOutcomeVariables(itemDoc: Document, variables: Record<strin
   }
 
   initializeOutcomeVariables(itemDoc, variables);
-
-  for (let i = 0; i < outcomeDeclarations.length; i++) {
-    const identifier = outcomeDeclarations[i].getAttribute('identifier');
-    const defaultKey = `__default_${identifier}`;
-    if (identifier && defaultKey in variables) {
-      variables[identifier] = variables[defaultKey];
-    }
-  }
 }
 
 /**
@@ -183,7 +190,11 @@ function resetTemplateVariables(itemDoc: Document, variables: Record<string, unk
 /**
  * Execute template processing rules
  */
-function executeTemplateProcessing(itemDoc: Document, variables: Record<string, unknown>): void {
+function executeTemplateProcessing(
+  itemDoc: Document,
+  variables: Record<string, unknown>,
+  results: TemplateResults
+): void {
   const templateProcessing = itemDoc.getElementsByTagName('qti-template-processing')[0];
 
   if (!templateProcessing) {
@@ -193,7 +204,7 @@ function executeTemplateProcessing(itemDoc: Document, variables: Record<string, 
   try {
     // Execute each child rule in order
     for (const child of getChildElements(templateProcessing)) {
-      executeTemplateRule(child, itemDoc, variables);
+      executeTemplateRule(child, itemDoc, variables, results);
     }
   } catch (error) {
     if (error instanceof ExitTemplateError) {
@@ -207,7 +218,12 @@ function executeTemplateProcessing(itemDoc: Document, variables: Record<string, 
 /**
  * Execute a single template rule
  */
-function executeTemplateRule(rule: Element, itemDoc: Document, variables: Record<string, unknown>): void {
+function executeTemplateRule(
+  rule: Element,
+  itemDoc: Document,
+  variables: Record<string, unknown>,
+  results: TemplateResults
+): void {
   const localName = rule.localName;
 
   switch (localName) {
@@ -215,7 +231,7 @@ function executeTemplateRule(rule: Element, itemDoc: Document, variables: Record
       executeSetTemplateValue(rule, itemDoc, variables);
       break;
     case 'qti-template-condition':
-      executeTemplateCondition(rule, itemDoc, variables);
+      executeTemplateCondition(rule, itemDoc, variables, results);
       break;
     case 'qti-template-constraint':
       executeTemplateConstraint(rule, itemDoc, variables);
@@ -223,10 +239,10 @@ function executeTemplateRule(rule: Element, itemDoc: Document, variables: Record
     case 'qti-exit-template':
       throw new ExitTemplateError();
     case 'qti-set-correct-response':
-      executeSetCorrectResponse(rule, itemDoc, variables);
+      executeSetCorrectResponse(rule, itemDoc, variables, results);
       break;
     case 'qti-set-default-value':
-      executeSetDefaultValue(rule, itemDoc, variables);
+      executeSetDefaultValue(rule, itemDoc, variables, results);
       break;
   }
 }
@@ -250,21 +266,26 @@ function executeSetTemplateValue(rule: Element, itemDoc: Document, variables: Re
 /**
  * Execute qti-template-condition rule
  */
-function executeTemplateCondition(rule: Element, itemDoc: Document, variables: Record<string, unknown>): void {
+function executeTemplateCondition(
+  rule: Element,
+  itemDoc: Document,
+  variables: Record<string, unknown>,
+  results: TemplateResults
+): void {
   // Find template-if, template-else-if, and template-else elements
   for (const child of getChildElements(rule)) {
     const localName = child.localName;
 
     if (localName === 'qti-template-if') {
-      if (evaluateTemplateIf(child, itemDoc, variables)) {
+      if (evaluateTemplateIf(child, itemDoc, variables, results)) {
         return;
       }
     } else if (localName === 'qti-template-else-if') {
-      if (evaluateTemplateIf(child, itemDoc, variables)) {
+      if (evaluateTemplateIf(child, itemDoc, variables, results)) {
         return;
       }
     } else if (localName === 'qti-template-else') {
-      executeTemplateBlock(child, itemDoc, variables);
+      executeTemplateBlock(child, itemDoc, variables, results);
       return;
     }
   }
@@ -274,7 +295,12 @@ function executeTemplateCondition(rule: Element, itemDoc: Document, variables: R
  * Evaluate a template-if or template-else-if block
  * Returns true if the condition was true and the block was executed
  */
-function evaluateTemplateIf(element: Element, itemDoc: Document, variables: Record<string, unknown>): boolean {
+function evaluateTemplateIf(
+  element: Element,
+  itemDoc: Document,
+  variables: Record<string, unknown>,
+  results: TemplateResults
+): boolean {
   // First child is the condition expression
   // Remaining children are the rules to execute
   let conditionResult = false;
@@ -292,7 +318,7 @@ function evaluateTemplateIf(element: Element, itemDoc: Document, variables: Reco
     } else {
       // These are the rules to execute if condition is true
       if (conditionResult) {
-        executeTemplateRule(child, itemDoc, variables);
+        executeTemplateRule(child, itemDoc, variables, results);
       }
     }
   }
@@ -303,9 +329,14 @@ function evaluateTemplateIf(element: Element, itemDoc: Document, variables: Reco
 /**
  * Execute all rules in a template block (used for template-else)
  */
-function executeTemplateBlock(element: Element, itemDoc: Document, variables: Record<string, unknown>): void {
+function executeTemplateBlock(
+  element: Element,
+  itemDoc: Document,
+  variables: Record<string, unknown>,
+  results: TemplateResults
+): void {
   for (const child of getChildElements(element)) {
-    executeTemplateRule(child, itemDoc, variables);
+    executeTemplateRule(child, itemDoc, variables, results);
   }
 }
 
@@ -330,36 +361,42 @@ function executeTemplateConstraint(rule: Element, itemDoc: Document, variables: 
 /**
  * Execute qti-set-correct-response rule
  */
-function executeSetCorrectResponse(rule: Element, itemDoc: Document, variables: Record<string, unknown>): void {
+function executeSetCorrectResponse(
+  rule: Element,
+  itemDoc: Document,
+  variables: Record<string, unknown>,
+  results: TemplateResults
+): void {
   const identifier = rule.getAttribute('identifier');
   if (!identifier) return;
 
-  // Store the correct response value for later comparison
-  // We'll store it with a special prefix to distinguish from actual response values
   const child = getFirstChildElement(rule);
   if (!child) {
     throw new Error('Expected child element in <qti-set-correct-response>');
   }
-  const value = evaluateExpression(child, itemDoc, variables);
-  variables[`__correct_${identifier}`] = value;
+  results.correctResponses[identifier] = evaluateExpression(child, itemDoc, variables);
 }
 
 /**
  * Execute qti-set-default-value rule
  */
-function executeSetDefaultValue(rule: Element, itemDoc: Document, variables: Record<string, unknown>): void {
+function executeSetDefaultValue(
+  rule: Element,
+  itemDoc: Document,
+  variables: Record<string, unknown>,
+  results: TemplateResults
+): void {
   const identifier = rule.getAttribute('identifier');
   if (!identifier) return;
 
-  // Set the default value for an outcome variable
+  // The variable starts from its default; the default itself is kept for resets
   const child = getFirstChildElement(rule);
   if (!child) {
     throw new Error('Expected child element in <qti-set-default-value>');
   }
   const value = evaluateExpression(child, itemDoc, variables);
   variables[identifier] = value;
-  // Remembered so a fresh try resets the variable to it (see resetOutcomeVariables)
-  variables[`__default_${identifier}`] = value;
+  results.defaultValues[identifier] = value;
 }
 
 /**

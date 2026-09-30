@@ -4,6 +4,7 @@ import { describe, expect, test } from 'vitest';
 import { examples } from '../../cutie-example/src/example-items';
 import {
   type AttemptResult,
+  type AttemptState,
   beginAttempt,
   type DeliveryOptions,
   ResponseValidationError,
@@ -26,7 +27,7 @@ const optionSets: DeliveryOptions[] = [
  * and evaluation. Text responses with no correct response get filler text long
  * enough to pass length constraints.
  */
-function correctSubmission(itemXml: string, variables: Record<string, unknown>): Record<string, unknown> {
+function correctSubmission(itemXml: string, state: AttemptState): Record<string, unknown> {
   const doc = new DOMParser().parseFromString(itemXml.trim(), 'text/xml');
   const submission: Record<string, unknown> = {};
 
@@ -34,7 +35,7 @@ function correctSubmission(itemXml: string, variables: Record<string, unknown>):
     const identifier = declaration.getAttribute('identifier');
     if (!identifier) continue;
 
-    const templated = variables[`__correct_${identifier}`];
+    const templated = state.correctResponses?.[identifier];
     const correct = declaration.getElementsByTagName('qti-correct-response')[0];
     if (templated !== undefined) {
       submission[identifier] = templated;
@@ -66,7 +67,7 @@ describe('resumeAttempt reproduces every result across the example items', () =>
     let result = await beginAttempt(item, undefined, options);
     await expectResumable(result, item);
 
-    const submission = correctSubmission(item, result.state.variables);
+    const submission = correctSubmission(item, result.state);
     for (let turn = 0; turn < MAX_TURNS && result.state.completionStatus !== 'completed'; turn++) {
       try {
         result = await submitResponse(submission, result.state, item);

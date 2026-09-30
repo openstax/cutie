@@ -1,6 +1,7 @@
 /* spell-checker: ignore inlines */
 import { XMLSerializer } from '@xmldom/xmldom';
 import { AttemptState, FeedbackIdentity, ProcessingOptions } from '../types';
+import { createValueContainer } from '../utils/valueContainer';
 import { isAdaptive } from './adaptive';
 import {
   collectAssetReferences,
@@ -66,8 +67,10 @@ export function buildTemplateDocument(itemDoc: Document, state: AttemptState): D
   const clonedDoc = itemDoc.cloneNode(true) as Document;
   const root = clonedDoc.documentElement;
 
-  // Step 1: Remove sensitive content that shouldn't be exposed to the client
+  // Step 1: Remove sensitive content that shouldn't be exposed to the client,
+  // and any authored copy of the markup only core may add
   removeSensitiveElements(root);
+  removeReservedMarkup(root);
 
   // Step 2: Substitute template variables into qti-printed-variable elements
   substituteVariables(root, state.variables);
@@ -172,7 +175,7 @@ function removeWithheldFeedback(root: Element, withheld: FeedbackIdentity[]): vo
  * Adds the evaluation allowed by the attempt's showEvaluation option to the
  * template of an attempt that can be evaluated (see canEvaluate):
  *
- * - `'correctness'`: a data-evaluation attribute ("correct", "incorrect" or
+ * - `'correctness'`: a data-cutie-evaluation attribute ("correct", "incorrect" or
  *   "partial") on each interaction whose response can be judged
  *   (see evaluateResponse), and on the item body for the attempt as a whole
  *   (see evaluateTry)
@@ -194,7 +197,7 @@ function applyEvaluation(root: Element, itemDoc: Document, state: AttemptState):
       const identifier = declaration.getAttribute('identifier');
       if (!identifier) continue;
 
-      const correctValue = getCorrectResponse(itemDoc, identifier, state.variables);
+      const correctValue = getCorrectResponse(itemDoc, identifier);
       if (correctValue !== null) {
         declaration.appendChild(
           createValueContainer(declaration.ownerDocument, 'qti-correct-response', correctValue)
@@ -210,7 +213,7 @@ function applyEvaluation(root: Element, itemDoc: Document, state: AttemptState):
  * allows once the attempt is terminal:
  *
  * - a non-adaptive item keeps the learner's responses, so each interaction gets
- *   its data-evaluation, and the item body the try's, as under `'correctness'`
+ *   its data-cutie-evaluation, and the item body the try's, as under `'correctness'`
  * - an adaptive item starts over, so a message leads the item body instead:
  *   the adaptiveRetryMessage, in an element with data-cutie-retry set to the verdict
  */
@@ -240,17 +243,17 @@ function applyRetryVerdict(
 }
 
 /**
- * Adds a data-evaluation attribute to the item body for the response as a
+ * Adds a data-cutie-evaluation attribute to the item body for the response as a
  * whole, when it can be judged: the one clients announce, where each
  * interaction's is read with the interaction.
  */
 function markItemVerdict(root: Element, verdict: ResponseEvaluation | null): void {
   const itemBody = root.getElementsByTagName('qti-item-body')[0];
-  if (itemBody && verdict) itemBody.setAttribute('data-evaluation', verdict);
+  if (itemBody && verdict) itemBody.setAttribute('data-cutie-evaluation', verdict);
 }
 
 /**
- * Adds a data-evaluation attribute ("correct", "incorrect" or "partial") to
+ * Adds a data-cutie-evaluation attribute ("correct", "incorrect" or "partial") to
  * each interaction whose response can be judged (see evaluateResponse)
  */
 function markInteractionVerdicts(root: Element, itemDoc: Document, state: AttemptState): void {
@@ -264,7 +267,7 @@ function markInteractionVerdicts(root: Element, itemDoc: Document, state: Attemp
     const evaluation = evaluateResponse(itemDoc, identifier, state.variables);
     if (evaluation) {
       for (const interaction of findInteractions(itemBody, identifier)) {
-        interaction.setAttribute('data-evaluation', evaluation);
+        interaction.setAttribute('data-cutie-evaluation', evaluation);
       }
     }
   }
@@ -345,6 +348,21 @@ function removeSensitiveElements(root: Element): void {
     const views = view.split(/\s+/).filter(Boolean);
     if (!views.includes('candidate')) {
       rubric.parentNode?.removeChild(rubric);
+    }
+  }
+}
+
+/**
+ * Removes any authored copy of the markup cutie-core adds for the client
+ * (data-cutie-evaluation attributes, data-cutie-retry elements), so the client
+ * only ever sees what core computed.
+ */
+function removeReservedMarkup(root: Element): void {
+  for (const element of Array.from(root.getElementsByTagName('*'))) {
+    if (element.hasAttribute('data-cutie-retry')) {
+      element.parentNode?.removeChild(element);
+    } else {
+      element.removeAttribute('data-cutie-evaluation');
     }
   }
 }
@@ -492,24 +510,6 @@ function sanitizeResponseDeclarations(
       );
     }
   }
-}
-
-/**
- * Creates a value container (e.g. qti-default-value, qti-correct-response)
- * holding one qti-value per value: one for single cardinality, one per member
- * for multiple or ordered.
- */
-function createValueContainer(doc: Document, tagName: string, value: unknown): Element {
-  const container = doc.createElement(tagName);
-  const values = Array.isArray(value) ? value : [value];
-
-  for (const val of values) {
-    const valueElement = doc.createElement('qti-value');
-    valueElement.textContent = String(val);
-    container.appendChild(valueElement);
-  }
-
-  return container;
 }
 
 /**

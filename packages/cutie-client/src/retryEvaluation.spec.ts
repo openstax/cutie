@@ -63,7 +63,7 @@ describe('verdicts on a fresh try', () => {
     it('choice interaction: drops the verdict text when there is no hint', () => {
       mount(itemXml(
         declaration('R1', 'single', 'identifier', ['B']),
-        `<qti-choice-interaction response-identifier="R1" max-choices="1" data-evaluation="incorrect">
+        `<qti-choice-interaction response-identifier="R1" max-choices="1" data-cutie-evaluation="incorrect">
           <qti-simple-choice identifier="A">A</qti-simple-choice>
           <qti-simple-choice identifier="B">B</qti-simple-choice>
         </qti-choice-interaction>`,
@@ -83,7 +83,7 @@ describe('verdicts on a fresh try', () => {
     it('choice interaction: puts the constraint hint back', () => {
       mount(itemXml(
         declaration('R1', 'multiple', 'identifier', ['A']),
-        `<qti-choice-interaction response-identifier="R1" min-choices="2" max-choices="3" data-evaluation="partial">
+        `<qti-choice-interaction response-identifier="R1" min-choices="2" max-choices="3" data-cutie-evaluation="partial">
           <qti-simple-choice identifier="A">A</qti-simple-choice>
           <qti-simple-choice identifier="B">B</qti-simple-choice>
           <qti-simple-choice identifier="C">C</qti-simple-choice>
@@ -102,7 +102,7 @@ describe('verdicts on a fresh try', () => {
     it('text entry interaction: drops the verdict overline', () => {
       mount(itemXml(
         declaration('R1', 'single', 'string', ['Lyon']),
-        '<p>Capital: <qti-text-entry-interaction response-identifier="R1" data-evaluation="incorrect"/></p>',
+        '<p>Capital: <qti-text-entry-interaction response-identifier="R1" data-cutie-evaluation="incorrect"/></p>',
       ));
       const input = q<HTMLInputElement>(container, 'input');
       expect(container.querySelector('#evaluation-R1')).not.toBeNull();
@@ -117,7 +117,7 @@ describe('verdicts on a fresh try', () => {
     it('text entry interaction: keeps a correct answer, dropping only the verdict', () => {
       mount(itemXml(
         declaration('R1', 'single', 'string', ['Lyon'], '<qti-correct-response><qti-value>Paris</qti-value></qti-correct-response>'),
-        '<p>Capital: <qti-text-entry-interaction response-identifier="R1" data-evaluation="incorrect"/></p>',
+        '<p>Capital: <qti-text-entry-interaction response-identifier="R1" data-cutie-evaluation="incorrect"/></p>',
       ));
 
       typeInto(q<HTMLInputElement>(container, 'input'), 'Nice');
@@ -130,7 +130,7 @@ describe('verdicts on a fresh try', () => {
     it('inline choice interaction: drops the verdict overline', () => {
       mount(itemXml(
         declaration('R1', 'single', 'identifier', ['X']),
-        `<p>Pick <qti-inline-choice-interaction response-identifier="R1" data-evaluation="incorrect">
+        `<p>Pick <qti-inline-choice-interaction response-identifier="R1" data-cutie-evaluation="incorrect">
           <qti-inline-choice identifier="X">X</qti-inline-choice>
           <qti-inline-choice identifier="Y">Y</qti-inline-choice>
         </qti-inline-choice-interaction></p>`,
@@ -147,7 +147,7 @@ describe('verdicts on a fresh try', () => {
     it('extended text interaction: puts the constraint hint back', () => {
       mount(itemXml(
         declaration('R1', 'single', 'string', ['short']),
-        '<qti-extended-text-interaction response-identifier="R1" data-min-characters="10" data-evaluation="incorrect"/>',
+        '<qti-extended-text-interaction response-identifier="R1" data-min-characters="10" data-cutie-evaluation="incorrect"/>',
       ));
       const constraint = q(container, '#constraint-R1');
       expect(constraint.textContent).toBe('Incorrect response');
@@ -161,7 +161,7 @@ describe('verdicts on a fresh try', () => {
     it('match interaction: drops the verdict on an association change', () => {
       mount(itemXml(
         declaration('R1', 'multiple', 'directedPair', ['S1 T2']),
-        `<qti-match-interaction response-identifier="R1" max-associations="2" data-evaluation="incorrect">
+        `<qti-match-interaction response-identifier="R1" max-associations="2" data-cutie-evaluation="incorrect">
           <qti-simple-match-set>
             <qti-simple-associable-choice identifier="S1" match-max="1">Source 1</qti-simple-associable-choice>
             <qti-simple-associable-choice identifier="S2" match-max="1">Source 2</qti-simple-associable-choice>
@@ -186,7 +186,7 @@ describe('verdicts on a fresh try', () => {
     it('gap match interaction: drops the verdict when a choice is placed', () => {
       mount(itemXml(
         declaration('R1', 'multiple', 'directedPair', ['C1 G1']),
-        `<qti-gap-match-interaction response-identifier="R1" data-evaluation="partial">
+        `<qti-gap-match-interaction response-identifier="R1" data-cutie-evaluation="partial">
           <qti-gap-text identifier="C1" match-max="1">Choice 1</qti-gap-text>
           <qti-gap-text identifier="C2" match-max="1">Choice 2</qti-gap-text>
           <p>Fill <qti-gap identifier="G1"/> and <qti-gap identifier="G2"/></p>
@@ -203,8 +203,8 @@ describe('verdicts on a fresh try', () => {
     it('leaves the verdicts of other interactions alone', () => {
       mount(itemXml(
         declaration('R1', 'single', 'string', ['a']) + declaration('R2', 'single', 'string', ['b']),
-        `<p><qti-text-entry-interaction response-identifier="R1" data-evaluation="incorrect"/>
-          <qti-text-entry-interaction response-identifier="R2" data-evaluation="incorrect"/></p>`,
+        `<p><qti-text-entry-interaction response-identifier="R1" data-cutie-evaluation="incorrect"/>
+          <qti-text-entry-interaction response-identifier="R2" data-cutie-evaluation="incorrect"/></p>`,
       ));
 
       typeInto(container.querySelectorAll<HTMLInputElement>('input')[0]!, 'c');
@@ -217,8 +217,8 @@ describe('verdicts on a fresh try', () => {
   describe('the verdict of the response as a whole', () => {
     const verdictXml = (verdict: string) => itemXml(
       declaration('R1', 'single', 'string', ['Lyon']),
-      `<p>Capital: <qti-text-entry-interaction response-identifier="R1" data-evaluation="${verdict}"/></p>`,
-    ).replace('<qti-item-body>', `<qti-item-body data-evaluation="${verdict}">`);
+      `<p>Capital: <qti-text-entry-interaction response-identifier="R1" data-cutie-evaluation="${verdict}"/></p>`,
+    ).replace('<qti-item-body>', `<qti-item-body data-cutie-evaluation="${verdict}">`);
 
     it.each([
       ['correct', 'Response is correct'],
@@ -234,7 +234,7 @@ describe('verdicts on a fresh try', () => {
     });
 
     it('is not announced without an item verdict', () => {
-      const xml = verdictXml('incorrect').replace('<qti-item-body data-evaluation="incorrect">', '<qti-item-body>');
+      const xml = verdictXml('incorrect').replace('<qti-item-body data-cutie-evaluation="incorrect">', '<qti-item-body>');
       const item = mount(xml);
       item.update(xml);
       expect(announce).not.toHaveBeenCalled();

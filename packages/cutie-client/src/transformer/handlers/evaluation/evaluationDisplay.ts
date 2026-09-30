@@ -5,7 +5,7 @@
  *
  * Nothing about correctness is computed here — the client only renders what
  * core sent:
- * - the verdict, a `data-evaluation` attribute on the interaction element
+ * - the verdict, a `data-cutie-evaluation` attribute on the interaction element
  * - the correct response, a `qti-correct-response` in the response declaration
  *
  * Handlers read both with `readEvaluation`, build the marks with these helpers,
@@ -49,12 +49,12 @@ const CORRECT_ANSWER_LABEL = 'Correct answer:';
  * Returns null when absent (the response couldn't be judged) or unrecognized.
  */
 export function getVerdict(element: Element): Verdict | null {
-  const value = element.getAttribute('data-evaluation');
+  const value = element.getAttribute('data-cutie-evaluation');
   return VERDICTS.includes(value as Verdict) ? (value as Verdict) : null;
 }
 
 export interface InteractionEvaluation {
-  /** Verdict from data-evaluation, or null when the response couldn't be judged */
+  /** Verdict from data-cutie-evaluation, or null when the response couldn't be judged */
   verdict: Verdict | null;
   /** Correct response values (one per qti-value); empty when not provided */
   correctResponse: string[];

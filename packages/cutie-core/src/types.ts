@@ -77,6 +77,20 @@ export interface AttemptState {
   shuffleOrders?: Record<string, string[]>;
 
   /**
+   * Correct responses set by template processing (qti-set-correct-response),
+   * by response identifier. They take the place of the declared
+   * qti-correct-response, making this attempt a clone of the item template.
+   */
+  correctResponses?: Record<string, unknown>;
+
+  /**
+   * Default values set by template processing (qti-set-default-value), by
+   * variable identifier. They take the place of the declared
+   * qti-default-value, including when a fresh try resets outcomes.
+   */
+  defaultValues?: Record<string, unknown>;
+
+  /**
    * Comments from external scoring (e.g., AI-generated feedback for human-scored items).
    * Null when no external scoring has been performed.
    */

@@ -17,7 +17,7 @@ export function resolveMaxTries(
 ): number {
   if (maxTries === 'smart') return deriveSmartMaxTries(itemDoc, variables);
 
-  if (!Number.isInteger(maxTries) || maxTries < 1) {
+  if (!Number.isSafeInteger(maxTries) || maxTries < 1) {
     throw new Error(`maxTries must be a positive integer or 'smart', got ${maxTries}`);
   }
   return maxTries;

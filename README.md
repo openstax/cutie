@@ -43,6 +43,9 @@ Response and template processing are separated from the presentational layer usi
   taken, except that a response awaiting manual scoring (`pendingManualScoring`) can still be resubmitted
 - `score`, the xAPI-style score of the attempt (the last try's, with [multiple tries](#multiple-tries))
 - `options`, the [delivery options](#delivery-extensions) the attempt began under, and `triesRemaining`
+- `correctResponses` and `defaultValues`, the values template processing set with `qti-set-correct-response`
+  and `qti-set-default-value`, kept apart from `variables`. They make the attempt its own clone of an item
+  template, taking the place of the declared values
 
 ### Benefits
 
@@ -203,14 +206,14 @@ no part.
 Once the attempt is terminal, cutie-core can tell the client how the response was judged. Each level includes
 the one before it:
 
-- **`'correctness'`**: a verdict, `correct`, `incorrect` or `partial`, as `data-evaluation` on each interaction
+- **`'correctness'`**: a verdict, `correct`, `incorrect` or `partial`, as `data-cutie-evaluation` on each interaction
   whose response can be judged. It comes from that interaction's response declaration, using the same
   comparisons response processing uses: a mapping with a known maximum (full credit, none, or between), else
   the correct response (a match or not). Verdicts are per interaction, never per choice.
 - **`'correctResponse'`**: also a `qti-correct-response` in each response declaration that has one, holding
   this attempt's value (including one set by `qti-set-correct-response`).
 
-The response as a whole also gets a verdict, as `data-evaluation` on `qti-item-body`: by the score when the
+The response as a whole also gets a verdict, as `data-cutie-evaluation` on `qti-item-body`: by the score when the
 item's maximum is known, otherwise from the verdicts of the interactions the variant shows. It is only
 correct when every one of those responses was judged correct.
 
@@ -270,11 +273,12 @@ in `state.shuffleOrders`, and reused on every turn and on resume.
 
 ### Template markup added by cutie-core
 
-These appear only in the sanitized template sent to the client, never in authored items:
+These appear only in the sanitized template sent to the client. Core removes any authored copy before adding
+its own, so the client only ever sees what core computed:
 
 | Markup | Where | When |
 |---|---|---|
-| `data-evaluation="correct\|incorrect\|partial"` | interaction elements, `qti-item-body` | terminal under `showEvaluation` `'correctness'` or above; a fresh try of a non-adaptive item |
+| `data-cutie-evaluation="correct\|incorrect\|partial"` | interaction elements, `qti-item-body` | terminal under `showEvaluation` `'correctness'` or above; a fresh try of a non-adaptive item |
 | `qti-correct-response` | `qti-response-declaration` | terminal under `showEvaluation: 'correctResponse'` |
 | `<div data-cutie-retry="incorrect\|partial">` | first child of `qti-item-body` | a fresh try of an adaptive item |
 
