@@ -409,7 +409,7 @@ describe('matchInteraction evaluation', () => {
   });
 
   it('describes the response in the constraint text, announced with the group', () => {
-    const container = render('data-evaluation="correct"', '');
+    const container = render('data-cutie-evaluation="correct"', '');
     const group = container.querySelector('.cutie-match-interaction')!;
     expect(container.querySelector('.cutie-verdict')).toBeNull();
     expect(container.querySelector('#constraint-R1')!.textContent).toBe('Correct response');
@@ -419,7 +419,7 @@ describe('matchInteraction evaluation', () => {
 
   it('shows each choice its correct partners, reciprocally, by displayed labels', () => {
     const container = render(
-      'data-evaluation="partial"',
+      'data-cutie-evaluation="partial"',
       `<qti-default-value><qti-value>S1 T2</qti-value></qti-default-value>
        <qti-correct-response><qti-value>S1 T1</qti-value><qti-value>S2 T1</qti-value></qti-correct-response>`,
     );
@@ -433,7 +433,7 @@ describe('matchInteraction evaluation', () => {
 
   it('places the key between the choice and its chips, describing the choice', () => {
     const container = render(
-      'data-evaluation="incorrect"',
+      'data-cutie-evaluation="incorrect"',
       '<qti-correct-response><qti-value>S1 T1</qti-value></qti-correct-response>',
     );
     const source = choice(container, 'S1');

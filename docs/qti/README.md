@@ -37,6 +37,9 @@ interaction types. Interaction-specific coverage is tracked in interaction docs.
 
 Note: cutie is an **item-level** renderer and processor. Test-level delivery
 features (test parts, sections, navigation, time limits) are out of scope.
+Cutie's own delivery options (feedback withholding, evaluation, shuffle
+override, multiple tries) stand in for some item session controls; see
+[Delivery Extensions](../../README.md#delivery-extensions).
 
 ---
 

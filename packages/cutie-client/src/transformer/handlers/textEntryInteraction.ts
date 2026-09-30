@@ -7,7 +7,7 @@ import { announce } from '../../utils/liveRegion';
 import { registry } from '../registry';
 import type { ElementHandler, ResponseAccessorOptions, TransformContext } from '../types';
 import { parseInputWidth } from '../vocabUtils';
-import { readEvaluation, wrapInlineEvaluation } from './evaluation';
+import { clearInlineVerdict, clearVerdictOnEdit, readEvaluation, wrapInlineEvaluation } from './evaluation';
 import { getDefaultValue } from './responseUtils';
 
 /**
@@ -116,14 +116,17 @@ class TextEntryInteractionHandler implements ElementHandler {
       input.setAttribute('aria-describedby', constraintId);
     }
 
-    // Evaluation of a finished attempt: the verdict icon and the correct
-    // answer above the input, describing it
+    // Evaluation of a finished attempt or a fresh try: the verdict icon and
+    // the correct answer above the input, describing it
     let placed: HTMLElement = input;
     const evaluation = readEvaluation(element, responseIdentifier, context.styleManager);
     if (evaluation) {
       const correctText = evaluation.correctResponse.join(', ');
       placed = wrapInlineEvaluation(input, `evaluation-${responseIdentifier}`, evaluation, correctText || null);
     }
+    clearVerdictOnEdit(context, responseIdentifier, evaluation, () =>
+      clearInlineVerdict(input, `evaluation-${responseIdentifier}`)
+    );
 
     // Register response accessor with itemState if available
     if (context.itemState) {
@@ -173,7 +176,7 @@ class TextEntryInteractionHandler implements ElementHandler {
       input.addEventListener('input', () => {
         // Clear the error in real time once the field is already in an error state.
         if (input.hasAttribute('aria-invalid')) validate();
-        context.itemState?.notifyResponseChange();
+        context.itemState?.notifyResponseChange(responseIdentifier);
       });
 
       // Observe interaction enabled state to enable/disable input

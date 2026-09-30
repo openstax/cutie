@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import type { AttemptState } from '@openstax/cutie-core';
+import type { AttemptResult, AttemptState } from '@openstax/cutie-core';
 import type { MountItemOptions, ResponseData } from '@openstax/cutie-client';
 import { CutieItemView } from './CutieItemView';
 import type { CutieItemHandle } from './CutieItemView';
@@ -13,6 +13,9 @@ const MenuIcon = () => (
     <path d="M120-240v-80h720v80H120Zm0-200v-80h720v80H120Zm0-200v-80h720v80H120Z"/>
   </svg>
 );
+
+/** The flags of the latest attempt operation's result */
+export type LatestResult = Pick<AttemptResult, 'hasNewFeedback' | 'tryConsumed'>;
 
 interface QuizModeProps {
   onNext: () => void;
@@ -31,7 +34,7 @@ interface QuizModeProps {
 interface PreviewTabProps {
   attemptState: AttemptState | null;
   sanitizedTemplate: string;
-  hasNewFeedback: boolean;
+  latestResult: LatestResult;
   responses: ResponseData | null;
   deliveryOptions: ResolvedDeliveryOptions;
   onDeliveryOptionsChange: (options: ResolvedDeliveryOptions) => void;
@@ -43,13 +46,16 @@ interface PreviewTabProps {
   themeOptions?: MountItemOptions;
 }
 
-export function PreviewTab({ attemptState, sanitizedTemplate, hasNewFeedback, responses, deliveryOptions, onDeliveryOptionsChange, onSubmitResponses, onResetAttempt, isLoading, onOpenGenerateDialog, quizMode, themeOptions }: PreviewTabProps) {
+export function PreviewTab({ attemptState, sanitizedTemplate, latestResult, responses, deliveryOptions, onDeliveryOptionsChange, onSubmitResponses, onResetAttempt, isLoading, onOpenGenerateDialog, quizMode, themeOptions }: PreviewTabProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const itemRef = useRef<CutieItemHandle>(null);
 
   // Derived - no state needed
-  const interactionsEnabled = !isSubmitting && attemptState?.completionStatus !== 'completed';
+  // A finished attempt takes no more submissions, except that a response
+  // awaiting manual scoring can still be edited and resubmitted
+  const acceptsResponses = attemptState?.completionStatus !== 'completed' || !!attemptState.pendingManualScoring;
+  const interactionsEnabled = !isSubmitting && acceptsResponses;
 
   const handleSubmit = async () => {
     const collectedResponses = itemRef.current?.collectResponses();
@@ -93,7 +99,7 @@ export function PreviewTab({ attemptState, sanitizedTemplate, hasNewFeedback, re
             <h2>Latest Result</h2>
           </summary>
           <pre className="output-display">
-            {attemptState ? JSON.stringify({ hasNewFeedback }, null, 2) : 'No result yet'}
+            {attemptState ? JSON.stringify(latestResult, null, 2) : 'No result yet'}
           </pre>
         </details>
 
@@ -152,6 +158,10 @@ export function PreviewTab({ attemptState, sanitizedTemplate, hasNewFeedback, re
               interactionsEnabled={interactionsEnabled}
               themeOptions={themeOptions}
             />
+            {attemptState && attemptState.completionStatus !== 'completed' && attemptState.options.maxTries !== 1 && (
+              // A status region, so screen readers hear the count change after each try
+              <div className="tries-remaining" role="status">Tries remaining: {attemptState.triesRemaining}</div>
+            )}
             {attemptState?.completionStatus === 'completed' && attemptState.score && (
               <div className="score-display">
                 <span>Score: {attemptState.score.raw} / {attemptState.score.max}</span>

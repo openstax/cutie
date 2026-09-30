@@ -5,6 +5,7 @@ import {
 import { addAriaDescribedBy } from '../../../utils/aria';
 import { announce } from '../../../utils/liveRegion';
 import type { StyleManager, TransformContext } from '../../types';
+import { clearConstraintVerdict } from '../evaluation';
 
 /**
  * Create the outer container div for an extended-text interaction variant.
@@ -103,7 +104,10 @@ export function getPatternText(
 
 export interface ConstraintResult {
   constraint: ConstraintMessage;
+  /** The text the message shows at rest: the verdict, if any, else the hint */
   initialText: string;
+  /** The constraint hint, shown in place of a verdict once it is cleared */
+  hintText: string | null;
   minStringsText: string | null;
   minCharactersText: string | null;
   patternText: string | null;
@@ -133,7 +137,10 @@ export function createConstraintElements(
   const hasConstraints = minStrings > 0 || !!patternMask || minCharacters !== null || maxCharacters !== null;
   if (!hasConstraints && !verdictText) return null;
 
-  const initialText = verdictText ?? minCharactersText ?? minStringsText ?? patternText ?? maxCharactersText!;
+  const hintText = hasConstraints
+    ? minCharactersText ?? minStringsText ?? patternText ?? maxCharactersText
+    : null;
+  const initialText = verdictText ?? hintText!;
 
   const constraint = createConstraintMessage(
     `constraint-${responseIdentifier}`,
@@ -141,7 +148,17 @@ export function createConstraintElements(
     styleManager,
   );
 
-  return { constraint, initialText, minStringsText, minCharactersText, patternText, maxCharactersText };
+  return { constraint, initialText, hintText, minStringsText, minCharactersText, patternText, maxCharactersText };
+}
+
+/**
+ * Put the constraint hint back in place of a verdict the message showed (see
+ * clearConstraintVerdict), once the learner edits the response.
+ */
+export function clearConstraintResultVerdict(result: ConstraintResult | null, described: Element | null): void {
+  if (!result) return;
+  clearConstraintVerdict(result.constraint, described, result.hintText);
+  if (result.hintText) result.initialText = result.hintText;
 }
 
 /**

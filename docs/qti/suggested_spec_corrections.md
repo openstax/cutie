@@ -1,4 +1,4 @@
-<!-- spell-checker: ignore gcd inlines unprefixed -->
+<!-- spell-checker: ignore gcd inlines unprefixed HINTREQUEST SOLREQUEST -->
 # Suggested QTI Spec Corrections
 
 - spec: https://www.imsglobal.org/spec/qti/v3p0/impl
@@ -11,24 +11,11 @@ of a real item. Line references are as of cutie-core 1.0.2.
 
 ## 1. Template-driven visibility matches the wrong attribute
 
-**File:** `packages/cutie-core/src/lib/renderTemplate.ts:165` (`processTemplateConditionals`)
-
-**Spec:** On `qti-template-block`, `qti-template-inline`, and templated
-choices (`qti-simple-choice`, `qti-inline-choice`, `qti-gap-text`, etc.),
-`template-identifier` is the **name of a template variable**. For blocks and
-inlines, the element's `identifier` is the value compared against that
-variable. For choices, the choice's own `identifier` is compared. Visibility
-depends on whether the variable matches (single) or contains (multiple) that
-value.
-
-**Cutie:** Treats `template-identifier` as the **value**, and shows or hides
-the element if *any* variable in state holds it. It ignores the element's
-`identifier`, and doesn't limit the check to template variables. The existing
-tests in `renderTemplate.spec.ts` encode this behavior.
-
-**Suggested fix:** Look up `variables[templateIdentifier]`. Compare it with the
-element's `identifier` using match for single cardinality or contains for
-multiple. Update the tests.
+**Status:** Fixed. `processTemplateConditionals` (`lib/visibility.ts`)
+looks up the template variable `template-identifier` names and compares its
+value with the element's `identifier`, following the QTI 3 Information Model
+(TemplateBlock §5.145, TemplateInline §5.155, SimpleChoice §5.132). The 1EdTech
+`template_image.xml` example is in the example app and covered by tests.
 
 ## 2. Outcome variables are not reset between submissions
 
@@ -213,20 +200,56 @@ them. Consider lowering the cap to match the spec's guidance.
 Any unrecognized expression throws `Unsupported expression type`. Notable
 gaps include `qti-lookup-outcome-value`, `qti-default`, `qti-inside`,
 `qti-min`, `qti-max`, `qti-gcd`, `qti-lcm`, `qti-math-operator`,
-`qti-math-constant`, `qti-equal-rounded`, `qti-stats-operator`,
+`qti-math-constant`, `qti-equal-rounded`, `qti-round-to`, `qti-stats-operator`,
 `qti-duration-lt`, `qti-duration-gte`, and `qti-custom-operator`. The
 response processing rule `qti-response-processing-fragment` isn't supported,
 and response processing silently skips any other rule it doesn't recognize.
+
+**Spec example these block:** the 1EdTech
+[`Example04-feedbackBlock-templateBlock.xml`](https://github.com/1EdTech/qti-examples/blob/master/qtiv3-examples/packaging/items/Example04-feedbackBlock-templateBlock.xml)
+("Find side, directly or sine rule - with solution"), an adaptive item that
+uses template blocks to show one of two worked solutions. Beginning an attempt
+fails with `Unsupported expression type: qti-math-constant`. To support it,
+cutie-core needs:
+
+- `qti-math-constant` (pi) and `qti-math-operator` (sin), in template processing
+- `qti-round-to`, in template processing
+- `qti-equal-rounded`, in response processing
+
+and cutie-client needs `qti-end-attempt-interaction`, which the item uses for
+its hint and solution requests (`HINTREQUEST`, `SOLREQUEST`). With those, it
+belongs with the spec examples in the example app, next to `template_image.xml`.
 
 Related: attributes like `min` and `max` on `qti-random-integer` can't take
 template variable references (`{VAR}`), which the spec allows.
 
 ## 12. Correct responses set during template processing are stored in state
 
-**File:** `packages/cutie-core/src/lib/initializeState.ts:310`
+**File:** `packages/cutie-core/src/lib/initializeState.ts` (`executeSetCorrectResponse`)
 
 **Not a spec violation, but a security consideration.** `qti-set-correct-response`
-stores its value as `state.variables.__correct_<ID>`. The template sent to the
-client is sanitized properly, but anyone with the `AttemptState` can read the
-correct answer. Hosts must never send the state to the client, or this value
-should be kept somewhere else.
+stores its value in `state.correctResponses` (kept apart from the item's
+variables). The template sent to the client is sanitized properly, but anyone
+with the `AttemptState` can read the correct answer. Hosts must never send the
+state to the client.
+
+## 13. Record-cardinality correct responses are not supported
+
+**Files:** `packages/cutie-core/src/lib/responseDeclarations.ts` (`getCorrectResponse`),
+`packages/cutie-core/src/utils/valueContainer.ts` (`createValueContainer`)
+
+**Spec:** A response declaration may have record cardinality, with a
+`qti-correct-response` of `qti-field-value` entries. Template processing may set
+one with `qti-set-correct-response` and a `qti-record` expression.
+
+**Cutie:** `getCorrectResponse` reads single, multiple and ordered correct
+responses only, so a record correct response (authored or set by template
+processing) is never read. A record set by template processing is also written
+into the attempt's declaration as a single `qti-value` (`[object Object]`),
+since `createValueContainer` doesn't write `qti-field-value` entries.
+
+**When this matters:** Record responses come from custom interactions and PCIs,
+which cutie doesn't support, so no supported interaction produces one today.
+
+**Suggested fix:** Read and write `qti-field-value` entries (with each field's
+base type) for record cardinality in both places.

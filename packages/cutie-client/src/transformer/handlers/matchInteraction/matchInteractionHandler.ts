@@ -8,6 +8,9 @@ import { addAriaDescribedBy } from '../../../utils/aria';
 import { announce } from '../../../utils/liveRegion';
 import type { ElementHandler, TransformContext } from '../../types';
 import {
+  clearConstraintVerdict,
+  clearEvaluated,
+  clearVerdictOnEdit,
   cloneLabel,
   createCorrectAnswer,
   getVerdictText,
@@ -144,7 +147,8 @@ export class MatchInteractionHandler implements ElementHandler {
 
     container.appendChild(layoutContainer);
 
-    // Evaluation of a finished attempt, when the delivery options show one
+    // Evaluation of a finished attempt when the delivery options show one,
+    // or the last try's verdict on a fresh try
     const evaluation = readEvaluation(element, responseIdentifier, context.styleManager);
 
     // Add constraint message if min-associations > 0. A finished attempt with
@@ -152,9 +156,8 @@ export class MatchInteractionHandler implements ElementHandler {
     // the group; the status rail is the visual verdict.
     let constraint: ConstraintMessage | undefined;
     const verdict = evaluation?.verdict ?? null;
-    const constraintText = verdict
-      ? getVerdictText(verdict)
-      : buildMatchConstraintText(minAssociations, maxAssociations);
+    const associationText = buildMatchConstraintText(minAssociations, maxAssociations);
+    let constraintText = verdict ? getVerdictText(verdict) : associationText;
     if (constraintText) {
       constraint = createConstraintMessage(
         `constraint-${responseIdentifier}`,
@@ -222,6 +225,11 @@ export class MatchInteractionHandler implements ElementHandler {
       }
       markEvaluated(container, evaluation.verdict);
     }
+    clearVerdictOnEdit(context, responseIdentifier, evaluation, () => {
+      clearEvaluated(container);
+      clearConstraintVerdict(constraint, container, associationText);
+      constraintText = associationText;
+    });
 
     // Register response accessor with itemState
     if (context.itemState) {

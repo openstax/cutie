@@ -1,8 +1,13 @@
 /**
  * Shared helpers for drawing the evaluation (verdict and correct response)
- * cutie-core adds to the template of a finished attempt.
+ * cutie-core adds to the template of a finished attempt, or of a fresh try.
  */
 export {
+  announceItemVerdict,
+  clearConstraintVerdict,
+  clearEvaluated,
+  clearInlineVerdict,
+  clearVerdictOnEdit,
   cloneLabel,
   createCorrectAnswer,
   createCorrectAnswerOverline,

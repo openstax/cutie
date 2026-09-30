@@ -326,7 +326,7 @@ describe('formulaInteraction evaluation', () => {
 
   it('describes the verdict in the constraint text and shows the correct LaTeX in a math-span, linked to the math field', async () => {
     const container = render(
-      'data-evaluation="incorrect"',
+      'data-cutie-evaluation="incorrect"',
       '<qti-correct-response><qti-value>\\frac{1}{2}</qti-value></qti-correct-response>',
     );
     await waitForMathField();

@@ -4,11 +4,13 @@ import {
   collectAssetReferences,
   uniqueAssetUrls,
 } from './lib/collectAssetReferences';
-import { resolveDeliveryOptions } from './lib/deliveryOptions';
+import { isTerminal, resolveDeliveryOptions } from './lib/deliveryOptions';
 import { deriveMaxScore } from './lib/deriveMaxScore';
 import { initializeState } from './lib/initializeState';
 import { processResponse } from './lib/responseProcessing';
 import { buildScore } from './lib/scoreUtils';
+import { instantiateTemplate } from './lib/templateInstance';
+import { endTry } from './lib/tries';
 import { validateSubmission } from './lib/validateResponses';
 import { AttemptState, DeliveryOptions, ProcessingOptions, ResponseData } from './types';
 
@@ -40,7 +42,7 @@ export async function beginAttempt(
   // Initialize state by processing template declarations and template processing
   const state = initializeState(itemDoc, resolveDeliveryOptions(options));
 
-  return presentState(itemDoc, state, processing);
+  return presentState(instantiateTemplate(itemDoc, state), state, processing);
 }
 
 /**
@@ -61,14 +63,16 @@ export async function resumeAttempt(
   itemXml: string,
   processing?: ProcessingOptions
 ): Promise<AttemptResult> {
-  return presentState(parseItem(itemXml), state, processing);
+  return presentState(instantiateTemplate(parseItem(itemXml), state), state, processing);
 }
 
 /**
  * Processes a response submission and updates the attempt state.
  *
  * Runs response processing to score the submission, update outcome variables,
- * and determine completion status. Then generates an updated template with
+ * and determine completion status. A submission that ends a try short of fully
+ * correct, with tries left, starts a fresh try (see `DeliveryOptions.maxTries`).
+ * Then generates an updated template with
  * any newly visible feedback or content changes, under the delivery options
  * the attempt began with.
  *
@@ -77,6 +81,9 @@ export async function resumeAttempt(
  * @param itemXml - Complete QTI v3 assessment item XML definition
  * @param processing - Optional processing options (e.g., asset resolver)
  * @returns Promise resolving to updated state and sanitized template XML
+ * @throws When the attempt is complete (terminal), unless its response awaits
+ *   manual scoring; and a ResponseValidationError when the submission breaks
+ *   the item's response constraints
  *
  * @example
  * ```typescript
@@ -95,16 +102,25 @@ export async function submitResponse(
   itemXml: string,
   processing?: ProcessingOptions
 ): Promise<AttemptResult> {
-  const itemDoc = parseItem(itemXml);
+  // A finished attempt takes no more submissions, except to edit a response
+  // that awaits manual scoring
+  if (isTerminal(state) && !state.pendingManualScoring) {
+    throw new Error('The attempt is complete; it takes no further submissions');
+  }
+
+  const itemDoc = instantiateTemplate(parseItem(itemXml), state);
 
   // Validate response constraints before processing
   validateSubmission(submission, itemDoc);
 
   // Process the response submission to update state
-  const updatedState = processResponse(itemDoc, submission, state);
+  const processedState = processResponse(itemDoc, submission, state);
+
+  // Count the try it ended, continuing with a fresh one if it fell short
+  const { state: updatedState, tryConsumed } = endTry(itemDoc, state, processedState);
 
   // Render the updated template with new state (feedback may now be visible)
-  return completeTurn(itemDoc, state, updatedState, processing);
+  return completeTurn(itemDoc, state, updatedState, processing, tryConsumed);
 }
 
 /**
@@ -129,7 +145,7 @@ export async function setScore(
   itemXml: string,
   processing?: ProcessingOptions
 ): Promise<AttemptResult> {
-  const itemDoc = parseItem(itemXml);
+  const itemDoc = instantiateTemplate(parseItem(itemXml), state);
 
   const maxScore = deriveMaxScore(itemDoc, state.variables);
   if (maxScore === null) {

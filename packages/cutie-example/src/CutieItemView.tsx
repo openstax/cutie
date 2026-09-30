@@ -29,26 +29,27 @@ interface CutieItemViewProps {
 export function CutieItemView({ template, attemptState, interactionsEnabled, themeOptions, ref }: CutieItemViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mountedItemRef = useRef<MountedItem | null>(null);
-  const prevCompletionStatusRef = useRef<string | undefined>(undefined);
+  const prevThemeOptionsRef = useRef<MountItemOptions | undefined>(undefined);
 
   useImperativeHandle(ref, () => ({
     collectResponses: () => mountedItemRef.current?.collectResponses(),
   }), []);
 
-  // Uses update() on submit transitions to preserve announcement state,
-  // and a fresh mountItem() for a new attempt or item
+  // Every turn within an attempt (a submission, a fresh try, a score) uses
+  // update(), so the item keeps what it has announced and announces only what
+  // is new. A new attempt or item, which begins not_attempted, or a theme
+  // change gets a fresh mountItem().
   useEffect(() => {
     if (!containerRef.current) return;
 
-    const prevStatus = prevCompletionStatusRef.current;
-    prevCompletionStatusRef.current = attemptState?.completionStatus;
+    const themeChanged = prevThemeOptionsRef.current !== themeOptions;
+    prevThemeOptionsRef.current = themeOptions;
 
-    // Use update() when transitioning to 'completed' (submit with feedback)
-    const isSubmitTransition = mountedItemRef.current
-      && attemptState?.completionStatus === 'completed'
-      && prevStatus !== 'completed';
+    const isSameAttempt = mountedItemRef.current
+      && !themeChanged
+      && attemptState !== null && attemptState.completionStatus !== 'not_attempted';
 
-    if (isSubmitTransition) {
+    if (isSameAttempt) {
       mountedItemRef.current!.update(template);
       return;
     }

@@ -28,8 +28,8 @@ function evaluationOf(template: string, responseIdentifier: string): string | nu
   const interaction = Array.from(doc.getElementsByTagName('*')).find(
     (el) => el.getAttribute('response-identifier') === responseIdentifier
   );
-  return interaction?.hasAttribute('data-evaluation')
-    ? interaction.getAttribute('data-evaluation')
+  return interaction?.hasAttribute('data-cutie-evaluation')
+    ? interaction.getAttribute('data-cutie-evaluation')
     : null;
 }
 
@@ -284,6 +284,8 @@ describe('delivery options', () => {
         showFeedback: true,
         showEvaluation: 'none',
         shuffleOverride: 'none',
+        maxTries: 1,
+        adaptiveRetryMessage: 'That wasn\'t quite right. Tries remaining: {n}',
       });
     });
 
@@ -295,6 +297,8 @@ describe('delivery options', () => {
         showFeedback: true,
         showEvaluation: 'correctness',
         shuffleOverride: 'none',
+        maxTries: 1,
+        adaptiveRetryMessage: 'That wasn\'t quite right. Tries remaining: {n}',
       });
     });
 
@@ -303,6 +307,8 @@ describe('delivery options', () => {
         showFeedback: false,
         showEvaluation: 'correctResponse',
         shuffleOverride: 'never',
+        maxTries: 2,
+        adaptiveRetryMessage: 'Try again ({n} left)',
       };
       const begun = await beginAttempt(externalScoredItem, undefined, options);
       const submitted = await submitResponse({ CHOICE: 'A', ESSAY: 'Text' }, begun.state, externalScoredItem);
@@ -530,12 +536,50 @@ describe('delivery options', () => {
       expect(correctResponseOf(result.template, 'COUNT')).toEqual(['4']);
     });
 
+    test('judges the response as a whole on the item body, by its score', async () => {
+      const begun = await beginAttempt(multiInteractionItem, undefined, { showEvaluation: 'correctness' });
+      const itemVerdict = (template: string) =>
+        parseTemplate(template).getElementsByTagName('qti-item-body')[0]?.getAttribute('data-cutie-evaluation') || null;
+      expect(itemVerdict(begun.template)).toBeNull();
+
+      // Each interaction is correct, but the item's processing only awards CITY: 1 of 2
+      const result = await submitResponse({ CITY: 'Paris', COUNT: '4' }, begun.state, multiInteractionItem);
+      expect(evaluationOf(result.template, 'CITY')).toBe('correct');
+      expect(evaluationOf(result.template, 'COUNT')).toBe('correct');
+      expect(itemVerdict(result.template)).toBe('partial');
+    });
+
     test('uses this attempt\'s correct response when template processing sets it', async () => {
       const begun = await beginAttempt(templatedCorrectItem, undefined, { showEvaluation: 'correctResponse' });
+      // Kept in the state, apart from the item's variables
+      expect(begun.state.correctResponses).toEqual({ RESPONSE: 'B' });
+      expect(Object.keys(begun.state.variables)).toEqual(expect.not.arrayContaining(['__correct_RESPONSE']));
       const result = await submitResponse({ RESPONSE: 'B' }, begun.state, templatedCorrectItem);
 
       expect(evaluationOf(result.template, 'RESPONSE')).toBe('correct');
       expect(correctResponseOf(result.template, 'RESPONSE')).toEqual(['B']);
+    });
+
+    test('treats a correct response template processing sets to NULL as no correct response', async () => {
+      const item = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+                     identifier="null-correct" title="Null Correct" adaptive="false" time-dependent="false">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="string">
+    <qti-correct-response><qti-value>x</qti-value></qti-correct-response>
+  </qti-response-declaration>
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/>
+  <qti-template-processing>
+    <qti-set-correct-response identifier="RESPONSE"><qti-null/></qti-set-correct-response>
+  </qti-template-processing>
+  <qti-item-body><p><qti-text-entry-interaction response-identifier="RESPONSE"/></p></qti-item-body>
+  <qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct.xml"/>
+</qti-assessment-item>`;
+      const begun = await beginAttempt(item, undefined, { showEvaluation: 'correctResponse' });
+      const result = await submitResponse({ RESPONSE: 'null' }, begun.state, item);
+
+      expect(result.state.variables.SCORE).toBe(0);
+      expect(evaluationOf(result.template, 'RESPONSE')).toBeNull();
+      expect(correctResponseOf(result.template, 'RESPONSE')).toBeNull();
     });
 
     test('shows nothing while manual scoring is pending', async () => {
@@ -565,9 +609,10 @@ describe('delivery options', () => {
     });
 
     test('is false when the same feedback stays visible', async () => {
-      const begun = await beginAttempt(feedbackChoiceItem);
-      const first = await submitResponse({ RESPONSE: 'B' }, begun.state, feedbackChoiceItem);
-      const second = await submitResponse({ RESPONSE: 'C' }, first.state, feedbackChoiceItem);
+      const begun = await beginAttempt(adaptiveItem);
+      const first = await submitResponse({ RESPONSE: 'B' }, begun.state, adaptiveItem);
+      const second = await submitResponse({ RESPONSE: 'B' }, first.state, adaptiveItem);
+      expect(feedbackIdentifiers(second.template)).toEqual(['HINT']);
       expect(second.hasNewFeedback).toBe(false);
     });
 

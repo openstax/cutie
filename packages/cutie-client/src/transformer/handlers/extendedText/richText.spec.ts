@@ -933,7 +933,7 @@ describe('richTextInteraction evaluation', () => {
 
   it('describes the verdict in the constraint text and shows the sanitized HTML correct answer, linked to the editor once loaded', async () => {
     const container = render(
-      'data-evaluation="partial"',
+      'data-cutie-evaluation="partial"',
       '<qti-correct-response><qti-value>&lt;p&gt;&lt;strong&gt;world&lt;/strong&gt;&lt;img src=x onerror="alert(1)"&gt;&lt;/p&gt;</qti-value></qti-correct-response>',
     );
     await waitForQuill();

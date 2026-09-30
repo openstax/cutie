@@ -3,9 +3,11 @@ import { renderToContainer } from './renderer/domRenderer';
 import { ItemStateImpl } from './state/itemState';
 import { registerBaseStyles } from './styles';
 import { createTransformContext, transformChildren, transformNode } from './transformer/elementTransformer';
+import { announceItemVerdict } from './transformer/handlers/evaluation';
+import { beginFeedbackRender, endFeedbackRender } from './transformer/handlers/feedback/feedbackAnnouncer';
 import { DefaultStyleManager } from './transformer/styleManager';
 import type { ResponseData, TransformContext } from './transformer/types';
-import { announce, initLiveRegions } from './utils/liveRegion';
+import { acquireLiveRegions, announce } from './utils/liveRegion';
 
 /**
  * Theming options for a mounted QTI item.
@@ -104,8 +106,11 @@ export function mountItem(
   // Persistent state bag — survives across update() calls, cleared on unmount()
   const state = new Map<string, unknown>();
 
-  // Cleanup callbacks — accumulated across renders, all called on unmount()
-  const cleanupCallbacks: Array<() => void> = [];
+  // Unmount callbacks — for resources that persist across renders, called on unmount()
+  const unmountCallbacks: Array<() => void> = [];
+
+  // The shared live regions, held for as long as this item is mounted
+  unmountCallbacks.push(acquireLiveRegions(state));
 
   // Mutable reference to current render's itemState and context
   let currentItemState: ItemStateImpl | null = null;
@@ -155,6 +160,17 @@ export function mountItem(
     applyThemeVars();
 
     const mountCallbacks: Array<() => void> = [];
+    // This render's cleanup callbacks — called when it is torn down (update() or unmount())
+    const cleanupCallbacks: Array<() => void> = [];
+    let unmountDom: (() => void) | null = null;
+
+    // Set before anything can throw, so a render that fails part way is still torn down
+    teardownCurrentRender = () => {
+      for (const cb of cleanupCallbacks) cb();
+      itemState.clear();
+      styleManager.cleanup();
+      unmountDom?.();
+    };
 
     const parsed = parseQtiXml(xml);
 
@@ -163,31 +179,40 @@ export function mountItem(
       styleManager,
       onMount: (cb) => mountCallbacks.push(cb),
       onCleanup: (cb) => cleanupCallbacks.push(cb),
+      onUnmount: (cb) => unmountCallbacks.push(cb),
       containerElement: container,
       state,
     });
     currentContext = context;
-    initLiveRegions(context);
+
+    // Announced before the feedback the render announces
+    announceItemVerdict(parsed.itemBody, context);
+    beginFeedbackRender(state);
 
     const fragment = transformChildren(parsed.itemBody, context);
 
     for (const modalFeedback of parsed.modalFeedbacks) {
       fragment.appendChild(transformNode(modalFeedback, context));
     }
+    endFeedbackRender(state);
 
-    const unmountDom = renderToContainer(container, fragment);
+    unmountDom = renderToContainer(container, fragment);
 
     for (const cb of mountCallbacks) cb();
-
-    teardownCurrentRender = () => {
-      itemState.clear();
-      styleManager.cleanup();
-      unmountDom();
-    };
   }
 
-  // Initial render
-  doRender(itemTemplateXml);
+  // Initial render. If it throws there is no handle to unmount with, so undo
+  // everything the mount took (including its hold on the live regions) first
+  try {
+    doRender(itemTemplateXml);
+  } catch (error) {
+    // (doRender sets it; TypeScript can't see that from here)
+    (teardownCurrentRender as (() => void) | null)?.();
+    for (const cb of unmountCallbacks) cb();
+    state.clear();
+    removeThemeVars();
+    throw error;
+  }
   state.set('isUpdate', true);
 
   return {
@@ -196,8 +221,8 @@ export function mountItem(
       teardownCurrentRender = null;
       currentItemState = null;
       currentContext = null;
-      for (const cb of cleanupCallbacks) cb();
-      cleanupCallbacks.length = 0;
+      for (const cb of unmountCallbacks) cb();
+      unmountCallbacks.length = 0;
       state.clear();
       removeThemeVars();
     },

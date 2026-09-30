@@ -48,8 +48,11 @@ export interface AttemptState {
    *
    * Values:
    * - "not_attempted": No response has been submitted yet
-   * - "incomplete": Responses submitted but item allows further attempts
-   * - "completed": Item attempt is finished, no further submissions allowed
+   * - "incomplete": Responses submitted but item allows further attempts (an
+   *   adaptive item that isn't complete, or a fresh try)
+   * - "completed": Item attempt is finished, no further submissions allowed,
+   *   except resubmitting a response that awaits manual scoring
+   *   (`pendingManualScoring`)
    * - "unknown": Completion status cannot be determined
    *
    * This is the primary field the host application uses to determine if
@@ -72,6 +75,21 @@ export interface AttemptState {
    * to store each set's shuffle order separately.
    */
   shuffleOrders?: Record<string, string[]>;
+
+  /**
+   * Correct responses set by template processing (qti-set-correct-response),
+   * by response identifier. They take the place of the declared
+   * qti-correct-response, making this attempt a clone of the item template.
+   */
+  correctResponses?: Record<string, unknown>;
+
+  /**
+   * Default values set by template processing (qti-set-default-value), by
+   * variable identifier. They take the place of the declared
+   * qti-default-value, including when a fresh try resets outcomes.
+   * Kept with their types (records included).
+   */
+  defaultValues?: Record<string, unknown>;
 
   /**
    * Comments from external scoring (e.g., AI-generated feedback for human-scored items).
@@ -97,6 +115,23 @@ export interface AttemptState {
    * later render, so resuming the attempt reproduces the same template.
    */
   withheldFeedback?: FeedbackIdentity[];
+
+  /**
+   * Tries the learner has left under `DeliveryOptions.maxTries`, counting the
+   * one in progress. A try ends when response processing completes the item.
+   * When a try ends short of fully correct with tries left, the attempt
+   * continues with a fresh try (see `retryVerdict`); otherwise it is terminal,
+   * and no tries remain.
+   */
+  triesRemaining: number;
+
+  /**
+   * How the learner's last try was judged, when it fell short and the attempt
+   * continued with a fresh try. Present from the submission that ended that try
+   * until the fresh try ends, and drawn on the template until the fresh try's
+   * first submission. Meanwhile `score` stays the last try's.
+   */
+  retryVerdict?: 'incorrect' | 'partial';
 }
 
 /**
@@ -143,6 +178,30 @@ export interface DeliveryOptions {
    * Choices marked `fixed` keep their position under every value. Defaults to `'none'`.
    */
   shuffleOverride?: 'none' | 'shuffle' | 'never';
+
+  /**
+   * How many tries the learner gets. A try ends when response processing
+   * completes the item: every submission for a non-adaptive item, or the
+   * submission an adaptive item completes itself on.
+   *
+   * A try that ends short of fully correct, with tries left, starts a fresh try:
+   * the item's outcomes are reset, and its feedback waits for the attempt to be
+   * terminal. A non-adaptive item keeps the learner's responses, each
+   * interaction marked with its verdict; an adaptive item starts over, with the
+   * `adaptiveRetryMessage` at the top.
+   *
+   * The attempt is terminal once a try is fully correct, the tries run out, or
+   * a try awaits manual scoring. `'smart'` derives the number from the item's
+   * interactions. Defaults to `1`.
+   */
+  maxTries?: number | 'smart';
+
+  /**
+   * Shown at the top of an adaptive item when it starts a fresh try, with `{n}`
+   * replaced by the tries remaining. Defaults to
+   * `"That wasn't quite right. Tries remaining: {n}"`.
+   */
+  adaptiveRetryMessage?: string;
 }
 
 /**

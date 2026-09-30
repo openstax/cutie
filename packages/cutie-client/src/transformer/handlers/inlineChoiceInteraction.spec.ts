@@ -546,7 +546,7 @@ describe('inlineChoiceInteraction evaluation', () => {
 
   it('shows the verdict icon above the select, describing it', () => {
     const container = render(
-      'data-evaluation="correct"',
+      'data-cutie-evaluation="correct"',
       '<qti-default-value><qti-value>PARIS</qti-value></qti-default-value>',
     );
     const select = container.querySelector('select')!;
@@ -561,7 +561,7 @@ describe('inlineChoiceInteraction evaluation', () => {
 
   it('shows the correct choice by its displayed text, not its identifier', () => {
     const container = render(
-      'data-evaluation="incorrect"',
+      'data-cutie-evaluation="incorrect"',
       `<qti-default-value><qti-value>LYON</qti-value></qti-default-value>
        <qti-correct-response><qti-value>PARIS</qti-value></qti-correct-response>`,
     );

@@ -709,7 +709,7 @@ describe('gapMatchInteraction evaluation', () => {
   });
 
   it('describes the response in the constraint text, announced with the group', () => {
-    const container = render('data-evaluation="incorrect"', '');
+    const container = render('data-cutie-evaluation="incorrect"', '');
     const group = container.querySelector('.cutie-gap-match-interaction')!;
     const constraint = container.querySelector('#constraint-R1')!;
     expect(constraint.textContent).toBe('Incorrect response');
@@ -719,7 +719,7 @@ describe('gapMatchInteraction evaluation', () => {
 
   it('shows the correct choice above each gap, described by the gap', () => {
     const container = render(
-      'data-evaluation="incorrect"',
+      'data-cutie-evaluation="incorrect"',
       `<qti-default-value><qti-value>C1 G1</qti-value></qti-default-value>
        <qti-correct-response><qti-value>C2 G1</qti-value><qti-value>C1 G2</qti-value></qti-correct-response>`,
     );

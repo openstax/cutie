@@ -1,6 +1,7 @@
 import { AttemptState, ResponseData } from '../types';
 import { getChildElements, getFirstChildElement } from '../utils/dom';
 import { normalizePair } from '../utils/typeParser';
+import { isAdaptive } from './adaptive';
 import {
   evaluateExpression as evaluateExpressionShared,
   type SubEvaluate,
@@ -82,6 +83,10 @@ export function processResponse(
   // Create a copy of the current state's variables
   const variables: Record<string, unknown> = { ...currentState.variables };
 
+  // The built-in numAttempts counts submissions within a try, including this
+  // one, so response processing sees it (a fresh try restarts it)
+  variables.numAttempts = (typeof variables.numAttempts === 'number' ? variables.numAttempts : 0) + 1;
+
   // Step 1: Update response variables from submission
   // Coerce string values to appropriate types based on response declarations
   for (const [identifier, value] of Object.entries(submission)) {
@@ -106,13 +111,17 @@ export function processResponse(
   }
 
   // Step 3: Return updated state
-  // Trust completionStatus set by response processing, default to 'completed'
+  // An adaptive item is complete only once its response processing sets
+  // completionStatus to completed (QTI 3 Information Model §2.2.2.3); any
+  // other item is complete after every submission, whatever it sets
   const score = extractStandardOutcomes(variables, itemDoc);
-  const completionStatus = variables.completionStatus === 'incomplete'
-    ? 'incomplete'
-    : 'completed';
+  const completionStatus = !isAdaptive(itemDoc) || variables.completionStatus === 'completed'
+    ? 'completed'
+    : 'incomplete';
 
-  const externalInfo = getExternalScoredInfo(itemDoc, variables);
+  // A human-scored item awaits its score once the submission completes it; an
+  // adaptive item's earlier steps have nothing to score yet
+  const externalInfo = completionStatus === 'completed' ? getExternalScoredInfo(itemDoc, variables) : null;
 
   return {
     variables,
@@ -120,8 +129,12 @@ export function processResponse(
     score,
     // Delivery options are fixed for the life of the attempt
     options: currentState.options,
-    // Preserve shuffle orders from input state
+    // Tries are counted once the submission's turn ends (see endTry)
+    triesRemaining: currentState.triesRemaining,
+    // Preserve shuffle orders and template processing's results from input state
     ...(currentState.shuffleOrders && { shuffleOrders: currentState.shuffleOrders }),
+    ...(currentState.correctResponses && { correctResponses: currentState.correctResponses }),
+    ...(currentState.defaultValues && { defaultValues: currentState.defaultValues }),
     // Signal that external scoring is needed
     ...(externalInfo && { pendingManualScoring: { maxScore: externalInfo.maxScore } }),
   };
@@ -169,7 +182,7 @@ function executeResponseTemplate(
  */
 function executeMatchCorrectTemplate(itemDoc: Document, variables: Record<string, unknown>): void {
   const responseValue = variables['RESPONSE'];
-  const correctValue = getCorrectResponse(itemDoc, 'RESPONSE', variables);
+  const correctValue = getCorrectResponse(itemDoc, 'RESPONSE');
 
   if (compareResponseValues(itemDoc, 'RESPONSE', responseValue, correctValue)) {
     variables['SCORE'] = 1;
@@ -326,7 +339,7 @@ function evaluateExpression(
   switch (localName) {
     // Response-specific operators
     case 'qti-correct':
-      return evaluateCorrect(element, itemDoc, variables);
+      return evaluateCorrect(element, itemDoc);
     case 'qti-map-response':
       return evaluateMapResponse(element, itemDoc, variables, subEvaluate);
     case 'qti-map-response-point':
@@ -340,11 +353,11 @@ function evaluateExpression(
 
 // Expression evaluators
 
-function evaluateCorrect(element: Element, itemDoc: Document, variables: Record<string, unknown>): unknown {
+function evaluateCorrect(element: Element, itemDoc: Document): unknown {
   const identifier = element.getAttribute('identifier');
   if (!identifier) return null;
 
-  return getCorrectResponse(itemDoc, identifier, variables);
+  return getCorrectResponse(itemDoc, identifier);
 }
 
 function evaluateMapResponse(

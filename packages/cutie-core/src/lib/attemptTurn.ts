@@ -28,8 +28,18 @@ export interface AttemptResult {
    * Whether this template shows the learner something the prior state's
    * template did not: a feedback element, a verdict, or a correct response.
    * Always false when nothing was submitted (beginning or resuming an attempt).
+   * Always true when a submission ended a try that fell short and started a
+   * fresh one, which shows the learner the verdict.
    */
   hasNewFeedback: boolean;
+
+  /**
+   * Whether this operation ended a try (see `DeliveryOptions.maxTries`): a
+   * submission response processing completed the item on. Only
+   * `submitResponse` ends tries, and resubmitting while a try awaits manual
+   * scoring does not.
+   */
+  tryConsumed: boolean;
 }
 
 /**
@@ -42,7 +52,7 @@ export async function presentState(
   processing?: ProcessingOptions
 ): Promise<AttemptResult> {
   const template = await serializeTemplate(buildTemplateDocument(itemDoc, state), processing);
-  return { state, template, hasNewFeedback: false };
+  return { state, template, hasNewFeedback: false, tryConsumed: false };
 }
 
 /**
@@ -51,21 +61,24 @@ export async function presentState(
  *
  * Decides which feedback the attempt withholds, renders the next template, and
  * reports whether it shows the learner anything the prior template did not.
+ * A fresh try's verdict is always new: it judges the try that just ended.
  */
 export async function completeTurn(
   itemDoc: Document,
   priorState: AttemptState,
   nextState: AttemptState,
-  processing?: ProcessingOptions
+  processing?: ProcessingOptions,
+  tryConsumed = false
 ): Promise<AttemptResult> {
   const priorDoc = buildTemplateDocument(itemDoc, priorState);
   const state = decideWithheldFeedback(itemDoc, priorState, priorDoc, nextState);
   const nextDoc = buildTemplateDocument(itemDoc, state);
 
-  const hasNewFeedback = hasNewReveals(priorDoc, nextDoc);
+  const startsFreshTry = tryConsumed && !!state.retryVerdict;
+  const hasNewFeedback = startsFreshTry || hasNewReveals(priorDoc, nextDoc);
   const template = await serializeTemplate(nextDoc, processing);
 
-  return { state, template, hasNewFeedback };
+  return { state, template, hasNewFeedback, tryConsumed };
 }
 
 /**
@@ -109,7 +122,8 @@ function uniqueFeedback(feedback: FeedbackIdentity[]): FeedbackIdentity[] {
 
 /**
  * Whether nextDoc reveals anything priorDoc did not: a feedback element
- * (by tag, outcome-identifier and identifier), a verdict, or a correct response.
+ * (by tag, outcome-identifier and identifier), a verdict (by interaction and
+ * value, so a changed verdict is new), or a correct response.
  * Changes inside content that stays visible do not count.
  */
 function hasNewReveals(priorDoc: Document, nextDoc: Document): boolean {
@@ -121,8 +135,11 @@ function collectReveals(root: Element): string[] {
   const feedback = collectVisibleFeedback(root).map((identity) => `feedback:${feedbackKey(identity)}`);
 
   const evaluations = Array.from(root.getElementsByTagName('*'))
-    .filter((element) => element.hasAttribute('data-evaluation'))
-    .map((element) => `evaluation:${element.getAttribute('response-identifier') ?? ''}`);
+    .filter((element) => element.hasAttribute('data-cutie-evaluation'))
+    .map(
+      (element) =>
+        `evaluation:${element.getAttribute('response-identifier') ?? ''}:${element.getAttribute('data-cutie-evaluation')}`
+    );
 
   const correctResponses = Array.from(root.getElementsByTagName('qti-correct-response')).map(
     (element) => `correct-response:${(element.parentNode as Element | null)?.getAttribute('identifier') ?? ''}`

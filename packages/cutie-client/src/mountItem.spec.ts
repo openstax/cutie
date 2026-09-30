@@ -332,3 +332,115 @@ describe('mountItem onResponseChange', () => {
     expect(() => typeInto(q<HTMLInputElement>(container, 'input'), '1')).not.toThrow();
   });
 });
+
+describe('mountItem cleanup lifetimes', () => {
+  const clicks = (spy: { mock: { calls: unknown[][] } }) =>
+    spy.mock.calls.filter((call) => call[0] === 'click').length;
+
+  it('tears down each render\'s document listeners on update() and unmount()', () => {
+    const add = vi.spyOn(document, 'addEventListener');
+    const remove = vi.spyOn(document, 'removeEventListener');
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+
+    const item = mountItem(container, MATCH_XML);
+    for (let i = 0; i < 3; i++) item.update(MATCH_XML);
+
+    // Only the current render's listener is still attached
+    expect(clicks(add) - clicks(remove)).toBe(1);
+
+    item.unmount();
+    expect(clicks(add) - clicks(remove)).toBe(0);
+
+    add.mockRestore();
+    remove.mockRestore();
+    container.remove();
+  });
+
+  it('shares the live regions between mounted items until the last unmounts', () => {
+    const first = document.createElement('div');
+    const second = document.createElement('div');
+    document.body.append(first, second);
+
+    const a = mountItem(first, MATCH_XML);
+    const b = mountItem(second, MATCH_XML);
+    const regions = Array.from(document.querySelectorAll('[aria-live]'));
+    expect(regions).toHaveLength(2);
+
+    a.unmount();
+    expect(Array.from(document.querySelectorAll('[aria-live]'))).toEqual(regions);
+
+    b.unmount();
+    expect(document.querySelectorAll('[aria-live]')).toHaveLength(0);
+    first.remove();
+    second.remove();
+  });
+
+  it('drops announcements still queued when the last item unmounts', async () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const item = mountItem(container, MATCH_XML);
+    const retry = MATCH_XML.replace('<qti-item-body>', '<qti-item-body><div data-cutie-retry="incorrect">Try again</div>');
+
+    item.update(retry); // queues the retry message's announcement
+    item.unmount(); // before the queue flushes
+    await Promise.resolve();
+
+    expect(document.querySelectorAll('[aria-live]')).toHaveLength(0);
+    container.remove();
+  });
+
+  it('leaves nothing behind when the first render throws', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+
+    expect(() => mountItem(container, '<not-qti/>')).toThrow();
+    expect(document.querySelectorAll('[aria-live]')).toHaveLength(0);
+
+    // A later mount still owns, and removes, the regions
+    const item = mountItem(container, MATCH_XML);
+    item.unmount();
+    expect(document.querySelectorAll('[aria-live]')).toHaveLength(0);
+    container.remove();
+  });
+
+  it('drops an unmounted item\'s queued announcements while another item still holds the regions', async () => {
+    const first = document.createElement('div');
+    const second = document.createElement('div');
+    document.body.append(first, second);
+    const withRetry = (text: string) =>
+      MATCH_XML.replace('<qti-item-body>', `<qti-item-body><div data-cutie-retry="incorrect">${text}</div>`);
+
+    const a = mountItem(first, MATCH_XML);
+    const b = mountItem(second, MATCH_XML);
+
+    a.update(withRetry('From A')); // queues A's announcement
+    b.update(withRetry('From B')); // and B's
+    a.unmount(); // before the queue flushes
+    await Promise.resolve();
+
+    const polite = q(document.body, '[aria-live="polite"]');
+    expect(polite.textContent).toContain('From B');
+    expect(polite.textContent).not.toContain('From A');
+
+    b.unmount();
+    first.remove();
+    second.remove();
+  });
+
+  it('keeps the live regions across update() and removes them on unmount()', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+
+    const item = mountItem(container, MATCH_XML);
+    const regions = Array.from(document.querySelectorAll('[aria-live]'));
+    expect(regions).toHaveLength(2);
+
+    item.update(MATCH_XML);
+    expect(Array.from(document.querySelectorAll('[aria-live]'))).toEqual(regions);
+
+    item.unmount();
+    expect(document.querySelectorAll('[aria-live]')).toHaveLength(0);
+    container.remove();
+  });
+});

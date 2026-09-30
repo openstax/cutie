@@ -632,7 +632,7 @@ describe('textEntryInteraction evaluation', () => {
 
   it('shows the verdict icon and correct answer above the input, describing it', () => {
     const container = render(
-      'data-evaluation="incorrect"',
+      'data-cutie-evaluation="incorrect"',
       `<qti-default-value><qti-value>york</qti-value></qti-default-value>
        <qti-correct-response><qti-value>York</qti-value></qti-correct-response>`,
     );
@@ -653,7 +653,7 @@ describe('textEntryInteraction evaluation', () => {
   });
 
   it('shows only the verdict icon when no correct response is sent', () => {
-    const container = render('data-evaluation="correct"', '');
+    const container = render('data-cutie-evaluation="correct"', '');
     const overline = container.querySelector('.cutie-correct-answer-overline')!;
     expect(overline.querySelector('.cutie-feedback-icon--correct')).not.toBeNull();
     expect(overline.textContent).toBe('Correct. ');
@@ -668,7 +668,7 @@ describe('textEntryInteraction evaluation', () => {
 
   it('joins multiple correct values', () => {
     const container = render(
-      'data-evaluation="correct"',
+      'data-cutie-evaluation="correct"',
       '<qti-correct-response><qti-value>a</qti-value><qti-value>b</qti-value></qti-correct-response>',
       'multiple',
     );

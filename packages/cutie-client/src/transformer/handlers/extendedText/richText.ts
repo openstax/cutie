@@ -3,11 +3,19 @@ import { createMissingAttributeError } from '../../../errors/errorDisplay';
 import { addAriaDescribedBy } from '../../../utils/aria';
 import { registry } from '../../registry';
 import type { ElementHandler, TransformContext } from '../../types';
-import { createEvaluationSummary, getVerdictText, markEvaluated, readEvaluation } from '../evaluation';
+import {
+  clearEvaluated,
+  clearVerdictOnEdit,
+  createEvaluationSummary,
+  getVerdictText,
+  markEvaluated,
+  readEvaluation,
+} from '../evaluation';
 import { getDefaultValue } from '../responseUtils';
 import { loadQuill } from './quillLoader';
 import {
   type CharacterCounter,
+  clearConstraintResultVerdict,
   createCharacterCounter,
   createConstraintElements,
   createInteractionContainer,
@@ -119,8 +127,9 @@ class RichTextInteractionHandler implements ElementHandler {
         counterTarget, effectiveDirection, responseIdentifier, context.styleManager, isHardLimit,
       );
     }
-    // Evaluation of a finished attempt, when the delivery options show one.
-    // Its verdict takes the constraint text's place.
+    // Evaluation of a finished attempt when the delivery options show one, or
+    // the last try's verdict on a fresh try. Its verdict takes the constraint
+    // text's place.
     const evaluation = readEvaluation(element, responseIdentifier, context.styleManager);
     const verdictText = evaluation?.verdict ? getVerdictText(evaluation.verdict) : null;
 
@@ -176,6 +185,11 @@ class RichTextInteractionHandler implements ElementHandler {
 
     // Track active editor root for aria wiring
     let activeEditorRoot: HTMLElement | null = null;
+
+    clearVerdictOnEdit(context, responseIdentifier, evaluation, () => {
+      clearEvaluated(container);
+      clearConstraintResultVerdict(constraintResult, activeEditorRoot);
+    });
 
     // Find the first violated constraint, without touching the UI.
     // Returns null when valid, otherwise the message text to display.
@@ -286,7 +300,7 @@ class RichTextInteractionHandler implements ElementHandler {
         // Report the learner edit. Registered after the default value is
         // pasted in above, so restoring qti-default-value doesn't report.
         quill.on('text-change', () => {
-          context.itemState?.notifyResponseChange();
+          context.itemState?.notifyResponseChange(responseIdentifier);
         });
 
         // Wire up aria attributes on the editor root

@@ -79,14 +79,26 @@ describe('ItemStateImpl response change reporting', () => {
     state.registerResponse('R1', () => ({ value: null, valid: false }));
     state.registerResponse('R2', () => ({ value: ['B'], valid: true }));
 
-    state.notifyResponseChange();
+    state.notifyResponseChange('R2');
     expect(onResponseChange).toHaveBeenCalledWith({ R1: null, R2: ['B'] });
+  });
+
+  it('notifyResponseChange invokes the edit listeners of that response only', () => {
+    const state = new ItemStateImpl();
+    const r1 = vi.fn();
+    const r2 = vi.fn();
+    state.onResponseEdit('R1', r1);
+    state.onResponseEdit('R2', r2);
+
+    state.notifyResponseChange('R1');
+    expect(r1).toHaveBeenCalledTimes(1);
+    expect(r2).not.toHaveBeenCalled();
   });
 
   it('notifyResponseChange is a no-op without a listener', () => {
     const state = new ItemStateImpl();
     state.registerResponse('R1', () => ({ value: 'A', valid: true }));
-    expect(() => state.notifyResponseChange()).not.toThrow();
+    expect(() => state.notifyResponseChange('R1')).not.toThrow();
   });
 
   it('setInteractionsEnabled does not report a response change', () => {

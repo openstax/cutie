@@ -8,6 +8,9 @@ import { announce } from '../../../utils/liveRegion';
 import type { ElementHandler, TransformContext } from '../../types';
 import { parseChoicesContainerWidth } from '../../vocabUtils';
 import {
+  clearConstraintVerdict,
+  clearEvaluated,
+  clearVerdictOnEdit,
   createCorrectAnswerOverline,
   getVerdictText,
   markEvaluated,
@@ -272,7 +275,8 @@ export class GapMatchInteractionHandler implements ElementHandler {
     const minAssociations = parseInt(element.getAttribute('min-associations') ?? '0', 10) || 0;
     const maxAssociations = parseInt(element.getAttribute('max-associations') ?? '0', 10) || 0;
 
-    // Evaluation of a finished attempt, when the delivery options show one
+    // Evaluation of a finished attempt when the delivery options show one,
+    // or the last try's verdict on a fresh try
     const evaluation = readEvaluation(element, responseIdentifier, context.styleManager);
 
     // Add constraint message if min-associations > 0. A finished attempt with
@@ -280,9 +284,8 @@ export class GapMatchInteractionHandler implements ElementHandler {
     // the group; the status rail is the visual verdict.
     let constraint: ConstraintMessage | undefined;
     const verdict = evaluation?.verdict ?? null;
-    const constraintText = verdict
-      ? getVerdictText(verdict)
-      : buildGapMatchConstraintText(minAssociations, maxAssociations);
+    const associationText = buildGapMatchConstraintText(minAssociations, maxAssociations);
+    let constraintText = verdict ? getVerdictText(verdict) : associationText;
     if (constraintText) {
       constraint = createConstraintMessage(
         `constraint-${responseIdentifier}`,
@@ -361,6 +364,11 @@ export class GapMatchInteractionHandler implements ElementHandler {
       }
       markEvaluated(container, evaluation.verdict);
     }
+    clearVerdictOnEdit(context, responseIdentifier, evaluation, () => {
+      clearEvaluated(container);
+      clearConstraintVerdict(constraint, container, associationText);
+      constraintText = associationText;
+    });
 
     // Size gaps to their widest acceptable choice once they are in the
     // document, and again when web fonts have loaded and changed the text width

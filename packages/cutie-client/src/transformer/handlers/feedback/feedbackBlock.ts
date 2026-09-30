@@ -18,13 +18,7 @@ class FeedbackBlockHandler implements ElementHandler {
   transform(element: Element, context: TransformContext): DocumentFragment {
     const fragment = document.createDocumentFragment();
 
-    // Register styles once
-    if (context.styleManager && !context.styleManager.hasStyle('cutie-feedback-block')) {
-      context.styleManager.addStyle('cutie-feedback-block', FEEDBACK_BLOCK_STYLES);
-    }
-    if (context.styleManager && !context.styleManager.hasStyle('cutie-feedback-icon')) {
-      context.styleManager.addStyle('cutie-feedback-icon', FEEDBACK_ICON_STYLES);
-    }
+    registerFeedbackBlockStyles(context);
 
     const div = document.createElement('div');
     div.className = 'cutie-feedback-block';
@@ -60,6 +54,18 @@ class FeedbackBlockHandler implements ElementHandler {
 }
 
 registry.register('feedback-block', new FeedbackBlockHandler(), 50);
+
+/**
+ * Register the feedback block and icon styles once
+ */
+export function registerFeedbackBlockStyles(context: TransformContext): void {
+  if (context.styleManager && !context.styleManager.hasStyle('cutie-feedback-block')) {
+    context.styleManager.addStyle('cutie-feedback-block', FEEDBACK_BLOCK_STYLES);
+  }
+  if (context.styleManager && !context.styleManager.hasStyle('cutie-feedback-icon')) {
+    context.styleManager.addStyle('cutie-feedback-icon', FEEDBACK_ICON_STYLES);
+  }
+}
 
 const FEEDBACK_BLOCK_STYLES = `
   .cutie-feedback-block[data-feedback-type="correct"],

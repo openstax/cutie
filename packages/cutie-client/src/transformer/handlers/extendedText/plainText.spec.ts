@@ -1432,7 +1432,7 @@ describe('extendedTextInteraction evaluation', () => {
 
   it('describes the response in the constraint text and shows the correct answer below the textarea', () => {
     const container = render(
-      'data-evaluation="incorrect"',
+      'data-cutie-evaluation="incorrect"',
       `<qti-default-value><qti-value>hello</qti-value></qti-default-value>
        <qti-correct-response><qti-value>world</qti-value></qti-correct-response>`,
     );
@@ -1453,7 +1453,7 @@ describe('extendedTextInteraction evaluation', () => {
   });
 
   it('shows only the verdict text under correctness', () => {
-    const container = render('data-evaluation="correct"', '');
+    const container = render('data-cutie-evaluation="correct"', '');
     expect(container.querySelector('#constraint-R1')!.textContent).toBe('Correct response');
     expect(container.querySelector('.cutie-correct-answer')).toBeNull();
   });

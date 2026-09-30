@@ -1,4 +1,4 @@
-import type { ResolvedDeliveryOptions } from './utils/deliveryOptions';
+import { MAX_TRIES_VALUES, type ResolvedDeliveryOptions } from './utils/deliveryOptions';
 
 interface DeliveryOptionsPanelProps {
   options: ResolvedDeliveryOptions;
@@ -45,6 +45,40 @@ export function DeliveryOptionsPanel({ options, onChange }: DeliveryOptionsPanel
             <option value="correctResponse">Correct response</option>
           </select>
           <span className="delivery-option-help">What the learner sees about their response once the attempt ends.</span>
+        </div>
+
+        <div className="delivery-option">
+          <label htmlFor="max-tries-select">Max tries</label>
+          <select
+            id="max-tries-select"
+            value={String(options.maxTries)}
+            onChange={(e) => set('maxTries', e.target.value === 'smart' ? 'smart' : Number(e.target.value))}
+          >
+            {MAX_TRIES_VALUES.map((value) => (
+              <option key={value} value={String(value)}>
+                {value === 'smart' ? 'Smart (from the interactions)' : value}
+              </option>
+            ))}
+          </select>
+          <span className="delivery-option-help">
+            A try that falls short starts a fresh one, showing its verdict, until the tries run out.
+          </span>
+        </div>
+
+        <div className="delivery-option">
+          <label htmlFor="adaptive-retry-message-input">Adaptive retry message</label>
+          <input
+            id="adaptive-retry-message-input"
+            type="text"
+            key={options.adaptiveRetryMessage}
+            defaultValue={options.adaptiveRetryMessage}
+            onBlur={(e) => {
+              if (e.target.value !== options.adaptiveRetryMessage) set('adaptiveRetryMessage', e.target.value);
+            }}
+          />
+          <span className="delivery-option-help">
+            Leads an adaptive item on a fresh try; {'{n}'} is the tries remaining. Applied when the field loses focus.
+          </span>
         </div>
 
         <div className="delivery-option">

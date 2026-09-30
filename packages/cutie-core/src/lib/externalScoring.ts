@@ -8,8 +8,30 @@ export interface ExternalScoredInfo {
 }
 
 /**
- * Checks whether an item is externally scored by looking for a SCORE outcome
- * declaration with `external-scored="human"`.
+ * Whether any outcome of the item is scored outside response processing
+ * (`external-scored`, by a human or an external machine).
+ */
+export function hasExternalScoring(itemDoc: Document): boolean {
+  return Array.from(itemDoc.getElementsByTagName('qti-outcome-declaration')).some((decl) =>
+    ['human', 'externalMachine'].includes(decl.getAttribute('external-scored') ?? '')
+  );
+}
+
+/**
+ * Whether an item is scored by a human: its SCORE outcome declaration has
+ * `external-scored="human"`. Such an item awaits manual scoring once submitted.
+ */
+export function isExternallyScored(itemDoc: Document): boolean {
+  return Array.from(itemDoc.getElementsByTagName('qti-outcome-declaration')).some(
+    (decl) =>
+      decl.getAttribute('identifier') === 'SCORE' &&
+      decl.getAttribute('external-scored') === 'human'
+  );
+}
+
+/**
+ * Checks whether an item is externally scored (see isExternallyScored) and,
+ * if so, what it can score.
  *
  * @param itemDoc - Parsed QTI assessment item XML document
  * @param variables - The current variable state (passed through to deriveMaxScore)
@@ -19,21 +41,8 @@ export function getExternalScoredInfo(
   itemDoc: Document,
   variables: Record<string, unknown>
 ): ExternalScoredInfo | null {
-  const outcomeDeclarations = itemDoc.getElementsByTagName('qti-outcome-declaration');
+  if (!isExternallyScored(itemDoc)) return null;
 
-  for (let i = 0; i < outcomeDeclarations.length; i++) {
-    const decl = outcomeDeclarations[i];
-    if (
-      decl.getAttribute('identifier') === 'SCORE' &&
-      decl.getAttribute('external-scored') === 'human'
-    ) {
-      const maxScore = deriveMaxScore(itemDoc, variables);
-      if (maxScore === null) {
-        return null;
-      }
-      return { maxScore };
-    }
-  }
-
-  return null;
+  const maxScore = deriveMaxScore(itemDoc, variables);
+  return maxScore === null ? null : { maxScore };
 }

@@ -50,7 +50,7 @@ export function evaluateResponse(
     return evaluateMappedValue(mapResponsePoint(itemDoc, identifier, variables), areaMappingMax);
   }
 
-  const correctValue = getCorrectResponse(itemDoc, identifier, variables);
+  const correctValue = getCorrectResponse(itemDoc, identifier);
   if (correctValue === null) return null;
 
   return compareResponseValues(itemDoc, identifier, variables[identifier] ?? null, correctValue)

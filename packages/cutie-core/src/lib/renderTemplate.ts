@@ -1,13 +1,17 @@
 /* spell-checker: ignore inlines */
 import { XMLSerializer } from '@xmldom/xmldom';
 import { AttemptState, FeedbackIdentity, ProcessingOptions } from '../types';
+import { createValueContainer } from '../utils/valueContainer';
+import { isAdaptive } from './adaptive';
 import {
   collectAssetReferences,
   uniqueAssetUrls,
 } from './collectAssetReferences';
 import { canEvaluate } from './deliveryOptions';
-import { evaluateResponse } from './evaluateResponses';
+import { evaluateResponse, ResponseEvaluation } from './evaluateResponses';
 import { getCorrectResponse } from './responseDeclarations';
+import { evaluateTry } from './tries';
+import { getFeedbackElements, processFeedbackVisibility, processTemplateConditionals } from './visibility';
 
 /**
  * Renders a sanitized QTI template for client consumption.
@@ -36,7 +40,8 @@ export async function renderTemplate(
  *
  * This function:
  * 1. Substitutes template and outcome variable values into the item body
- * 2. Applies conditional visibility rules based on current state
+ * 2. Applies conditional visibility rules based on current state, replacing
+ *    each template block or inline shown with its content
  * 3. Shows/hides feedback elements based on outcome variables, and removes
  *    feedback the attempt withholds (see AttemptState.withheldFeedback)
  * 4. Strips sensitive content that should not be exposed to the client:
@@ -48,7 +53,8 @@ export async function renderTemplate(
  *    - Hidden feedback that shouldn't be visible yet
  * 5. Injects current response values as qti-default-value elements
  * 6. Once the attempt can be evaluated, adds the evaluation its delivery options allow
- *    (see applyEvaluation)
+ *    (see applyEvaluation); at the start of a fresh try, the last try's verdict
+ *    (see applyRetryVerdict)
  *
  * The result depends only on the item and the state, so rendering the same
  * state again produces the same document.
@@ -62,14 +68,18 @@ export function buildTemplateDocument(itemDoc: Document, state: AttemptState): D
   const clonedDoc = itemDoc.cloneNode(true) as Document;
   const root = clonedDoc.documentElement;
 
-  // Step 1: Remove sensitive content that shouldn't be exposed to the client
+  // Step 1: Remove sensitive content that shouldn't be exposed to the client,
+  // and any authored copy of the markup only core may add
   removeSensitiveElements(root);
+  removeReservedMarkup(root);
 
   // Step 2: Substitute template variables into qti-printed-variable elements
   substituteVariables(root, state.variables);
 
-  // Step 3: Process conditional template elements (blocks, inlines, choices)
+  // Step 3: Process conditional template elements (blocks, inlines, choices),
+  // leaving the content of those shown in place of them
   processTemplateConditionals(root, state.variables);
+  unwrapTemplateContent(root);
 
   // Step 3.5: Apply shuffle orders to reorder interaction choices
   if (state.shuffleOrders) {
@@ -93,6 +103,8 @@ export function buildTemplateDocument(itemDoc: Document, state: AttemptState): D
   // Step 6.5: Add the evaluation the attempt's delivery options allow
   if (canEvaluate(state)) {
     applyEvaluation(root, itemDoc, state);
+  } else if (state.retryVerdict && state.variables.numAttempts === 0) {
+    applyRetryVerdict(root, itemDoc, state, state.retryVerdict);
   }
 
   // Step 7: Clean up empty text nodes and normalize whitespace
@@ -130,17 +142,6 @@ export function feedbackKey(feedback: FeedbackIdentity): string {
   return `${feedback.tagName}|${feedback.outcomeIdentifier}|${feedback.identifier}`;
 }
 
-const FEEDBACK_TAG_NAMES = ['qti-feedback-block', 'qti-feedback-inline', 'qti-modal-feedback'];
-
-/**
- * All feedback elements (block, inline and modal) under root
- */
-function getFeedbackElements(root: Element): Element[] {
-  return FEEDBACK_TAG_NAMES.flatMap((tagName) =>
-    Array.from(root.getElementsByTagName(tagName))
-  );
-}
-
 function getFeedbackIdentity(element: Element): FeedbackIdentity {
   return {
     tagName: element.tagName,
@@ -166,9 +167,10 @@ function removeWithheldFeedback(root: Element, withheld: FeedbackIdentity[]): vo
  * Adds the evaluation allowed by the attempt's showEvaluation option to the
  * template of an attempt that can be evaluated (see canEvaluate):
  *
- * - `'correctness'`: a data-evaluation attribute ("correct", "incorrect" or
+ * - `'correctness'`: a data-cutie-evaluation attribute ("correct", "incorrect" or
  *   "partial") on each interaction whose response can be judged
- *   (see evaluateResponse)
+ *   (see evaluateResponse), and on the item body for the attempt as a whole
+ *   (see evaluateTry)
  * - `'correctResponse'`: the verdict, plus a qti-correct-response holding this
  *   attempt's correct value in each response declaration that has one
  *
@@ -179,26 +181,85 @@ function applyEvaluation(root: Element, itemDoc: Document, state: AttemptState):
   const { showEvaluation } = state.options;
   if (showEvaluation === 'none') return;
 
-  const itemBody = root.getElementsByTagName('qti-item-body')[0];
-  const declarations = Array.from(root.getElementsByTagName('qti-response-declaration'));
+  markInteractionVerdicts(root, itemDoc, state);
+  markItemVerdict(root, evaluateTry(itemDoc, state));
 
-  for (const declaration of declarations) {
-    const identifier = declaration.getAttribute('identifier');
-    if (!identifier) continue;
+  if (showEvaluation === 'correctResponse') {
+    for (const declaration of Array.from(root.getElementsByTagName('qti-response-declaration'))) {
+      const identifier = declaration.getAttribute('identifier');
+      if (!identifier) continue;
 
-    const evaluation = evaluateResponse(itemDoc, identifier, state.variables);
-    if (evaluation && itemBody) {
-      for (const interaction of findInteractions(itemBody, identifier)) {
-        interaction.setAttribute('data-evaluation', evaluation);
-      }
-    }
-
-    if (showEvaluation === 'correctResponse') {
-      const correctValue = getCorrectResponse(itemDoc, identifier, state.variables);
+      const correctValue = getCorrectResponse(itemDoc, identifier);
       if (correctValue !== null) {
         declaration.appendChild(
           createValueContainer(declaration.ownerDocument, 'qti-correct-response', correctValue)
         );
+      }
+    }
+  }
+}
+
+/**
+ * Shows the verdict of the try that fell short at the start of the fresh try
+ * that follows it (before its first submission), whatever showEvaluation
+ * allows once the attempt is terminal:
+ *
+ * - a non-adaptive item keeps the learner's responses, so each interaction gets
+ *   its data-cutie-evaluation, and the item body the try's, as under `'correctness'`
+ * - an adaptive item starts over, so a message leads the item body instead:
+ *   the adaptiveRetryMessage, in an element with data-cutie-retry set to the verdict
+ */
+function applyRetryVerdict(
+  root: Element,
+  itemDoc: Document,
+  state: AttemptState,
+  verdict: 'incorrect' | 'partial'
+): void {
+  if (!isAdaptive(itemDoc)) {
+    markInteractionVerdicts(root, itemDoc, state);
+    markItemVerdict(root, verdict);
+    return;
+  }
+
+  const itemBody = root.getElementsByTagName('qti-item-body')[0];
+  if (!itemBody) return;
+
+  const message = itemBody.ownerDocument.createElementNS(itemBody.namespaceURI, 'div');
+  message.setAttribute('data-cutie-retry', verdict);
+  message.appendChild(
+    itemBody.ownerDocument.createTextNode(
+      state.options.adaptiveRetryMessage.split('{n}').join(String(state.triesRemaining))
+    )
+  );
+  itemBody.insertBefore(message, itemBody.firstChild);
+}
+
+/**
+ * Adds a data-cutie-evaluation attribute to the item body for the response as a
+ * whole, when it can be judged: the one clients announce, where each
+ * interaction's is read with the interaction.
+ */
+function markItemVerdict(root: Element, verdict: ResponseEvaluation | null): void {
+  const itemBody = root.getElementsByTagName('qti-item-body')[0];
+  if (itemBody && verdict) itemBody.setAttribute('data-cutie-evaluation', verdict);
+}
+
+/**
+ * Adds a data-cutie-evaluation attribute ("correct", "incorrect" or "partial") to
+ * each interaction whose response can be judged (see evaluateResponse)
+ */
+function markInteractionVerdicts(root: Element, itemDoc: Document, state: AttemptState): void {
+  const itemBody = root.getElementsByTagName('qti-item-body')[0];
+  if (!itemBody) return;
+
+  for (const declaration of Array.from(root.getElementsByTagName('qti-response-declaration'))) {
+    const identifier = declaration.getAttribute('identifier');
+    if (!identifier) continue;
+
+    const evaluation = evaluateResponse(itemDoc, identifier, state.variables);
+    if (evaluation) {
+      for (const interaction of findInteractions(itemBody, identifier)) {
+        interaction.setAttribute('data-cutie-evaluation', evaluation);
       }
     }
   }
@@ -284,100 +345,43 @@ function removeSensitiveElements(root: Element): void {
 }
 
 /**
- * Processes elements with template-identifier/show-hide for conditional visibility.
- *
- * Applies to qti-template-block, qti-template-inline, and choice elements
- * (qti-simple-choice, qti-inline-choice, qti-simple-associable-choice,
- * qti-gap-text, qti-gap-img, qti-gap).
- *
- * These elements have a template-identifier attribute that should match values in template variables.
- * - If show-hide="show": element is visible only when template-identifier matches a variable value
- * - If show-hide="hide": element is hidden when template-identifier matches a variable value
- *
- * The matching is done by finding a variable (any variable) that contains the template-identifier.
- * Variables can be single values or arrays (multiple cardinality).
- *
- * Elements without a template-identifier attribute are skipped, so normal choices are unaffected.
+ * Replaces each qti-template-block and qti-template-inline left after template
+ * conditionals with its content (a block's qti-content-body, or an inline's
+ * children). Their visibility is decided for the attempt, so the client gets
+ * the content alone, with nothing template-specific to render.
  */
-function processTemplateConditionals(
-  root: Element,
-  variables: Record<string, unknown>
-): void {
-  // Process template-block, template-inline, and choice elements
+function unwrapTemplateContent(root: Element): void {
   const templateElements = [
     ...Array.from(root.getElementsByTagName('qti-template-block')),
     ...Array.from(root.getElementsByTagName('qti-template-inline')),
-    ...Array.from(root.getElementsByTagName('qti-simple-choice')),
-    ...Array.from(root.getElementsByTagName('qti-inline-choice')),
-    ...Array.from(root.getElementsByTagName('qti-simple-associable-choice')),
-    ...Array.from(root.getElementsByTagName('qti-gap-text')),
-    ...Array.from(root.getElementsByTagName('qti-gap-img')),
-    ...Array.from(root.getElementsByTagName('qti-gap')),
   ];
 
   for (const element of templateElements) {
-    const templateIdentifier = element.getAttribute('template-identifier');
-    const showHide = element.getAttribute('show-hide');
+    const parent = element.parentNode;
+    if (!parent) continue;
 
-    if (!templateIdentifier) continue;
-
-    // Check if any variable contains this template identifier
-    const isMatch = checkVariableContains(variables, templateIdentifier);
-
-    // Determine if element should be removed
-    let shouldRemove = false;
-    if (showHide === 'show') {
-      // Remove if it doesn't match
-      shouldRemove = !isMatch;
-    } else if (showHide === 'hide') {
-      // Remove if it does match
-      shouldRemove = isMatch;
+    const contentBody = Array.from(element.childNodes).find(
+      (node): node is Element => node.nodeType === 1 && (node as Element).tagName === 'qti-content-body'
+    );
+    const content = contentBody ?? element;
+    while (content.firstChild) {
+      parent.insertBefore(content.firstChild, element);
     }
-
-    if (shouldRemove) {
-      element.parentNode?.removeChild(element);
-    }
+    parent.removeChild(element);
   }
 }
 
 /**
- * Processes qti-feedback-block and qti-feedback-inline elements for conditional visibility.
- *
- * These elements have an outcome-identifier and identifier attribute.
- * - outcome-identifier: references the outcome variable to check
- * - identifier: the value to look for in that outcome variable
- * - show-hide: "show" means visible when identifier is in outcome variable,
- *              "hide" means hidden when identifier is in outcome variable
+ * Removes any authored copy of the markup cutie-core adds for the client
+ * (data-cutie-evaluation attributes, data-cutie-retry elements), so the client
+ * only ever sees what core computed.
  */
-function processFeedbackVisibility(
-  root: Element,
-  variables: Record<string, unknown>
-): void {
-  for (const element of getFeedbackElements(root)) {
-    const outcomeIdentifier = element.getAttribute('outcome-identifier');
-    const identifier = element.getAttribute('identifier');
-    const showHide = element.getAttribute('show-hide');
-
-    if (!outcomeIdentifier || !identifier) continue;
-
-    // Get the outcome variable value
-    const outcomeValue = variables[outcomeIdentifier];
-
-    // Check if the identifier is in the outcome variable
-    const isMatch = valueContains(outcomeValue, identifier);
-
-    // Determine if element should be removed
-    let shouldRemove = false;
-    if (showHide === 'show') {
-      // Remove if it doesn't match
-      shouldRemove = !isMatch;
-    } else if (showHide === 'hide') {
-      // Remove if it does match
-      shouldRemove = isMatch;
-    }
-
-    if (shouldRemove) {
+function removeReservedMarkup(root: Element): void {
+  for (const element of Array.from(root.getElementsByTagName('*'))) {
+    if (element.hasAttribute('data-cutie-retry')) {
       element.parentNode?.removeChild(element);
+    } else {
+      element.removeAttribute('data-cutie-evaluation');
     }
   }
 }
@@ -409,33 +413,6 @@ function substituteMathVariables(
     // Replace the text content with the variable value
     mathElement.textContent = String(value);
   }
-}
-
-/**
- * Checks if any variable in the variables object contains the given identifier.
- * Handles both single values and arrays (multiple cardinality).
- */
-function checkVariableContains(
-  variables: Record<string, unknown>,
-  identifier: string
-): boolean {
-  for (const value of Object.values(variables)) {
-    if (valueContains(value, identifier)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-/**
- * Checks if a value contains the given identifier.
- * Handles both single values and arrays.
- */
-function valueContains(value: unknown, identifier: string): boolean {
-  if (Array.isArray(value)) {
-    return value.includes(identifier);
-  }
-  return value === identifier;
 }
 
 /**
@@ -510,24 +487,6 @@ function sanitizeResponseDeclarations(
       );
     }
   }
-}
-
-/**
- * Creates a value container (e.g. qti-default-value, qti-correct-response)
- * holding one qti-value per value: one for single cardinality, one per member
- * for multiple or ordered.
- */
-function createValueContainer(doc: Document, tagName: string, value: unknown): Element {
-  const container = doc.createElement(tagName);
-  const values = Array.isArray(value) ? value : [value];
-
-  for (const val of values) {
-    const valueElement = doc.createElement('qti-value');
-    valueElement.textContent = String(val);
-    container.appendChild(valueElement);
-  }
-
-  return container;
 }
 
 /**
