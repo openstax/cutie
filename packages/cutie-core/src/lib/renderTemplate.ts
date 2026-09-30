@@ -40,7 +40,8 @@ export async function renderTemplate(
  *
  * This function:
  * 1. Substitutes template and outcome variable values into the item body
- * 2. Applies conditional visibility rules based on current state
+ * 2. Applies conditional visibility rules based on current state, replacing
+ *    each template block or inline shown with its content
  * 3. Shows/hides feedback elements based on outcome variables, and removes
  *    feedback the attempt withholds (see AttemptState.withheldFeedback)
  * 4. Strips sensitive content that should not be exposed to the client:
@@ -75,8 +76,10 @@ export function buildTemplateDocument(itemDoc: Document, state: AttemptState): D
   // Step 2: Substitute template variables into qti-printed-variable elements
   substituteVariables(root, state.variables);
 
-  // Step 3: Process conditional template elements (blocks, inlines, choices)
+  // Step 3: Process conditional template elements (blocks, inlines, choices),
+  // leaving the content of those shown in place of them
   processTemplateConditionals(root, state.variables);
+  unwrapTemplateContent(root);
 
   // Step 3.5: Apply shuffle orders to reorder interaction choices
   if (state.shuffleOrders) {
@@ -338,6 +341,33 @@ function removeSensitiveElements(root: Element): void {
     if (!views.includes('candidate')) {
       rubric.parentNode?.removeChild(rubric);
     }
+  }
+}
+
+/**
+ * Replaces each qti-template-block and qti-template-inline left after template
+ * conditionals with its content (a block's qti-content-body, or an inline's
+ * children). Their visibility is decided for the attempt, so the client gets
+ * the content alone, with nothing template-specific to render.
+ */
+function unwrapTemplateContent(root: Element): void {
+  const templateElements = [
+    ...Array.from(root.getElementsByTagName('qti-template-block')),
+    ...Array.from(root.getElementsByTagName('qti-template-inline')),
+  ];
+
+  for (const element of templateElements) {
+    const parent = element.parentNode;
+    if (!parent) continue;
+
+    const contentBody = Array.from(element.childNodes).find(
+      (node): node is Element => node.nodeType === 1 && (node as Element).tagName === 'qti-content-body'
+    );
+    const content = contentBody ?? element;
+    while (content.firstChild) {
+      parent.insertBefore(content.firstChild, element);
+    }
+    parent.removeChild(element);
   }
 }
 

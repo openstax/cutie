@@ -14,6 +14,8 @@ describe('template conditionals on the official template_image example', () => {
     const images = Array.from(doc.getElementsByTagName('img')).map((img) => img.getAttribute('src'));
 
     expect(images).toEqual([`images/${transport}.png`]);
+    // The picture reaches the client as plain content, with no template element around it
+    expect(doc.getElementsByTagName('qti-template-inline')).toHaveLength(0);
     expect(template).toContain(`average speed of ${speeds[transport]} km/h`);
 
     // The correct response template processing set is this attempt's

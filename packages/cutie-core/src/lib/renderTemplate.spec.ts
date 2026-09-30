@@ -294,6 +294,35 @@ describe('renderTemplate', () => {
     });
   });
 
+  describe('2b. shown template content is unwrapped', () => {
+    test('replaces a template-block with its qti-content-body content, and a template-inline with its children', async () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
+  <qti-template-declaration identifier="V" cardinality="single" base-type="identifier"/>
+  <qti-item-body>
+    <qti-template-block template-identifier="V" identifier="shown">
+      <qti-content-body><p>Block content</p></qti-content-body>
+    </qti-template-block>
+    <p>Before <qti-template-inline template-identifier="V" identifier="shown"><b>inline</b></qti-template-inline> after</p>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = await renderTemplate(itemDoc, {
+        variables: { V: 'shown' },
+        completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesRemaining: 1,
+        score: null,
+      });
+
+      expect(template).not.toContain('qti-template-');
+      expect(template).not.toContain('qti-content-body');
+      expect(template).toContain('<p>Block content</p>');
+      expect(template).toContain('Before <b>inline</b> after');
+    });
+  });
+
   describe('3. qti-template-inline conditional visibility', () => {
     test('shows a template-inline when its template variable matches its identifier', async () => {
       const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
