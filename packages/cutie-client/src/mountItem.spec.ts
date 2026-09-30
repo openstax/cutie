@@ -390,6 +390,20 @@ describe('mountItem cleanup lifetimes', () => {
     container.remove();
   });
 
+  it('leaves nothing behind when the first render throws', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+
+    expect(() => mountItem(container, '<not-qti/>')).toThrow();
+    expect(document.querySelectorAll('[aria-live]')).toHaveLength(0);
+
+    // A later mount still owns, and removes, the regions
+    const item = mountItem(container, MATCH_XML);
+    item.unmount();
+    expect(document.querySelectorAll('[aria-live]')).toHaveLength(0);
+    container.remove();
+  });
+
   it('keeps the live regions across update() and removes them on unmount()', () => {
     const container = document.createElement('div');
     document.body.appendChild(container);

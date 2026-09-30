@@ -162,6 +162,15 @@ export function mountItem(
     const mountCallbacks: Array<() => void> = [];
     // This render's cleanup callbacks — called when it is torn down (update() or unmount())
     const cleanupCallbacks: Array<() => void> = [];
+    let unmountDom: (() => void) | null = null;
+
+    // Set before anything can throw, so a render that fails part way is still torn down
+    teardownCurrentRender = () => {
+      for (const cb of cleanupCallbacks) cb();
+      itemState.clear();
+      styleManager.cleanup();
+      unmountDom?.();
+    };
 
     const parsed = parseQtiXml(xml);
 
@@ -187,20 +196,23 @@ export function mountItem(
     }
     endFeedbackRender(state);
 
-    const unmountDom = renderToContainer(container, fragment);
+    unmountDom = renderToContainer(container, fragment);
 
     for (const cb of mountCallbacks) cb();
-
-    teardownCurrentRender = () => {
-      for (const cb of cleanupCallbacks) cb();
-      itemState.clear();
-      styleManager.cleanup();
-      unmountDom();
-    };
   }
 
-  // Initial render
-  doRender(itemTemplateXml);
+  // Initial render. If it throws there is no handle to unmount with, so undo
+  // everything the mount took (including its hold on the live regions) first
+  try {
+    doRender(itemTemplateXml);
+  } catch (error) {
+    // (doRender sets it; TypeScript can't see that from here)
+    (teardownCurrentRender as (() => void) | null)?.();
+    for (const cb of unmountCallbacks) cb();
+    state.clear();
+    removeThemeVars();
+    throw error;
+  }
   state.set('isUpdate', true);
 
   return {
