@@ -1,6 +1,6 @@
 import { DeliveryOptions } from '../types';
 import { hasExternalScoring } from './externalScoring';
-import { processTemplateConditionals } from './templateConditionals';
+import { processTemplateConditionals } from './visibility';
 
 /**
  * Resolves the `maxTries` delivery option to the number of tries an attempt

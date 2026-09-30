@@ -486,6 +486,23 @@ describe('tries', () => {
       expect(itemVerdictOf(result.template)).toBeNull();
     });
 
+    test('ignores interactions inside hidden feedback', async () => {
+      const item = noScoreItem(
+        `<qti-feedback-block outcome-identifier="STEP" identifier="second" show-hide="show">
+          <p><qti-text-entry-interaction response-identifier="EXTRA"/></p>
+        </qti-feedback-block>`,
+        `<qti-response-declaration identifier="EXTRA" cardinality="single" base-type="string">
+          <qti-correct-response><qti-value>x</qti-value></qti-correct-response>
+        </qti-response-declaration>
+        <qti-outcome-declaration identifier="STEP" cardinality="single" base-type="identifier"/>`
+      );
+      const begun = await begin(item, { maxTries: 2, showEvaluation: 'correctness' });
+      const result = await submitResponse({ CHOICE: 'A' }, begun.state, item);
+
+      expect(result.state.completionStatus).toBe('completed');
+      expect(itemVerdictOf(result.template)).toBe('correct');
+    });
+
     test('ignores declarations no interaction uses', async () => {
       const item = noScoreItem(
         '',

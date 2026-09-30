@@ -2552,3 +2552,36 @@ describe('initializeState', () => {
     });
   });
 });
+
+describe('initializeState template constraint retries', () => {
+  // X is 1 or 2 at random; a run that picks 1 sets OUT's default, then fails
+  // the constraint, so only runs that pick 2 succeed and OUT keeps no default
+  const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="retry" title="Retry">
+  <qti-outcome-declaration identifier="OUT" cardinality="single" base-type="integer"/>
+  <qti-template-declaration identifier="X" cardinality="single" base-type="integer"/>
+  <qti-template-processing>
+    <qti-set-template-value identifier="X"><qti-random-integer min="1" max="2"/></qti-set-template-value>
+    <qti-template-condition>
+      <qti-template-if>
+        <qti-match><qti-variable identifier="X"/><qti-base-value base-type="integer">1</qti-base-value></qti-match>
+        <qti-set-default-value identifier="OUT"><qti-base-value base-type="integer">7</qti-base-value></qti-set-default-value>
+      </qti-template-if>
+    </qti-template-condition>
+    <qti-template-constraint>
+      <qti-match><qti-variable identifier="X"/><qti-base-value base-type="integer">2</qti-base-value></qti-match>
+    </qti-template-constraint>
+  </qti-template-processing>
+  <qti-item-body><p>Item</p></qti-item-body>
+</qti-assessment-item>`;
+
+  test('keep nothing a failed run set', () => {
+    const itemDoc = new DOMParser().parseFromString(itemXml, 'text/xml');
+    for (let run = 0; run < 20; run++) {
+      const state = initializeState(itemDoc);
+      expect(state.variables.X).toBe(2);
+      expect(state.variables.OUT).toBeUndefined();
+      expect(state.defaultValues).toBeUndefined();
+    }
+  });
+});

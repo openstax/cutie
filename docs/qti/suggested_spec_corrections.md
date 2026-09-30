@@ -11,7 +11,7 @@ of a real item. Line references are as of cutie-core 1.0.2.
 
 ## 1. Template-driven visibility matches the wrong attribute
 
-**Status:** Fixed. `processTemplateConditionals` (`lib/templateConditionals.ts`)
+**Status:** Fixed. `processTemplateConditionals` (`lib/visibility.ts`)
 looks up the template variable `template-identifier` names and compares its
 value with the element's `identifier`, following the QTI 3 Information Model
 (TemplateBlock §5.145, TemplateInline §5.155, SimpleChoice §5.132). The 1EdTech

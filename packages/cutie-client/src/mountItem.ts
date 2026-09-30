@@ -106,8 +106,8 @@ export function mountItem(
   // Persistent state bag — survives across update() calls, cleared on unmount()
   const state = new Map<string, unknown>();
 
-  // Cleanup callbacks — accumulated across renders, all called on unmount()
-  const cleanupCallbacks: Array<() => void> = [];
+  // Unmount callbacks — for resources that persist across renders, called on unmount()
+  const unmountCallbacks: Array<() => void> = [];
 
   // Mutable reference to current render's itemState and context
   let currentItemState: ItemStateImpl | null = null;
@@ -157,6 +157,8 @@ export function mountItem(
     applyThemeVars();
 
     const mountCallbacks: Array<() => void> = [];
+    // This render's cleanup callbacks — called when it is torn down (update() or unmount())
+    const cleanupCallbacks: Array<() => void> = [];
 
     const parsed = parseQtiXml(xml);
 
@@ -165,6 +167,7 @@ export function mountItem(
       styleManager,
       onMount: (cb) => mountCallbacks.push(cb),
       onCleanup: (cb) => cleanupCallbacks.push(cb),
+      onUnmount: (cb) => unmountCallbacks.push(cb),
       containerElement: container,
       state,
     });
@@ -187,6 +190,7 @@ export function mountItem(
     for (const cb of mountCallbacks) cb();
 
     teardownCurrentRender = () => {
+      for (const cb of cleanupCallbacks) cb();
       itemState.clear();
       styleManager.cleanup();
       unmountDom();
@@ -203,8 +207,8 @@ export function mountItem(
       teardownCurrentRender = null;
       currentItemState = null;
       currentContext = null;
-      for (const cb of cleanupCallbacks) cb();
-      cleanupCallbacks.length = 0;
+      for (const cb of unmountCallbacks) cb();
+      unmountCallbacks.length = 0;
       state.clear();
       removeThemeVars();
     },

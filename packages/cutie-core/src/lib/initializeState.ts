@@ -33,14 +33,11 @@ export function initializeState(
   itemDoc: Document,
   options: Required<DeliveryOptions> = resolveDeliveryOptions()
 ): AttemptState {
-  const variables: Record<string, unknown> = {};
   const MAX_CONSTRAINT_RETRIES = 1000; // Prevent infinite loops
 
-  // Initialize outcome variables with default values
-  initializeOutcomeVariables(itemDoc, variables);
-  variables.numAttempts = 0;
-
-  // Execute template processing with constraint retry logic
+  // Execute template processing with constraint retry logic. Each run starts
+  // afresh, so nothing a run that failed its constraint set carries over.
+  let variables = initialVariables(itemDoc);
   let results: TemplateResults = { correctResponses: {}, defaultValues: {} };
   let retryCount = 0;
   while (retryCount < MAX_CONSTRAINT_RETRIES) {
@@ -49,9 +46,8 @@ export function initializeState(
       break; // Success, exit retry loop
     } catch (error) {
       if (error instanceof ConstraintViolationError) {
-        // Reset template variables and what processing set, and retry
         retryCount++;
-        resetTemplateVariables(itemDoc, variables);
+        variables = initialVariables(itemDoc);
         results = { correctResponses: {}, defaultValues: {} };
       } else {
         throw error;
@@ -107,19 +103,30 @@ class ExitTemplateError extends Error {
 }
 
 /**
- * Resets outcome variables to their default values, for a fresh try. The item
- * document must carry the attempt's template-set defaults (see
- * instantiateTemplate).
+ * Resets outcome variables to their default values, for a fresh try: the
+ * declared ones, or those template processing set (see AttemptState.defaultValues).
  */
-export function resetOutcomeVariables(itemDoc: Document, variables: Record<string, unknown>): void {
+export function resetOutcomeVariables(
+  itemDoc: Document,
+  variables: Record<string, unknown>,
+  defaultValues: Record<string, unknown> = {}
+): void {
   const outcomeDeclarations = itemDoc.getElementsByTagName('qti-outcome-declaration');
+  const outcomeIdentifiers: string[] = [];
 
   for (let i = 0; i < outcomeDeclarations.length; i++) {
     const identifier = outcomeDeclarations[i].getAttribute('identifier');
-    if (identifier) delete variables[identifier];
+    if (identifier) {
+      outcomeIdentifiers.push(identifier);
+      delete variables[identifier];
+    }
   }
 
   initializeOutcomeVariables(itemDoc, variables);
+
+  for (const identifier of outcomeIdentifiers) {
+    if (identifier in defaultValues) variables[identifier] = defaultValues[identifier];
+  }
 }
 
 /**
@@ -174,17 +181,14 @@ function initializeOutcomeVariables(itemDoc: Document, variables: Record<string,
 }
 
 /**
- * Reset template variables (remove them from state)
+ * The variables before template processing: outcome defaults, and the
+ * built-in numAttempts at 0
  */
-function resetTemplateVariables(itemDoc: Document, variables: Record<string, unknown>): void {
-  const templateDeclarations = itemDoc.getElementsByTagName('qti-template-declaration');
-
-  for (let i = 0; i < templateDeclarations.length; i++) {
-    const identifier = templateDeclarations[i].getAttribute('identifier');
-    if (identifier) {
-      delete variables[identifier];
-    }
-  }
+function initialVariables(itemDoc: Document): Record<string, unknown> {
+  const variables: Record<string, unknown> = {};
+  initializeOutcomeVariables(itemDoc, variables);
+  variables.numAttempts = 0;
+  return variables;
 }
 
 /**

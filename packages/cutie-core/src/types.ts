@@ -87,6 +87,7 @@ export interface AttemptState {
    * Default values set by template processing (qti-set-default-value), by
    * variable identifier. They take the place of the declared
    * qti-default-value, including when a fresh try resets outcomes.
+   * Kept with their types (records included).
    */
   defaultValues?: Record<string, unknown>;
 

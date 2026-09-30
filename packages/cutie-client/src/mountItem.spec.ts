@@ -332,3 +332,44 @@ describe('mountItem onResponseChange', () => {
     expect(() => typeInto(q<HTMLInputElement>(container, 'input'), '1')).not.toThrow();
   });
 });
+
+describe('mountItem cleanup lifetimes', () => {
+  const clicks = (spy: { mock: { calls: unknown[][] } }) =>
+    spy.mock.calls.filter((call) => call[0] === 'click').length;
+
+  it('tears down each render\'s document listeners on update() and unmount()', () => {
+    const add = vi.spyOn(document, 'addEventListener');
+    const remove = vi.spyOn(document, 'removeEventListener');
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+
+    const item = mountItem(container, MATCH_XML);
+    for (let i = 0; i < 3; i++) item.update(MATCH_XML);
+
+    // Only the current render's listener is still attached
+    expect(clicks(add) - clicks(remove)).toBe(1);
+
+    item.unmount();
+    expect(clicks(add) - clicks(remove)).toBe(0);
+
+    add.mockRestore();
+    remove.mockRestore();
+    container.remove();
+  });
+
+  it('keeps the live regions across update() and removes them on unmount()', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+
+    const item = mountItem(container, MATCH_XML);
+    const regions = Array.from(document.querySelectorAll('[aria-live]'));
+    expect(regions).toHaveLength(2);
+
+    item.update(MATCH_XML);
+    expect(Array.from(document.querySelectorAll('[aria-live]'))).toEqual(regions);
+
+    item.unmount();
+    expect(document.querySelectorAll('[aria-live]')).toHaveLength(0);
+    container.remove();
+  });
+});

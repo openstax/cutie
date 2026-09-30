@@ -136,10 +136,18 @@ export interface TransformContext {
   onMount?: (callback: () => void) => void;
 
   /**
-   * Register a teardown callback to run when the item is unmounted.
-   * Use for cleanup of resources that persist beyond a single render (e.g., live regions on document.body).
+   * Register a teardown callback to run when this render is torn down: on the
+   * next update() or on unmount. Use for resources a render sets up outside its
+   * own DOM (e.g., document-level event listeners).
    */
   onCleanup?: (callback: () => void) => void;
+
+  /**
+   * Register a teardown callback to run only when the item is unmounted. Use for
+   * resources that must persist across renders (e.g., live regions on
+   * document.body, which have to exist before an announcement is made).
+   */
+  onUnmount?: (callback: () => void) => void;
 
   /**
    * The top-level container element that the item is rendered into.

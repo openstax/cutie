@@ -2,6 +2,7 @@ import { AttemptState } from '../types';
 import { isAdaptive } from './adaptive';
 import { evaluateResponse, ResponseEvaluation } from './evaluateResponses';
 import { resetOutcomeVariables } from './initializeState';
+import { processFeedbackVisibility, processTemplateConditionals } from './visibility';
 
 /**
  * The state a submission leaves the attempt in, and whether it ended a try.
@@ -55,8 +56,8 @@ function continueTry(priorState: AttemptState, processedState: AttemptState): At
 
 /**
  * Judges a finished try as a whole: by its score when the item's maximum is
- * known, otherwise by the verdicts of the responses the item's interactions
- * collect (see evaluateResponse). A try is only correct when every one of those
+ * known, otherwise by the verdicts of the responses the interactions shown to
+ * the learner collect (see evaluateResponse). A try is only correct when every one of those
  * responses was judged correct. Null when neither can judge it.
  */
 export function evaluateTry(itemDoc: Document, state: AttemptState): ResponseEvaluation | null {
@@ -67,7 +68,7 @@ export function evaluateTry(itemDoc: Document, state: AttemptState): ResponseEva
     return raw <= 0 ? 'incorrect' : 'partial';
   }
 
-  const evaluations = interactionResponseIdentifiers(itemDoc).map((identifier) =>
+  const evaluations = shownResponseIdentifiers(itemDoc, state.variables).map((identifier) =>
     evaluateResponse(itemDoc, identifier, state.variables)
   );
   const verdicts = evaluations.filter((verdict): verdict is ResponseEvaluation => verdict !== null);
@@ -82,12 +83,17 @@ export function evaluateTry(itemDoc: Document, state: AttemptState): ResponseEva
 }
 
 /**
- * The responses the item's interactions collect. Interactions are never
- * conditional (QTI 3: a qti-template-block must not contain any interactions).
+ * The responses the interactions shown for these variables collect: an
+ * interaction inside hidden feedback (an adaptive item's step not taken)
+ * collects nothing to judge.
  */
-function interactionResponseIdentifiers(itemDoc: Document): string[] {
-  const itemBody = itemDoc.getElementsByTagName('qti-item-body')[0];
-  if (!itemBody) return [];
+function shownResponseIdentifiers(itemDoc: Document, variables: Record<string, unknown>): string[] {
+  const authoredBody = itemDoc.getElementsByTagName('qti-item-body')[0];
+  if (!authoredBody) return [];
+
+  const itemBody = authoredBody.cloneNode(true) as Element;
+  processTemplateConditionals(itemBody, variables);
+  processFeedbackVisibility(itemBody, variables);
 
   const identifiers = Array.from(itemBody.getElementsByTagName('*'))
     .map((element) => element.getAttribute('response-identifier'))
@@ -113,7 +119,7 @@ function beginNextTry(
 ): AttemptState {
   const variables = { ...ended.variables };
 
-  resetOutcomeVariables(itemDoc, variables);
+  resetOutcomeVariables(itemDoc, variables, ended.defaultValues);
   delete variables.completionStatus;
   variables.numAttempts = 0;
 

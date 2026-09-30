@@ -23,7 +23,7 @@ function getOrCreateLiveRegion(ctx: TransformContext, urgency: Urgency): HTMLEle
     state.element.setAttribute('aria-atomic', 'true');
     state.element.style.cssText = LIVE_REGION_STYLES;
     document.body.appendChild(state.element);
-    ctx.onCleanup?.(() => {
+    ctx.onUnmount?.(() => {
       state.element?.remove();
       state.element = null;
     });

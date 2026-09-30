@@ -10,8 +10,8 @@ import {
 import { canEvaluate } from './deliveryOptions';
 import { evaluateResponse, ResponseEvaluation } from './evaluateResponses';
 import { getCorrectResponse } from './responseDeclarations';
-import { processTemplateConditionals, valueContains } from './templateConditionals';
 import { evaluateTry } from './tries';
+import { getFeedbackElements, processFeedbackVisibility, processTemplateConditionals } from './visibility';
 
 /**
  * Renders a sanitized QTI template for client consumption.
@@ -137,17 +137,6 @@ export function collectVisibleFeedback(root: Element): FeedbackIdentity[] {
  */
 export function feedbackKey(feedback: FeedbackIdentity): string {
   return `${feedback.tagName}|${feedback.outcomeIdentifier}|${feedback.identifier}`;
-}
-
-const FEEDBACK_TAG_NAMES = ['qti-feedback-block', 'qti-feedback-inline', 'qti-modal-feedback'];
-
-/**
- * All feedback elements (block, inline and modal) under root
- */
-function getFeedbackElements(root: Element): Element[] {
-  return FEEDBACK_TAG_NAMES.flatMap((tagName) =>
-    Array.from(root.getElementsByTagName(tagName))
-  );
 }
 
 function getFeedbackIdentity(element: Element): FeedbackIdentity {
@@ -363,48 +352,6 @@ function removeReservedMarkup(root: Element): void {
       element.parentNode?.removeChild(element);
     } else {
       element.removeAttribute('data-cutie-evaluation');
-    }
-  }
-}
-
-/**
- * Processes qti-feedback-block and qti-feedback-inline elements for conditional visibility.
- *
- * These elements have an outcome-identifier and identifier attribute.
- * - outcome-identifier: references the outcome variable to check
- * - identifier: the value to look for in that outcome variable
- * - show-hide: "show" means visible when identifier is in outcome variable,
- *              "hide" means hidden when identifier is in outcome variable
- */
-function processFeedbackVisibility(
-  root: Element,
-  variables: Record<string, unknown>
-): void {
-  for (const element of getFeedbackElements(root)) {
-    const outcomeIdentifier = element.getAttribute('outcome-identifier');
-    const identifier = element.getAttribute('identifier');
-    const showHide = element.getAttribute('show-hide');
-
-    if (!outcomeIdentifier || !identifier) continue;
-
-    // Get the outcome variable value
-    const outcomeValue = variables[outcomeIdentifier];
-
-    // Check if the identifier is in the outcome variable
-    const isMatch = valueContains(outcomeValue, identifier);
-
-    // Determine if element should be removed
-    let shouldRemove = false;
-    if (showHide === 'show') {
-      // Remove if it doesn't match
-      shouldRemove = !isMatch;
-    } else if (showHide === 'hide') {
-      // Remove if it does match
-      shouldRemove = isMatch;
-    }
-
-    if (shouldRemove) {
-      element.parentNode?.removeChild(element);
     }
   }
 }
