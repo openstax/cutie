@@ -150,7 +150,7 @@ export function buildPreviewDocument(itemDoc: Document, state: AttemptState, all
     processFeedbackVisibility(root, state.variables);
   }
 
-  substituteMathVariables(root, printedVariables);
+  substituteMathVariables(root, state.variables);
   sanitizeResponseDeclarations(root, state.variables);
   addCorrectResponses(root, itemDoc);
   normalizeWhitespace(root);
