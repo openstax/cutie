@@ -25,7 +25,7 @@ export function PreviewOptionsPanel({ options, onChange }: PreviewOptionsPanelPr
             Compact
           </label>
           <span className="option-help">
-            Show only the correct answers, not the feedback. Adaptive items are always compact.
+            Show the correct answers and only the feedback visible before submitting, not all of it. Adaptive items are always compact.
           </span>
         </div>
       </div>

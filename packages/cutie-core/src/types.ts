@@ -209,8 +209,9 @@ export interface DeliveryOptions {
  */
 export interface PreviewOptions {
   /**
-   * Show only the correct responses, not the item's feedback. An adaptive item
-   * is always previewed compact: its feedback belongs to the stages of an
+   * Show only the feedback the item shows as an attempt begins, rather than
+   * all of it; correct responses are shown either way. An adaptive item is
+   * always previewed compact: its feedback belongs to the stages of an
    * attempt, which a preview has not run. Defaults to `false`.
    */
   compact?: boolean;
