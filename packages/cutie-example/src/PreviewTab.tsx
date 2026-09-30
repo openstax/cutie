@@ -52,7 +52,10 @@ export function PreviewTab({ attemptState, sanitizedTemplate, latestResult, resp
   const itemRef = useRef<CutieItemHandle>(null);
 
   // Derived - no state needed
-  const interactionsEnabled = !isSubmitting && attemptState?.completionStatus !== 'completed';
+  // A finished attempt takes no more submissions, except that a response
+  // awaiting manual scoring can still be edited and resubmitted
+  const acceptsResponses = attemptState?.completionStatus !== 'completed' || !!attemptState.pendingManualScoring;
+  const interactionsEnabled = !isSubmitting && acceptsResponses;
 
   const handleSubmit = async () => {
     const collectedResponses = itemRef.current?.collectResponses();
