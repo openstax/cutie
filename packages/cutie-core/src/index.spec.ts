@@ -4,6 +4,7 @@ import type { AttemptState } from './types';
 import {
   beginAttempt,
   listItemAssets,
+  renderPreview,
   ResponseValidationError,
   setScore,
   submitResponse,
@@ -360,5 +361,115 @@ describe('undirected pairs', () => {
     const { state } = await beginAttempt(itemXml);
     const result = await submitResponse({ RESPONSE: ['B A'] }, state, itemXml);
     expect(result.state.variables.RESPONSE).toEqual(['B A']);
+  });
+});
+
+const previewItem = (adaptive: boolean) => `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+                     identifier="preview" title="Preview" adaptive="${adaptive}" time-dependent="false">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier">
+    <qti-correct-response>
+      <qti-value>A</qti-value>
+    </qti-correct-response>
+    <qti-mapping default-value="0">
+      <qti-map-entry map-key="A" mapped-value="1"/>
+    </qti-mapping>
+  </qti-response-declaration>
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/>
+  <qti-outcome-declaration identifier="FEEDBACK" cardinality="single" base-type="identifier"/>
+  <qti-template-declaration identifier="NAME" cardinality="single" base-type="string"/>
+  <qti-template-processing>
+    <qti-set-template-value identifier="NAME">
+      <qti-base-value base-type="string">Ada</qti-base-value>
+    </qti-set-template-value>
+  </qti-template-processing>
+  <qti-item-body>
+    <p>Hello <qti-printed-variable identifier="NAME"/>, you scored <qti-printed-variable identifier="SCORE"/>.</p>
+    <qti-choice-interaction response-identifier="RESPONSE" shuffle="true" max-choices="1">
+      <qti-simple-choice identifier="A">Right<qti-feedback-inline outcome-identifier="FEEDBACK" identifier="A" show-hide="show">Choice A feedback</qti-feedback-inline></qti-simple-choice>
+      <qti-simple-choice identifier="B">Wrong</qti-simple-choice>
+      <qti-simple-choice identifier="C">Also wrong</qti-simple-choice>
+      <qti-simple-choice identifier="D">Still wrong</qti-simple-choice>
+    </qti-choice-interaction>
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="DONE" show-hide="show"><p>Detailed feedback</p></qti-feedback-block>
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="DONE" show-hide="hide"><p>Before submission</p></qti-feedback-block>
+  </qti-item-body>
+  <qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct.xml"/>
+  <qti-modal-feedback outcome-identifier="FEEDBACK" identifier="DONE" show-hide="show">Modal feedback</qti-modal-feedback>
+</qti-assessment-item>`;
+
+describe('renderPreview', () => {
+  test('shows every feedback element and the correct response, with no verdict', async () => {
+    const template = await renderPreview(previewItem(false));
+
+    expect(template).toContain('Choice A feedback');
+    expect(template).toContain('Detailed feedback');
+    expect(template).toContain('Before submission');
+    expect(template).toContain('Modal feedback');
+    expect(template).toContain('<qti-correct-response><qti-value>A</qti-value></qti-correct-response>');
+    expect(template).not.toContain('data-cutie-evaluation');
+  });
+
+  test('shows modal feedback as block feedback at the end of the item body', async () => {
+    const template = await renderPreview(previewItem(false));
+
+    expect(template).not.toContain('qti-modal-feedback');
+    expect(template).toContain(
+      '<qti-feedback-block outcome-identifier="FEEDBACK" identifier="DONE" show-hide="show">Modal feedback</qti-feedback-block></qti-item-body>'
+    );
+  });
+
+  test('strips what is not needed to show the item', async () => {
+    const template = await renderPreview(previewItem(false));
+
+    expect(template).not.toContain('qti-mapping');
+    expect(template).not.toContain('qti-response-processing');
+    expect(template).not.toContain('qti-outcome-declaration');
+    expect(template).not.toContain('qti-template-processing');
+  });
+
+  test('prints template variables, and a placeholder for outcome variables', async () => {
+    const template = await renderPreview(previewItem(false));
+
+    expect(template).toContain('Hello Ada, you scored [SCORE].');
+  });
+
+  test('keeps choices in their authored order', async () => {
+    for (let i = 0; i < 10; i++) {
+      const template = await renderPreview(previewItem(false));
+      const order = [...template.matchAll(/qti-simple-choice identifier="(\w)"/g)].map((m) => m[1]);
+      expect(order).toEqual(['A', 'B', 'C', 'D']);
+    }
+  });
+
+  test('compact shows only the feedback the attempt begins with', async () => {
+    const template = await renderPreview(previewItem(false), undefined, { compact: true });
+
+    expect(template).not.toContain('Choice A feedback');
+    expect(template).not.toContain('Detailed feedback');
+    expect(template).not.toContain('Modal feedback');
+    expect(template).toContain('Before submission');
+    expect(template).toContain('<qti-correct-response><qti-value>A</qti-value></qti-correct-response>');
+  });
+
+  test('previews an adaptive item compact', async () => {
+    const template = await renderPreview(previewItem(true));
+
+    expect(template).not.toContain('Detailed feedback');
+    expect(template).toContain('Before submission');
+    expect(template).toContain('<qti-correct-response><qti-value>A</qti-value></qti-correct-response>');
+  });
+
+  test('shows the correct response template processing sets', async () => {
+    const item = previewItem(false).replace(
+      '</qti-template-processing>',
+      `  <qti-set-correct-response identifier="RESPONSE">
+      <qti-base-value base-type="identifier">B</qti-base-value>
+    </qti-set-correct-response>
+  </qti-template-processing>`
+    );
+    const template = await renderPreview(item);
+
+    expect(template).toContain('<qti-correct-response><qti-value>B</qti-value></qti-correct-response>');
   });
 });

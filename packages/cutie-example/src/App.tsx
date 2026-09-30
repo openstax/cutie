@@ -1,12 +1,13 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { beginAttempt, submitResponse, setScore } from '@openstax/cutie-core';
-import type { AttemptResult, AttemptState, ProcessingOptions } from '@openstax/cutie-core';
+import type { AttemptResult, AttemptState, PreviewOptions } from '@openstax/cutie-core';
 import type { ResponseData } from '@openstax/cutie-client';
 import { examples, exampleGroups } from './example-items';
 import { ExampleDropdown } from './ExampleDropdown';
 import { EditorTab } from './EditorTab';
 import { PreviewTab } from './PreviewTab';
-import type { LatestResult } from './PreviewTab';
+import { TestTab } from './TestTab';
+import type { LatestResult } from './TestTab';
 import { GenerateDialog } from './GenerateDialog';
 import { Tabs, TabList, TabPanel } from './Tabs';
 import { Toast } from './Toast';
@@ -15,26 +16,11 @@ import type { QuizResponse, InteractionType } from './utils/ai';
 import { shouldRenewToken } from './utils/auth';
 import { loadDeliveryOptions, saveDeliveryOptions } from './utils/deliveryOptions';
 import type { ResolvedDeliveryOptions } from './utils/deliveryOptions';
+import { resolveAssets } from './utils/resolveAssets';
 import { OpenInNewIcon } from './icons';
 import './App.css';
 
-/**
- * Asset resolver for the example app.
- * In development, Vite serves files from public/ at the root.
- * This resolver prepends '/' to relative paths to resolve them correctly.
- */
-const resolveAssets: ProcessingOptions['resolveAssets'] = async (urls) => {
-  return urls.map((url) => {
-    // If already an absolute URL, data URL, or starts with /, return as-is
-    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('/') || url.startsWith('data:')) {
-      return url;
-    }
-    // Resolve from public/, under the app's base path (e.g. /cutie/)
-    return `${import.meta.env.BASE_URL}${url}`;
-  });
-};
-
-type Tab = 'xml' | 'editor' | 'preview';
+type Tab = 'xml' | 'editor' | 'test' | 'preview';
 
 interface QuizQuestion {
   description: string;
@@ -85,12 +71,13 @@ const determineResult = (state: AttemptState): 'correct' | 'incorrect' | 'partia
 };
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<Tab>('preview');
+  const [activeTab, setActiveTab] = useState<Tab>('test');
   const [itemXml, setItemXml] = useState('');
   const [attemptState, setAttemptState] = useState<AttemptState | null>(null);
   const [sanitizedTemplate, setSanitizedTemplate] = useState<string>('');
   const [latestResult, setLatestResult] = useState<LatestResult>({ hasNewFeedback: false, tryConsumed: false });
   const [deliveryOptions, setDeliveryOptions] = useState<ResolvedDeliveryOptions>(loadDeliveryOptions);
+  const [previewOptions, setPreviewOptions] = useState<PreviewOptions>({ compact: false });
   const [error, setError] = useState<string>('');
   const [processing, setProcessing] = useState(false);
   const [responses, setResponses] = useState<ResponseData | null>(null);
@@ -351,7 +338,7 @@ export function App() {
 
   const handleStartQuiz = async (topic: string, modelId: number, fastModelId: number) => {
     setGenerateDialogOpen(false);
-    setActiveTab('preview');
+    setActiveTab('test');
     setError('');
     setProcessing(true);
     // Clear previous content and prefetched data while loading
@@ -390,7 +377,7 @@ export function App() {
         setQuizState({ ...newQuizState });
       }
 
-      setActiveTab('preview');
+      setActiveTab('test');
 
       // Trigger eager generation of next question (uses main model for quality)
       triggerEagerGeneration(quizResponse, 0, topic, newQuizState.history, modelId, fastModelId);
@@ -645,10 +632,10 @@ export function App() {
       ),
     },
     {
-      id: 'preview',
-      label: 'Preview',
+      id: 'test',
+      label: 'Test',
       content: (
-        <PreviewTab
+        <TestTab
           attemptState={attemptState}
           sanitizedTemplate={sanitizedTemplate}
           latestResult={latestResult}
@@ -666,6 +653,20 @@ export function App() {
             history: quizState.history,
             currentQuiz: quizState.currentQuiz,
           } : undefined}
+        />
+      ),
+    },
+    {
+      id: 'preview',
+      label: 'Preview',
+      content: (
+        <PreviewTab
+          itemXml={itemXml}
+          previewOptions={previewOptions}
+          onPreviewOptionsChange={setPreviewOptions}
+          onError={setError}
+          isLoading={processing}
+          onOpenGenerateDialog={() => setGenerateDialogOpen(true)}
         />
       ),
     },

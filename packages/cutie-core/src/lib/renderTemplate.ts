@@ -114,6 +114,90 @@ export function buildTemplateDocument(itemDoc: Document, state: AttemptState): D
 }
 
 /**
+ * Builds the template document for a preview of the item (see renderPreview):
+ * the item as an attempt at it begins, with the correct response of each
+ * interaction, for an instructor or author rather than a learner.
+ *
+ * Unlike an attempt's template:
+ * - choices keep their authored order (the state is initialized without shuffling)
+ * - each response declaration with a correct response gets a qti-correct-response,
+ *   with no verdict, as nothing has been submitted
+ * - a printed outcome variable reads as a placeholder naming it (`[SCORE]`):
+ *   outcomes only take their values from response processing
+ * - with `allFeedback`, every feedback element is kept whatever its condition,
+ *   rather than the feedback the initial outcomes show, and modal feedback
+ *   becomes block feedback (see modalFeedbackToBlocks)
+ *
+ * @param itemDoc - Parsed QTI assessment item XML document, instantiated for state
+ * @param state - A newly initialized attempt state
+ * @param allFeedback - Whether to keep every feedback element
+ * @returns A sanitized copy of the item document
+ */
+export function buildPreviewDocument(itemDoc: Document, state: AttemptState, allFeedback: boolean): Document {
+  const clonedDoc = itemDoc.cloneNode(true) as Document;
+  const root = clonedDoc.documentElement;
+  const printedVariables = withOutcomePlaceholders(itemDoc, state.variables);
+
+  removeSensitiveElements(root);
+  removeReservedMarkup(root);
+  substituteVariables(root, printedVariables);
+  processTemplateConditionals(root, state.variables);
+  unwrapTemplateContent(root);
+
+  if (allFeedback) {
+    modalFeedbackToBlocks(root);
+  } else {
+    processFeedbackVisibility(root, state.variables);
+  }
+
+  substituteMathVariables(root, printedVariables);
+  sanitizeResponseDeclarations(root, state.variables);
+  addCorrectResponses(root, itemDoc);
+  normalizeWhitespace(root);
+
+  return clonedDoc;
+}
+
+/**
+ * Replaces each qti-modal-feedback with a qti-feedback-block, with the same
+ * attributes and content, at the end of the item body: where clients show modal
+ * feedback after the item, but in place, as a preview shows every feedback
+ * element at once rather than one dialog after another.
+ */
+function modalFeedbackToBlocks(root: Element): void {
+  const itemBody = root.getElementsByTagName('qti-item-body')[0];
+  if (!itemBody) return;
+
+  for (const modal of Array.from(root.getElementsByTagName('qti-modal-feedback'))) {
+    const block = root.ownerDocument.createElementNS(modal.namespaceURI, 'qti-feedback-block');
+    for (const attribute of Array.from(modal.attributes)) {
+      block.setAttribute(attribute.name, attribute.value);
+    }
+    while (modal.firstChild) {
+      block.appendChild(modal.firstChild);
+    }
+    modal.parentNode?.removeChild(modal);
+    itemBody.appendChild(block);
+  }
+}
+
+/**
+ * The variables with each declared outcome's value replaced by a placeholder
+ * naming it, for printing in a preview
+ */
+function withOutcomePlaceholders(
+  itemDoc: Document,
+  variables: Record<string, unknown>
+): Record<string, unknown> {
+  const result = { ...variables };
+  for (const declaration of Array.from(itemDoc.getElementsByTagName('qti-outcome-declaration'))) {
+    const identifier = declaration.getAttribute('identifier');
+    if (identifier) result[identifier] = `[${identifier}]`;
+  }
+  return result;
+}
+
+/**
  * Finishes a built template document for the client: resolves asset URLs if a
  * resolver is provided, then serializes it to an XML string. Mutates the document.
  */
@@ -185,16 +269,24 @@ function applyEvaluation(root: Element, itemDoc: Document, state: AttemptState):
   markItemVerdict(root, evaluateTry(itemDoc, state));
 
   if (showEvaluation === 'correctResponse') {
-    for (const declaration of Array.from(root.getElementsByTagName('qti-response-declaration'))) {
-      const identifier = declaration.getAttribute('identifier');
-      if (!identifier) continue;
+    addCorrectResponses(root, itemDoc);
+  }
+}
 
-      const correctValue = getCorrectResponse(itemDoc, identifier);
-      if (correctValue !== null) {
-        declaration.appendChild(
-          createValueContainer(declaration.ownerDocument, 'qti-correct-response', correctValue)
-        );
-      }
+/**
+ * Adds a qti-correct-response, holding the attempt's correct value, to each
+ * response declaration left in the template that has one
+ */
+function addCorrectResponses(root: Element, itemDoc: Document): void {
+  for (const declaration of Array.from(root.getElementsByTagName('qti-response-declaration'))) {
+    const identifier = declaration.getAttribute('identifier');
+    if (!identifier) continue;
+
+    const correctValue = getCorrectResponse(itemDoc, identifier);
+    if (correctValue !== null) {
+      declaration.appendChild(
+        createValueContainer(declaration.ownerDocument, 'qti-correct-response', correctValue)
+      );
     }
   }
 }

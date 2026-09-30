@@ -68,5 +68,5 @@ export function CutieItemView({ template, attemptState, interactionsEnabled, the
     mountedItemRef.current = null;
   }, []);
 
-  return <div className="preview-item" ref={containerRef} />;
+  return <div className="item-view" ref={containerRef} />;
 }

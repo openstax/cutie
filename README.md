@@ -274,6 +274,27 @@ item's rules (e.g. a hint after the second submission) start over too.
 `fixed` choices keep their position under every value. The order is generated when the attempt begins, stored
 in `state.shuffleOrders`, and reused on every turn and on resume.
 
+### Preview (`renderPreview`)
+
+For instructors and authors, `renderPreview` renders an item outside any attempt: the item as an attempt at it
+begins, with each interaction's correct response and all of its feedback. QTI has no preview mode, so this is an
+extension. There is no state and nothing can be submitted, so mount it with interactions disabled:
+
+```typescript
+const template = await renderPreview(itemXml, processing, { compact: false });
+const item = mountItem(container, template, { interactionsEnabled: false });
+```
+
+- Every `qti-response-declaration` with a correct response gets a `qti-correct-response`, with no verdict.
+- Every feedback element is shown, whatever its condition, so feedback that never appears together can appear
+  side by side. Modal feedback is shown as block feedback at the end of the item body, rather than as dialogs.
+  With `compact: true`, feedback follows the item's initial outcomes, as when an attempt begins.
+- An **adaptive** item is always previewed compact: its feedback belongs to the stages of an attempt.
+- A `qti-printed-variable` naming an outcome prints as a placeholder (`[SCORE]`), since no response has been
+  processed. Template variables take one generated set of values, and choices keep their authored order.
+
+The preview reveals correct responses and all feedback, so it must never reach a learner.
+
 ### Template markup added by cutie-core
 
 These appear only in the sanitized template sent to the client. Core removes any authored copy before adding
@@ -282,7 +303,7 @@ its own, so the client only ever sees what core computed:
 | Markup | Where | When |
 |---|---|---|
 | `data-cutie-evaluation="correct\|incorrect\|partial"` | interaction elements, `qti-item-body` | terminal under `showEvaluation` `'correctness'` or above; a fresh try of a non-adaptive item |
-| `qti-correct-response` | `qti-response-declaration` | terminal under `showEvaluation: 'correctResponse'` |
+| `qti-correct-response` | `qti-response-declaration` | terminal under `showEvaluation: 'correctResponse'`; every `renderPreview` |
 | `<div data-cutie-retry="incorrect\|partial">` | first child of `qti-item-body` | a fresh try of an adaptive item |
 
 ### Response changes (`onResponseChange`)
@@ -290,3 +311,8 @@ its own, so the client only ever sees what core computed:
 `mountItem` accepts an `onResponseChange` callback, called with the current raw responses, before validation, on
 every learner edit (including each keystroke), and never when values are restored or re-rendered. It shows no
 validation messages. Hosts that want debouncing do it themselves.
+
+### Initially disabled (`interactionsEnabled`)
+
+`mountItem` accepts `interactionsEnabled: false` to render with every interaction disabled from the start, as
+`setInteractionsEnabled(false)` would leave it. `update()` keeps the current setting.

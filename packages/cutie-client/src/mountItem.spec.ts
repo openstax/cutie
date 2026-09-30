@@ -444,3 +444,58 @@ describe('mountItem cleanup lifetimes', () => {
     container.remove();
   });
 });
+
+describe('mountItem interactionsEnabled', () => {
+  let container: HTMLElement;
+  let mounted: MountedItem | undefined;
+
+  beforeEach(() => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+  });
+
+  afterEach(() => {
+    mounted?.unmount();
+    mounted = undefined;
+    container.remove();
+  });
+
+  /** Whether each control in the container is disabled, in document order */
+  function disabledStates(): boolean[] {
+    return Array.from(container.querySelectorAll<HTMLElement>('input, select, textarea, button, [aria-disabled]')).map(
+      (el) => (el as HTMLInputElement).disabled === true || el.getAttribute('aria-disabled') === 'true'
+    );
+  }
+
+  it('mounts with interactions disabled as setInteractionsEnabled(false) leaves them', () => {
+    const reference = mountItem(container, DEFAULTS_XML);
+    reference.setInteractionsEnabled(false);
+    const expected = disabledStates();
+    reference.unmount();
+
+    mounted = mountItem(container, DEFAULTS_XML, { interactionsEnabled: false });
+
+    expect(expected).toContain(true);
+    expect(disabledStates()).toEqual(expected);
+  });
+
+  it('keeps interactions disabled across update()', () => {
+    mounted = mountItem(container, DEFAULTS_XML, { interactionsEnabled: false });
+    const expected = disabledStates();
+
+    mounted.update(DEFAULTS_XML);
+
+    expect(disabledStates()).toEqual(expected);
+  });
+
+  it('enables them with setInteractionsEnabled(true)', () => {
+    const reference = mountItem(container, DEFAULTS_XML);
+    const expected = disabledStates();
+    reference.unmount();
+
+    mounted = mountItem(container, DEFAULTS_XML, { interactionsEnabled: false });
+    mounted.setInteractionsEnabled(true);
+
+    expect(disabledStates()).toEqual(expected);
+  });
+});
