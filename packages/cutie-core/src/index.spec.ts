@@ -45,6 +45,8 @@ const baseState: AttemptState = {
   variables: {},
   completionStatus: 'not_attempted',
   options: resolveDeliveryOptions(),
+  triesAllowed: 1,
+  triesUsed: 0,
   triesRemaining: 1,
   score: null,
 };

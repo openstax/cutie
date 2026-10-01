@@ -117,6 +117,20 @@ export interface AttemptState {
   withheldFeedback?: FeedbackIdentity[];
 
   /**
+   * Tries the learner gets in all: `DeliveryOptions.maxTries` resolved at
+   * `beginAttempt`, with `'smart'` replaced by the number it derives.
+   * Fixed for the life of the attempt.
+   */
+  triesAllowed: number;
+
+  /**
+   * Tries the learner has ended, counted on every submission that reports
+   * `tryConsumed`. The try in progress is `triesUsed + 1`; once the attempt is
+   * terminal, `triesUsed` is the try it ended on.
+   */
+  triesUsed: number;
+
+  /**
    * Tries the learner has left under `DeliveryOptions.maxTries`, counting the
    * one in progress. A try ends when response processing completes the item.
    * When a try ends short of fully correct with tries left, the attempt

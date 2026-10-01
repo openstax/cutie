@@ -127,9 +127,11 @@ export function TestTab({ attemptState, sanitizedTemplate, latestResult, respons
             interactionsEnabled={interactionsEnabled}
             themeOptions={themeOptions}
           />
-          {attemptState && attemptState.completionStatus !== 'completed' && attemptState.options.maxTries !== 1 && (
+          {attemptState && attemptState.completionStatus !== 'completed' && attemptState.triesAllowed > 1 && (
             // A status region, so screen readers hear the count change after each try
-            <div className="tries-remaining" role="status">Tries remaining: {attemptState.triesRemaining}</div>
+            <div className="tries-remaining" role="status">
+              Try {attemptState.triesUsed + 1} of {attemptState.triesAllowed}
+            </div>
           )}
           {attemptState?.completionStatus === 'completed' && attemptState.score && (
             <div className="score-display">

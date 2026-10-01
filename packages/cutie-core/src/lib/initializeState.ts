@@ -59,13 +59,16 @@ export function initializeState(
 
   // Generate shuffle orders for interactions that are shuffled
   const shuffleOrders = initializeShuffleOrders(itemDoc, options.shuffleOverride);
+  const triesAllowed = resolveMaxTries(itemDoc, options.maxTries, variables);
 
   return {
     variables,
     completionStatus: 'not_attempted',
     score,
     options,
-    triesRemaining: resolveMaxTries(itemDoc, options.maxTries, variables),
+    triesAllowed,
+    triesUsed: 0,
+    triesRemaining: triesAllowed,
     ...(shuffleOrders && { shuffleOrders }),
     ...(Object.keys(results.correctResponses).length > 0 && { correctResponses: results.correctResponses }),
     ...(Object.keys(results.defaultValues).length > 0 && { defaultValues: results.defaultValues }),

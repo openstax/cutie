@@ -30,7 +30,11 @@ export function endTry(itemDoc: Document, priorState: AttemptState, processedSta
     return { state: continueTry(priorState, processedState), tryConsumed: false };
   }
 
-  const terminal: TryOutcome = { state: { ...processedState, triesRemaining: 0 }, tryConsumed: true };
+  const triesUsed = priorState.triesUsed + 1;
+  const terminal: TryOutcome = {
+    state: { ...processedState, triesUsed, triesRemaining: 0 },
+    tryConsumed: true,
+  };
 
   const triesRemaining = priorState.triesRemaining - 1;
   if (triesRemaining <= 0 || processedState.pendingManualScoring) return terminal;
@@ -39,7 +43,7 @@ export function endTry(itemDoc: Document, priorState: AttemptState, processedSta
   if (verdict !== 'incorrect' && verdict !== 'partial') return terminal;
 
   return {
-    state: beginNextTry(itemDoc, { ...processedState, triesRemaining }, verdict),
+    state: beginNextTry(itemDoc, { ...processedState, triesUsed, triesRemaining }, verdict),
     tryConsumed: true,
   };
 }
@@ -142,6 +146,8 @@ function beginNextTry(
     ...(ended.shuffleOrders && { shuffleOrders: ended.shuffleOrders }),
     ...(ended.correctResponses && { correctResponses: ended.correctResponses }),
     ...(ended.defaultValues && { defaultValues: ended.defaultValues }),
+    triesAllowed: ended.triesAllowed,
+    triesUsed: ended.triesUsed,
     triesRemaining: ended.triesRemaining,
     retryVerdict: verdict,
   };
