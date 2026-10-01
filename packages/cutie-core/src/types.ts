@@ -205,6 +205,19 @@ export interface DeliveryOptions {
 }
 
 /**
+ * Options for previewing an item (see `renderPreview`).
+ */
+export interface PreviewOptions {
+  /**
+   * Show only the feedback the item shows as an attempt begins, rather than
+   * all of it; correct responses are shown either way. An adaptive item is
+   * always previewed compact: its feedback belongs to the stages of an
+   * attempt, which a preview has not run. Defaults to `false`.
+   */
+  compact?: boolean;
+}
+
+/**
  * Response data submitted by the learner.
  * Maps response identifiers to their values.
  */

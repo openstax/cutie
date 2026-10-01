@@ -10,6 +10,8 @@ import type {
 export interface ItemStateOptions {
   /** Called with the current raw responses whenever a handler reports a learner edit */
   onResponseChange?: ResponseChangeListener;
+  /** Whether interactions start enabled, when there is no previous state to carry over (default `true`) */
+  interactionsEnabled?: boolean;
 }
 
 /**
@@ -19,14 +21,12 @@ export interface ItemStateOptions {
 export class ItemStateImpl implements ItemState {
   private responseAccessors: Map<string, ResponseAccessor> = new Map();
   private observers: Set<StateObserver> = new Set();
-  private _interactionsEnabled = true;
+  private _interactionsEnabled: boolean;
   private readonly onResponseChange?: ResponseChangeListener;
   private readonly editListeners: Map<string, Array<() => void>> = new Map();
 
   constructor(previousState?: ItemState, options?: ItemStateOptions) {
-    if (previousState) {
-      this._interactionsEnabled = previousState.interactionsEnabled;
-    }
+    this._interactionsEnabled = previousState?.interactionsEnabled ?? options?.interactionsEnabled ?? true;
     this.onResponseChange = options?.onResponseChange;
   }
 

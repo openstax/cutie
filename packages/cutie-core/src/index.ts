@@ -1,4 +1,5 @@
 import { DOMParser } from '@xmldom/xmldom';
+import { isAdaptive } from './lib/adaptive';
 import { AttemptResult, completeTurn, presentState } from './lib/attemptTurn';
 import {
   collectAssetReferences,
@@ -7,12 +8,13 @@ import {
 import { isTerminal, resolveDeliveryOptions } from './lib/deliveryOptions';
 import { deriveMaxScore } from './lib/deriveMaxScore';
 import { initializeState } from './lib/initializeState';
+import { buildPreviewDocument, serializeTemplate } from './lib/renderTemplate';
 import { processResponse } from './lib/responseProcessing';
 import { buildScore } from './lib/scoreUtils';
 import { instantiateTemplate } from './lib/templateInstance';
 import { endTry } from './lib/tries';
 import { validateSubmission } from './lib/validateResponses';
-import { AttemptState, DeliveryOptions, ProcessingOptions, ResponseData } from './types';
+import { AttemptState, DeliveryOptions, PreviewOptions, ProcessingOptions, ResponseData } from './types';
 
 /**
  * Initializes a new attempt at a QTI assessment item.
@@ -164,6 +166,50 @@ export async function setScore(
 }
 
 /**
+ * Renders a preview of an item, for instructors and authors: the item as an
+ * attempt at it begins, showing each interaction's correct response and,
+ * unless `compact`, all of the item's feedback.
+ *
+ * The preview is not an attempt: there is no state, and nothing can be
+ * submitted to it, so render it with interactions disabled. Choices keep their
+ * authored order, template variables take one randomly generated set of
+ * values, and a printed outcome variable reads as a placeholder naming it
+ * (`[SCORE]`), as no response has been processed. Every feedback element is
+ * shown whatever its condition, so feedback that never appears together can
+ * appear side by side, and modal feedback is shown as block feedback at the
+ * end of the item body. An adaptive item is always previewed compact (see
+ * `PreviewOptions.compact`), showing the feedback its first stage shows.
+ *
+ * The preview reveals the correct responses and all feedback, so it must
+ * never be shown to a learner.
+ *
+ * @param itemXml - Complete QTI v3 assessment item XML definition
+ * @param processing - Optional processing options (e.g., asset resolver)
+ * @param options - Preview options
+ * @returns Promise resolving to the sanitized preview XML
+ *
+ * @example
+ * ```typescript
+ * const template = await renderPreview(itemXml, undefined, { compact: true });
+ * const item = mountItem(container, template, { interactionsEnabled: false });
+ * ```
+ */
+export async function renderPreview(
+  itemXml: string,
+  processing?: ProcessingOptions,
+  options?: PreviewOptions
+): Promise<string> {
+  const itemDoc = parseItem(itemXml);
+  const state = initializeState(itemDoc, resolveDeliveryOptions({ shuffleOverride: 'never' }));
+  const allFeedback = !options?.compact && !isAdaptive(itemDoc);
+
+  return serializeTemplate(
+    buildPreviewDocument(instantiateTemplate(itemDoc, state), state, allFeedback),
+    processing
+  );
+}
+
+/**
  * Lists every asset URL referenced by an item definition.
  *
  * Reads the `src` and `data` attributes of the raw definition, so the
@@ -207,6 +253,7 @@ export type {
   AttemptState,
   DeliveryOptions,
   FeedbackIdentity,
+  PreviewOptions,
   ProcessingOptions,
   ResponseData,
   Score,

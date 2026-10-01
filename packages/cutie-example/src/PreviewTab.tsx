@@ -1,218 +1,77 @@
-import { useRef, useState } from 'react';
-import type { AttemptResult, AttemptState } from '@openstax/cutie-core';
-import type { MountItemOptions, ResponseData } from '@openstax/cutie-client';
+import { useEffect, useState } from 'react';
+import { renderPreview } from '@openstax/cutie-core';
+import type { PreviewOptions } from '@openstax/cutie-core';
 import { CutieItemView } from './CutieItemView';
-import type { CutieItemHandle } from './CutieItemView';
+import { EmptyState } from './EmptyState';
+import { PreviewOptionsPanel } from './PreviewOptionsPanel';
+import { SidebarLayout } from './SidebarLayout';
 import { isEffectivelyEmptyTemplate } from './utils/qtiUtils';
-import { TopicScores } from './TopicScores';
-import { DeliveryOptionsPanel } from './DeliveryOptionsPanel';
-import type { ResolvedDeliveryOptions } from './utils/deliveryOptions';
-
-const MenuIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor">
-    <path d="M120-240v-80h720v80H120Zm0-200v-80h720v80H120Zm0-200v-80h720v80H120Z"/>
-  </svg>
-);
-
-/** The flags of the latest attempt operation's result */
-export type LatestResult = Pick<AttemptResult, 'hasNewFeedback' | 'tryConsumed'>;
-
-interface QuizModeProps {
-  onNext: () => void;
-  onEnd: () => void;
-  isLoadingNext: boolean;
-  history: {
-    topic: string;
-    questions: { result: 'correct' | 'incorrect' | 'partial-credit' }[];
-  }[];
-  currentQuiz: {
-    topic: string;
-    questions: { result?: 'correct' | 'incorrect' | 'partial-credit' }[];
-  } | null;
-}
+import { resolveAssets } from './utils/resolveAssets';
 
 interface PreviewTabProps {
-  attemptState: AttemptState | null;
-  sanitizedTemplate: string;
-  latestResult: LatestResult;
-  responses: ResponseData | null;
-  deliveryOptions: ResolvedDeliveryOptions;
-  onDeliveryOptionsChange: (options: ResolvedDeliveryOptions) => void;
-  onSubmitResponses: (responses: ResponseData) => Promise<void>;
-  onResetAttempt: () => void;
+  itemXml: string;
+  previewOptions: PreviewOptions;
+  onPreviewOptionsChange: (options: PreviewOptions) => void;
+  onError: (message: string) => void;
   isLoading?: boolean;
   onOpenGenerateDialog?: () => void;
-  quizMode?: QuizModeProps;
-  themeOptions?: MountItemOptions;
 }
 
-export function PreviewTab({ attemptState, sanitizedTemplate, latestResult, responses, deliveryOptions, onDeliveryOptionsChange, onSubmitResponses, onResetAttempt, isLoading, onOpenGenerateDialog, quizMode, themeOptions }: PreviewTabProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
-  const itemRef = useRef<CutieItemHandle>(null);
+/**
+ * Previews the item as an instructor or author sees it: disabled, with the
+ * correct answers and, unless compact, all of its feedback.
+ */
+export function PreviewTab({ itemXml, previewOptions, onPreviewOptionsChange, onError, isLoading, onOpenGenerateDialog }: PreviewTabProps) {
+  const [preview, setPreview] = useState<{ itemXml: string; compact: boolean; template: string } | null>(null);
+  const compact = previewOptions.compact ?? false;
 
-  // Derived - no state needed
-  // A finished attempt takes no more submissions, except that a response
-  // awaiting manual scoring can still be edited and resubmitted
-  const acceptsResponses = attemptState?.completionStatus !== 'completed' || !!attemptState.pendingManualScoring;
-  const interactionsEnabled = !isSubmitting && acceptsResponses;
+  useEffect(() => {
+    if (!itemXml.trim()) return;
 
-  const handleSubmit = async () => {
-    const collectedResponses = itemRef.current?.collectResponses();
-    if (!collectedResponses) return; // validation failed, handlers decorated their UI
+    let current = true;
+    renderPreview(itemXml, { resolveAssets }, { compact })
+      .then((template) => {
+        if (current) setPreview({ itemXml, compact, template });
+      })
+      .catch((err) => {
+        console.error(err);
+        if (current) onError(err instanceof Error ? err.message : 'Error rendering preview');
+      });
+    return () => { current = false; };
+  }, [itemXml, compact, onError]);
 
-    setIsSubmitting(true);
-    try {
-      await onSubmitResponses(collectedResponses);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  // A preview of an earlier item, or in the other mode, isn't shown for this one
+  const template = preview && preview.itemXml === itemXml && preview.compact === compact ? preview.template : '';
 
   return (
-    <div className={`app-container ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-      {sidebarCollapsed && (
-        <button
-          className="sidebar-toggle floating"
-          onClick={() => setSidebarCollapsed(false)}
-          aria-label="Open sidebar"
-        >
-          <MenuIcon />
-        </button>
-      )}
-      <div className="sidebar">
-        <div className="header">
-          <h2>Debug</h2>
-          <button
-            className="sidebar-toggle"
-            onClick={() => setSidebarCollapsed(true)}
-            aria-label="Close sidebar"
-          >
-            <MenuIcon />
-          </button>
+    <SidebarLayout
+      sidebar={
+        <>
+          <PreviewOptionsPanel options={previewOptions} onChange={onPreviewOptionsChange} />
+
+          <details className="panel" open>
+            <summary>
+              <h2>Preview Template</h2>
+            </summary>
+            <pre className="output-display xml-output">
+              {template || 'No template yet'}
+            </pre>
+          </details>
+        </>
+      }
+    >
+      {isLoading ? (
+        <div className="empty-state">
+          <div className="loading-spinner" />
+          <p>Generating your question...</p>
         </div>
-
-        <DeliveryOptionsPanel options={deliveryOptions} onChange={onDeliveryOptionsChange} />
-
-        <details className="panel" open>
-          <summary>
-            <h2>Latest Result</h2>
-          </summary>
-          <pre className="output-display">
-            {attemptState ? JSON.stringify(latestResult, null, 2) : 'No result yet'}
-          </pre>
-        </details>
-
-        <details className="panel" open>
-          <summary>
-            <h2>Attempt State</h2>
-          </summary>
-          <pre className="output-display">
-            {attemptState ? JSON.stringify(attemptState, null, 2) : 'No state yet'}
-          </pre>
-        </details>
-
-        <details className="panel" open>
-          <summary>
-            <h2>Sanitized Template</h2>
-          </summary>
-          <pre className="output-display xml-output">
-            {sanitizedTemplate || 'No template yet'}
-          </pre>
-        </details>
-
-        <details className="panel" open>
-          <summary>
-            <h2>Response Collection</h2>
-          </summary>
-          <pre className="output-display">
-            {responses ? JSON.stringify(responses, null, 2) : 'No responses collected yet'}
-          </pre>
-        </details>
-      </div>
-
-      <div className="preview-area">
-        {isLoading ? (
-          <div className="preview-empty-state">
-            <div className="loading-spinner" />
-            <p>Generating your question...</p>
-          </div>
-        ) : isEffectivelyEmptyTemplate(sanitizedTemplate) ? (
-          <div className="preview-empty-state">
-            <p>No question loaded yet.</p>
-            <p className="empty-state-hint">
-              Load an example, paste XML in the XML tab, or try AI-powered quiz mode.
-            </p>
-            {onOpenGenerateDialog && (
-              <button className="process-button" onClick={onOpenGenerateDialog}>
-                ✨ Generate with AI
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="preview-card">
-            <CutieItemView
-              ref={itemRef}
-              template={sanitizedTemplate}
-              attemptState={attemptState}
-              interactionsEnabled={interactionsEnabled}
-              themeOptions={themeOptions}
-            />
-            {attemptState && attemptState.completionStatus !== 'completed' && attemptState.options.maxTries !== 1 && (
-              // A status region, so screen readers hear the count change after each try
-              <div className="tries-remaining" role="status">Tries remaining: {attemptState.triesRemaining}</div>
-            )}
-            {attemptState?.completionStatus === 'completed' && attemptState.score && (
-              <div className="score-display">
-                <span>Score: {attemptState.score.raw} / {attemptState.score.max}</span>
-                {attemptState.comments && (
-                  <div className="scoring-rationale">
-                    <strong>Scoring Rationale:</strong> {attemptState.comments}
-                  </div>
-                )}
-              </div>
-            )}
-            <div className="preview-buttons">
-              <button
-                className="process-button"
-                onClick={handleSubmit}
-                disabled={!sanitizedTemplate || !interactionsEnabled}
-              >
-                {isSubmitting ? 'Submitting...' : 'Submit'}
-              </button>
-              {quizMode ? (
-                <>
-                  <button
-                    className="process-button"
-                    onClick={quizMode.onNext}
-                    disabled={attemptState?.completionStatus !== 'completed' || quizMode.isLoadingNext}
-                  >
-                    {quizMode.isLoadingNext ? 'Loading...' : 'Next'}
-                  </button>
-                  <button
-                    className="cancel-button"
-                    onClick={quizMode.onEnd}
-                    disabled={quizMode.isLoadingNext}
-                  >
-                    End Quiz
-                  </button>
-                </>
-              ) : (
-                <button
-                  className="process-button"
-                  onClick={onResetAttempt}
-                  disabled={!attemptState}
-                >
-                  Reset
-                </button>
-              )}
-            </div>
-            {quizMode && (
-              <TopicScores history={quizMode.history} currentQuiz={quizMode.currentQuiz} />
-            )}
-          </div>
-        )}
-      </div>
-    </div>
+      ) : isEffectivelyEmptyTemplate(template) ? (
+        <EmptyState onOpenGenerateDialog={onOpenGenerateDialog} />
+      ) : (
+        <div className="item-card">
+          <CutieItemView template={template} attemptState={null} interactionsEnabled={false} />
+        </div>
+      )}
+    </SidebarLayout>
   );
 }

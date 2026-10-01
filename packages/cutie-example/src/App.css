@@ -160,7 +160,7 @@ body, html, #root {
   display: none;
 }
 
-.app-container.sidebar-collapsed .preview-area {
+.app-container.sidebar-collapsed .item-area {
   position: relative;
 }
 
@@ -232,19 +232,19 @@ h2 {
   color: #333;
 }
 
-.delivery-options {
+.options {
   display: flex;
   flex-direction: column;
   gap: 1.2rem;
 }
 
-.delivery-options-hint {
+.options-hint {
   margin: 0;
   font-size: 1.2rem;
   color: #666;
 }
 
-.delivery-option {
+.option {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
@@ -252,14 +252,14 @@ h2 {
   color: #333;
 }
 
-.delivery-option-checkbox {
+.option-checkbox {
   display: flex;
   align-items: center;
   gap: 0.6rem;
   cursor: pointer;
 }
 
-.delivery-option select {
+.option select {
   padding: 0.6rem;
   font-size: 1.3rem;
   border: 1px solid #ccc;
@@ -268,20 +268,20 @@ h2 {
   cursor: pointer;
 }
 
-.delivery-option input[type="text"] {
+.option input[type="text"] {
   padding: 0.6rem;
   font-size: 1.3rem;
   border: 1px solid #ccc;
   border-radius: 3px;
 }
 
-.delivery-option select:focus,
-.delivery-option input:focus-visible {
+.option select:focus,
+.option input:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
-.delivery-option-help {
+.option-help {
   font-size: 1.2rem;
   color: #666;
 }
@@ -383,7 +383,7 @@ h2 {
   color: #060;
 }
 
-.preview-area {
+.item-area {
   flex: 1;
   background: #fafafa;
   overflow: auto;
@@ -392,7 +392,7 @@ h2 {
   padding: 2rem;
 }
 
-.preview-card {
+.item-card {
   padding: 2rem;
   margin: auto;
   border-radius: 8px;
@@ -401,7 +401,7 @@ h2 {
   color: #424242;
   font-size: 1.4rem;
 }
-.preview-card:has(.preview-item:empty) {
+.item-card:has(.item-view:empty) {
   display: none;
 }
 
@@ -417,13 +417,13 @@ h2 {
   color: #666;
 }
 
-.preview-buttons {
+.item-buttons {
   display: flex;
   gap: 0.8rem;
   margin-top: 1.5rem;
 }
 
-.preview-buttons .process-button + .process-button {
+.item-buttons .process-button + .process-button {
   margin-left: 0;
 }
 
@@ -446,7 +446,7 @@ h2 {
   cursor: not-allowed;
 }
 
-.preview-empty-state {
+.empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -457,18 +457,18 @@ h2 {
   color: #666;
 }
 
-.preview-empty-state p {
+.empty-state p {
   margin: 0 0 0.5rem 0;
   font-size: 1.6rem;
 }
 
-.preview-empty-state .empty-state-hint {
+.empty-state .empty-state-hint {
   font-size: 1.4rem;
   color: #999;
   margin-bottom: 1.5rem;
 }
 
-.preview-empty-state .process-button {
+.empty-state .process-button {
   font-size: 1.4rem;
 }
 

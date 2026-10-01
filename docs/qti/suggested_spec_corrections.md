@@ -128,21 +128,29 @@ formatting is applied.
 
 ## 7. MathML variable substitution is too broad and misses unprefixed MathML
 
-**File:** `packages/cutie-core/src/lib/renderTemplate.ts:260`
+**File:** `packages/cutie-core/src/lib/renderTemplate.ts` (`substituteMathVariables`)
 
-**Spec:** Only template variables declared with `math-variable="true"` are
-substituted into `mi` / `mn` elements.
+**Spec:** QTI 3 Information Model, TemplateDeclaration `math-variable`: "If
+mathVariable is set in a template variable's declaration then all instances of
+'mi' and 'ci' that match the name of the template variable must be replaced by
+'mn' and 'cn' respectively with the template variable's value as their content."
+Only template variables are substituted, and only those that set `math-variable`.
 
 **Cutie:**
 - Substitutes **any** variable whose name matches the element's text,
-  including outcome and response variables. Since outcomes are otherwise
-  hidden from the client, this could leak values.
+  including outcome and response variables, whether or not `math-variable` is
+  set. Since outcomes are otherwise hidden from the client, this could leak
+  values.
+- Matches `mn` as well as `mi`, and ignores `ci`.
+- Replaces the element's text but keeps the element, so an `mi` stays an `mi`
+  instead of becoming an `mn` (and a `ci` would stay a `ci` instead of a `cn`).
 - Only finds elements with the `m:` prefix. MathML that uses a default
   namespace (`<math xmlns="...">` with bare `<mi>`) is skipped.
 
-**Suggested fix:** Limit substitution to template declarations with
-`math-variable="true"`. Match MathML elements by namespace instead of by
-prefix.
+**Suggested fix:** Substitute only template variables whose declaration sets
+`math-variable="true"`. Replace each matching `mi` with an `mn` and each `ci`
+with a `cn`, holding the value, and leave `mn` alone. Match MathML elements by
+namespace instead of by prefix.
 
 ## 8. `pair` / `directedPair` / `point` values are stored differently in different places
 

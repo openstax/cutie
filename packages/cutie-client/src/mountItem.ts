@@ -55,10 +55,15 @@ export interface MountItemOptions {
    * whether or not the response is valid to submit.
    */
   onResponseChange?: (responses: ResponseData) => void;
+  /**
+   * Whether interactions start enabled (default `true`). Change it later with
+   * `setInteractionsEnabled`; `update()` keeps the current setting.
+   */
+  interactionsEnabled?: boolean;
 }
 
 /** Keys of MountItemOptions that map to theme CSS custom properties */
-type ThemeOptionKey = Exclude<keyof MountItemOptions, 'onResponseChange'>;
+type ThemeOptionKey = Exclude<keyof MountItemOptions, 'onResponseChange' | 'interactionsEnabled'>;
 
 /**
  * Controller object for a mounted QTI item
@@ -151,6 +156,7 @@ export function mountItem(
   function doRender(xml: string): void {
     const itemState = new ItemStateImpl(currentItemState ?? undefined, {
       onResponseChange: options?.onResponseChange,
+      interactionsEnabled: options?.interactionsEnabled,
     });
     currentItemState = itemState;
 
