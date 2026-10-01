@@ -38,6 +38,29 @@ const BASE_STYLES = `
     height: auto;
   }
 
+  .cutie-item-container table {
+    border-collapse: collapse;
+    margin: 0.75rem 0;
+  }
+
+  .cutie-item-container caption {
+    text-align: left;
+    font-weight: 600;
+    padding: 0.5rem 0;
+  }
+
+  .cutie-item-container th,
+  .cutie-item-container td {
+    border: 1px solid var(--cutie-border);
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .cutie-item-container thead th {
+    background-color: var(--cutie-bg-alt);
+  }
+  
   /*
    * Reserves an interaction's status rail in every state (transparent until
    * the interaction is evaluated, see .cutie-evaluated), so coloring it once

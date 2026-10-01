@@ -1,3 +1,4 @@
+/* spell-checker: ignore hottext */
 /**
  * Handler registration module
  * Import all handlers to trigger side-effect registration with the registry
@@ -7,6 +8,7 @@
 import './choiceInteraction'; // priority 50
 import './extendedText'; // priorities 40-50
 import './gapMatchInteraction'; // priority 45 (gap), 50 (gap-match-interaction)
+import './hottextInteraction'; // priority 45 (hottext), 50 (hottext-interaction)
 import './inlineChoiceInteraction'; // priority 50
 import './matchInteraction'; // priority 50
 import './textEntryInteraction'; // priority 50

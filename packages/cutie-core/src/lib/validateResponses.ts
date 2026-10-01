@@ -29,6 +29,7 @@ export function validateSubmission(submission: ResponseData, itemDoc: Document):
   const errors: ValidationError[] = [];
 
   validateChoiceInteractions(submission, itemDoc, errors);
+  validateHottextInteractions(submission, itemDoc, errors);
   validateTextEntryInteractions(submission, itemDoc, errors);
   validateExtendedTextInteractions(submission, itemDoc, errors);
   validateInlineChoiceInteractions(submission, itemDoc, errors);
@@ -69,6 +70,48 @@ function validateChoiceInteractions(
     }
 
     // Check max-choices
+    const maxChoicesAttr = interaction.getAttribute('max-choices');
+    if (maxChoicesAttr) {
+      const maxChoices = parseInt(maxChoicesAttr, 10);
+      if (!isNaN(maxChoices) && maxChoices > 0 && selectedCount > maxChoices) {
+        errors.push({
+          responseIdentifier,
+          constraint: 'max-choices',
+          message: `Expected at most ${maxChoices} choice(s), got ${selectedCount}`,
+        });
+      }
+    }
+  }
+}
+
+/* spell-checker: ignore hottext */
+function validateHottextInteractions(
+  submission: ResponseData,
+  itemDoc: Document,
+  errors: ValidationError[]
+): void {
+  const interactions = itemDoc.getElementsByTagName('qti-hottext-interaction');
+
+  for (let i = 0; i < interactions.length; i++) {
+    const interaction = interactions[i]!;
+    const responseIdentifier = interaction.getAttribute('response-identifier');
+    if (!responseIdentifier) continue;
+
+    const response = submission[responseIdentifier];
+    const selectedCount = getSelectedCount(response);
+
+    const minChoicesAttr = interaction.getAttribute('min-choices');
+    if (minChoicesAttr) {
+      const minChoices = parseInt(minChoicesAttr, 10);
+      if (!isNaN(minChoices) && minChoices > 0 && selectedCount < minChoices) {
+        errors.push({
+          responseIdentifier,
+          constraint: 'min-choices',
+          message: `Expected at least ${minChoices} choice(s), got ${selectedCount}`,
+        });
+      }
+    }
+
     const maxChoicesAttr = interaction.getAttribute('max-choices');
     if (maxChoicesAttr) {
       const maxChoices = parseInt(maxChoicesAttr, 10);
