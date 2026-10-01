@@ -126,6 +126,8 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -172,6 +174,8 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -195,6 +199,8 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -225,6 +231,8 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -252,6 +260,8 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -284,6 +294,8 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -312,6 +324,8 @@ describe('renderTemplate', () => {
         variables: { V: 'shown' },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -340,6 +354,8 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -364,6 +380,8 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -392,6 +410,8 @@ describe('renderTemplate', () => {
         variables: { VARIANT: 'B' },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -420,6 +440,8 @@ describe('renderTemplate', () => {
         variables: { VARIANT: 'A', FEEDBACK: 'B' },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -448,6 +470,8 @@ describe('renderTemplate', () => {
         variables: { HIDE_OPT: 'X' },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -478,6 +502,8 @@ describe('renderTemplate', () => {
         variables: { VARIANT: 'S1' },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -505,6 +531,8 @@ describe('renderTemplate', () => {
         variables: { VARIANT: 'W1' },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -531,6 +559,8 @@ describe('renderTemplate', () => {
         variables: { VARIANT: ['I1', 'I2'] },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -556,6 +586,8 @@ describe('renderTemplate', () => {
         variables: { VARIANT: 'G1' },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -588,6 +620,8 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -618,6 +652,8 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -642,6 +678,8 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -671,6 +709,8 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'completed',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -701,6 +741,8 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'completed',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -731,6 +773,8 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'completed',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -747,6 +791,8 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -762,6 +808,8 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -775,6 +823,8 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -788,6 +838,8 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -801,6 +853,8 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -831,6 +885,8 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -863,6 +919,8 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -893,6 +951,8 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -929,6 +989,8 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -956,6 +1018,8 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'incomplete',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -984,6 +1048,8 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'incomplete',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -1010,6 +1076,8 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -1041,6 +1109,8 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'incomplete',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -1082,6 +1152,8 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -1113,6 +1185,8 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -1145,6 +1219,8 @@ describe('renderTemplate', () => {
         },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -1171,6 +1247,8 @@ describe('renderTemplate', () => {
           variables: {},
           completionStatus: 'not_attempted',
           options: resolveDeliveryOptions(),
+          triesAllowed: 1,
+          triesUsed: 0,
           triesRemaining: 1,
           score: null,
         },
@@ -1198,6 +1276,8 @@ describe('renderTemplate', () => {
           variables: {},
           completionStatus: 'not_attempted',
           options: resolveDeliveryOptions(),
+          triesAllowed: 1,
+          triesUsed: 0,
           triesRemaining: 1,
           score: null,
         },
@@ -1228,6 +1308,8 @@ describe('renderTemplate', () => {
           variables: {},
           completionStatus: 'not_attempted',
           options: resolveDeliveryOptions(),
+          triesAllowed: 1,
+          triesUsed: 0,
           triesRemaining: 1,
           score: null,
         },
@@ -1267,6 +1349,8 @@ describe('renderTemplate', () => {
           variables: {},
           completionStatus: 'not_attempted',
           options: resolveDeliveryOptions(),
+          triesAllowed: 1,
+          triesUsed: 0,
           triesRemaining: 1,
           score: null,
         },
@@ -1297,6 +1381,8 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -1320,6 +1406,8 @@ describe('renderTemplate', () => {
           variables: {},
           completionStatus: 'not_attempted',
           options: resolveDeliveryOptions(),
+          triesAllowed: 1,
+          triesUsed: 0,
           triesRemaining: 1,
           score: null,
         },
@@ -1353,6 +1441,8 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -1378,6 +1468,8 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -1401,6 +1493,8 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -1430,6 +1524,8 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -1454,6 +1550,8 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       });
@@ -1481,6 +1579,8 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
         shuffleOrders: {
@@ -1514,6 +1614,8 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
         shuffleOrders: {
@@ -1548,6 +1650,8 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
         // No shuffleOrders provided
@@ -1579,6 +1683,8 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
         shuffleOrders: {
@@ -1617,6 +1723,8 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
         shuffleOrders: {
@@ -1655,6 +1763,8 @@ describe('renderTemplate', () => {
         variables: {},
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
         shuffleOrders: {

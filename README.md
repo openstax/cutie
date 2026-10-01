@@ -42,7 +42,8 @@ Response and template processing are separated from the presentational layer usi
 - Standardized `completionStatus` field: `completed` once the attempt is terminal. No further submissions are
   taken, except that a response awaiting manual scoring (`pendingManualScoring`) can still be resubmitted
 - `score`, the xAPI-style score of the attempt (the last try's, with [multiple tries](#multiple-tries))
-- `options`, the [delivery options](#delivery-extensions) the attempt began under, and `triesRemaining`
+- `options`, the [delivery options](#delivery-extensions) the attempt began under, and the
+  [tries](#multiple-tries) counts `triesAllowed`, `triesUsed` and `triesRemaining`
 - `correctResponses` and `defaultValues`, the values template processing set with `qti-set-correct-response`
   and `qti-set-default-value`, kept apart from `variables`. They make the attempt its own clone of an item
   template, taking the place of the declared values
@@ -232,6 +233,10 @@ submission an adaptive item sets `completionStatus` to `completed` on. A try is 
 built-in `numAttempts` counts every submission within a try, restarting with each fresh try, so an adaptive
 item's rules (e.g. a hint after the second submission) start over too.
 
+- `triesAllowed` is `maxTries` resolved at `beginAttempt` (`'smart'` replaced by its number), fixed for the
+  attempt. `triesUsed` counts the tries that have ended, one per `tryConsumed`. The try in progress is
+  `triesUsed + 1`, and once the attempt is terminal `triesUsed` is the try it ended on, so a host can show
+  "try 2 of 3" without counting tries itself.
 - **Terminal** after a fully correct try, the last try, or a try that awaits manual scoring. `triesRemaining`
   is then `0`. The attempt is `completed`, but while a try awaits manual scoring its response can still be
   resubmitted, which edits that try rather than using another.

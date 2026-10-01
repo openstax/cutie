@@ -225,6 +225,27 @@ describe('tries', () => {
     });
   });
 
+  describe('triesAllowed and triesUsed', () => {
+    test('count the tries an attempt ends on', async () => {
+      const begun = await begin(choiceItem, { maxTries: 3 });
+      expect(begun.state.triesAllowed).toBe(3);
+      expect(begun.state.triesUsed).toBe(0);
+
+      const retry = await submitResponse({ RESPONSE: 'B' }, begun.state, choiceItem);
+      expect(retry.state.triesAllowed).toBe(3);
+      expect(retry.state.triesUsed).toBe(1);
+
+      // Once terminal, triesRemaining is 0 but triesUsed is the try it ended on
+      const result = await submitResponse({ RESPONSE: 'A' }, retry.state, choiceItem);
+      expect(result.state.completionStatus).toBe('completed');
+      expect(result.state.triesAllowed).toBe(3);
+      expect(result.state.triesUsed).toBe(2);
+      expect(result.state.triesRemaining).toBe(0);
+
+      await expectResumable(result, choiceItem);
+    });
+  });
+
   describe('a non-adaptive item', () => {
     test('continues with a fresh try after a wrong answer', async () => {
       const begun = await begin(choiceItem, { maxTries: 2 });
@@ -572,7 +593,10 @@ describe('tries', () => {
       expect(step.state.completionStatus).toBe('incomplete');
       expect(step.state.pendingManualScoring).toBeUndefined();
 
+      expect(step.state.triesUsed).toBe(0);
+
       const done = await submitResponse({ ESSAY: 'Final' }, step.state, item);
+      expect(done.state.triesUsed).toBe(1);
       expect(done.state.completionStatus).toBe('completed');
       expect(done.state.pendingManualScoring).toBeDefined();
       expect(done.tryConsumed).toBe(true);
@@ -590,6 +614,7 @@ describe('tries', () => {
       const edited = await submitResponse({ ESSAY: 'Final' }, submitted.state, essayItem);
       expect(edited.tryConsumed).toBe(false);
       expect(edited.state.triesRemaining).toBe(0);
+      expect(edited.state.triesUsed).toBe(1);
     });
   });
 
@@ -597,6 +622,7 @@ describe('tries', () => {
     test('resolves when the attempt begins', async () => {
       const { state } = await begin(choiceItem, { maxTries: 'smart' });
       expect(state.options.maxTries).toBe('smart');
+      expect(state.triesAllowed).toBe(2);
       expect(state.triesRemaining).toBe(2);
     });
 

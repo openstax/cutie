@@ -10,6 +10,8 @@ function state(correctResponses: Record<string, unknown>): AttemptState {
     completionStatus: 'not_attempted',
     score: null,
     options: resolveDeliveryOptions(),
+    triesAllowed: 1,
+    triesUsed: 0,
     triesRemaining: 1,
     correctResponses,
   };

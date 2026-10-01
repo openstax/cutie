@@ -62,6 +62,8 @@ describe('processResponse - Basic Response Processing', () => {
       variables: { SCORE: 0 },
       completionStatus: 'not_attempted' as const,
       options: resolveDeliveryOptions(),
+      triesAllowed: 1,
+      triesUsed: 0,
       triesRemaining: 1,
       score: null,
     };
@@ -123,6 +125,8 @@ describe('processResponse - Basic Response Processing', () => {
       variables: { SCORE: 0 },
       completionStatus: 'not_attempted' as const,
       options: resolveDeliveryOptions(),
+      triesAllowed: 1,
+      triesUsed: 0,
       triesRemaining: 1,
       score: null,
     };
@@ -176,6 +180,8 @@ describe('processResponse - Basic Response Processing', () => {
       variables: { SCORE: 0 },
       completionStatus: 'not_attempted' as const,
       options: resolveDeliveryOptions(),
+      triesAllowed: 1,
+      triesUsed: 0,
       triesRemaining: 1,
       score: null,
     };
@@ -245,6 +251,8 @@ describe('processResponse - Basic Response Processing', () => {
       variables: { SCORE: 0 },
       completionStatus: 'not_attempted' as const,
       options: resolveDeliveryOptions(),
+      triesAllowed: 1,
+      triesUsed: 0,
       triesRemaining: 1,
       score: null,
     };
@@ -315,6 +323,8 @@ describe('processResponse - Basic Response Processing', () => {
       variables: { SCORE: 0 },
       completionStatus: 'not_attempted' as const,
       options: resolveDeliveryOptions(),
+      triesAllowed: 1,
+      triesUsed: 0,
       triesRemaining: 1,
       score: null,
     };
@@ -359,6 +369,8 @@ describe('Standard Response Processing Templates', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -401,6 +413,8 @@ describe('Standard Response Processing Templates', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -442,6 +456,8 @@ describe('Standard Response Processing Templates', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -485,6 +501,8 @@ describe('Standard Response Processing Templates', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -528,6 +546,8 @@ describe('Standard Response Processing Templates', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -573,6 +593,8 @@ describe('Standard Response Processing Templates', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -619,6 +641,8 @@ describe('Standard Response Processing Templates', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -657,6 +681,8 @@ describe('Standard Response Processing Templates', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -698,6 +724,8 @@ describe('Standard Response Processing Templates', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -740,6 +768,8 @@ describe('Standard Response Processing Templates', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -790,6 +820,8 @@ describe('Standard Response Processing Templates', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -834,6 +866,8 @@ describe('Standard Response Processing Templates', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -882,6 +916,8 @@ describe('Standard Response Processing Templates', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -929,6 +965,8 @@ describe('Standard Response Processing Templates', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -976,6 +1014,8 @@ describe('Standard Response Processing Templates', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -1024,6 +1064,8 @@ describe('Standard Response Processing Templates', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -1070,6 +1112,8 @@ describe('Standard Response Processing Templates', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -1109,6 +1153,8 @@ describe('Standard Response Processing Templates', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -1146,6 +1192,8 @@ describe('Standard Response Processing Templates', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -1183,6 +1231,8 @@ describe('Standard Response Processing Templates', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -1220,6 +1270,8 @@ describe('Standard Response Processing Templates', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -1258,6 +1310,8 @@ describe('Standard Response Processing Templates', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -1308,6 +1362,8 @@ describe('Standard Response Processing Templates', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -1349,6 +1405,8 @@ describe('Standard Response Processing Templates', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -1390,6 +1448,8 @@ describe('Standard Response Processing Templates', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -1426,6 +1486,8 @@ describe('Standard Response Processing Templates', () => {
           variables: {},
           completionStatus: 'not_attempted' as const,
           options: resolveDeliveryOptions(),
+          triesAllowed: 1,
+          triesUsed: 0,
           triesRemaining: 1,
           score: null,
         };
@@ -1480,6 +1542,8 @@ describe('Standard Response Processing Templates', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -1521,6 +1585,8 @@ describe('Standard Response Processing Templates', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -1576,6 +1642,8 @@ describe('Response Processing Operators and Expressions', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -1629,6 +1697,8 @@ describe('Response Processing Operators and Expressions', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -1685,6 +1755,8 @@ describe('Response Processing Operators and Expressions', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -1736,6 +1808,8 @@ describe('Response Processing Operators and Expressions', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -1783,6 +1857,8 @@ describe('Response Processing Operators and Expressions', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -1830,6 +1906,8 @@ describe('Response Processing Operators and Expressions', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -1876,6 +1954,8 @@ describe('Response Processing Operators and Expressions', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -1923,6 +2003,8 @@ describe('Response Processing Operators and Expressions', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -1969,6 +2051,8 @@ describe('Response Processing Operators and Expressions', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -2026,6 +2110,8 @@ describe('Response Processing Operators and Expressions', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -2081,6 +2167,8 @@ describe('Response Processing Operators and Expressions', () => {
         variables: { SCORE: 0, WAS_NULL: false },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -2133,6 +2221,8 @@ describe('Response Processing Operators and Expressions', () => {
         variables: { WAS_NULL: true },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -2193,6 +2283,8 @@ describe('Response Processing Operators and Expressions', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -2248,6 +2340,8 @@ describe('Response Processing Operators and Expressions', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -2299,6 +2393,8 @@ describe('Response Processing Operators and Expressions', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -2353,6 +2449,8 @@ describe('Response Processing Operators and Expressions', () => {
         variables: { PARTIAL1: 0.3, PARTIAL2: 0.7, SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -2420,6 +2518,8 @@ describe('Response Processing Operators and Expressions', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -2472,6 +2572,8 @@ describe('Response Processing Operators and Expressions', () => {
         variables: { RAW_SCORE: 5, MULTIPLIER: 2, SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -2524,6 +2626,8 @@ describe('Response Processing Operators and Expressions', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -2582,6 +2686,8 @@ describe('Response Processing Operators and Expressions', () => {
         variables: {},
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -2670,6 +2776,8 @@ describe('Complex Response Processing Scenarios', () => {
       variables: { SCORE: 0, SCORE_PART1: 0, SCORE_PART2: 0 },
       completionStatus: 'not_attempted' as const,
       options: resolveDeliveryOptions(),
+      triesAllowed: 1,
+      triesUsed: 0,
       triesRemaining: 1,
       score: null,
     };
@@ -2755,6 +2863,8 @@ describe('Complex Response Processing Scenarios', () => {
       variables: { SCORE: 0, FEEDBACK_ID: 'none' },
       completionStatus: 'not_attempted' as const,
       options: resolveDeliveryOptions(),
+      triesAllowed: 1,
+      triesUsed: 0,
       triesRemaining: 1,
       score: null,
     };
@@ -2818,6 +2928,8 @@ describe('Complex Response Processing Scenarios', () => {
       variables: { SCORE: 0, numAttempts: 0 },
       completionStatus: 'not_attempted' as const,
       options: resolveDeliveryOptions(),
+      triesAllowed: 1,
+      triesUsed: 0,
       triesRemaining: 1,
       score: null,
     };
@@ -2873,6 +2985,8 @@ describe('Complex Response Processing Scenarios', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: { raw: 0, min: 0, max: 1, scaled: 0 },
       };
@@ -2917,6 +3031,8 @@ describe('Complex Response Processing Scenarios', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: { raw: 0, min: 0, max: 10, scaled: 0 },
       };
@@ -2947,6 +3063,8 @@ describe('Complex Response Processing Scenarios', () => {
         variables: {},
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -3006,6 +3124,8 @@ describe('Complex Response Processing Scenarios', () => {
         variables: { SCORE: 0, MAXSCORE: 100 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: { raw: 0, min: 0, max: 100, scaled: 0 },
       };
@@ -3048,6 +3168,8 @@ describe('Complex Response Processing Scenarios', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted' as const,
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: { raw: 0, min: 0, max: 1, scaled: 0 },
       };
@@ -3097,6 +3219,8 @@ describe('processResponse - Shuffle Order Preservation', () => {
       variables: { SCORE: 0 },
       completionStatus: 'not_attempted' as const,
       options: resolveDeliveryOptions(),
+      triesAllowed: 1,
+      triesUsed: 0,
       triesRemaining: 1,
       score: { raw: 0, min: 0, max: 1, scaled: 0 },
       shuffleOrders: {
@@ -3145,6 +3269,8 @@ describe('processResponse - Shuffle Order Preservation', () => {
       variables: { SCORE: 0 },
       completionStatus: 'not_attempted' as const,
       options: resolveDeliveryOptions(),
+      triesAllowed: 1,
+      triesUsed: 0,
       triesRemaining: 1,
       score: { raw: 0, min: 0, max: 1, scaled: 0 },
       // No shuffleOrders
@@ -3196,6 +3322,8 @@ describe('processResponse - Shuffle Order Preservation', () => {
       variables: { SCORE: 0 },
       completionStatus: 'not_attempted' as const,
       options: resolveDeliveryOptions(),
+      triesAllowed: 1,
+      triesUsed: 0,
       triesRemaining: 1,
       score: { raw: 0, min: 0, max: 1, scaled: 0 },
       shuffleOrders: {
@@ -3242,6 +3370,8 @@ describe('processResponse - Formula Response Processing', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -3276,6 +3406,8 @@ describe('processResponse - Formula Response Processing', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -3311,6 +3443,8 @@ describe('processResponse - Formula Response Processing', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -3346,6 +3480,8 @@ describe('processResponse - Formula Response Processing', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -3381,6 +3517,8 @@ describe('processResponse - Formula Response Processing', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -3435,6 +3573,8 @@ describe('processResponse - Formula Response Processing', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -3487,6 +3627,8 @@ describe('processResponse - Formula Response Processing', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -3524,6 +3666,8 @@ describe('processResponse - Formula Response Processing', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -3558,6 +3702,8 @@ describe('processResponse - Formula Response Processing', () => {
         variables: { SCORE: 0 },
         completionStatus: 'not_attempted',
         options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
         triesRemaining: 1,
         score: null,
       };
@@ -3587,6 +3733,8 @@ describe('processResponse - Template Variable Correct Response', () => {
       variables: { SCORE: 0 },
       completionStatus: 'not_attempted',
       options: resolveDeliveryOptions(),
+      triesAllowed: 1,
+      triesUsed: 0,
       triesRemaining: 1,
       score: null,
       correctResponses: { RESPONSE: 20.0 },
@@ -3635,6 +3783,8 @@ describe('processResponse - Template Variable Correct Response', () => {
       variables: { SCORE: 0 },
       completionStatus: 'not_attempted',
       options: resolveDeliveryOptions(),
+      triesAllowed: 1,
+      triesUsed: 0,
       triesRemaining: 1,
       score: null,
       correctResponses: { RESPONSE: 15.0 },
@@ -3749,6 +3899,8 @@ describe('triad partial credit', () => {
       variables: { SCORE: 0 },
       completionStatus: 'not_attempted',
       options: resolveDeliveryOptions(),
+      triesAllowed: 1,
+      triesUsed: 0,
       triesRemaining: 1,
       score: null,
     };
@@ -3862,6 +4014,8 @@ describe('dyad all-or-nothing', () => {
       variables: { SCORE: 0 },
       completionStatus: 'not_attempted',
       options: resolveDeliveryOptions(),
+      triesAllowed: 1,
+      triesUsed: 0,
       triesRemaining: 1,
       score: null,
     };

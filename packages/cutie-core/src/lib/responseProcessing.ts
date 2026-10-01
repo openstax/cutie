@@ -130,6 +130,8 @@ export function processResponse(
     // Delivery options are fixed for the life of the attempt
     options: currentState.options,
     // Tries are counted once the submission's turn ends (see endTry)
+    triesAllowed: currentState.triesAllowed,
+    triesUsed: currentState.triesUsed,
     triesRemaining: currentState.triesRemaining,
     // Preserve shuffle orders and template processing's results from input state
     ...(currentState.shuffleOrders && { shuffleOrders: currentState.shuffleOrders }),
