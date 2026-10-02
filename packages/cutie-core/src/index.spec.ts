@@ -3,7 +3,7 @@ import { resolveDeliveryOptions } from './lib/deliveryOptions';
 import type { AttemptState } from './types';
 import {
   beginAttempt,
-  listItemAssets,
+  listItemDependencies,
   renderPreview,
   ResponseValidationError,
   setScore,
@@ -171,9 +171,9 @@ const assetItem = `<?xml version="1.0" encoding="UTF-8"?>
   <qti-response-processing/>
 </qti-assessment-item>`;
 
-describe('listItemAssets', () => {
+describe('listItemDependencies assets', () => {
   test('lists src and data references from the raw definition', () => {
-    expect(listItemAssets(assetItem)).toEqual([
+    expect(listItemDependencies(assetItem).assets).toEqual([
       'images/map.png',
       'images/visible.png',
       'images/conditional.png',
@@ -188,12 +188,12 @@ describe('listItemAssets', () => {
     expect(template).not.toContain('images/conditional.png');
     expect(template).not.toContain('images/correct.png');
 
-    expect(listItemAssets(assetItem)).toContain('images/conditional.png');
-    expect(listItemAssets(assetItem)).toContain('images/correct.png');
+    expect(listItemDependencies(assetItem).assets).toContain('images/conditional.png');
+    expect(listItemDependencies(assetItem).assets).toContain('images/correct.png');
   });
 
   test('returns unresolved URLs, ignoring any asset resolver', () => {
-    expect(listItemAssets(assetItem)[0]).toBe('images/map.png');
+    expect(listItemDependencies(assetItem).assets[0]).toBe('images/map.png');
   });
 
   test('collapses repeated references to a single entry', () => {
@@ -206,11 +206,11 @@ describe('listItemAssets', () => {
   </qti-item-body>
 </qti-assessment-item>`;
 
-    expect(listItemAssets(repeated)).toEqual(['images/same.png']);
+    expect(listItemDependencies(repeated).assets).toEqual(['images/same.png']);
   });
 
   test('returns an empty array for an item with no assets', () => {
-    expect(listItemAssets(externalScoredItem)).toEqual([]);
+    expect(listItemDependencies(externalScoredItem).assets).toEqual([]);
   });
 });
 

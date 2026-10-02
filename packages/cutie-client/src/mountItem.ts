@@ -2,6 +2,7 @@ import { parseQtiXml } from './parser/xmlParser';
 import { renderToContainer } from './renderer/domRenderer';
 import { ItemStateImpl } from './state/itemState';
 import { registerBaseStyles } from './styles';
+import { applyThemeVars, removeThemeVars, type ThemeOptions } from './theme';
 import { createTransformContext, transformChildren, transformNode } from './transformer/elementTransformer';
 import { announceItemVerdict } from './transformer/handlers/evaluation';
 import { beginFeedbackRender, endFeedbackRender } from './transformer/handlers/feedback/feedbackAnnouncer';
@@ -10,46 +11,9 @@ import type { ResponseData, TransformContext } from './transformer/types';
 import { acquireLiveRegions, announce } from './utils/liveRegion';
 
 /**
- * Theming options for a mounted QTI item.
- *
- * All colors are exposed as CSS custom properties on `.cutie-item-container`
- * so consumers can override them for branding or dark mode.
- *
- * **Consumer contrast contract (WCAG 2.1 AA):**
- *
- * | Variable | Used as | Min contrast | Against |
- * |---|---|---|---|
- * | `textColor` | Body text | 4.5:1 (AA) | `bgColor`, `bgAltColor` |
- * | `textMutedColor` | Secondary text | 4.5:1 (AA) | `bgColor` |
- * | `borderColor` | Non-text UI | 3:1 (1.4.11) | `bgColor`, `bgAltColor` |
- * | `primaryColor` | Non-text UI + accent text | 3:1 (1.4.11) | `bgColor` |
- * | `feedbackCorrectColor` | Icons, borders | 3:1 (1.4.11) | `bgColor` |
- * | `feedbackIncorrectColor` | Icons, borders, error text | 4.5:1 (AA) | `bgColor`, `bgAltColor` |
- * | `feedbackInfoColor` | Icons, borders | 3:1 (1.4.11) | `bgColor` |
+ * Options for a mounted QTI item: its theme (see ThemeOptions) and behavior.
  */
-export interface MountItemOptions {
-  /** Primary content text (default `#333`). Must meet 4.5:1 against `bgColor` and `bgAltColor`. */
-  textColor?: string;
-  /** Secondary/hint text, labels (default `#666`). Must meet 4.5:1 against `bgColor`. */
-  textMutedColor?: string;
-  /** Default surface color (default `#fff`). */
-  bgColor?: string;
-  /** Secondary surfaces, hover, disabled, containers (default `#f5f5f5`). */
-  bgAltColor?: string;
-  /** Form control border color (default `#767676`). Must meet 3:1 against `bgColor` and `bgAltColor`. */
-  borderColor?: string;
-  /** Brand accent color (default `#1976d2`). Must meet 3:1 against `bgColor`. */
-  primaryColor?: string;
-  /** Text on primary backgrounds (default `#fff`). */
-  primaryFgColor?: string;
-  /** Hover shade of primary (default `#1e88e5`). */
-  primaryHoverColor?: string;
-  /** Correct feedback icon and border color (default `#22c55e`). Must meet 3:1 against `bgColor`. */
-  feedbackCorrectColor?: string;
-  /** Incorrect/error icon, border, and text color (default `#d32f2f`). Must meet 4.5:1 against `bgColor` and `bgAltColor`. */
-  feedbackIncorrectColor?: string;
-  /** Info feedback icon and border color (default `#4a90e2`). Must meet 3:1 against `bgColor`. */
-  feedbackInfoColor?: string;
+export interface MountItemOptions extends ThemeOptions {
   /**
    * Called after every learner edit, with the current value of every interaction —
    * whether or not the response is valid to submit.
@@ -61,9 +25,6 @@ export interface MountItemOptions {
    */
   interactionsEnabled?: boolean;
 }
-
-/** Keys of MountItemOptions that map to theme CSS custom properties */
-type ThemeOptionKey = Exclude<keyof MountItemOptions, 'onResponseChange' | 'interactionsEnabled'>;
 
 /**
  * Controller object for a mounted QTI item
@@ -124,35 +85,6 @@ export function mountItem(
   // Current render's teardown — called on update() and unmount()
   let teardownCurrentRender: (() => void) | null = null;
 
-  const CSS_VAR_MAP: Array<[ThemeOptionKey, string]> = [
-    ['textColor', '--cutie-text'],
-    ['textMutedColor', '--cutie-text-muted'],
-    ['bgColor', '--cutie-bg'],
-    ['bgAltColor', '--cutie-bg-alt'],
-    ['borderColor', '--cutie-border'],
-    ['primaryColor', '--cutie-primary'],
-    ['primaryFgColor', '--cutie-primary-fg'],
-    ['primaryHoverColor', '--cutie-primary-hover'],
-    ['feedbackCorrectColor', '--cutie-feedback-correct'],
-    ['feedbackIncorrectColor', '--cutie-feedback-incorrect'],
-    ['feedbackInfoColor', '--cutie-feedback-info'],
-  ];
-
-  function applyThemeVars(): void {
-    for (const [key, prop] of CSS_VAR_MAP) {
-      const value = options?.[key];
-      if (value) {
-        container.style.setProperty(prop, value);
-      }
-    }
-  }
-
-  function removeThemeVars(): void {
-    for (const [, prop] of CSS_VAR_MAP) {
-      container.style.removeProperty(prop);
-    }
-  }
-
   function doRender(xml: string): void {
     const itemState = new ItemStateImpl(currentItemState ?? undefined, {
       onResponseChange: options?.onResponseChange,
@@ -163,7 +95,7 @@ export function mountItem(
     const styleManager = new DefaultStyleManager();
     registerBaseStyles(styleManager);
 
-    applyThemeVars();
+    applyThemeVars(container, options);
 
     const mountCallbacks: Array<() => void> = [];
     // This render's cleanup callbacks — called when it is torn down (update() or unmount())
@@ -216,7 +148,7 @@ export function mountItem(
     (teardownCurrentRender as (() => void) | null)?.();
     for (const cb of unmountCallbacks) cb();
     state.clear();
-    removeThemeVars();
+    removeThemeVars(container);
     throw error;
   }
   state.set('isUpdate', true);
@@ -230,7 +162,7 @@ export function mountItem(
       for (const cb of unmountCallbacks) cb();
       unmountCallbacks.length = 0;
       state.clear();
-      removeThemeVars();
+      removeThemeVars(container);
     },
     update: (xml: string) => {
       teardownCurrentRender?.();

@@ -1,23 +1,20 @@
 /* spell-checker: ignore inlines */
-import { XMLSerializer } from '@xmldom/xmldom';
 import { AttemptState, FeedbackIdentity, ProcessingOptions } from '../types';
 import { createValueContainer } from '../utils/valueContainer';
 import { isAdaptive } from './adaptive';
-import {
-  collectAssetReferences,
-  uniqueAssetUrls,
-} from './collectAssetReferences';
+import { finishContent, removeReservedMarkup } from './content';
 import { canEvaluate } from './deliveryOptions';
 import { evaluateResponse, ResponseEvaluation } from './evaluateResponses';
 import { getCorrectResponse } from './responseDeclarations';
+import { inlineDockedStimuli } from './stimulus';
 import { evaluateTry } from './tries';
 import { getFeedbackElements, processFeedbackVisibility, processTemplateConditionals } from './visibility';
 
 /**
  * Renders a sanitized QTI template for client consumption.
  *
- * Builds the sanitized document (see buildTemplateDocument), optionally
- * resolves asset URLs via the provided callback, and serializes it to XML.
+ * Builds the sanitized document (see buildTemplateDocument), finishes it
+ * for the client (see serializeTemplate), and serializes it to XML.
  *
  * This runs after both initializeState and processResponse to generate
  * the template that the client will render.
@@ -198,18 +195,17 @@ function withOutcomePlaceholders(
 }
 
 /**
- * Finishes a built template document for the client: resolves asset URLs if a
- * resolver is provided, then serializes it to an XML string. Mutates the document.
+ * Finishes a built template document for the client: inlines the stimuli its
+ * body docks (see inlineDockedStimuli), resolves asset URLs if a resolver is
+ * provided, each with the document it appears in, then serializes it to an XML
+ * string. Mutates the document.
  */
 export async function serializeTemplate(
   doc: Document,
   options?: ProcessingOptions
 ): Promise<string> {
-  if (options?.resolveAssets) {
-    await resolveAssetUrls(doc.documentElement, options.resolveAssets);
-  }
-
-  return serializeToXml(doc);
+  const baseOf = await inlineDockedStimuli(doc.documentElement, options?.resolveStimuli);
+  return finishContent(doc, options, baseOf);
 }
 
 /**
@@ -464,21 +460,6 @@ function unwrapTemplateContent(root: Element): void {
 }
 
 /**
- * Removes any authored copy of the markup cutie-core adds for the client
- * (data-cutie-evaluation attributes, data-cutie-retry elements), so the client
- * only ever sees what core computed.
- */
-function removeReservedMarkup(root: Element): void {
-  for (const element of Array.from(root.getElementsByTagName('*'))) {
-    if (element.hasAttribute('data-cutie-retry')) {
-      element.parentNode?.removeChild(element);
-    } else {
-      element.removeAttribute('data-cutie-evaluation');
-    }
-  }
-}
-
-/**
  * Substitutes template variables into MathML expressions.
  * Looks for <m:mi> and <m:mn> elements whose text content matches a variable identifier,
  * and replaces the content with the variable's value.
@@ -627,51 +608,6 @@ function normalizeWhitespace(root: Element): void {
     );
     root.appendChild(root.ownerDocument.createTextNode('\n\n  '));
   }
-}
-
-/**
- * Resolves asset URLs in the document using the provided resolver.
- *
- * Collects all unique URLs from `src` and `data` attributes,
- * calls the resolver with the batch, and replaces the attribute
- * values with the resolved URLs.
- */
-async function resolveAssetUrls(
-  root: Element,
-  resolver: (urls: string[]) => Promise<string[]>
-): Promise<void> {
-  const references = collectAssetReferences(root);
-  const uniqueUrls = uniqueAssetUrls(references);
-
-  // If no assets found, nothing to resolve
-  if (uniqueUrls.length === 0) {
-    return;
-  }
-
-  // Call resolver with all unique URLs
-  const resolvedUrls = await resolver(uniqueUrls);
-
-  // Create mapping from original URL to resolved URL
-  const urlMap = new Map<string, string>();
-  for (let i = 0; i < uniqueUrls.length; i++) {
-    urlMap.set(uniqueUrls[i], resolvedUrls[i]);
-  }
-
-  // Replace attribute values with resolved URLs
-  for (const { element, attr, url } of references) {
-    const resolvedUrl = urlMap.get(url);
-    if (resolvedUrl !== undefined) {
-      element.setAttribute(attr, resolvedUrl);
-    }
-  }
-}
-
-/**
- * Serializes the document to an XML string.
- */
-function serializeToXml(doc: Document): string {
-  const serializer = new XMLSerializer();
-  return serializer.serializeToString(doc);
 }
 
 /**

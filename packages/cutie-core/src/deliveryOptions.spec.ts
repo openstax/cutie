@@ -1,6 +1,7 @@
 /* spell-checker: ignore Paris */
 import { DOMParser } from '@xmldom/xmldom';
 import { describe, expect, test } from 'vitest';
+import type { AssetRequest } from './types';
 import {
   type AttemptResult,
   beginAttempt,
@@ -664,7 +665,7 @@ describe('delivery options', () => {
 
     test('resolves assets the same way', async () => {
       const itemXml = feedbackChoiceItem.replace('<p>Well done</p>', '<p><img src="a.png" alt=""/></p>');
-      const processing = { resolveAssets: async (urls: string[]) => urls.map((url) => `https://cdn/${url}`) };
+      const processing = { resolveAssets: async (assets: AssetRequest[]) => assets.map(({ url }) => `https://cdn/${url}`) };
 
       const begun = await beginAttempt(itemXml, processing);
       const result = await submitResponse({ RESPONSE: 'A' }, begun.state, itemXml, processing);

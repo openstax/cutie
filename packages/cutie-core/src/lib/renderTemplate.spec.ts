@@ -1253,7 +1253,7 @@ describe('renderTemplate', () => {
           score: null,
         },
         {
-          resolveAssets: async (urls) => urls.map((url) => `/resolved/${url}`),
+          resolveAssets: async (assets) => assets.map(({ url }) => `/resolved/${url}`),
         }
       );
 
@@ -1282,7 +1282,7 @@ describe('renderTemplate', () => {
           score: null,
         },
         {
-          resolveAssets: async (urls) => urls.map((url) => `/cdn/${url}`),
+          resolveAssets: async (assets) => assets.map(({ url }) => `/cdn/${url}`),
         }
       );
 
@@ -1314,9 +1314,9 @@ describe('renderTemplate', () => {
           score: null,
         },
         {
-          resolveAssets: async (urls) => {
-            receivedUrls.push(...urls);
-            return urls.map((url) => `/resolved/${url}`);
+          resolveAssets: async (assets) => {
+            receivedUrls.push(...assets.map(({ url }) => url));
+            return assets.map(({ url }) => `/resolved/${url}`);
           },
         }
       );
@@ -1355,9 +1355,9 @@ describe('renderTemplate', () => {
           score: null,
         },
         {
-          resolveAssets: async (urls) => {
-            receivedUrls.push(...urls);
-            return urls.map((url) => `/resolved/${url}`);
+          resolveAssets: async (assets) => {
+            receivedUrls.push(...assets.map(({ url }) => url));
+            return assets.map(({ url }) => `/resolved/${url}`);
           },
         }
       );
@@ -1412,9 +1412,9 @@ describe('renderTemplate', () => {
           score: null,
         },
         {
-          resolveAssets: async (urls) => {
+          resolveAssets: async (assets) => {
             resolverCalled = true;
-            return urls;
+            return assets.map(({ url }) => url);
           },
         }
       );

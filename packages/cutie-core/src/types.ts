@@ -238,10 +238,74 @@ export interface PreviewOptions {
 export type ResponseData = Record<string, unknown>;
 
 /**
- * Async callback to resolve asset URLs.
- * Receives an array of source URLs and returns resolved URLs in the same order.
+ * An asset URL to resolve, as authored, with the document it appears in.
  */
-export type AssetResolver = (urls: string[]) => Promise<string[]>;
+export interface AssetRequest {
+  /** The URL, unresolved, as authored: relative URLs are relative to its document */
+  url: string;
+  /**
+   * The href of the document the URL appears in, as the rendered document
+   * references it (e.g. a docked stimulus's `href`). Missing when the URL
+   * appears in the rendered document itself.
+   */
+  base?: string;
+}
+
+/**
+ * Async callback to resolve asset URLs.
+ * Receives an array of asset requests and returns resolved URLs in the same order.
+ */
+export type AssetResolver = (assets: AssetRequest[]) => Promise<string[]>;
+
+/**
+ * An item's reference to a shared stimulus (`qti-assessment-stimulus-ref`).
+ */
+export interface StimulusReference {
+  /** The identifier the item knows the stimulus by */
+  identifier: string;
+  /** The URI of the stimulus, relative to the item, as authored */
+  href: string;
+  /** The stimulus title, when the reference has one */
+  title?: string;
+}
+
+/**
+ * A stimulus an item depends on (see `listItemDependencies`).
+ */
+export interface StimulusDependency extends StimulusReference {
+  /**
+   * Whether the item body places the stimulus itself, with an element whose
+   * `data-stimulus-idref` names it. A docked stimulus is inlined into the item's
+   * templates (see `ProcessingOptions.resolveStimuli`); the delivery system
+   * places one that is not.
+   */
+  docked: boolean;
+}
+
+/**
+ * Everything external an item definition references, for a host to resolve.
+ */
+export interface ItemDependencies {
+  /** Unique asset URLs, unresolved, in document order */
+  assets: string[];
+  /** The stimuli the item references, in document order */
+  stimuli: StimulusDependency[];
+}
+
+/**
+ * Everything external a stimulus definition references, for a host to resolve.
+ */
+export interface StimulusDependencies {
+  /** Unique asset URLs, unresolved, relative to the stimulus, in document order */
+  assets: string[];
+}
+
+/**
+ * Async callback to resolve shared stimuli.
+ * Receives stimulus references and returns the `qti-assessment-stimulus` XML of each,
+ * in the same order.
+ */
+export type StimulusResolver = (refs: StimulusReference[]) => Promise<string[]>;
 
 /**
  * Options for template processing operations.
@@ -250,7 +314,20 @@ export interface ProcessingOptions {
   /**
    * Optional async callback to resolve asset URLs before returning sanitized XML.
    * When provided, all `src` and `data` attributes are collected and passed to this
-   * resolver in batch. The resolved URLs replace the original attribute values.
+   * resolver in batch, including those of docked stimuli, each with the document
+   * it appears in (see `AssetRequest`). The resolved URLs replace the original
+   * attribute values.
    */
   resolveAssets?: AssetResolver;
+
+  /**
+   * Async callback to resolve the stimuli an item docks in its body (see
+   * `StimulusDependency.docked`). Required to render an item that docks one.
+   * The docked stimuli are passed to this resolver in batch, and the body of
+   * each is inlined into its dock, before assets are resolved (its assets
+   * with the stimulus's `href` as their `base`). Stimuli the item
+   * references without docking are left to the delivery system, and never
+   * passed here.
+   */
+  resolveStimuli?: StimulusResolver;
 }

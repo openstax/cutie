@@ -499,3 +499,31 @@ describe('mountItem interactionsEnabled', () => {
     expect(disabledStates()).toEqual(expected);
   });
 });
+
+describe('mountItem docked stimulus', () => {
+  it('renders a stimulus cutie-core inlined into its dock as ordinary content', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+
+    const item = mountItem(
+      container,
+      `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="item" title="Item">
+  <qti-assessment-stimulus-ref identifier="Stimulus1" href="passages/night.xml"/>
+  <qti-item-body>
+    <div class="qti-shared-stimulus" data-stimulus-idref="Stimulus1">
+      <div class="qti-shared-stimulus-wrapper"><p>It was a night.</p></div>
+    </div>
+  </qti-item-body>
+</qti-assessment-item>`,
+    );
+
+    const dock = container.querySelector('[data-stimulus-idref="Stimulus1"]');
+    expect(dock?.classList.contains('qti-shared-stimulus')).toBe(true);
+    expect(dock?.querySelector('p')?.textContent).toBe('It was a night.');
+    expect(container.textContent).not.toContain('Unsupported');
+
+    item.unmount();
+    container.remove();
+  });
+});

@@ -321,3 +321,58 @@ validation messages. Hosts that want debouncing do it themselves.
 
 `mountItem` accepts `interactionsEnabled: false` to render with every interaction disabled from the start, as
 `setInteractionsEnabled(false)` would leave it. `update()` keeps the current setting.
+
+## Shared Stimulus
+
+A shared stimulus (`qti-assessment-stimulus`) is content kept outside the items that reference it with
+`qti-assessment-stimulus-ref`, such as a passage several items ask about. A stimulus declares no variables and has
+no processing, so it renders the same for every learner. Where it is shown depends on the item:
+
+- **Docked**: the item body places it, with an element whose `data-stimulus-idref` names the reference. Core
+  copies the body of the stimulus into that element, and it renders with the item.
+- **Not docked**: QTI leaves placement to the delivery system. The host renders it with `renderStimulus` and
+  `mountStimulus`, wherever it likes, possibly once above several items.
+
+```typescript
+import { listItemDependencies, renderStimulus } from '@openstax/cutie-core';
+import { mountStimulus } from '@openstax/cutie-client';
+
+// Everything external the item references, for the host to resolve
+const { assets, stimuli } = listItemDependencies(itemXml);
+// stimuli: [{ identifier: 'Stimulus1', href: 'passages/night.xml', title: 'Night', docked: false }]
+
+// Docked stimuli: resolved in batch, returning each stimulus's XML in order
+const processing = { resolveAssets, resolveStimuli: async (refs) => refs.map((ref) => loadXml(ref.href)) };
+const { state, template } = await beginAttempt(itemXml, processing);
+
+// Stimuli that are not docked: the host places them
+const stimulus = await renderStimulus(stimulusXml, { resolveAssets });
+mountStimulus(container, stimulus);
+```
+
+- Rendering an item that docks a stimulus requires `resolveStimuli`. It throws without one, when the resolver
+  returns nothing for a stimulus, or when a dock names a stimulus the item doesn't reference: the item can't be
+  shown as authored. Only docked stimuli are passed to the resolver, and only docks a template shows.
+- Asset URLs are passed to `resolveAssets` as authored, so a relative URL is relative to the document it appears
+  in. Each request names that document: `{ url, base? }`, where `base` is the href the rendered document
+  references it by (a docked stimulus's `href`), and is missing for the rendered document's own assets. An item's
+  assets and those of the stimuli it docks are resolved in one batch.
+- For `renderStimulus`, the stimulus is the rendered document, so its assets arrive with no `base`: the resolver
+  passed to it must resolve relative to the stimulus. A missing `base` means the rendered document, not the item.
+- `listItemDependencies` and `listStimulusDependencies` each list only their own document's references, relative
+  to it. To inventory an item's assets with its stimuli's, pair each stimulus asset with the stimulus's `href` as
+  its `base`:
+
+  ```typescript
+  const { assets, stimuli } = listItemDependencies(itemXml);
+  const inventory = [
+    ...assets.map((url) => ({ url })),
+    ...(await Promise.all(stimuli.map(async (ref) =>
+      listStimulusDependencies(await loadXml(ref.href)).assets.map((url) => ({ url, base: ref.href }))
+    ))).flat(),
+  ];
+  ```
+- HTML `id`s pass through unchanged. QTI expects authoring systems to keep them unique across an item and its
+  stimuli.
+- Known gaps: the stimulus's `qti-stylesheet` is not applied (no stylesheets are), and its `qti-catalog-info` is
+  not supported (no catalogs are).
