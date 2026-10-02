@@ -3,7 +3,7 @@
   "description": "Example application demonstrating QTI v3 assessment items",
   "version": "1.0.0",
   "dependencies": {
-    "@openstax/cutie-client": "2.0.1",
+    "@openstax/cutie-client": "2.0.2",
     "@openstax/cutie-core": "2.0.2",
     "@openstax/cutie-editor": "2.0.0",
     "react": "^19.2.0",
