@@ -1,3 +1,4 @@
+/* spell-checker: ignore MATHML */
 import { registry } from '../registry';
 import type { ElementHandler, TransformContext } from '../types';
 import {
@@ -5,6 +6,12 @@ import {
   BLOCK_TAGS,
   SR_ONLY_STYLES,
 } from './inlineInteractionAnnotator';
+
+/**
+ * MathML 3 is the only imported namespace QTI v3 renders as markup. Everything
+ * else here is HTML, which the QTI document carries in the QTI namespace.
+ */
+const MATHML_NAMESPACE = 'http://www.w3.org/1998/Math/MathML';
 
 /**
  * Handler for standard HTML/XHTML elements
@@ -19,16 +26,7 @@ class HtmlPassthroughHandler implements ElementHandler {
   transform(element: Element, context: TransformContext): DocumentFragment {
     const fragment = document.createDocumentFragment();
 
-    // Clone the element with the same tag name
-    const cloned = document.createElement(element.tagName);
-
-    // Copy all attributes
-    for (let i = 0; i < element.attributes.length; i++) {
-      const attr = element.attributes[i];
-      if (attr) {
-        cloned.setAttribute(attr.name, attr.value);
-      }
-    }
+    const cloned = cloneElementShell(element);
 
     // Recursively transform children using context function
     if (context.transformChildren) {
@@ -55,6 +53,28 @@ class HtmlPassthroughHandler implements ElementHandler {
     fragment.appendChild(cloned);
     return fragment;
   }
+}
+
+/**
+ * Create an empty copy of an element with its attributes. MathML keeps its
+ * namespace so the browser renders it as math (and hides its annotations);
+ * the local name drops any prefix the source used, such as `m:math`.
+ */
+function cloneElementShell(element: Element): Element {
+  if (element.namespaceURI === MATHML_NAMESPACE) {
+    const cloned = document.createElementNS(MATHML_NAMESPACE, element.localName);
+    for (const attr of Array.from(element.attributes)) {
+      cloned.setAttributeNS(attr.namespaceURI, attr.name, attr.value);
+    }
+    return cloned;
+  }
+
+  // Clone the element with the same tag name
+  const cloned = document.createElement(element.tagName);
+  for (const attr of Array.from(element.attributes)) {
+    cloned.setAttribute(attr.name, attr.value);
+  }
+  return cloned;
 }
 
 // Register with lowest priority (catch-all for non-qti elements)
