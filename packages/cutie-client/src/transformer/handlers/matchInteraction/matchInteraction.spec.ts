@@ -434,16 +434,24 @@ describe('matchInteraction validation', () => {
       expect(idsIn('T_PARAMS')).toEqual(['PAR1', 'PAR2']);
     });
 
-    it('renders the target as a slot carrying its match-max, labelling its bank', () => {
+    const sourceEl = (container: HTMLElement, id: string) =>
+      container.querySelector(
+        `.cutie-match-bank .cutie-match-choice[data-identifier="${id}"]`
+      ) as HTMLElement;
+    const gapsFor = (container: HTMLElement, targetId: string) =>
+      container.querySelectorAll<HTMLElement>(`.cutie-match-gap[data-target-id="${targetId}"]`);
+
+    it('renders a plain header labelling its bank, not a drop slot', () => {
       const container = renderGrouped();
 
-      const slot = container.querySelector('.cutie-match-slot[data-identifier="T_ACTIONS"]')!;
-      expect(slot.getAttribute('data-match-max')).toBe('2');
+      const header = container.querySelector('#cutie-match-label-RB-T_ACTIONS')!;
+      expect(header.classList.contains('cutie-match-slot-header')).toBe(true);
+      expect(header.textContent).toBe('Actions to Take');
+      // The header is not a droppable choice box.
+      expect(header.classList.contains('cutie-match-choice')).toBe(false);
 
       const bank = container.querySelector('.cutie-match-bank[data-match-group="T_ACTIONS"]')!;
-      const labelledBy = bank.getAttribute('aria-labelledby');
-      expect(labelledBy).toBeTruthy();
-      expect(container.querySelector(`#${labelledBy}`)!.textContent).toBe('Actions to Take');
+      expect(bank.getAttribute('aria-labelledby')).toBe(header.id);
     });
 
     it('seeds one tabbable choice per bank for roving tabindex', () => {
@@ -458,71 +466,51 @@ describe('matchInteraction validation', () => {
       }
     });
 
-    it('makes every column slot tabbable so each is reachable from its bank', () => {
+    it('makes only the selected source’s column gaps tabbable drop targets', () => {
       const container = renderGrouped();
 
-      const slots = container.querySelectorAll('.cutie-match-slot');
-      expect(slots.length).toBe(3);
-      for (const slot of slots) {
-        expect(slot.getAttribute('tabindex')).toBe('0');
+      sourceEl(container, 'ACT1').click();
+
+      // The source's own column gaps become reachable and highlighted...
+      for (const gap of gapsFor(container, 'T_ACTIONS')) {
+        expect(gap.getAttribute('tabindex')).toBe('0');
+        expect(gap.classList.contains('cutie-match-gap--drop-target')).toBe(true);
       }
-    });
-
-    it('keeps every slot tabbable after arrow navigation within a bank', () => {
-      const container = renderGrouped();
-
-      // Arrow within a bank must not collapse the slots into one shared roving
-      // group — each column's slot stays independently reachable via Tab.
-      const firstBankChoice = container.querySelector(
-        '.cutie-match-bank[data-match-group="T_PARAMS"] .cutie-match-choice'
-      ) as HTMLElement;
-      firstBankChoice.focus();
-      firstBankChoice.dispatchEvent(
-        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })
-      );
-
-      for (const slot of container.querySelectorAll('.cutie-match-slot')) {
-        expect(slot.getAttribute('tabindex')).toBe('0');
+      // ...while other columns' gaps stay out of the tab order.
+      for (const gap of gapsFor(container, 'T_CONDITION')) {
+        expect(gap.getAttribute('tabindex')).toBe('-1');
+        expect(gap.classList.contains('cutie-match-gap--drop-target')).toBe(false);
       }
     });
 
     it('allows a source to associate only with its own column', () => {
       const container = renderGrouped();
 
-      const source = (id: string) =>
-        container.querySelector(`.cutie-match-bank .cutie-match-choice[data-identifier="${id}"]`) as HTMLElement;
-      const slot = (id: string) =>
-        container.querySelector(`.cutie-match-slot[data-identifier="${id}"]`) as HTMLElement;
-
-      // Same-group association is created.
-      source('ACT1').click();
-      slot('T_ACTIONS').click();
+      // Same-group placement is created.
+      sourceEl(container, 'ACT1').click();
+      gapsFor(container, 'T_ACTIONS')[0].click();
       expect(itemState.collectAll().responses['RB']).toContain('ACT1 T_ACTIONS');
 
-      // Cross-group association is rejected — the wrong column can't accept it.
-      source('COND1').click();
-      slot('T_ACTIONS').click();
+      // A cross-group source can't be placed in the wrong column's gap.
+      sourceEl(container, 'COND1').click();
+      gapsFor(container, 'T_ACTIONS')[1].click();
       const response = itemState.collectAll().responses['RB'] as string[];
       expect(response).not.toContain('COND1 T_ACTIONS');
       expect(response).toEqual(['ACT1 T_ACTIONS']);
     });
 
-    it('caps a column at its slot match-max', () => {
+    it('replaces the occupant when a source is placed on a filled gap', () => {
       const container = renderGrouped();
 
-      const source = (id: string) =>
-        container.querySelector(`.cutie-match-bank .cutie-match-choice[data-identifier="${id}"]`) as HTMLElement;
-      const slot = (id: string) =>
-        container.querySelector(`.cutie-match-slot[data-identifier="${id}"]`) as HTMLElement;
+      // Condition has a single gap (match-max="1").
+      sourceEl(container, 'COND1').click();
+      gapsFor(container, 'T_CONDITION')[0].click();
+      expect(itemState.collectAll().responses['RB']).toEqual(['COND1 T_CONDITION']);
 
-      source('COND1').click();
-      slot('T_CONDITION').click();
-      source('COND2').click();
-      slot('T_CONDITION').click();
-
-      // Condition accepts only one (match-max="1").
-      const response = itemState.collectAll().responses['RB'] as string[];
-      expect(response).toEqual(['COND1 T_CONDITION']);
+      // Placing COND2 onto the filled gap replaces COND1.
+      sourceEl(container, 'COND2').click();
+      gapsFor(container, 'T_CONDITION')[0].click();
+      expect(itemState.collectAll().responses['RB']).toEqual(['COND2 T_CONDITION']);
     });
 
     it('passes the qti-choices-* class through to the container', () => {
@@ -541,18 +529,13 @@ describe('matchInteraction validation', () => {
     it('draws one empty gap per unit of slot capacity (match-max)', () => {
       const container = renderGrouped();
 
-      const gapsIn = (targetId: string): NodeListOf<Element> => {
-        const slot = container.querySelector(`.cutie-match-slot[data-identifier="${targetId}"]`)!;
-        return slot.parentElement!.querySelectorAll('.cutie-match-gap');
-      };
-
       // Gap count mirrors each slot's match-max (Actions 2, Condition 1, Params 2).
-      expect(gapsIn('T_ACTIONS').length).toBe(2);
-      expect(gapsIn('T_CONDITION').length).toBe(1);
-      expect(gapsIn('T_PARAMS').length).toBe(2);
+      expect(gapsFor(container, 'T_ACTIONS').length).toBe(2);
+      expect(gapsFor(container, 'T_CONDITION').length).toBe(1);
+      expect(gapsFor(container, 'T_PARAMS').length).toBe(2);
 
       // All gaps start empty — no association has been made yet.
-      for (const gap of gapsIn('T_ACTIONS')) {
+      for (const gap of gapsFor(container, 'T_ACTIONS')) {
         expect(gap.classList.contains('cutie-match-gap--filled')).toBe(false);
       }
     });
@@ -560,40 +543,33 @@ describe('matchInteraction validation', () => {
     it('fills a gap when a source is placed and leaves the rest open', () => {
       const container = renderGrouped();
 
-      const source = (id: string) =>
-        container.querySelector(`.cutie-match-bank .cutie-match-choice[data-identifier="${id}"]`) as HTMLElement;
-      const slotEl = container.querySelector('.cutie-match-slot[data-identifier="T_ACTIONS"]')!;
+      sourceEl(container, 'ACT1').click();
+      gapsFor(container, 'T_ACTIONS')[0].click();
 
-      source('ACT1').click();
-      (slotEl as HTMLElement).click();
-
-      const gaps = slotEl.parentElement!.querySelectorAll('.cutie-match-gap');
+      const gaps = gapsFor(container, 'T_ACTIONS');
       expect(gaps.length).toBe(2);
-      const filled = slotEl.parentElement!.querySelectorAll('.cutie-match-gap--filled');
-      expect(filled.length).toBe(1);
-      expect(filled[0].querySelector('.cutie-match-chip')!.textContent).toBe('Action 1');
+      expect(gaps[0].classList.contains('cutie-match-gap--filled')).toBe(true);
+      expect(gaps[0].querySelector('.cutie-match-gap-content')!.textContent).toBe('Action 1');
+      expect(gaps[1].classList.contains('cutie-match-gap--filled')).toBe(false);
     });
 
-    it('creates the association when a selected source is dropped on an empty gap', () => {
+    it('returns a placed source to the bank when its gap is emptied', () => {
       const container = renderGrouped();
 
-      const source = (id: string) =>
-        container.querySelector(`.cutie-match-bank .cutie-match-choice[data-identifier="${id}"]`) as HTMLElement;
-      const emptyGap = (targetId: string) =>
-        container
-          .querySelector(`.cutie-match-slot[data-identifier="${targetId}"]`)!
-          .parentElement!.querySelector('.cutie-match-gap:not(.cutie-match-gap--filled)') as HTMLElement;
-
-      // Select the source, then click its column's empty gap (not the header).
-      source('ACT1').click();
-      emptyGap('T_ACTIONS').click();
-
+      sourceEl(container, 'ACT1').click();
+      const gap = gapsFor(container, 'T_ACTIONS')[0];
+      gap.click();
       expect(itemState.collectAll().responses['RB']).toContain('ACT1 T_ACTIONS');
+
+      // Backspace on the filled gap removes the association.
+      gap.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }));
+      expect(itemState.collectAll().responses['RB']).toBeNull();
+      expect(gap.classList.contains('cutie-match-gap--filled')).toBe(false);
     });
 
-    it('falls back to max-associations for an unbounded (match-max=0) slot', () => {
+    it('derives gap count from max-associations when the slot is unbounded (match-max=0)', () => {
       const container = renderGrouped(`
-        <qti-match-interaction response-identifier="RB" max-associations="3">
+        <qti-match-interaction response-identifier="RB" max-associations="1">
           <qti-simple-match-set>
             <qti-simple-associable-choice identifier="S1" match-max="1" match-group="T1">S1</qti-simple-associable-choice>
             <qti-simple-associable-choice identifier="S2" match-max="1" match-group="T1">S2</qti-simple-associable-choice>
@@ -604,8 +580,8 @@ describe('matchInteraction validation', () => {
         </qti-match-interaction>
       `);
 
-      const slot = container.querySelector('.cutie-match-slot[data-identifier="T1"]')!;
-      expect(slot.parentElement!.querySelectorAll('.cutie-match-gap').length).toBe(3);
+      // match-max=0 is unbounded, so capacity falls back to max-associations (1).
+      expect(gapsFor(container, 'T1').length).toBe(1);
     });
 
     it('still renders the classic two-set layout when no match-group is present', () => {

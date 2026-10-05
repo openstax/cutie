@@ -120,7 +120,9 @@ export class MatchInteractionHandler implements ElementHandler {
       container.classList.add('cutie-match-interaction--grouped');
 
       container.appendChild(
-        this.createColumns(matchSets[0], matchSets[1], controller, context, responseIdentifier)
+        this.createColumns(
+          matchSets[0], matchSets[1], controller, context, responseIdentifier, maxAssociations
+        )
       );
     } else {
       // Classic two-set layout with orientation from the QTI class attribute.
@@ -309,18 +311,21 @@ export class MatchInteractionHandler implements ElementHandler {
 
   /**
    * Create the grouped (bowtie) layout: one column per target choice. Each
-   * column's target choice is the drop slot (its match-max caps how many
-   * sources it accepts) and holds a per-group bank of the source choices whose
-   * match-group names that target. The interaction's qti-choices-* class
-   * positions each bank relative to its slot (via CSS). Columns are derived
-   * entirely from the target set — no authored layout grid needed.
+   * column is a plain HEADER plus a fixed row of gap boxes (the drop targets),
+   * and a per-group bank of the source choices whose match-group names that
+   * target. The gap count is the slot's capacity — its match-max, falling back
+   * to the interaction's max-associations (capped by the bank size) when the
+   * slot is unbounded. The interaction's qti-choices-* class positions each
+   * bank relative to its header/gaps (via CSS). Columns are derived entirely
+   * from the target set — no authored layout grid needed.
    */
   private createColumns(
     sourceSetElement: Element,
     targetSetElement: Element,
     controller: MatchController,
     context: TransformContext,
-    responseIdentifier: string
+    responseIdentifier: string,
+    maxAssociations: number
   ): HTMLElement {
     const columnsRow = document.createElement('div');
     columnsRow.className = 'cutie-match-columns';
@@ -346,50 +351,108 @@ export class MatchInteractionHandler implements ElementHandler {
         continue;
       }
 
+      const matchMaxRaw = parseInt(targetChoice.getAttribute('match-max') ?? '1', 10);
+      const targetMatchMax = isNaN(matchMaxRaw) ? 1 : matchMaxRaw;
+      const targetContent = targetChoice.textContent ?? '';
+
       const column = document.createElement('div');
       column.className = 'cutie-match-column';
       column.setAttribute('data-match-group', targetId);
 
-      // The target choice is the column's drop slot.
-      const slot = this.createChoiceWrapper(
-        targetChoice, 'target', controller, context, responseIdentifier, []
-      );
-      if (!slot) continue;
-      slot.choice.classList.add('cutie-match-slot');
-      // Each column is self-contained, so every slot is independently tabbable:
-      // Tab flows slot -> bank -> next column's slot, letting a source selected
-      // in any bank reach its own column's slot (not just the first column's).
-      slot.choice.setAttribute('tabindex', '0');
-      column.appendChild(slot.wrapper);
+      // Header + gaps share the "slot" area so qti-choices-* positioning places
+      // them together opposite the bank.
+      const slotArea = document.createElement('div');
+      slotArea.className = 'cutie-match-choice-wrapper';
 
-      // Per-group source bank, labelled by the slot's own label.
+      const header = document.createElement('div');
+      header.className = 'cutie-match-slot-header';
+      const labelId = `cutie-match-label-${responseIdentifier}-${targetId}`;
+      header.id = labelId;
+      if (context.transformChildren) {
+        header.appendChild(context.transformChildren(targetChoice));
+      } else {
+        header.textContent = targetContent;
+      }
+      slotArea.appendChild(header);
+      controller.registerGroupedTarget(targetId, header, targetMatchMax, targetContent);
+
+      // The sources that may fill this column.
+      const columnSources = sourceChoices.filter((sc) => {
+        const id = sc.getAttribute('identifier');
+        return id && !placedSources.has(id) && groupsOf(sc).includes(targetId);
+      });
+
+      // Draw one gap per unit of capacity.
+      const bankSize = columnSources.length;
+      const capacity = Math.max(
+        1,
+        targetMatchMax > 0
+          ? targetMatchMax
+          : maxAssociations > 0 ? Math.min(maxAssociations, bankSize) : bankSize
+      );
+
+      const gaps = document.createElement('div');
+      gaps.className = 'cutie-match-gaps';
+      gaps.setAttribute('role', 'group');
+      gaps.setAttribute('aria-labelledby', labelId);
+      for (let i = 0; i < capacity; i++) {
+        const gap = this.createGap();
+        controller.registerGroupedGap(gap, targetId);
+        gaps.appendChild(gap);
+      }
+      slotArea.appendChild(gaps);
+      column.appendChild(slotArea);
+
+      // Per-group source bank, labelled by the column header.
       const bank = document.createElement('div');
       bank.className = 'cutie-match-bank';
       bank.setAttribute('role', 'listbox');
       bank.setAttribute('data-match-group', targetId);
-      bank.setAttribute('aria-labelledby', slot.labelId);
+      bank.setAttribute('aria-labelledby', labelId);
 
       let isFirstInBank = true;
-      for (const sourceChoice of sourceChoices) {
-        const sourceId = sourceChoice.getAttribute('identifier');
-        if (!sourceId || placedSources.has(sourceId)) continue;
-        const groups = groupsOf(sourceChoice);
-        if (!groups.includes(targetId)) continue;
-
+      for (const sourceChoice of columnSources) {
         const created = this.createChoiceWrapper(
-          sourceChoice, 'source', controller, context, responseIdentifier, groups
+          sourceChoice, 'source', controller, context, responseIdentifier, groupsOf(sourceChoice)
         );
         if (!created) continue;
         created.choice.setAttribute('tabindex', isFirstInBank ? '0' : '-1');
         bank.appendChild(created.wrapper);
-        placedSources.add(sourceId);
+        placedSources.add(created.identifier);
         isFirstInBank = false;
       }
 
+      controller.registerGroupedBank(bank);
       column.appendChild(bank);
       columnsRow.appendChild(column);
     }
 
     return columnsRow;
+  }
+
+  /**
+   * Create a single empty gap box: the drop slot shown under a grouped column
+   * header. Holds a placeholder (shown when empty) and a content span (shown
+   * when filled). The controller wires its interactions.
+   */
+  private createGap(): HTMLElement {
+    const gap = document.createElement('div');
+    gap.className = 'cutie-match-gap';
+    gap.setAttribute('role', 'button');
+    gap.setAttribute('tabindex', '-1');
+    gap.setAttribute('draggable', 'false');
+    gap.setAttribute('aria-label', 'Gap, empty');
+
+    const placeholder = document.createElement('span');
+    placeholder.className = 'cutie-match-gap-placeholder';
+    placeholder.setAttribute('aria-hidden', 'true');
+    gap.appendChild(placeholder);
+
+    const content = document.createElement('span');
+    content.className = 'cutie-match-gap-content';
+    content.style.display = 'none';
+    gap.appendChild(content);
+
+    return gap;
   }
 }

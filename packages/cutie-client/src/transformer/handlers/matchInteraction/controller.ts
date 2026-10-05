@@ -23,6 +23,15 @@ interface ChoiceData {
 /**
  * Controller for managing match interaction state and behavior.
  * Handles click-to-connect, drag-and-drop, and keyboard interactions.
+ *
+ * Two presentations share this controller:
+ *  - Classic two-set match: both sets are choice boxes; selecting one and then
+ *    one from the other set connects them, shown as chips.
+ *  - Grouped (bowtie) mode: sources live in per-column word banks and each
+ *    column is a plain HEADER plus a fixed row of gap boxes. The gaps are the
+ *    only drop targets (the header is just a label); a source drops into a gap,
+ *    and dropping onto a filled gap replaces its occupant — mirroring
+ *    gap-match. No chips are drawn under a placed source.
  */
 export class MatchController {
   readonly responseIdentifier: string;
@@ -41,9 +50,8 @@ export class MatchController {
   } | null = null;
   private enabled = true;
 
-  // Grouped (bowtie) mode: sources are banked per column and each column's slot
-  // is a target. Arrow keys stay within a bank/slot-group; associations are
-  // restricted to matching groups. Off by default (classic two-set match).
+  // Grouped (bowtie) mode: sources are banked per column and each column is a
+  // header + gap boxes. Off by default (classic two-set match).
   private grouped = false;
 
   // Choice data - unified storage
@@ -51,7 +59,16 @@ export class MatchController {
   private sourceIds: string[] = [];
   private targetIds: string[] = [];
 
-  // Track pending chip drag for drop-outside-to-remove behavior
+  // Grouped-mode gap state: the gap elements, which source each holds, the
+  // banks (return targets), the current source selection, and the source being
+  // dragged (so dragover can validate before the drop's dataTransfer is read).
+  private groupedGaps: HTMLElement[] = [];
+  private gapOccupant = new Map<HTMLElement, string>();
+  private groupedBanks: HTMLElement[] = [];
+  private groupedSel: { sourceId: string; fromGap: HTMLElement | null } | null = null;
+  private draggedSourceId: string | null = null;
+
+  // Track pending chip drag for drop-outside-to-remove behavior (classic mode)
   private pendingChipDrag: { sourceId: string; targetId: string } | null = null;
 
   // Document click handler reference for cleanup
@@ -70,14 +87,15 @@ export class MatchController {
 
     // Document click handler to clear selection when clicking outside
     this.documentClickHandler = (e: MouseEvent) => {
-      if (!this.enabled || !this.selection) return;
+      if (!this.enabled) return;
+      if (!this.selection && !this.groupedSel) return;
 
       const target = e.target as HTMLElement;
-      const isChoice = target.closest('.cutie-match-choice');
-      const isChip = target.closest('.cutie-match-chip');
-      const isGap = target.closest('.cutie-match-gap');
+      const inside = target.closest(
+        '.cutie-match-choice, .cutie-match-chip, .cutie-match-gap, .cutie-match-bank'
+      );
 
-      if (!isChoice && !isChip && !isGap) {
+      if (!inside) {
         this.clearSelection();
       }
     };
@@ -91,23 +109,20 @@ export class MatchController {
    * Initialize the controller after all choices are registered.
    */
   initialize(_sourceSetElement?: HTMLElement, _targetSetElement?: HTMLElement): void {
-    // Grouped (bowtie) target slots draw their empty gaps up front so the
-    // learner sees how many sources each column accepts before dropping any.
-    if (this.grouped) {
-      for (const id of this.targetIds) this.updateChips(id);
-    }
+    // Grouped gaps are built by the handler; nothing to do here.
   }
 
   /**
-   * Enable grouped (bowtie) mode. In this mode arrow keys stay within a source
-   * bank / the target slots, and associations are restricted by match-group.
+   * Enable grouped (bowtie) mode. In this mode sources are banked per column,
+   * arrow keys stay within a bank, and the column gaps are the drop targets.
    */
   enableGroupedMode(): void {
     this.grouped = true;
   }
 
   /**
-   * Register a choice with the controller.
+   * Register a choice with the controller. In grouped mode this is only used for
+   * the source choices; targets are registered via registerGroupedTarget.
    */
   registerChoice(
     id: string,
@@ -130,7 +145,53 @@ export class MatchController {
     this.choices.set(id, choiceData);
     (set === 'source' ? this.sourceIds : this.targetIds).push(id);
 
-    this.wireChoiceEvents(choiceData);
+    if (this.grouped) {
+      // Only sources reach this path in grouped mode.
+      this.wireGroupedSource(choiceData);
+    } else {
+      this.wireChoiceEvents(choiceData);
+    }
+  }
+
+  /**
+   * Grouped mode: register a target column. Its element is the plain header,
+   * which only labels the column and is never a drop target — the gaps are.
+   */
+  registerGroupedTarget(
+    targetId: string,
+    headerElement: HTMLElement,
+    matchMax: number,
+    content: string
+  ): void {
+    this.choices.set(targetId, {
+      id: targetId,
+      set: 'target',
+      element: headerElement,
+      matchMax,
+      content,
+      connectedIds: new Set(),
+      matchGroups: new Set(),
+    });
+    this.targetIds.push(targetId);
+  }
+
+  /**
+   * Grouped mode: register one gap (drop slot) belonging to a target column.
+   */
+  registerGroupedGap(gapElement: HTMLElement, targetId: string): void {
+    gapElement.setAttribute('data-target-id', targetId);
+    gapElement.setAttribute('data-gap-id', String(this.groupedGaps.length));
+    this.groupedGaps.push(gapElement);
+    this.wireGapEvents(gapElement);
+  }
+
+  /**
+   * Grouped mode: register a word bank so dropping/clicking it returns a
+   * picked-up source to the bank.
+   */
+  registerGroupedBank(bankElement: HTMLElement): void {
+    this.groupedBanks.push(bankElement);
+    this.wireBankEvents(bankElement);
   }
 
   /**
@@ -150,21 +211,17 @@ export class MatchController {
 
   /**
    * The ordered choices sharing the roving group of `id` — used for arrow-key
-   * navigation. In grouped mode each column is self-contained: a source's group
-   * is its bank and a target's group is its own column's slot (so every slot
-   * stays independently tabbable rather than collapsing into one shared roving
-   * group). Otherwise the group is the whole set.
+   * navigation. In grouped mode a source's group is its bank; otherwise the
+   * group is the whole set.
    */
   private getRovingGroup(id: string, set: 'source' | 'target'): Map<string, HTMLElement> {
-    if (this.grouped) {
-      const scopeSelector = set === 'source' ? '.cutie-match-bank' : '.cutie-match-column';
-      const scope = this.choices.get(id)?.element.closest(scopeSelector);
-      if (scope) {
-        const ids = set === 'source' ? this.sourceIds : this.targetIds;
+    if (this.grouped && set === 'source') {
+      const bank = this.choices.get(id)?.element.closest('.cutie-match-bank');
+      if (bank) {
         const scoped = new Map<string, HTMLElement>();
-        for (const choiceId of ids) {
+        for (const choiceId of this.sourceIds) {
           const choice = this.choices.get(choiceId);
-          if (choice && scope.contains(choice.element)) scoped.set(choiceId, choice.element);
+          if (choice && bank.contains(choice.element)) scoped.set(choiceId, choice.element);
         }
         return scoped;
       }
@@ -172,8 +229,392 @@ export class MatchController {
     return this.getChoiceElementsInSet(set);
   }
 
+  // ---------------------------------------------------------------------------
+  // Grouped (bowtie) mode: source + gap + bank wiring
+  // ---------------------------------------------------------------------------
+
   /**
-   * Wire up event listeners for a choice element.
+   * Wire a source choice in a word bank: click/Enter selects it, arrows rove
+   * within the bank, and it can be dragged into a gap.
+   */
+  private wireGroupedSource(choice: ChoiceData): void {
+    const { id, element } = choice;
+
+    const toggle = () => {
+      if (this.isChoiceExhausted(id)) return;
+      if (this.groupedSel?.sourceId === id && !this.groupedSel.fromGap) {
+        this.clearSelection();
+      } else {
+        this.selectGroupedSource(id, null);
+      }
+    };
+
+    element.addEventListener('click', () => {
+      if (!this.enabled) return;
+      toggle();
+    });
+
+    element.addEventListener('keydown', (e) => {
+      if (!this.enabled) return;
+      switch (e.key) {
+        case 'Enter':
+        case ' ':
+          e.preventDefault();
+          toggle();
+          break;
+        case 'ArrowDown':
+        case 'ArrowRight':
+          e.preventDefault();
+          focusNext(this.getRovingGroup(id, 'source'), id);
+          break;
+        case 'ArrowUp':
+        case 'ArrowLeft':
+          e.preventDefault();
+          focusPrev(this.getRovingGroup(id, 'source'), id);
+          break;
+        case 'Escape':
+          this.clearSelection();
+          break;
+      }
+    });
+
+    element.addEventListener('dragstart', (e) => {
+      if (!this.enabled || this.isChoiceExhausted(id)) {
+        e.preventDefault();
+        return;
+      }
+      e.dataTransfer?.setData('text/plain', `source:${id}`);
+      this.draggedSourceId = id;
+      element.classList.add('cutie-match-choice--dragging');
+      this.selectGroupedSource(id, null);
+    });
+
+    element.addEventListener('dragend', () => {
+      this.draggedSourceId = null;
+      element.classList.remove('cutie-match-choice--dragging');
+      this.clearSelection();
+    });
+  }
+
+  /**
+   * Wire a gap (the column's drop slot). Empty: accepts a selected/dragged
+   * source. Filled: can be picked up, removed, dragged, or replaced by dropping
+   * another source onto it.
+   */
+  private wireGapEvents(gap: HTMLElement): void {
+    const activate = () => {
+      const occupant = this.gapOccupant.get(gap);
+      if (this.groupedSel) {
+        const { sourceId, fromGap } = this.groupedSel;
+        if (fromGap === gap) {
+          this.clearSelection();
+          return;
+        }
+        if (this.canPlaceInGap(gap, sourceId, fromGap)) {
+          this.placeInGap(gap, sourceId, fromGap);
+          this.clearSelection();
+        }
+      } else if (occupant) {
+        this.selectGroupedSource(occupant, gap);
+      }
+    };
+
+    gap.addEventListener('click', (e) => {
+      if (!this.enabled) return;
+      e.stopPropagation();
+      activate();
+    });
+
+    gap.addEventListener('keydown', (e) => {
+      if (!this.enabled) return;
+      const occupant = this.gapOccupant.get(gap);
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        activate();
+      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        if (occupant) {
+          this.removeFromGap(gap);
+          gap.focus();
+        }
+      } else if (e.key === 'Escape') {
+        this.clearSelection();
+      }
+    });
+
+    gap.addEventListener('dragstart', (e) => {
+      if (!this.enabled) return;
+      const occupant = this.gapOccupant.get(gap);
+      if (!occupant) {
+        e.preventDefault();
+        return;
+      }
+      e.dataTransfer?.setData('text/plain', `gap:${gap.getAttribute('data-gap-id')}`);
+      this.draggedSourceId = occupant;
+      gap.classList.add('cutie-match-gap--dragging');
+      this.selectGroupedSource(occupant, gap);
+    });
+
+    gap.addEventListener('dragend', () => {
+      this.draggedSourceId = null;
+      gap.classList.remove('cutie-match-gap--dragging');
+      this.clearSelection();
+    });
+
+    gap.addEventListener('dragover', (e) => {
+      if (!this.enabled) return;
+      if (!e.dataTransfer?.types.includes('text/plain')) return;
+      // Only signal droppable when the dragged source is actually allowed here.
+      if (this.draggedSourceId
+        && !this.canPlaceInGap(gap, this.draggedSourceId, this.draggedFromGap())) {
+        return;
+      }
+      e.preventDefault();
+      gap.classList.add('cutie-match-gap--drag-over');
+    });
+
+    gap.addEventListener('dragleave', () => {
+      gap.classList.remove('cutie-match-gap--drag-over');
+    });
+
+    gap.addEventListener('drop', (e) => {
+      if (!this.enabled) return;
+      e.preventDefault();
+      gap.classList.remove('cutie-match-gap--drag-over');
+
+      const data = e.dataTransfer?.getData('text/plain') ?? '';
+      if (data.startsWith('source:')) {
+        const sourceId = data.slice('source:'.length);
+        if (this.canPlaceInGap(gap, sourceId, null)) {
+          this.placeInGap(gap, sourceId, null);
+        }
+      } else if (data.startsWith('gap:')) {
+        const fromGap = this.groupedGaps[Number(data.slice('gap:'.length))];
+        if (fromGap && fromGap !== gap) {
+          const sourceId = this.gapOccupant.get(fromGap);
+          if (sourceId && this.canPlaceInGap(gap, sourceId, fromGap)) {
+            this.placeInGap(gap, sourceId, fromGap);
+          }
+        }
+      }
+      this.clearSelection();
+    });
+  }
+
+  /** The gap the currently dragged source was picked up from, if any. */
+  private draggedFromGap(): HTMLElement | null {
+    if (!this.draggedSourceId) return null;
+    for (const [gap, sourceId] of this.gapOccupant) {
+      if (sourceId === this.draggedSourceId) return gap;
+    }
+    return null;
+  }
+
+  /**
+   * Wire a word bank so a picked-up source can be returned to it (drop or click
+   * on the bank background).
+   */
+  private wireBankEvents(bank: HTMLElement): void {
+    bank.addEventListener('dragover', (e) => {
+      if (!this.enabled) return;
+      if (!e.dataTransfer?.types.includes('text/plain')) return;
+      // Only accept returns of a source currently sitting in a gap.
+      if (!this.draggedFromGap()) return;
+      e.preventDefault();
+      bank.classList.add('cutie-match-bank--drag-over');
+    });
+
+    bank.addEventListener('dragleave', (e) => {
+      if (!bank.contains(e.relatedTarget as Node)) {
+        bank.classList.remove('cutie-match-bank--drag-over');
+      }
+    });
+
+    bank.addEventListener('drop', (e) => {
+      if (!this.enabled) return;
+      bank.classList.remove('cutie-match-bank--drag-over');
+      const data = e.dataTransfer?.getData('text/plain') ?? '';
+      if (data.startsWith('gap:')) {
+        e.preventDefault();
+        const fromGap = this.groupedGaps[Number(data.slice('gap:'.length))];
+        if (fromGap) this.removeFromGap(fromGap);
+      }
+    });
+
+    bank.addEventListener('click', (e) => {
+      if (!this.enabled) return;
+      const target = e.target as HTMLElement;
+      // Clicking the bank background (not a source) returns a picked-up source.
+      if (!target.closest('.cutie-match-choice') && this.groupedSel?.fromGap) {
+        this.removeFromGap(this.groupedSel.fromGap);
+        this.clearSelection();
+      }
+    });
+  }
+
+  /**
+   * Whether `sourceId` may be placed into `gap`, accounting for match-group,
+   * max-associations, and the source's match-max. `fromGap` is the gap the
+   * source is being moved from (which frees a slot), if any.
+   */
+  private canPlaceInGap(gap: HTMLElement, sourceId: string, fromGap: HTMLElement | null): boolean {
+    const targetId = gap.getAttribute('data-target-id');
+    if (!targetId) return false;
+    if (!this.groupsAllow(sourceId, targetId)) return false;
+
+    const occupant = this.gapOccupant.get(gap);
+    if (occupant === sourceId) return false; // already here
+
+    // A placement adds a net association only when the gap is empty and we are
+    // not moving the source out of another gap.
+    const addsAssociation = !occupant && !fromGap;
+    if (addsAssociation && this.maxAssociations > 0
+      && this.associations.size >= this.maxAssociations) {
+      return false;
+    }
+
+    // The source gains a use unless it's just moving between gaps.
+    const source = this.choices.get(sourceId);
+    if (!fromGap && source && source.matchMax > 0
+      && source.connectedIds.size >= source.matchMax) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Select a source for placement, highlighting the gaps it may fill. `fromGap`
+   * is set when picking a placed source back up out of a gap.
+   */
+  private selectGroupedSource(sourceId: string, fromGap: HTMLElement | null): void {
+    this.clearSelection();
+    this.groupedSel = { sourceId, fromGap };
+
+    if (fromGap) {
+      fromGap.classList.add('cutie-match-gap--selected');
+    } else {
+      const el = this.choices.get(sourceId)?.element;
+      el?.classList.add('cutie-match-choice--selected');
+      el?.setAttribute('aria-selected', 'true');
+    }
+
+    let available = 0;
+    for (const gap of this.groupedGaps) {
+      const canPlace = this.canPlaceInGap(gap, sourceId, fromGap);
+      if (canPlace) {
+        gap.classList.add('cutie-match-gap--drop-target');
+        available++;
+      }
+      // Keyboard users tab only through the gaps that can accept this source.
+      gap.setAttribute('tabindex', canPlace ? '0' : '-1');
+    }
+
+    // Returning a picked-up source: light its home bank as a target too.
+    if (fromGap) {
+      this.bankFor(sourceId)?.classList.add('cutie-match-bank--drop-target');
+    }
+
+    const content = this.choices.get(sourceId)?.content ?? '';
+    const slots = available === 1 ? 'gap' : 'gaps';
+    announce(
+      this.context,
+      fromGap
+        ? `${content} picked up. ${available} ${slots} available. Move it to a gap, or return it to the word bank.`
+        : `${content} selected. ${available} ${slots} available. Choose a gap to place it.`
+    );
+  }
+
+  /** The word bank element hosting a source choice. */
+  private bankFor(sourceId: string): HTMLElement | null {
+    const el = this.choices.get(sourceId)?.element;
+    if (!el) return null;
+    return this.groupedBanks.find((bank) => bank.contains(el)) ?? null;
+  }
+
+  /**
+   * Place `sourceId` into `gap`, replacing any current occupant and freeing the
+   * source's previous gap when moving.
+   */
+  private placeInGap(gap: HTMLElement, sourceId: string, fromGap: HTMLElement | null): void {
+    const targetId = gap.getAttribute('data-target-id');
+    if (!targetId) return;
+
+    const occupant = this.gapOccupant.get(gap);
+    if (occupant === sourceId) return;
+
+    // Free the source's previous gap (move) and the target gap's occupant
+    // (replace) before creating the new association.
+    if (fromGap && fromGap !== gap && this.gapOccupant.get(fromGap) === sourceId) {
+      this.removeFromGap(fromGap, true);
+    }
+    if (occupant) {
+      this.removeFromGap(gap, true);
+    }
+
+    if (this.createAssociation(sourceId, targetId)) {
+      this.gapOccupant.set(gap, sourceId);
+      this.fillGapVisual(gap, sourceId);
+      announce(this.context, `${this.choices.get(sourceId)?.content ?? ''} placed.`);
+    }
+  }
+
+  /** Remove the source currently in `gap`, returning it to its bank. */
+  private removeFromGap(gap: HTMLElement, silent = false): void {
+    const sourceId = this.gapOccupant.get(gap);
+    const targetId = gap.getAttribute('data-target-id');
+    if (!sourceId || !targetId) return;
+
+    this.gapOccupant.delete(gap);
+    this.removeAssociation(sourceId, targetId, true);
+    this.emptyGapVisual(gap);
+
+    if (!silent) {
+      announce(this.context, `${this.choices.get(sourceId)?.content ?? ''} returned to the word bank.`);
+    }
+  }
+
+  /** Show `sourceId`'s content inside a filled gap. */
+  private fillGapVisual(gap: HTMLElement, sourceId: string): void {
+    const content = this.choices.get(sourceId)?.content ?? '';
+    gap.classList.add('cutie-match-gap--filled');
+    gap.setAttribute('data-source-id', sourceId);
+    gap.setAttribute('draggable', 'true');
+    gap.setAttribute('tabindex', '0');
+    gap.setAttribute('aria-label', `Contains ${content}. Press Enter to pick up, or Backspace to remove.`);
+
+    const contentSpan = gap.querySelector('.cutie-match-gap-content') as HTMLElement | null;
+    const placeholder = gap.querySelector('.cutie-match-gap-placeholder') as HTMLElement | null;
+    if (contentSpan) {
+      contentSpan.textContent = content;
+      contentSpan.style.display = '';
+    }
+    if (placeholder) placeholder.style.display = 'none';
+  }
+
+  /** Reset a gap to its empty state. */
+  private emptyGapVisual(gap: HTMLElement): void {
+    gap.classList.remove('cutie-match-gap--filled');
+    gap.removeAttribute('data-source-id');
+    gap.setAttribute('draggable', 'false');
+    gap.setAttribute('tabindex', '-1');
+    gap.setAttribute('aria-label', 'Gap, empty');
+
+    const contentSpan = gap.querySelector('.cutie-match-gap-content') as HTMLElement | null;
+    const placeholder = gap.querySelector('.cutie-match-gap-placeholder') as HTMLElement | null;
+    if (contentSpan) {
+      contentSpan.textContent = '';
+      contentSpan.style.display = 'none';
+    }
+    if (placeholder) placeholder.style.display = '';
+  }
+
+  // ---------------------------------------------------------------------------
+  // Classic two-set mode: choice + chip wiring
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Wire up event listeners for a choice element (classic two-set mode).
    */
   private wireChoiceEvents(choice: ChoiceData): void {
     const { id, set, element } = choice;
@@ -211,10 +652,6 @@ export class MatchController {
           break;
 
         case 'Tab': {
-          // Classic two-set match jumps source→target on Tab. Grouped mode has
-          // many banks/slots, each seeded with one tabbable element, so native
-          // Tab already flows between them — don't intercept it.
-          if (this.grouped) break;
           const targetSet = e.shiftKey ? 'source' : 'target';
           if ((set === 'source' && !e.shiftKey) || (set === 'target' && e.shiftKey)) {
             if (this.focusFirstInSet(targetSet)) {
@@ -281,7 +718,7 @@ export class MatchController {
   }
 
   /**
-   * Handle click on a choice.
+   * Handle click on a choice (classic two-set mode).
    */
   private handleChoiceClick(choiceId: string): void {
     const choice = this.choices.get(choiceId);
@@ -367,45 +804,31 @@ export class MatchController {
       ? (choice.set === 'source' ? existingAssociation.targetId : existingAssociation.sourceId)
       : null;
 
-    const isValidPartner = (el: HTMLElement): boolean => {
-      const elId = el.getAttribute('data-identifier');
-      if (!elId) return false;
-
-      // Don't highlight the current connected item (clicking it just clears selection now)
-      if (elId === connectedId) return false;
-
-      // For a move operation, we need to check if the new partner can accept
-      // (the original choice's count will be freed when we remove the old
-      // association) and that it is group-compatible with the origin.
-      if (existingAssociation) {
-        const sourceId = choice.set === 'source' ? originId : elId;
-        const targetId = choice.set === 'source' ? elId : originId;
-        return this.groupsAllow(sourceId, targetId) && this.canAcceptAssociation(elId);
-      }
-
-      // For a fresh selection, check full association validity
-      const sourceId = choice.set === 'source' ? originId : elId;
-      const targetId = choice.set === 'source' ? elId : originId;
-      return this.canCreateAssociation(sourceId, targetId);
-    };
-
     highlightDropTargets(
       this.getChoiceElementsArray(oppositeSet),
       'cutie-match-choice--drop-target',
-      isValidPartner
-    );
+      (el) => {
+        const elId = el.getAttribute('data-identifier');
+        if (!elId) return false;
 
-    // Grouped (bowtie) mode: the visible drop targets are the empty gaps under
-    // each valid target column, not the header box — highlight those too.
-    if (this.grouped && oppositeSet === 'target') {
-      for (const targetEl of this.getChoiceElementsArray('target')) {
-        if (!isValidPartner(targetEl)) continue;
-        const emptyGaps = targetEl.parentElement?.querySelectorAll(
-          '.cutie-match-gap:not(.cutie-match-gap--filled)'
-        );
-        emptyGaps?.forEach((g) => g.classList.add('cutie-match-gap--drop-target'));
+        // Don't highlight the current connected item (clicking it just clears selection now)
+        if (elId === connectedId) return false;
+
+        // For a move operation, we need to check if the new partner can accept
+        // (the original choice's count will be freed when we remove the old
+        // association) and that it is group-compatible with the origin.
+        if (existingAssociation) {
+          const sourceId = choice.set === 'source' ? originId : elId;
+          const targetId = choice.set === 'source' ? elId : originId;
+          return this.groupsAllow(sourceId, targetId) && this.canAcceptAssociation(elId);
+        }
+
+        // For a fresh selection, check full association validity
+        const sourceId = choice.set === 'source' ? originId : elId;
+        const targetId = choice.set === 'source' ? elId : originId;
+        return this.canCreateAssociation(sourceId, targetId);
       }
-    }
+    );
 
     if (existingAssociation) {
       announce(
@@ -418,23 +841,20 @@ export class MatchController {
   }
 
   /**
-   * Clear the current selection.
+   * Clear the current selection (both classic and grouped).
    */
   clearSelection(): void {
     if (this.selection) {
       const choice = this.choices.get(this.selection.originId);
-
       if (choice) {
         choice.element.classList.remove('cutie-match-choice--selected');
         choice.element.setAttribute('aria-selected', 'false');
       }
-
       this.selection = null;
     }
 
     // Clear all chip highlight styling
-    const allChips = this.container.querySelectorAll('.cutie-match-chip--selected');
-    for (const chip of allChips) {
+    for (const chip of this.container.querySelectorAll('.cutie-match-chip--selected')) {
       chip.classList.remove('cutie-match-chip--selected');
     }
 
@@ -443,10 +863,26 @@ export class MatchController {
       'cutie-match-choice--drop-target'
     );
 
-    // Clear grouped-mode gap drop-target highlights.
-    this.container
-      .querySelectorAll('.cutie-match-gap--drop-target')
-      .forEach((g) => g.classList.remove('cutie-match-gap--drop-target'));
+    // Grouped selection + gap/bank highlights.
+    if (this.groupedSel) {
+      if (this.groupedSel.fromGap) {
+        this.groupedSel.fromGap.classList.remove('cutie-match-gap--selected');
+      } else {
+        const el = this.choices.get(this.groupedSel.sourceId)?.element;
+        el?.classList.remove('cutie-match-choice--selected');
+        el?.setAttribute('aria-selected', 'false');
+      }
+      this.groupedSel = null;
+    }
+
+    for (const gap of this.groupedGaps) {
+      gap.classList.remove('cutie-match-gap--drop-target');
+      // Reset idle tab order: only filled gaps are reachable when nothing is selected.
+      gap.setAttribute('tabindex', this.gapOccupant.has(gap) ? '0' : '-1');
+    }
+    for (const bank of this.groupedBanks) {
+      bank.classList.remove('cutie-match-bank--drop-target', 'cutie-match-bank--drag-over');
+    }
   }
 
   /**
@@ -514,15 +950,17 @@ export class MatchController {
     sourceChoice?.connectedIds.add(targetId);
     targetChoice?.connectedIds.add(sourceId);
 
-    // Update chips on both sides
-    this.updateChips(sourceId);
-    this.updateChips(targetId);
+    // Classic mode draws chips; grouped mode manages gap visuals itself.
+    if (!this.grouped) {
+      this.updateChips(sourceId);
+      this.updateChips(targetId);
+    }
 
     // Update exhaustion state
     this.updateExhaustionState(sourceId);
     this.updateExhaustionState(targetId);
 
-    if (sourceChoice && targetChoice) {
+    if (sourceChoice && targetChoice && !this.grouped) {
       announce(this.context, `${sourceChoice.content} connected to ${targetChoice.content}.`);
     }
 
@@ -530,9 +968,10 @@ export class MatchController {
   }
 
   /**
-   * Remove an association.
+   * Remove an association. Grouped mode announces via gap place/remove, so it
+   * passes `silent` to avoid double messaging.
    */
-  removeAssociation(sourceId: string, targetId: string): void {
+  removeAssociation(sourceId: string, targetId: string, silent = false): void {
     const key = `${sourceId} ${targetId}`;
 
     if (!this.associations.has(key)) return;
@@ -545,39 +984,24 @@ export class MatchController {
     sourceChoice?.connectedIds.delete(targetId);
     targetChoice?.connectedIds.delete(sourceId);
 
-    // Update chips on both sides
-    this.updateChips(sourceId);
-    this.updateChips(targetId);
+    // Classic mode draws chips; grouped mode manages gap visuals itself.
+    if (!this.grouped) {
+      this.updateChips(sourceId);
+      this.updateChips(targetId);
+    }
 
     // Update exhaustion state
     this.updateExhaustionState(sourceId);
     this.updateExhaustionState(targetId);
 
-    if (sourceChoice && targetChoice) {
+    if (sourceChoice && targetChoice && !silent) {
       announce(this.context, `Connection between ${sourceChoice.content} and ${targetChoice.content} removed.`);
     }
   }
 
   /**
-   * How many visual gaps a grouped target slot draws: one per source it can
-   * accept. gap-match authors its gaps explicitly; plain match has none, so the
-   * count is derived from the slot's match-max, falling back to the
-   * interaction's max-associations when the slot is unbounded, and finally to a
-   * single open gap so there is always a visible drop target.
-   */
-  private slotGapCount(choice: ChoiceData): number {
-    if (choice.matchMax > 0) return choice.matchMax;
-    if (this.maxAssociations > 0) return this.maxAssociations;
-    return choice.connectedIds.size + 1;
-  }
-
-  /**
-   * Update chips displayed for a choice element.
-   * Chips are now siblings of the choice (in the wrapper), not children.
-   *
-   * Grouped (bowtie) target slots lay their chips into a fixed row of gap
-   * boxes — one per unit of capacity — so empty capacity reads as an open drop
-   * slot rather than simply absent.
+   * Update chips displayed for a choice element (classic two-set mode).
+   * Chips are siblings of the choice (in the wrapper), not children.
    */
   private updateChips(choiceId: string): void {
     const choice = this.choices.get(choiceId);
@@ -591,74 +1015,10 @@ export class MatchController {
     // Clear existing chips
     chipsContainer.innerHTML = '';
 
-    // Build one chip per existing association (in insertion order).
-    const chips = Array.from(choice.connectedIds, (connectedId) =>
-      this.buildChip(choice, choiceId, connectedId)
-    ).filter((chip): chip is HTMLButtonElement => chip !== null);
-
-    if (this.grouped && choice.set === 'target') {
-      // Draw the slot's gaps, filling the first ones with chips and leaving the
-      // rest as empty placeholders that advertise remaining capacity.
-      const gapCount = Math.max(this.slotGapCount(choice), chips.length);
-      for (let i = 0; i < gapCount; i++) {
-        const gap = document.createElement('div');
-        gap.className = 'cutie-match-gap';
-        const chip = chips[i];
-        if (chip) {
-          gap.classList.add('cutie-match-gap--filled');
-          gap.appendChild(chip);
-        } else {
-          // Empty gaps are the column's visible drop targets: dropping or
-          // clicking one places the selected source into this slot. The header
-          // only labels the column (though it stays a keyboard-reachable target).
-          const placeholder = document.createElement('span');
-          placeholder.className = 'cutie-match-gap-placeholder';
-          placeholder.setAttribute('aria-hidden', 'true');
-          gap.appendChild(placeholder);
-          this.wireEmptyGap(gap, choiceId);
-        }
-        chipsContainer.appendChild(gap);
-      }
-      return;
+    for (const connectedId of choice.connectedIds) {
+      const chip = this.buildChip(choice, choiceId, connectedId);
+      if (chip) chipsContainer.appendChild(chip);
     }
-
-    for (const chip of chips) chipsContainer.appendChild(chip);
-  }
-
-  /**
-   * Wire an empty gap box as a drop target for its column's target. With a
-   * source selected, clicking or dropping onto the gap creates the association;
-   * dragover gives the same affordance as the choice boxes. Keyboard users drop
-   * via the column header (the registered target choice), so the gaps don't take
-   * focus themselves.
-   */
-  private wireEmptyGap(gap: HTMLElement, targetId: string): void {
-    gap.addEventListener('click', (e) => {
-      if (!this.enabled || !this.selection) return;
-      e.stopPropagation();
-      this.handleChoiceClick(targetId);
-    });
-
-    gap.addEventListener('dragover', (e) => {
-      if (!this.enabled) return;
-      if (!e.dataTransfer?.types.includes('text/plain')) return;
-      e.preventDefault();
-      gap.classList.add('cutie-match-gap--drag-over');
-    });
-
-    gap.addEventListener('dragleave', () => {
-      gap.classList.remove('cutie-match-gap--drag-over');
-    });
-
-    gap.addEventListener('drop', (e) => {
-      if (!this.enabled) return;
-      e.preventDefault();
-      gap.classList.remove('cutie-match-gap--drag-over');
-      if (!this.selection) return;
-      // Mark chip drags as handled so dragend doesn't remove the association.
-      this.pendingChipDrag = null;
-      this.handleChoiceClick(targetId);
-    });
   }
 
   /**
@@ -779,11 +1139,13 @@ export class MatchController {
   }
 
   /**
-   * Update the visual exhaustion state of a choice.
+   * Update the visual exhaustion state of a choice. Grouped target headers are
+   * plain labels, so only sources (and classic choices) are updated.
    */
   private updateExhaustionState(choiceId: string): void {
     const choice = this.choices.get(choiceId);
     if (!choice) return;
+    if (this.grouped && choice.set === 'target') return;
 
     if (this.isChoiceExhausted(choiceId)) {
       choice.element.classList.add('cutie-match-choice--exhausted');
@@ -857,8 +1219,9 @@ export class MatchController {
       this.clearSelection();
     }
 
-    // Update all choice elements
+    // Update all choice elements (grouped target headers are not interactive).
     for (const choice of this.choices.values()) {
+      if (this.grouped && choice.set === 'target') continue;
       if (enabled) {
         choice.element.removeAttribute('disabled');
         if (!this.isChoiceExhausted(choice.id)) {
@@ -868,6 +1231,13 @@ export class MatchController {
         choice.element.setAttribute('disabled', '');
         choice.element.setAttribute('draggable', 'false');
       }
+    }
+
+    // Grouped gaps: filled gaps stay draggable/reachable while enabled.
+    for (const gap of this.groupedGaps) {
+      const filled = this.gapOccupant.has(gap);
+      gap.setAttribute('draggable', enabled && filled ? 'true' : 'false');
+      gap.setAttribute('tabindex', enabled && filled ? '0' : '-1');
     }
   }
 
@@ -884,7 +1254,17 @@ export class MatchController {
   initializeFromDefaults(defaults: string[]): void {
     for (const pair of defaults) {
       const [sourceId, targetId] = pair.split(' ');
-      if (sourceId && targetId) {
+      if (!sourceId || !targetId) continue;
+
+      if (this.grouped) {
+        // Place into the first empty gap belonging to this target column.
+        const gap = this.groupedGaps.find(
+          (g) => g.getAttribute('data-target-id') === targetId && !this.gapOccupant.has(g)
+        );
+        if (gap && this.canPlaceInGap(gap, sourceId, null)) {
+          this.placeInGap(gap, sourceId, null);
+        }
+      } else {
         this.createAssociation(sourceId, targetId);
       }
     }

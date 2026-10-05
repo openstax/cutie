@@ -254,46 +254,28 @@ export const MATCH_INTERACTION_STYLES = `
   }
 
   /*
-   * The target is a column HEADER, not a drop box: the empty gaps beneath it are
-   * the drop targets. It stays a keyboard-reachable target (Tab + Enter drops
-   * into the column) but is styled as a plain heading, so its choice-box border,
-   * hover, selected and drag states are all neutralised below.
+   * The target is a plain column HEADER, not a drop box: the gaps beneath it are
+   * the only drop targets. It just labels the column.
    */
-  .cutie-match-slot {
+  .cutie-match-slot-header {
     width: 100%;
-    min-height: auto;
     padding: 0.25em 0.5em 0.5em;
-    margin-bottom: 0.25em;
-    border: none;
-    border-radius: 0;
-    border-bottom: 2px solid var(--cutie-primary);
-    background-color: transparent;
+    margin-bottom: 0.5em;
     font-weight: 700;
-    cursor: default;
-  }
-
-  .cutie-match-slot:hover,
-  .cutie-match-slot.cutie-match-choice--selected,
-  .cutie-match-slot.cutie-match-choice--drop-target,
-  .cutie-match-slot.cutie-match-choice--drag-over {
-    border: none;
-    border-bottom: 2px solid var(--cutie-primary);
-    background-color: transparent;
-    transform: none;
+    color: var(--cutie-text);
   }
 
   /*
-   * Visual gaps. A grouped target draws one gap box per unit of capacity
-   * (match-max, else the interaction's max-associations) directly beneath its
-   * header, so empty capacity reads as an open drop target — the affordance
-   * qti-gap gives gap-match for free, synthesised for plain match. The gaps
-   * stack under the header and share its width.
+   * Visual gaps. A grouped column draws one gap box per unit of capacity
+   * (match-max, else the interaction's max-associations) beneath its header, so
+   * empty capacity reads as an open drop target — the affordance qti-gap gives
+   * gap-match for free, synthesised for plain match. Gaps are the drop targets;
+   * dropping onto a filled gap replaces its occupant.
    */
-  .cutie-match-interaction--grouped .cutie-match-slot + .cutie-match-choice-chips {
+  .cutie-match-gaps {
+    display: flex;
     flex-direction: column;
-    flex-wrap: nowrap;
     gap: 0.5em;
-    margin-top: 0.5em;
   }
 
   .cutie-match-gap {
@@ -306,16 +288,18 @@ export const MATCH_INTERACTION_STYLES = `
     border-radius: 4px;
     background-color: var(--cutie-bg);
     box-sizing: border-box;
+    cursor: pointer;
     transition: border-color 0.2s, background-color 0.2s, transform 0.1s;
   }
 
-  /* Empty gaps are the column's drop targets. */
-  .cutie-match-gap:not(.cutie-match-gap--filled) {
-    cursor: pointer;
+  .cutie-match-gap:focus {
+    outline: 3px solid var(--cutie-primary);
+    outline-offset: 2px;
   }
 
-  .cutie-match-gap:not(.cutie-match-gap--filled):hover,
-  .cutie-match-gap--drop-target {
+  .cutie-match-gap:hover,
+  .cutie-match-gap--drop-target,
+  .cutie-match-gap--selected {
     border-color: var(--cutie-primary);
     background-color: var(--cutie-bg-alt);
   }
@@ -326,23 +310,29 @@ export const MATCH_INTERACTION_STYLES = `
     transform: scale(1.02);
   }
 
+  /* Filled gaps read as a solid pill holding the placed source. */
   .cutie-match-gap--filled {
     border-style: solid;
     border-color: var(--cutie-primary);
     background-color: var(--cutie-bg-alt);
+    cursor: grab;
+    font-weight: 600;
   }
 
-  /* The chip fills its gap box rather than nesting a second bordered pill. */
-  .cutie-match-gap .cutie-match-chip {
-    width: 100%;
-    justify-content: center;
-    border: none;
-    border-radius: 2px;
-    background-color: transparent;
+  .cutie-match-gap--dragging {
+    opacity: 0.5;
+    cursor: grabbing;
   }
 
   .cutie-match-gap-placeholder::before {
     content: '\\00a0';
+  }
+
+  /* Word bank highlighted as a return target while moving a placed source. */
+  .cutie-match-bank--drop-target,
+  .cutie-match-bank--drag-over {
+    border-color: var(--cutie-primary);
+    background-color: var(--cutie-bg);
   }
 
   /* Source bank: a bordered tray beneath its slot by default. */
