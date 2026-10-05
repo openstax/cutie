@@ -253,10 +253,96 @@ export const MATCH_INTERACTION_STYLES = `
     width: 100%;
   }
 
-  /* The target choice reads as a labelled drop slot for its column. */
+  /*
+   * The target is a column HEADER, not a drop box: the empty gaps beneath it are
+   * the drop targets. It stays a keyboard-reachable target (Tab + Enter drops
+   * into the column) but is styled as a plain heading, so its choice-box border,
+   * hover, selected and drag states are all neutralised below.
+   */
   .cutie-match-slot {
     width: 100%;
-    min-height: 3em;
+    min-height: auto;
+    padding: 0.25em 0.5em 0.5em;
+    margin-bottom: 0.25em;
+    border: none;
+    border-radius: 0;
+    border-bottom: 2px solid var(--cutie-primary);
+    background-color: transparent;
+    font-weight: 700;
+    cursor: default;
+  }
+
+  .cutie-match-slot:hover,
+  .cutie-match-slot.cutie-match-choice--selected,
+  .cutie-match-slot.cutie-match-choice--drop-target,
+  .cutie-match-slot.cutie-match-choice--drag-over {
+    border: none;
+    border-bottom: 2px solid var(--cutie-primary);
+    background-color: transparent;
+    transform: none;
+  }
+
+  /*
+   * Visual gaps. A grouped target draws one gap box per unit of capacity
+   * (match-max, else the interaction's max-associations) directly beneath its
+   * header, so empty capacity reads as an open drop target — the affordance
+   * qti-gap gives gap-match for free, synthesised for plain match. The gaps
+   * stack under the header and share its width.
+   */
+  .cutie-match-interaction--grouped .cutie-match-slot + .cutie-match-choice-chips {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: 0.5em;
+    margin-top: 0.5em;
+  }
+
+  .cutie-match-gap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.5em;
+    padding: 0.25em 0.5em;
+    border: 2px dashed var(--cutie-border);
+    border-radius: 4px;
+    background-color: var(--cutie-bg);
+    box-sizing: border-box;
+    transition: border-color 0.2s, background-color 0.2s, transform 0.1s;
+  }
+
+  /* Empty gaps are the column's drop targets. */
+  .cutie-match-gap:not(.cutie-match-gap--filled) {
+    cursor: pointer;
+  }
+
+  .cutie-match-gap:not(.cutie-match-gap--filled):hover,
+  .cutie-match-gap--drop-target {
+    border-color: var(--cutie-primary);
+    background-color: var(--cutie-bg-alt);
+  }
+
+  .cutie-match-gap--drag-over {
+    border-color: var(--cutie-primary);
+    background-color: var(--cutie-bg-alt);
+    transform: scale(1.02);
+  }
+
+  .cutie-match-gap--filled {
+    border-style: solid;
+    border-color: var(--cutie-primary);
+    background-color: var(--cutie-bg-alt);
+  }
+
+  /* The chip fills its gap box rather than nesting a second bordered pill. */
+  .cutie-match-gap .cutie-match-chip {
+    width: 100%;
+    justify-content: center;
+    border: none;
+    border-radius: 2px;
+    background-color: transparent;
+  }
+
+  .cutie-match-gap-placeholder::before {
+    content: '\\00a0';
   }
 
   /* Source bank: a bordered tray beneath its slot by default. */

@@ -538,6 +538,76 @@ describe('matchInteraction validation', () => {
       expect(matchContainer.classList.contains('cutie-match-interaction--grouped')).toBe(true);
     });
 
+    it('draws one empty gap per unit of slot capacity (match-max)', () => {
+      const container = renderGrouped();
+
+      const gapsIn = (targetId: string): NodeListOf<Element> => {
+        const slot = container.querySelector(`.cutie-match-slot[data-identifier="${targetId}"]`)!;
+        return slot.parentElement!.querySelectorAll('.cutie-match-gap');
+      };
+
+      // Gap count mirrors each slot's match-max (Actions 2, Condition 1, Params 2).
+      expect(gapsIn('T_ACTIONS').length).toBe(2);
+      expect(gapsIn('T_CONDITION').length).toBe(1);
+      expect(gapsIn('T_PARAMS').length).toBe(2);
+
+      // All gaps start empty — no association has been made yet.
+      for (const gap of gapsIn('T_ACTIONS')) {
+        expect(gap.classList.contains('cutie-match-gap--filled')).toBe(false);
+      }
+    });
+
+    it('fills a gap when a source is placed and leaves the rest open', () => {
+      const container = renderGrouped();
+
+      const source = (id: string) =>
+        container.querySelector(`.cutie-match-bank .cutie-match-choice[data-identifier="${id}"]`) as HTMLElement;
+      const slotEl = container.querySelector('.cutie-match-slot[data-identifier="T_ACTIONS"]')!;
+
+      source('ACT1').click();
+      (slotEl as HTMLElement).click();
+
+      const gaps = slotEl.parentElement!.querySelectorAll('.cutie-match-gap');
+      expect(gaps.length).toBe(2);
+      const filled = slotEl.parentElement!.querySelectorAll('.cutie-match-gap--filled');
+      expect(filled.length).toBe(1);
+      expect(filled[0].querySelector('.cutie-match-chip')!.textContent).toBe('Action 1');
+    });
+
+    it('creates the association when a selected source is dropped on an empty gap', () => {
+      const container = renderGrouped();
+
+      const source = (id: string) =>
+        container.querySelector(`.cutie-match-bank .cutie-match-choice[data-identifier="${id}"]`) as HTMLElement;
+      const emptyGap = (targetId: string) =>
+        container
+          .querySelector(`.cutie-match-slot[data-identifier="${targetId}"]`)!
+          .parentElement!.querySelector('.cutie-match-gap:not(.cutie-match-gap--filled)') as HTMLElement;
+
+      // Select the source, then click its column's empty gap (not the header).
+      source('ACT1').click();
+      emptyGap('T_ACTIONS').click();
+
+      expect(itemState.collectAll().responses['RB']).toContain('ACT1 T_ACTIONS');
+    });
+
+    it('falls back to max-associations for an unbounded (match-max=0) slot', () => {
+      const container = renderGrouped(`
+        <qti-match-interaction response-identifier="RB" max-associations="3">
+          <qti-simple-match-set>
+            <qti-simple-associable-choice identifier="S1" match-max="1" match-group="T1">S1</qti-simple-associable-choice>
+            <qti-simple-associable-choice identifier="S2" match-max="1" match-group="T1">S2</qti-simple-associable-choice>
+          </qti-simple-match-set>
+          <qti-simple-match-set>
+            <qti-simple-associable-choice identifier="T1" match-max="0">Bucket</qti-simple-associable-choice>
+          </qti-simple-match-set>
+        </qti-match-interaction>
+      `);
+
+      const slot = container.querySelector('.cutie-match-slot[data-identifier="T1"]')!;
+      expect(slot.parentElement!.querySelectorAll('.cutie-match-gap').length).toBe(3);
+    });
+
     it('still renders the classic two-set layout when no match-group is present', () => {
       const container = renderGrouped(BASIC_MATCH_QTI);
 

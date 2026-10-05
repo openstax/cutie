@@ -75,8 +75,9 @@ export class MatchController {
       const target = e.target as HTMLElement;
       const isChoice = target.closest('.cutie-match-choice');
       const isChip = target.closest('.cutie-match-chip');
+      const isGap = target.closest('.cutie-match-gap');
 
-      if (!isChoice && !isChip) {
+      if (!isChoice && !isChip && !isGap) {
         this.clearSelection();
       }
     };
@@ -90,8 +91,11 @@ export class MatchController {
    * Initialize the controller after all choices are registered.
    */
   initialize(_sourceSetElement?: HTMLElement, _targetSetElement?: HTMLElement): void {
-    // Currently no initialization needed after choices are registered.
-    // Set elements are tracked via individual choice registrations.
+    // Grouped (bowtie) target slots draw their empty gaps up front so the
+    // learner sees how many sources each column accepts before dropping any.
+    if (this.grouped) {
+      for (const id of this.targetIds) this.updateChips(id);
+    }
   }
 
   /**
@@ -363,31 +367,45 @@ export class MatchController {
       ? (choice.set === 'source' ? existingAssociation.targetId : existingAssociation.sourceId)
       : null;
 
+    const isValidPartner = (el: HTMLElement): boolean => {
+      const elId = el.getAttribute('data-identifier');
+      if (!elId) return false;
+
+      // Don't highlight the current connected item (clicking it just clears selection now)
+      if (elId === connectedId) return false;
+
+      // For a move operation, we need to check if the new partner can accept
+      // (the original choice's count will be freed when we remove the old
+      // association) and that it is group-compatible with the origin.
+      if (existingAssociation) {
+        const sourceId = choice.set === 'source' ? originId : elId;
+        const targetId = choice.set === 'source' ? elId : originId;
+        return this.groupsAllow(sourceId, targetId) && this.canAcceptAssociation(elId);
+      }
+
+      // For a fresh selection, check full association validity
+      const sourceId = choice.set === 'source' ? originId : elId;
+      const targetId = choice.set === 'source' ? elId : originId;
+      return this.canCreateAssociation(sourceId, targetId);
+    };
+
     highlightDropTargets(
       this.getChoiceElementsArray(oppositeSet),
       'cutie-match-choice--drop-target',
-      (el) => {
-        const elId = el.getAttribute('data-identifier');
-        if (!elId) return false;
-
-        // Don't highlight the current connected item (clicking it just clears selection now)
-        if (elId === connectedId) return false;
-
-        // For a move operation, we need to check if the new partner can accept
-        // (the original choice's count will be freed when we remove the old
-        // association) and that it is group-compatible with the origin.
-        if (existingAssociation) {
-          const sourceId = choice.set === 'source' ? originId : elId;
-          const targetId = choice.set === 'source' ? elId : originId;
-          return this.groupsAllow(sourceId, targetId) && this.canAcceptAssociation(elId);
-        }
-
-        // For a fresh selection, check full association validity
-        const sourceId = choice.set === 'source' ? originId : elId;
-        const targetId = choice.set === 'source' ? elId : originId;
-        return this.canCreateAssociation(sourceId, targetId);
-      }
+      isValidPartner
     );
+
+    // Grouped (bowtie) mode: the visible drop targets are the empty gaps under
+    // each valid target column, not the header box — highlight those too.
+    if (this.grouped && oppositeSet === 'target') {
+      for (const targetEl of this.getChoiceElementsArray('target')) {
+        if (!isValidPartner(targetEl)) continue;
+        const emptyGaps = targetEl.parentElement?.querySelectorAll(
+          '.cutie-match-gap:not(.cutie-match-gap--filled)'
+        );
+        emptyGaps?.forEach((g) => g.classList.add('cutie-match-gap--drop-target'));
+      }
+    }
 
     if (existingAssociation) {
       announce(
@@ -424,6 +442,11 @@ export class MatchController {
       this.getAllChoiceElements(),
       'cutie-match-choice--drop-target'
     );
+
+    // Clear grouped-mode gap drop-target highlights.
+    this.container
+      .querySelectorAll('.cutie-match-gap--drop-target')
+      .forEach((g) => g.classList.remove('cutie-match-gap--drop-target'));
   }
 
   /**
@@ -536,8 +559,25 @@ export class MatchController {
   }
 
   /**
+   * How many visual gaps a grouped target slot draws: one per source it can
+   * accept. gap-match authors its gaps explicitly; plain match has none, so the
+   * count is derived from the slot's match-max, falling back to the
+   * interaction's max-associations when the slot is unbounded, and finally to a
+   * single open gap so there is always a visible drop target.
+   */
+  private slotGapCount(choice: ChoiceData): number {
+    if (choice.matchMax > 0) return choice.matchMax;
+    if (this.maxAssociations > 0) return this.maxAssociations;
+    return choice.connectedIds.size + 1;
+  }
+
+  /**
    * Update chips displayed for a choice element.
    * Chips are now siblings of the choice (in the wrapper), not children.
+   *
+   * Grouped (bowtie) target slots lay their chips into a fixed row of gap
+   * boxes — one per unit of capacity — so empty capacity reads as an open drop
+   * slot rather than simply absent.
    */
   private updateChips(choiceId: string): void {
     const choice = this.choices.get(choiceId);
@@ -551,34 +591,132 @@ export class MatchController {
     // Clear existing chips
     chipsContainer.innerHTML = '';
 
-    // Use connectedIds directly from the choice
-    for (const connectedId of choice.connectedIds) {
-      const connectedChoice = this.choices.get(connectedId);
-      if (!connectedChoice) continue;
+    // Build one chip per existing association (in insertion order).
+    const chips = Array.from(choice.connectedIds, (connectedId) =>
+      this.buildChip(choice, choiceId, connectedId)
+    ).filter((chip): chip is HTMLButtonElement => chip !== null);
 
-      const sourceId = choice.set === 'source' ? choiceId : connectedId;
-      const targetId = choice.set === 'source' ? connectedId : choiceId;
-      const existingAssociation = { sourceId, targetId };
+    if (this.grouped && choice.set === 'target') {
+      // Draw the slot's gaps, filling the first ones with chips and leaving the
+      // rest as empty placeholders that advertise remaining capacity.
+      const gapCount = Math.max(this.slotGapCount(choice), chips.length);
+      for (let i = 0; i < gapCount; i++) {
+        const gap = document.createElement('div');
+        gap.className = 'cutie-match-gap';
+        const chip = chips[i];
+        if (chip) {
+          gap.classList.add('cutie-match-gap--filled');
+          gap.appendChild(chip);
+        } else {
+          // Empty gaps are the column's visible drop targets: dropping or
+          // clicking one places the selected source into this slot. The header
+          // only labels the column (though it stays a keyboard-reachable target).
+          const placeholder = document.createElement('span');
+          placeholder.className = 'cutie-match-gap-placeholder';
+          placeholder.setAttribute('aria-hidden', 'true');
+          gap.appendChild(placeholder);
+          this.wireEmptyGap(gap, choiceId);
+        }
+        chipsContainer.appendChild(gap);
+      }
+      return;
+    }
 
-      // The chip represents connectedId (from the opposite set)
-      const connectedSet = connectedChoice.set;
+    for (const chip of chips) chipsContainer.appendChild(chip);
+  }
 
-      const chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'cutie-match-chip';
-      chip.setAttribute('data-source-id', sourceId);
-      chip.setAttribute('data-target-id', targetId);
-      chip.setAttribute('data-connected-id', connectedId);
-      chip.setAttribute('draggable', 'true');
-      chip.setAttribute('aria-label', `${connectedChoice.content}. Click to select, then click the connected item or press backspace to remove.`);
-      chip.textContent = connectedChoice.content;
+  /**
+   * Wire an empty gap box as a drop target for its column's target. With a
+   * source selected, clicking or dropping onto the gap creates the association;
+   * dragover gives the same affordance as the choice boxes. Keyboard users drop
+   * via the column header (the registered target choice), so the gaps don't take
+   * focus themselves.
+   */
+  private wireEmptyGap(gap: HTMLElement, targetId: string): void {
+    gap.addEventListener('click', (e) => {
+      if (!this.enabled || !this.selection) return;
+      e.stopPropagation();
+      this.handleChoiceClick(targetId);
+    });
 
-      // Click to select chip - selecting the chip means selecting what it represents (connectedId)
-      // Tap-again-to-remove: if this chip's association is already selected, remove it
-      chip.addEventListener('click', (e) => {
+    gap.addEventListener('dragover', (e) => {
+      if (!this.enabled) return;
+      if (!e.dataTransfer?.types.includes('text/plain')) return;
+      e.preventDefault();
+      gap.classList.add('cutie-match-gap--drag-over');
+    });
+
+    gap.addEventListener('dragleave', () => {
+      gap.classList.remove('cutie-match-gap--drag-over');
+    });
+
+    gap.addEventListener('drop', (e) => {
+      if (!this.enabled) return;
+      e.preventDefault();
+      gap.classList.remove('cutie-match-gap--drag-over');
+      if (!this.selection) return;
+      // Mark chip drags as handled so dragend doesn't remove the association.
+      this.pendingChipDrag = null;
+      this.handleChoiceClick(targetId);
+    });
+  }
+
+  /**
+   * Build a chip representing the association between `choice` and `connectedId`
+   * (a choice from the opposite set). The chip is selectable, removable, and
+   * draggable, mirroring the choice interactions.
+   */
+  private buildChip(
+    choice: ChoiceData,
+    choiceId: string,
+    connectedId: string
+  ): HTMLButtonElement | null {
+    const connectedChoice = this.choices.get(connectedId);
+    if (!connectedChoice) return null;
+
+    const sourceId = choice.set === 'source' ? choiceId : connectedId;
+    const targetId = choice.set === 'source' ? connectedId : choiceId;
+    const existingAssociation = { sourceId, targetId };
+
+    // The chip represents connectedId (from the opposite set)
+    const connectedSet = connectedChoice.set;
+
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'cutie-match-chip';
+    chip.setAttribute('data-source-id', sourceId);
+    chip.setAttribute('data-target-id', targetId);
+    chip.setAttribute('data-connected-id', connectedId);
+    chip.setAttribute('draggable', 'true');
+    chip.setAttribute('aria-label', `${connectedChoice.content}. Click to select, then click the connected item or press backspace to remove.`);
+    chip.textContent = connectedChoice.content;
+
+    // Click to select chip - selecting the chip means selecting what it represents (connectedId)
+    // Tap-again-to-remove: if this chip's association is already selected, remove it
+    chip.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!this.enabled) return;
+
+      if (this.selection?.existingAssociation?.sourceId === sourceId
+        && this.selection?.existingAssociation?.targetId === targetId) {
+        this.clearSelection();
+        this.removeAssociation(sourceId, targetId);
+        choice.element.focus();
+        return;
+      }
+
+      this.select(connectedId, existingAssociation, chip);
+    });
+
+    // Keyboard support for chip
+    chip.addEventListener('keydown', (e) => {
+      if (!this.enabled) return;
+
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
         e.stopPropagation();
-        if (!this.enabled) return;
 
+        // Tap-again-to-remove: if this chip's association is already selected, remove it
         if (this.selection?.existingAssociation?.sourceId === sourceId
           && this.selection?.existingAssociation?.targetId === targetId) {
           this.clearSelection();
@@ -588,70 +726,49 @@ export class MatchController {
         }
 
         this.select(connectedId, existingAssociation, chip);
-      });
-
-      // Keyboard support for chip
-      chip.addEventListener('keydown', (e) => {
-        if (!this.enabled) return;
-
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          e.stopPropagation();
-
-          // Tap-again-to-remove: if this chip's association is already selected, remove it
-          if (this.selection?.existingAssociation?.sourceId === sourceId
-            && this.selection?.existingAssociation?.targetId === targetId) {
-            this.clearSelection();
-            this.removeAssociation(sourceId, targetId);
-            choice.element.focus();
-            return;
-          }
-
-          this.select(connectedId, existingAssociation, chip);
-        } else if (e.key === 'Delete' || e.key === 'Backspace') {
-          e.preventDefault();
-          e.stopPropagation();
-          this.removeAssociation(sourceId, targetId);
-          // Return focus to the choice element
-          choice.element.focus();
-        } else if (e.key === 'Escape') {
-          this.clearSelection();
-          choice.element.focus();
-        }
-      });
-
-      // Drag support - select the chip and set up drag data
-      chip.addEventListener('dragstart', (e) => {
-        if (!this.enabled) {
-          e.preventDefault();
-          return;
-        }
-
-        // Select the chip (highlights valid drop targets)
-        this.select(connectedId, existingAssociation, chip);
-
-        // Track this drag so we can remove the association if dropped outside
-        this.pendingChipDrag = { sourceId, targetId };
-
-        e.dataTransfer?.setData('text/plain', `chip:${sourceId}:${targetId}:${connectedSet}`);
-        e.dataTransfer!.effectAllowed = 'move';
-        chip.classList.add('cutie-match-chip--dragging');
-      });
-
-      chip.addEventListener('dragend', () => {
-        chip.classList.remove('cutie-match-chip--dragging');
+      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        e.stopPropagation();
+        this.removeAssociation(sourceId, targetId);
+        // Return focus to the choice element
+        choice.element.focus();
+      } else if (e.key === 'Escape') {
         this.clearSelection();
+        choice.element.focus();
+      }
+    });
 
-        // If pendingChipDrag is still set, the drop wasn't handled - remove the association
-        if (this.pendingChipDrag) {
-          const { sourceId: pendingSourceId, targetId: pendingTargetId } = this.pendingChipDrag;
-          this.pendingChipDrag = null;
-          this.removeAssociation(pendingSourceId, pendingTargetId);
-        }
-      });
+    // Drag support - select the chip and set up drag data
+    chip.addEventListener('dragstart', (e) => {
+      if (!this.enabled) {
+        e.preventDefault();
+        return;
+      }
 
-      chipsContainer.appendChild(chip);
-    }
+      // Select the chip (highlights valid drop targets)
+      this.select(connectedId, existingAssociation, chip);
+
+      // Track this drag so we can remove the association if dropped outside
+      this.pendingChipDrag = { sourceId, targetId };
+
+      e.dataTransfer?.setData('text/plain', `chip:${sourceId}:${targetId}:${connectedSet}`);
+      e.dataTransfer!.effectAllowed = 'move';
+      chip.classList.add('cutie-match-chip--dragging');
+    });
+
+    chip.addEventListener('dragend', () => {
+      chip.classList.remove('cutie-match-chip--dragging');
+      this.clearSelection();
+
+      // If pendingChipDrag is still set, the drop wasn't handled - remove the association
+      if (this.pendingChipDrag) {
+        const { sourceId: pendingSourceId, targetId: pendingTargetId } = this.pendingChipDrag;
+        this.pendingChipDrag = null;
+        this.removeAssociation(pendingSourceId, pendingTargetId);
+      }
+    });
+
+    return chip;
   }
 
   /**
