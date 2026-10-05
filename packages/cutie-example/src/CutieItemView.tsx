@@ -2,7 +2,7 @@ import { useEffect, useImperativeHandle, useRef } from 'react';
 import type { Ref } from 'react';
 import type { AttemptState } from '@openstax/cutie-core';
 import { mountItem } from '@openstax/cutie-client';
-import type { MountedItem, MountItemOptions, ResponseData } from '@openstax/cutie-client';
+import type { InteractionState, MountedItem, MountItemOptions, ResponseData } from '@openstax/cutie-client';
 
 /**
  * What a parent can do with the mounted item.
@@ -17,7 +17,7 @@ interface CutieItemViewProps {
   template: string;
   /** The attempt the template belongs to; a new attempt remounts the item */
   attemptState: AttemptState | null;
-  interactionsEnabled: boolean;
+  interactionState: InteractionState;
   themeOptions?: MountItemOptions;
   ref?: Ref<CutieItemHandle>;
 }
@@ -26,7 +26,7 @@ interface CutieItemViewProps {
  * Renders a cutie item: owns the container element and the mounted item's
  * lifecycle, so the item exists exactly as long as this component does.
  */
-export function CutieItemView({ template, attemptState, interactionsEnabled, themeOptions, ref }: CutieItemViewProps) {
+export function CutieItemView({ template, attemptState, interactionState, themeOptions, ref }: CutieItemViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mountedItemRef = useRef<MountedItem | null>(null);
   const prevThemeOptionsRef = useRef<MountItemOptions | undefined>(undefined);
@@ -60,8 +60,8 @@ export function CutieItemView({ template, attemptState, interactionsEnabled, the
 
   // Runs after the mount effect, so a freshly mounted item gets the current state too
   useEffect(() => {
-    mountedItemRef.current?.setInteractionsEnabled(interactionsEnabled);
-  }, [interactionsEnabled, template, attemptState, themeOptions]);
+    mountedItemRef.current?.setInteractionState(interactionState);
+  }, [interactionState, template, attemptState, themeOptions]);
 
   useEffect(() => () => {
     mountedItemRef.current?.unmount();

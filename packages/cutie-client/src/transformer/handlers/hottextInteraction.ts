@@ -15,7 +15,7 @@ import {
   updateRovingTabindex,
 } from '../../utils/rovingTabindex';
 import { registry } from '../registry';
-import type { ElementHandler, TransformContext } from '../types';
+import type { ElementHandler, InteractionState, TransformContext } from '../types';
 import { getDefaultValue } from './responseUtils';
 
 /**
@@ -374,8 +374,8 @@ class HottextInteractionHandler implements ElementHandler {
       context.itemState.registerResponse(responseIdentifier, accessor);
 
       // Observe interaction enabled state changes
-      const updateInteractionState = (state: { interactionsEnabled: boolean }) => {
-        const isEnabled = state.interactionsEnabled;
+      const updateInteractionState = (state: { interactionState: InteractionState }) => {
+        const isEnabled = state.interactionState === 'enabled';
         for (const button of buttons) {
           if (isEnabled) {
             button.removeAttribute('aria-disabled');
@@ -388,7 +388,7 @@ class HottextInteractionHandler implements ElementHandler {
       context.itemState.addObserver(updateInteractionState);
 
       // Set initial state
-      updateInteractionState({ interactionsEnabled: context.itemState.interactionsEnabled });
+      updateInteractionState({ interactionState: context.itemState.interactionState });
     }
 
     fragment.appendChild(container);

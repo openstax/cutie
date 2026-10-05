@@ -5,7 +5,7 @@ import {
 } from '../../errors/validationDisplay';
 import { announce } from '../../utils/liveRegion';
 import { registry } from '../registry';
-import type { ElementHandler, ResponseAccessorOptions, TransformContext } from '../types';
+import type { ElementHandler, InteractionState, ResponseAccessorOptions, TransformContext } from '../types';
 import { parseInputWidth } from '../vocabUtils';
 import { clearInlineVerdict, clearVerdictOnEdit, readEvaluation, wrapInlineEvaluation } from './evaluation';
 import { getDefaultValue } from './responseUtils';
@@ -180,14 +180,14 @@ class TextEntryInteractionHandler implements ElementHandler {
       });
 
       // Observe interaction enabled state to enable/disable input
-      const observer = (state: { interactionsEnabled: boolean }) => {
-        input.disabled = !state.interactionsEnabled;
+      const observer = (state: { interactionState: InteractionState }) => {
+        input.disabled = state.interactionState !== 'enabled';
       };
 
       context.itemState.addObserver(observer);
 
       // Set initial disabled state
-      input.disabled = !context.itemState.interactionsEnabled;
+      input.disabled = context.itemState.interactionState !== 'enabled';
     }
 
     fragment.appendChild(placed);

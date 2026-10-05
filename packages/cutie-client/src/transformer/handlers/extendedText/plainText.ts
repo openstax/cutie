@@ -17,6 +17,8 @@ import {
   createConstraintElements,
   createInteractionContainer,
   createInteractionFooter,
+  createReadOnlyResponse,
+  isPreview,
   parseConstraints,
   parseCounterDirection,
   parseExpectedLength,
@@ -128,6 +130,7 @@ class ExtendedTextInteractionHandler implements ElementHandler {
     if (counterTarget !== null && effectiveDirection !== null) {
       const counter = createCharacterCounter(
         counterTarget, effectiveDirection, responseIdentifier, context.styleManager, isHardLimit,
+        isPreview(element),
       );
       counterElement = counter.element;
       counter.update(textarea.value.length);
@@ -135,6 +138,17 @@ class ExtendedTextInteractionHandler implements ElementHandler {
         counter.update(textarea.value.length);
       });
     }
+
+    // The response as text in place of the textarea while interactions are read-only
+    const readOnlyResponse = createReadOnlyResponse({
+      element,
+      promptId: prompt?.id ?? null,
+      input: textarea,
+      render: () => (textarea.value.trim() === '' ? null : document.createTextNode(textarea.value)),
+      plainText: true,
+      context,
+    });
+    container.appendChild(readOnlyResponse);
 
     // Evaluation of a finished attempt when the delivery options show one, or
     // the last try's verdict on a fresh try. Its verdict takes the constraint
@@ -149,6 +163,7 @@ class ExtendedTextInteractionHandler implements ElementHandler {
 
     if (constraintResult) {
       wireConstraintDescribedBy(textarea, constraintResult.constraint.element);
+      wireConstraintDescribedBy(readOnlyResponse, constraintResult.constraint.element);
     }
 
     // Wrap counter and/or constraint in a shared footer row
@@ -172,6 +187,7 @@ class ExtendedTextInteractionHandler implements ElementHandler {
       if (summary) {
         container.appendChild(summary);
         addAriaDescribedBy(textarea, summary.id);
+        addAriaDescribedBy(readOnlyResponse, summary.id);
       }
       markEvaluated(container, evaluation.verdict);
     }
@@ -243,11 +259,11 @@ class ExtendedTextInteractionHandler implements ElementHandler {
 
       // Observe interaction state changes to enable/disable textarea
       context.itemState.addObserver((state) => {
-        textarea.disabled = !state.interactionsEnabled;
+        textarea.disabled = state.interactionState !== 'enabled';
       });
 
       // Set initial disabled state
-      textarea.disabled = !context.itemState.interactionsEnabled;
+      textarea.disabled = context.itemState.interactionState !== 'enabled';
     }
 
     fragment.appendChild(container);

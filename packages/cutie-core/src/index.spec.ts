@@ -421,6 +421,12 @@ describe('renderPreview', () => {
     );
   });
 
+  test('marks the item body as a preview', async () => {
+    const template = await renderPreview(previewItem(false));
+
+    expect(template).toMatch(/<qti-item-body[^>]* data-cutie-preview="true"/);
+  });
+
   test('strips what is not needed to show the item', async () => {
     const template = await renderPreview(previewItem(false));
 

@@ -331,13 +331,13 @@ describe('richTextInteraction', () => {
   });
 
   describe('disabled state', () => {
-    it('disables Quill when interactionsEnabled is false', async () => {
+    it('disables Quill when interactions are disabled', async () => {
       const doc = createQtiDocument(`
         <qti-extended-text-interaction response-identifier="R1" format="xhtml">
         </qti-extended-text-interaction>
       `);
 
-      itemState.setInteractionsEnabled(false);
+      itemState.setInteractionState('disabled');
       const fragment = transformInteraction(doc, itemState);
       const container = document.createElement('div');
       container.appendChild(fragment);
@@ -362,14 +362,85 @@ describe('richTextInteraction', () => {
       expect(mockQuillInstance.enable).toHaveBeenCalledWith(true);
 
       // Disable
-      itemState.setInteractionsEnabled(false);
+      itemState.setInteractionState('disabled');
       expect(mockQuillInstance.enable).toHaveBeenCalledWith(false);
       expect(container.querySelector('.cutie-rich-text-disabled')).not.toBeNull();
 
       // Re-enable
-      itemState.setInteractionsEnabled(true);
+      itemState.setInteractionState('enabled');
       expect(mockQuillInstance.enable).toHaveBeenCalledWith(true);
       expect(container.querySelector('.cutie-rich-text-disabled')).toBeNull();
+    });
+  });
+
+  describe('read-only response', () => {
+    it('shows the sanitized response without waiting for Quill', () => {
+      const doc = createQtiDocument(`
+        <qti-response-declaration identifier="R1" cardinality="single" base-type="string">
+          <qti-default-value>
+            <qti-value>&lt;p&gt;An &lt;strong&gt;answer&lt;/strong&gt;&lt;img src=x onerror="alert(1)"&gt;&lt;/p&gt;&lt;script&gt;alert(1)&lt;/script&gt;</qti-value>
+          </qti-default-value>
+        </qti-response-declaration>
+        <qti-extended-text-interaction response-identifier="R1" format="xhtml">
+        </qti-extended-text-interaction>
+      `);
+
+      itemState.setInteractionState('readonly');
+      const container = document.createElement('div');
+      container.appendChild(transformInteraction(doc, itemState));
+
+      const view = container.querySelector('.cutie-read-only-response')!;
+      expect(view.querySelector('strong')!.textContent).toBe('answer');
+      expect(view.querySelector('script')).toBeNull();
+      expect(view.querySelector('img')!.hasAttribute('onerror')).toBe(false);
+    });
+
+    it('shows the response as edited before interactions are read-only', async () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" format="xhtml">
+        </qti-extended-text-interaction>
+      `);
+
+      const container = document.createElement('div');
+      container.appendChild(transformInteraction(doc, itemState));
+      await waitForQuill();
+
+      mockQuillInstance.root.innerHTML = '<p>Edited</p>';
+      mockQuillInstance.textChangeCallbacks.forEach((callback) => callback());
+      itemState.setInteractionState('readonly');
+
+      expect(container.querySelector('.cutie-read-only-response')!.innerHTML).toBe('<p>Edited</p>');
+    });
+
+    it('keeps the limit in a preview once Quill loads', async () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" format="xhtml" data-max-characters="2000" class="qti-counter-up">
+        </qti-extended-text-interaction>
+      `);
+      doc.querySelector('qti-item-body')!.setAttribute('data-cutie-preview', 'true');
+
+      itemState.setInteractionState('readonly');
+      const container = document.createElement('div');
+      container.appendChild(transformInteraction(doc, itemState));
+      await waitForQuill();
+
+      expect(container.querySelector('.cutie-character-counter')!.textContent).toBe('2000 character limit');
+    });
+
+    it('notes that there is no response for markup with no text', () => {
+      const doc = createQtiDocument(`
+        <qti-response-declaration identifier="R1" cardinality="single" base-type="string">
+          <qti-default-value><qti-value>&lt;p&gt;&lt;br&gt;&lt;/p&gt;</qti-value></qti-default-value>
+        </qti-response-declaration>
+        <qti-extended-text-interaction response-identifier="R1" format="xhtml">
+        </qti-extended-text-interaction>
+      `);
+
+      itemState.setInteractionState('readonly');
+      const container = document.createElement('div');
+      container.appendChild(transformInteraction(doc, itemState));
+
+      expect(container.querySelector('.cutie-read-only-response')!.textContent).toBe('No response.');
     });
   });
 

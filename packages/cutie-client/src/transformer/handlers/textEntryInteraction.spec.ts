@@ -311,7 +311,7 @@ describe('textEntryInteraction', () => {
       const input = container.querySelector('input')!;
       expect(input.disabled).toBe(false);
 
-      itemState.setInteractionsEnabled(false);
+      itemState.setInteractionState('disabled');
       expect(input.disabled).toBe(true);
     });
 
@@ -320,7 +320,7 @@ describe('textEntryInteraction', () => {
         <qti-text-entry-interaction response-identifier="R1"></qti-text-entry-interaction>
       `);
 
-      itemState.setInteractionsEnabled(false);
+      itemState.setInteractionState('disabled');
       const fragment = transformInteraction(doc, itemState);
       const container = document.createElement('div');
       container.appendChild(fragment);
@@ -328,7 +328,7 @@ describe('textEntryInteraction', () => {
       const input = container.querySelector('input')!;
       expect(input.disabled).toBe(true);
 
-      itemState.setInteractionsEnabled(true);
+      itemState.setInteractionState('enabled');
       expect(input.disabled).toBe(false);
     });
   });

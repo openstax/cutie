@@ -11,6 +11,7 @@ export type {
   ResponseData,
   ResponseAccessorResult,
   ResponseAccessorOptions,
+  InteractionState,
   ItemState,
   ResponseAccessor,
   ResponseChangeListener,

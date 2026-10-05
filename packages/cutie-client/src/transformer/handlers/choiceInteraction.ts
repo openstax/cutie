@@ -9,7 +9,7 @@ import {
 import { announce } from '../../utils/liveRegion';
 import { initializeRovingTabindex, updateRovingTabindex } from '../../utils/rovingTabindex';
 import { registry } from '../registry';
-import type { ElementHandler, ResponseAccessorOptions, TransformContext } from '../types';
+import type { ElementHandler, InteractionState, ResponseAccessorOptions, TransformContext } from '../types';
 import {
   clearConstraintVerdict,
   clearEvaluated,
@@ -343,8 +343,8 @@ class ChoiceInteractionHandler implements ElementHandler {
       });
 
       // Observe interaction enabled state changes
-      const updateInteractionState = (state: { interactionsEnabled: boolean }) => {
-        const isEnabled = state.interactionsEnabled;
+      const updateInteractionState = (state: { interactionState: InteractionState }) => {
+        const isEnabled = state.interactionState === 'enabled';
         inputElements.forEach((input) => {
           input.disabled = !isEnabled;
         });
@@ -353,7 +353,7 @@ class ChoiceInteractionHandler implements ElementHandler {
       context.itemState.addObserver(updateInteractionState);
 
       // Set initial state
-      updateInteractionState({ interactionsEnabled: context.itemState.interactionsEnabled });
+      updateInteractionState({ interactionState: context.itemState.interactionState });
     }
 
     fragment.appendChild(container);

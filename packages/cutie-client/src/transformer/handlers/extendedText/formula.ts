@@ -16,6 +16,7 @@ import {
   clearConstraintResultVerdict,
   createConstraintElements,
   createInteractionContainer,
+  createReadOnlyResponse,
   parseConstraints,
   processPrompt,
   showConstraintError,
@@ -144,6 +145,28 @@ class FormulaInteractionHandler implements ElementHandler {
     // Track current value for response accessor
     let currentValue = initialValue;
 
+    // The formula, rendered statically by a MathLive <math-div>, in place of
+    // the math-field while interactions are read-only
+    const readOnlyResponse = createReadOnlyResponse({
+      element,
+      promptId: prompt?.id ?? null,
+      input: mathFieldWrapper,
+      render: () => {
+        if (currentValue.trim() === '') return null;
+        const math = document.createElement('math-div');
+        math.textContent = currentValue;
+        return math;
+      },
+      context,
+    });
+    mathFieldWrapper.after(readOnlyResponse);
+    if (constraintResult) {
+      wireConstraintDescribedBy(readOnlyResponse, constraintResult.constraint.element);
+    }
+    if (evaluationSummary) {
+      addAriaDescribedBy(readOnlyResponse, evaluationSummary.id);
+    }
+
     // Track active input element for aria-describedby/aria-invalid
     let activeInputElement: HTMLElement | null = null;
 
@@ -226,9 +249,9 @@ class FormulaInteractionHandler implements ElementHandler {
         // Handle interaction state
         if (context.itemState) {
           context.itemState.addObserver((state) => {
-            mathField.disabled = !state.interactionsEnabled;
+            mathField.disabled = state.interactionState !== 'enabled';
           });
-          mathField.disabled = !context.itemState.interactionsEnabled;
+          mathField.disabled = context.itemState.interactionState !== 'enabled';
         }
 
         // Wire up constraint linkage

@@ -294,7 +294,7 @@ describe('matchInteraction validation', () => {
       const container = document.createElement('div');
       container.appendChild(fragment);
 
-      itemState.setInteractionsEnabled(false);
+      itemState.setInteractionState('disabled');
 
       const matchContainer = container.querySelector('.cutie-match-interaction')!;
       expect(matchContainer.classList.contains('cutie-match-interaction--disabled')).toBe(true);
@@ -307,8 +307,8 @@ describe('matchInteraction validation', () => {
       const container = document.createElement('div');
       container.appendChild(fragment);
 
-      itemState.setInteractionsEnabled(false);
-      itemState.setInteractionsEnabled(true);
+      itemState.setInteractionState('disabled');
+      itemState.setInteractionState('enabled');
 
       const matchContainer = container.querySelector('.cutie-match-interaction')!;
       expect(matchContainer.classList.contains('cutie-match-interaction--disabled')).toBe(false);

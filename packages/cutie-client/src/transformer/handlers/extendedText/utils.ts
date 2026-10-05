@@ -265,6 +265,9 @@ const CHARACTER_COUNTER_STYLES = `
  * When `isHardLimit` is true the counter uses hard-limit wording
  * ("characters" / "characters remaining" / "over limit") instead of the
  * soft "suggested characters" language used for expected-length.
+ *
+ * In a preview (see isPreview) there is no response to count, so the counter
+ * shows only the target length.
  */
 export function createCharacterCounter(
   targetLength: number,
@@ -272,6 +275,7 @@ export function createCharacterCounter(
   responseIdentifier: string,
   styleManager?: StyleManager,
   isHardLimit = false,
+  preview = false,
 ): CharacterCounter {
   if (styleManager && !styleManager.hasStyle('cutie-character-counter')) {
     styleManager.addStyle('cutie-character-counter', CHARACTER_COUNTER_STYLES);
@@ -287,7 +291,11 @@ export function createCharacterCounter(
   wrapper.appendChild(span);
 
   function update(charCount: number): void {
-    if (direction === 'up') {
+    if (preview) {
+      span.textContent = isHardLimit
+        ? `${targetLength} character limit`
+        : `${targetLength} suggested characters`;
+    } else if (direction === 'up') {
       span.textContent = isHardLimit
         ? `${charCount} / ${targetLength} characters`
         : `${charCount} / ${targetLength} suggested characters`;
@@ -351,4 +359,105 @@ export function createInteractionFooter(
   if (counter) footer.appendChild(counter);
 
   return footer;
+}
+
+// ---------------------------------------------------------------------------
+// Read-only response
+// ---------------------------------------------------------------------------
+
+const READ_ONLY_RESPONSE_STYLES = `
+.cutie-read-only-response {
+  padding: 8px 12px;
+  font-size: 1.6rem;
+  line-height: 1.4;
+  border-inline-start: 3px solid var(--cutie-border);
+  background-color: var(--cutie-bg-alt);
+  overflow-wrap: anywhere;
+}
+
+.cutie-read-only-response.cutie-read-only-plain {
+  white-space: pre-wrap;
+}
+
+.cutie-read-only-response > :first-child {
+  margin-top: 0;
+}
+
+.cutie-read-only-response > :last-child {
+  margin-bottom: 0;
+}
+
+.cutie-read-only-response.cutie-read-only-empty {
+  color: var(--cutie-text-muted);
+  font-style: italic;
+}
+`.trim();
+
+const PREVIEW_EMPTY_TEXT = 'Students will write their response here.';
+const NO_RESPONSE_TEXT = 'No response.';
+
+/**
+ * Whether the item is rendered as a preview for an instructor, which
+ * cutie-core's renderPreview marks with data-cutie-preview on the item body.
+ */
+export function isPreview(element: Element): boolean {
+  return element.closest('qti-item-body')?.hasAttribute('data-cutie-preview') ?? false;
+}
+
+export interface ReadOnlyResponseOptions {
+  /** The source interaction element */
+  element: Element;
+  /** The prompt's id, which labels the response, if there is a prompt */
+  promptId: string | null;
+  /** The input the read-only response takes the place of while interactions are read-only */
+  input: HTMLElement;
+  /** The response's content, or null when there is none */
+  render: () => Node | null;
+  /** Whether the content is plain text, whose line breaks and spacing are kept */
+  plainText?: boolean;
+  context: TransformContext;
+}
+
+/**
+ * Create the read-only view of an extended-text response, shown in place of
+ * its input while the interaction state is `'readonly'`: the response once
+ * submitted or under review, or a muted note when there is none.
+ *
+ * Returns the view for the caller to place after the input.
+ */
+export function createReadOnlyResponse(options: ReadOnlyResponseOptions): HTMLDivElement {
+  const { element, promptId, input, render, plainText, context } = options;
+
+  if (context.styleManager && !context.styleManager.hasStyle('cutie-read-only-response')) {
+    context.styleManager.addStyle('cutie-read-only-response', READ_ONLY_RESPONSE_STYLES);
+  }
+
+  const view = document.createElement('div');
+  view.className = plainText ? 'cutie-read-only-response cutie-read-only-plain' : 'cutie-read-only-response';
+  view.setAttribute('role', 'group');
+  if (promptId) {
+    view.setAttribute('aria-labelledby', promptId);
+  } else {
+    view.setAttribute('aria-label', 'Response');
+  }
+  view.hidden = true;
+
+  const preview = isPreview(element);
+
+  const setReadOnly = (readOnly: boolean): void => {
+    input.hidden = readOnly;
+    view.hidden = !readOnly;
+    if (!readOnly) return;
+
+    const content = render();
+    view.replaceChildren(content ?? (preview ? PREVIEW_EMPTY_TEXT : NO_RESPONSE_TEXT));
+    view.classList.toggle('cutie-read-only-empty', content === null);
+  };
+
+  if (context.itemState) {
+    context.itemState.addObserver((state) => setReadOnly(state.interactionState === 'readonly'));
+    setReadOnly(context.itemState.interactionState === 'readonly');
+  }
+
+  return view;
 }

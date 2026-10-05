@@ -7,7 +7,7 @@ import { createTransformContext, transformChildren, transformNode } from './tran
 import { announceItemVerdict } from './transformer/handlers/evaluation';
 import { beginFeedbackRender, endFeedbackRender } from './transformer/handlers/feedback/feedbackAnnouncer';
 import { DefaultStyleManager } from './transformer/styleManager';
-import type { ResponseData, TransformContext } from './transformer/types';
+import type { InteractionState, ResponseData, TransformContext } from './transformer/types';
 import { acquireLiveRegions, announce } from './utils/liveRegion';
 
 /**
@@ -20,10 +20,10 @@ export interface MountItemOptions extends ThemeOptions {
    */
   onResponseChange?: (responses: ResponseData) => void;
   /**
-   * Whether interactions start enabled (default `true`). Change it later with
-   * `setInteractionsEnabled`; `update()` keeps the current setting.
+   * The interaction state to start in (default `'enabled'`). Change it later
+   * with `setInteractionState`; `update()` keeps the current state.
    */
-  interactionsEnabled?: boolean;
+  interactionState?: InteractionState;
 }
 
 /**
@@ -47,9 +47,10 @@ export interface MountedItem {
   collectResponses: () => ResponseData | undefined;
 
   /**
-   * Enable or disable all interactions
+   * Set the state of all interactions: enabled, disabled for now (as while a
+   * submission is pending), or read-only once the response is final
    */
-  setInteractionsEnabled: (enabled: boolean) => void;
+  setInteractionState: (interactionState: InteractionState) => void;
 
   /**
    * Get all registered response identifiers
@@ -88,7 +89,7 @@ export function mountItem(
   function doRender(xml: string): void {
     const itemState = new ItemStateImpl(currentItemState ?? undefined, {
       onResponseChange: options?.onResponseChange,
-      interactionsEnabled: options?.interactionsEnabled,
+      interactionState: options?.interactionState,
     });
     currentItemState = itemState;
 
@@ -179,8 +180,8 @@ export function mountItem(
       }
       return result.valid ? result.responses : undefined;
     },
-    setInteractionsEnabled: (enabled: boolean) => {
-      currentItemState?.setInteractionsEnabled(enabled);
+    setInteractionState: (interactionState: InteractionState) => {
+      currentItemState?.setInteractionState(interactionState);
     },
     getResponseIdentifiers: () => currentItemState?.getResponseIdentifiers() ?? [],
   };

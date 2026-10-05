@@ -20,6 +20,8 @@ import {
   createConstraintElements,
   createInteractionContainer,
   createInteractionFooter,
+  createReadOnlyResponse,
+  isPreview,
   parseConstraints,
   parseCounterDirection,
   parseExpectedLength,
@@ -39,6 +41,17 @@ function stripHtml(html: string): string {
   const tmp = document.createElement('div');
   tmp.innerHTML = html;
   return tmp.textContent ?? '';
+}
+
+/**
+ * Sanitize HTML and return it as a fragment to insert.
+ */
+function sanitizedFragment(html: string): DocumentFragment {
+  const holder = document.createElement('div');
+  holder.innerHTML = DOMPurify.sanitize(html);
+  const fragment = document.createDocumentFragment();
+  fragment.append(...Array.from(holder.childNodes));
+  return fragment;
 }
 
 /**
@@ -125,6 +138,7 @@ class RichTextInteractionHandler implements ElementHandler {
     if (counterTarget !== null && effectiveDirection !== null) {
       counter = createCharacterCounter(
         counterTarget, effectiveDirection, responseIdentifier, context.styleManager, isHardLimit,
+        isPreview(element),
       );
     }
     // Evaluation of a finished attempt when the delivery options show one, or
@@ -158,13 +172,9 @@ class RichTextInteractionHandler implements ElementHandler {
     // created asynchronously, so it is linked via aria-describedby on load.
     let evaluationSummary: HTMLElement | null = null;
     if (evaluation) {
-      let correctAnswer: DocumentFragment | null = null;
-      if (evaluation.correctResponse.length > 0) {
-        const holder = document.createElement('div');
-        holder.innerHTML = DOMPurify.sanitize(evaluation.correctResponse.join(''));
-        correctAnswer = document.createDocumentFragment();
-        correctAnswer.append(...Array.from(holder.childNodes));
-      }
+      const correctAnswer = evaluation.correctResponse.length > 0
+        ? sanitizedFragment(evaluation.correctResponse.join(''))
+        : null;
       evaluationSummary = createEvaluationSummary({
         id: `evaluation-${responseIdentifier}`,
         verdict: null,
@@ -182,6 +192,23 @@ class RichTextInteractionHandler implements ElementHandler {
 
     // Track current HTML value for response accessor
     let currentHtml = initialHtml;
+
+    // The response, sanitized, in place of the editor while interactions are
+    // read-only. It needs no editor, so it shows without waiting for Quill.
+    const readOnlyResponse = createReadOnlyResponse({
+      element,
+      promptId: prompt?.id ?? null,
+      input: editorWrapper,
+      render: () => (stripHtml(currentHtml).trim() === '' ? null : sanitizedFragment(currentHtml)),
+      context,
+    });
+    editorWrapper.after(readOnlyResponse);
+    if (constraintResult) {
+      wireConstraintDescribedBy(readOnlyResponse, constraintResult.constraint.element);
+    }
+    if (evaluationSummary) {
+      addAriaDescribedBy(readOnlyResponse, evaluationSummary.id);
+    }
 
     // Track active editor root for aria wiring
     let activeEditorRoot: HTMLElement | null = null;
@@ -339,9 +366,9 @@ class RichTextInteractionHandler implements ElementHandler {
           };
 
           context.itemState.addObserver((state) => {
-            setDisabled(!state.interactionsEnabled);
+            setDisabled(state.interactionState !== 'enabled');
           });
-          setDisabled(!context.itemState.interactionsEnabled);
+          setDisabled(context.itemState.interactionState !== 'enabled');
         }
       })
       .catch((error) => {

@@ -489,7 +489,7 @@ describe('inlineChoiceInteraction', () => {
       const select = container.querySelector('select')!;
       expect(select.disabled).toBe(false);
 
-      itemState.setInteractionsEnabled(false);
+      itemState.setInteractionState('disabled');
       expect(select.disabled).toBe(true);
     });
 
@@ -500,7 +500,7 @@ describe('inlineChoiceInteraction', () => {
         </qti-inline-choice-interaction>
       `);
 
-      itemState.setInteractionsEnabled(false);
+      itemState.setInteractionState('disabled');
       const fragment = transformInteraction(doc, itemState);
       const container = document.createElement('div');
       container.appendChild(fragment);
@@ -508,7 +508,7 @@ describe('inlineChoiceInteraction', () => {
       const select = container.querySelector('select')!;
       expect(select.disabled).toBe(true);
 
-      itemState.setInteractionsEnabled(true);
+      itemState.setInteractionState('enabled');
       expect(select.disabled).toBe(false);
     });
   });

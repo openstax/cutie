@@ -6,7 +6,7 @@ import {
 } from '../../errors/validationDisplay';
 import { announce } from '../../utils/liveRegion';
 import { registry } from '../registry';
-import type { ElementHandler, ResponseAccessorOptions, TransformContext } from '../types';
+import type { ElementHandler, InteractionState, ResponseAccessorOptions, TransformContext } from '../types';
 import { parseInputWidth } from '../vocabUtils';
 import { clearInlineVerdict, clearVerdictOnEdit, readEvaluation, wrapInlineEvaluation } from './evaluation';
 import { getDefaultValue } from './responseUtils';
@@ -174,14 +174,14 @@ class InlineChoiceInteractionHandler implements ElementHandler {
       });
 
       // Observe interaction enabled state to enable/disable select
-      const observer = (state: { interactionsEnabled: boolean }) => {
-        select.disabled = !state.interactionsEnabled;
+      const observer = (state: { interactionState: InteractionState }) => {
+        select.disabled = state.interactionState !== 'enabled';
       };
 
       context.itemState.addObserver(observer);
 
       // Set initial disabled state
-      select.disabled = !context.itemState.interactionsEnabled;
+      select.disabled = context.itemState.interactionState !== 'enabled';
     }
 
     fragment.appendChild(placed);

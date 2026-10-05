@@ -69,7 +69,7 @@ export function PreviewTab({ itemXml, previewOptions, onPreviewOptionsChange, on
         <EmptyState onOpenGenerateDialog={onOpenGenerateDialog} />
       ) : (
         <div className="item-card">
-          <CutieItemView template={template} attemptState={null} interactionsEnabled={false} />
+          <CutieItemView template={template} attemptState={null} interactionState="readonly" />
         </div>
       )}
     </SidebarLayout>

@@ -1,5 +1,6 @@
 import type {
   CollectResult,
+  InteractionState,
   ItemState,
   ResponseAccessor,
   ResponseChangeListener,
@@ -10,23 +11,23 @@ import type {
 export interface ItemStateOptions {
   /** Called with the current raw responses whenever a handler reports a learner edit */
   onResponseChange?: ResponseChangeListener;
-  /** Whether interactions start enabled, when there is no previous state to carry over (default `true`) */
-  interactionsEnabled?: boolean;
+  /** The interaction state to start in, when there is no previous state to carry over (default `'enabled'`) */
+  interactionState?: InteractionState;
 }
 
 /**
  * Implementation of ItemState interface.
- * Manages response collection and interaction enabled state with observer pattern.
+ * Manages response collection and interaction state with observer pattern.
  */
 export class ItemStateImpl implements ItemState {
   private responseAccessors: Map<string, ResponseAccessor> = new Map();
   private observers: Set<StateObserver> = new Set();
-  private _interactionsEnabled: boolean;
+  private _interactionState: InteractionState;
   private readonly onResponseChange?: ResponseChangeListener;
   private readonly editListeners: Map<string, Array<() => void>> = new Map();
 
   constructor(previousState?: ItemState, options?: ItemStateOptions) {
-    this._interactionsEnabled = previousState?.interactionsEnabled ?? options?.interactionsEnabled ?? true;
+    this._interactionState = previousState?.interactionState ?? options?.interactionState ?? 'enabled';
     this.onResponseChange = options?.onResponseChange;
   }
 
@@ -117,20 +118,20 @@ export class ItemStateImpl implements ItemState {
   }
 
   /**
-   * Get the current interactions enabled state (readonly)
+   * Get the current interaction state (readonly)
    */
-  get interactionsEnabled(): boolean {
-    return this._interactionsEnabled;
+  get interactionState(): InteractionState {
+    return this._interactionState;
   }
 
   /**
-   * Set the interactions enabled state and notify all observers
+   * Set the interaction state and notify all observers
    */
-  setInteractionsEnabled(enabled: boolean): void {
-    if (this._interactionsEnabled === enabled) {
+  setInteractionState(interactionState: InteractionState): void {
+    if (this._interactionState === interactionState) {
       return; // No change, skip notification
     }
-    this._interactionsEnabled = enabled;
+    this._interactionState = interactionState;
     this.notifyObservers();
   }
 
@@ -152,7 +153,7 @@ export class ItemStateImpl implements ItemState {
    * Notify all observers of state change
    */
   private notifyObservers(): void {
-    const state = { interactionsEnabled: this._interactionsEnabled };
+    const state = { interactionState: this._interactionState };
     for (const observer of this.observers) {
       observer(state);
     }
