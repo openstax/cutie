@@ -261,7 +261,7 @@ describe('gapMatchInteraction', () => {
       const container = document.createElement('div');
       container.appendChild(fragment);
 
-      itemState.setInteractionsEnabled(false);
+      itemState.setInteractionState('disabled');
 
       const gapMatchContainer = container.querySelector('.cutie-gap-match-interaction')!;
       expect(gapMatchContainer.classList.contains('cutie-gap-match-interaction--disabled')).toBe(true);
@@ -274,8 +274,8 @@ describe('gapMatchInteraction', () => {
       const container = document.createElement('div');
       container.appendChild(fragment);
 
-      itemState.setInteractionsEnabled(false);
-      itemState.setInteractionsEnabled(true);
+      itemState.setInteractionState('disabled');
+      itemState.setInteractionState('enabled');
 
       const gapMatchContainer = container.querySelector('.cutie-gap-match-interaction')!;
       expect(gapMatchContainer.classList.contains('cutie-gap-match-interaction--disabled')).toBe(false);

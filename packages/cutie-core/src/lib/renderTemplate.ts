@@ -124,6 +124,8 @@ export function buildTemplateDocument(itemDoc: Document, state: AttemptState): D
  * - with `allFeedback`, every feedback element is kept whatever its condition,
  *   rather than the feedback the initial outcomes show, and modal feedback
  *   becomes block feedback (see modalFeedbackToBlocks)
+ * - the item body has a data-cutie-preview attribute, so clients can show the
+ *   interactions to an instructor rather than as a learner's empty response
  *
  * @param itemDoc - Parsed QTI assessment item XML document, instantiated for state
  * @param state - A newly initialized attempt state
@@ -150,6 +152,7 @@ export function buildPreviewDocument(itemDoc: Document, state: AttemptState, all
   substituteMathVariables(root, state.variables);
   sanitizeResponseDeclarations(root, state.variables);
   addCorrectResponses(root, itemDoc);
+  markPreview(root);
   normalizeWhitespace(root);
 
   return clonedDoc;
@@ -320,6 +323,13 @@ function applyRetryVerdict(
     )
   );
   itemBody.insertBefore(message, itemBody.firstChild);
+}
+
+/**
+ * Adds a data-cutie-preview attribute to the item body (see buildPreviewDocument).
+ */
+function markPreview(root: Element): void {
+  root.getElementsByTagName('qti-item-body')[0]?.setAttribute('data-cutie-preview', 'true');
 }
 
 /**

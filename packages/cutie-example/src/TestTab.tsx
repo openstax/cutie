@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import type { AttemptResult, AttemptState } from '@openstax/cutie-core';
-import type { MountItemOptions, ResponseData } from '@openstax/cutie-client';
+import type { InteractionState, MountItemOptions, ResponseData } from '@openstax/cutie-client';
 import { CutieItemView } from './CutieItemView';
 import type { CutieItemHandle } from './CutieItemView';
 import { isEffectivelyEmptyTemplate } from './utils/qtiUtils';
@@ -53,7 +53,8 @@ export function TestTab({ attemptState, sanitizedTemplate, latestResult, respons
   // A finished attempt takes no more submissions, except that a response
   // awaiting manual scoring can still be edited and resubmitted
   const acceptsResponses = attemptState?.completionStatus !== 'completed' || !!attemptState.pendingManualScoring;
-  const interactionsEnabled = !isSubmitting && acceptsResponses;
+  // Disabled while a submission is pending, read-only once the response is final
+  const interactionState: InteractionState = isSubmitting ? 'disabled' : acceptsResponses ? 'enabled' : 'readonly';
 
   const handleSubmit = async () => {
     const collectedResponses = itemRef.current?.collectResponses();
@@ -124,7 +125,7 @@ export function TestTab({ attemptState, sanitizedTemplate, latestResult, respons
             ref={itemRef}
             template={sanitizedTemplate}
             attemptState={attemptState}
-            interactionsEnabled={interactionsEnabled}
+            interactionState={interactionState}
             themeOptions={themeOptions}
           />
           {attemptState && attemptState.completionStatus !== 'completed' && attemptState.triesAllowed > 1 && (
@@ -147,7 +148,7 @@ export function TestTab({ attemptState, sanitizedTemplate, latestResult, respons
             <button
               className="process-button"
               onClick={handleSubmit}
-              disabled={!sanitizedTemplate || !interactionsEnabled}
+              disabled={!sanitizedTemplate || interactionState !== 'enabled'}
             >
               {isSubmitting ? 'Submitting...' : 'Submit'}
             </button>

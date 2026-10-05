@@ -6,7 +6,7 @@ import {
 } from '../../../errors/validationDisplay';
 import { addAriaDescribedBy } from '../../../utils/aria';
 import { announce } from '../../../utils/liveRegion';
-import type { ElementHandler, TransformContext } from '../../types';
+import type { ElementHandler, InteractionState, TransformContext } from '../../types';
 import {
   clearConstraintVerdict,
   clearEvaluated,
@@ -254,14 +254,14 @@ export class MatchInteractionHandler implements ElementHandler {
       });
 
       // Observe interaction enabled state
-      const observer = (state: { interactionsEnabled: boolean }) => {
-        controller.setEnabled(state.interactionsEnabled);
+      const observer = (state: { interactionState: InteractionState }) => {
+        controller.setEnabled(state.interactionState === 'enabled');
       };
 
       context.itemState.addObserver(observer);
 
       // Set initial state
-      controller.setEnabled(context.itemState.interactionsEnabled);
+      controller.setEnabled(context.itemState.interactionState === 'enabled');
     }
 
     fragment.appendChild(container);

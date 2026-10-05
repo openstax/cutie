@@ -43,9 +43,18 @@ export type ResponseChangeListener = (responses: ResponseData) => void;
 export type ResponseData = Record<string, unknown>;
 
 /**
+ * What the learner can do with the interactions:
+ * - `'enabled'`: respond
+ * - `'disabled'`: nothing for now, as while a submission is pending; the controls show disabled
+ * - `'readonly'`: nothing, as the response is final (submitted, under review, or a preview);
+ *   interactions may show the response as content in place of their controls
+ */
+export type InteractionState = 'enabled' | 'disabled' | 'readonly';
+
+/**
  * Observer callback for state changes
  */
-export type StateObserver = (state: { interactionsEnabled: boolean }) => void;
+export type StateObserver = (state: { interactionState: InteractionState }) => void;
 
 /**
  * Manages style injection for handlers.
@@ -93,8 +102,8 @@ export interface ItemState {
   onResponseEdit(responseIdentifier: string, listener: () => void): void;
 
   // State management with observer pattern
-  readonly interactionsEnabled: boolean;
-  setInteractionsEnabled(enabled: boolean): void;
+  readonly interactionState: InteractionState;
+  setInteractionState(interactionState: InteractionState): void;
   addObserver(observer: StateObserver): void;
   removeObserver(observer: StateObserver): void;
 }

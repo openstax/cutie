@@ -283,11 +283,11 @@ in `state.shuffleOrders`, and reused on every turn and on resume.
 
 For instructors and authors, `renderPreview` renders an item outside any attempt: the item as an attempt at it
 begins, with each interaction's correct response and all of its feedback. QTI has no preview mode, so this is an
-extension. There is no state and nothing can be submitted, so mount it with interactions disabled:
+extension. There is no state and nothing can be submitted, so mount it read-only:
 
 ```typescript
 const template = await renderPreview(itemXml, processing, { compact: false });
-const item = mountItem(container, template, { interactionsEnabled: false });
+const item = mountItem(container, template, { interactionState: 'readonly' });
 ```
 
 - Every `qti-response-declaration` with a correct response gets a `qti-correct-response`, with no verdict.
@@ -310,6 +310,7 @@ its own, so the client only ever sees what core computed:
 | `data-cutie-evaluation="correct\|incorrect\|partial"` | interaction elements, `qti-item-body` | terminal under `showEvaluation` `'correctness'` or above; a fresh try of a non-adaptive item |
 | `qti-correct-response` | `qti-response-declaration` | terminal under `showEvaluation: 'correctResponse'`; every `renderPreview` |
 | `<div data-cutie-retry="incorrect\|partial">` | first child of `qti-item-body` | a fresh try of an adaptive item |
+| `data-cutie-preview="true"` | `qti-item-body` | every `renderPreview` |
 
 ### Response changes (`onResponseChange`)
 
@@ -317,10 +318,21 @@ its own, so the client only ever sees what core computed:
 every learner edit (including each keystroke), and never when values are restored or re-rendered. It shows no
 validation messages. Hosts that want debouncing do it themselves.
 
-### Initially disabled (`interactionsEnabled`)
+### Interaction state (`interactionState`)
 
-`mountItem` accepts `interactionsEnabled: false` to render with every interaction disabled from the start, as
-`setInteractionsEnabled(false)` would leave it. `update()` keeps the current setting.
+What the learner can do with the interactions is one of three states, set with `setInteractionState`, or from the
+start with the `interactionState` option of `mountItem` (default `'enabled'`). `update()` keeps the current state.
+
+| State | When | Shown as |
+|---|---|---|
+| `'enabled'` | the learner is responding | the controls |
+| `'disabled'` | for now, as while a submission is pending | the controls, disabled |
+| `'readonly'` | the response is final and no longer takes submissions: a finished attempt, an instructor grading it, or a preview | the controls, disabled; an extended text interaction shows its response as content in place of its input |
+
+A submission that ends the attempt goes `'enabled'` → `'disabled'` while it is pending → `update()` with the new
+template → `'readonly'`. A response awaiting manual scoring (`pendingManualScoring`) still takes submissions, so it
+stays `'enabled'`. With no response, a read-only extended text interaction notes that there is none, or, in a
+preview (`data-cutie-preview`), where students will write it.
 
 ## Shared Stimulus
 

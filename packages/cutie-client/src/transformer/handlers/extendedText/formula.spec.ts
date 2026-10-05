@@ -177,13 +177,13 @@ describe('formulaInteraction', () => {
   });
 
   describe('disabled state', () => {
-    it('disables math-field when interactionsEnabled is false', async () => {
+    it('disables math-field when interactions are disabled', async () => {
       const doc = createQtiDocument(`
         <qti-extended-text-interaction response-identifier="R1">
         </qti-extended-text-interaction>
       `);
 
-      itemState.setInteractionsEnabled(false);
+      itemState.setInteractionState('disabled');
       const fragment = transformInteraction(doc, itemState);
       const container = document.createElement('div');
       container.appendChild(fragment);
@@ -191,6 +191,39 @@ describe('formulaInteraction', () => {
 
       const mathField = container.querySelector('.cutie-formula-field') as HTMLElement & { disabled: boolean };
       expect(mathField.disabled).toBe(true);
+    });
+  });
+
+  describe('read-only response', () => {
+    it('renders the formula statically in place of the math-field', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1">
+        </qti-extended-text-interaction>
+      `);
+      const defaultValue = doc.createElement('qti-default-value');
+      defaultValue.appendChild(doc.createElement('qti-value')).textContent = '\\frac{1}{2}';
+      doc.querySelector('qti-response-declaration')!.appendChild(defaultValue);
+
+      itemState.setInteractionState('readonly');
+      const container = document.createElement('div');
+      container.appendChild(transformInteraction(doc, itemState));
+
+      expect(container.querySelector<HTMLElement>('.cutie-formula-field-wrapper')!.hidden).toBe(true);
+      const math = container.querySelector('.cutie-read-only-response math-div')!;
+      expect(math.textContent).toBe('\\frac{1}{2}');
+    });
+
+    it('notes that there is no response', () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1">
+        </qti-extended-text-interaction>
+      `);
+
+      itemState.setInteractionState('readonly');
+      const container = document.createElement('div');
+      container.appendChild(transformInteraction(doc, itemState));
+
+      expect(container.querySelector('.cutie-read-only-response')!.textContent).toBe('No response.');
     });
   });
 

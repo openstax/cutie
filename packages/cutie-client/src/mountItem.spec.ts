@@ -300,10 +300,10 @@ describe('mountItem onResponseChange', () => {
       expect(onResponseChange).not.toHaveBeenCalled();
     });
 
-    it('does not fire on setInteractionsEnabled()', () => {
+    it('does not fire on setInteractionState()', () => {
       const item = mount(DEFAULTS_XML);
-      item.setInteractionsEnabled(false);
-      item.setInteractionsEnabled(true);
+      item.setInteractionState('disabled');
+      item.setInteractionState('enabled');
       expect(onResponseChange).not.toHaveBeenCalled();
     });
 
@@ -445,7 +445,7 @@ describe('mountItem cleanup lifetimes', () => {
   });
 });
 
-describe('mountItem interactionsEnabled', () => {
+describe('mountItem interactionState', () => {
   let container: HTMLElement;
   let mounted: MountedItem | undefined;
 
@@ -467,20 +467,20 @@ describe('mountItem interactionsEnabled', () => {
     );
   }
 
-  it('mounts with interactions disabled as setInteractionsEnabled(false) leaves them', () => {
+  it('mounts with interactions disabled as setInteractionState leaves them', () => {
     const reference = mountItem(container, DEFAULTS_XML);
-    reference.setInteractionsEnabled(false);
+    reference.setInteractionState('disabled');
     const expected = disabledStates();
     reference.unmount();
 
-    mounted = mountItem(container, DEFAULTS_XML, { interactionsEnabled: false });
+    mounted = mountItem(container, DEFAULTS_XML, { interactionState: 'disabled' });
 
     expect(expected).toContain(true);
     expect(disabledStates()).toEqual(expected);
   });
 
   it('keeps interactions disabled across update()', () => {
-    mounted = mountItem(container, DEFAULTS_XML, { interactionsEnabled: false });
+    mounted = mountItem(container, DEFAULTS_XML, { interactionState: 'disabled' });
     const expected = disabledStates();
 
     mounted.update(DEFAULTS_XML);
@@ -488,13 +488,23 @@ describe('mountItem interactionsEnabled', () => {
     expect(disabledStates()).toEqual(expected);
   });
 
-  it('enables them with setInteractionsEnabled(true)', () => {
+  it('keeps interactions read-only across update()', () => {
+    mounted = mountItem(container, DEFAULTS_XML, { interactionState: 'readonly' });
+    const expected = disabledStates();
+
+    mounted.update(DEFAULTS_XML);
+
+    expect(expected).toContain(true);
+    expect(disabledStates()).toEqual(expected);
+  });
+
+  it('enables them with setInteractionState', () => {
     const reference = mountItem(container, DEFAULTS_XML);
     const expected = disabledStates();
     reference.unmount();
 
-    mounted = mountItem(container, DEFAULTS_XML, { interactionsEnabled: false });
-    mounted.setInteractionsEnabled(true);
+    mounted = mountItem(container, DEFAULTS_XML, { interactionState: 'disabled' });
+    mounted.setInteractionState('enabled');
 
     expect(disabledStates()).toEqual(expected);
   });

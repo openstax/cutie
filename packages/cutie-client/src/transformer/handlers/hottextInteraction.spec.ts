@@ -485,7 +485,7 @@ describe('hottextInteraction', () => {
       const buttons = container.querySelectorAll<HTMLElement>('.cutie-hottext');
 
       // A <span> has no native `disabled`; disabled state is conveyed via ARIA.
-      itemState.setInteractionsEnabled(false);
+      itemState.setInteractionState('disabled');
       expect(buttons[0]!.getAttribute('aria-disabled')).toBe('true');
 
       // Activation is a no-op while disabled.
@@ -493,7 +493,7 @@ describe('hottextInteraction', () => {
       expect(buttons[0]!.getAttribute('aria-pressed')).toBe('false');
       expect(itemState.collectAll().responses).toEqual({ RESPONSE: null });
 
-      itemState.setInteractionsEnabled(true);
+      itemState.setInteractionState('enabled');
       expect(buttons[0]!.hasAttribute('aria-disabled')).toBe(false);
 
       buttons[0]!.click();

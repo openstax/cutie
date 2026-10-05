@@ -187,7 +187,7 @@ export async function setScore(
  * unless `compact`, all of the item's feedback.
  *
  * The preview is not an attempt: there is no state, and nothing can be
- * submitted to it, so render it with interactions disabled. Choices keep their
+ * submitted to it, so render it read-only. Choices keep their
  * authored order, template variables take one randomly generated set of
  * values, and a printed outcome variable reads as a placeholder naming it
  * (`[SCORE]`), as no response has been processed. Every feedback element is
@@ -195,6 +195,8 @@ export async function setScore(
  * appear side by side, and modal feedback is shown as block feedback at the
  * end of the item body. An adaptive item is always previewed compact (see
  * `PreviewOptions.compact`), showing the feedback its first stage shows.
+ * The item body is marked with a `data-cutie-preview` attribute, so the client
+ * can show the interactions for an instructor rather than as a learner's.
  *
  * The preview reveals the correct responses and all feedback, so it must
  * never be shown to a learner.
@@ -207,7 +209,7 @@ export async function setScore(
  * @example
  * ```typescript
  * const template = await renderPreview(itemXml, undefined, { compact: true });
- * const item = mountItem(container, template, { interactionsEnabled: false });
+ * const item = mountItem(container, template, { interactionState: 'readonly' });
  * ```
  */
 export async function renderPreview(

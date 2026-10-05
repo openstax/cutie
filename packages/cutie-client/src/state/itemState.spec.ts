@@ -101,10 +101,10 @@ describe('ItemStateImpl response change reporting', () => {
     expect(() => state.notifyResponseChange('R1')).not.toThrow();
   });
 
-  it('setInteractionsEnabled does not report a response change', () => {
+  it('setInteractionState does not report a response change', () => {
     const onResponseChange = vi.fn();
     const state = new ItemStateImpl(undefined, { onResponseChange });
-    state.setInteractionsEnabled(false);
+    state.setInteractionState('disabled');
     expect(onResponseChange).not.toHaveBeenCalled();
   });
 });
