@@ -4,7 +4,7 @@
 
 // Multiple Choice with Correct Feedback + Per-Wrong-Choice Feedback
 
-export const name = "Multiple Choice";
+export const name = "Multiple Choice - Wrong Choice Feedback";
 
 export const item = `<?xml version="1.0" encoding="UTF-8"?>
 <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
