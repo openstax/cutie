@@ -338,7 +338,6 @@ export class MatchInteractionHandler implements ElementHandler {
     // A source is banked once, under the first target column its match-group
     // names, so a stray multi-group value can't register it twice.
     const placedSources = new Set<string>();
-    let isFirstColumn = true;
 
     for (const targetChoice of targetChoices) {
       const targetId = targetChoice.getAttribute('identifier');
@@ -357,8 +356,10 @@ export class MatchInteractionHandler implements ElementHandler {
       );
       if (!slot) continue;
       slot.choice.classList.add('cutie-match-slot');
-      // Seed one tabbable target slot; the slots share one roving group.
-      slot.choice.setAttribute('tabindex', isFirstColumn ? '0' : '-1');
+      // Each column is self-contained, so every slot is independently tabbable:
+      // Tab flows slot -> bank -> next column's slot, letting a source selected
+      // in any bank reach its own column's slot (not just the first column's).
+      slot.choice.setAttribute('tabindex', '0');
       column.appendChild(slot.wrapper);
 
       // Per-group source bank, labelled by the slot's own label.
@@ -387,7 +388,6 @@ export class MatchInteractionHandler implements ElementHandler {
 
       column.appendChild(bank);
       columnsRow.appendChild(column);
-      isFirstColumn = false;
     }
 
     return columnsRow;

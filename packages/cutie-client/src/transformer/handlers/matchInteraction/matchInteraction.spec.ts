@@ -458,6 +458,34 @@ describe('matchInteraction validation', () => {
       }
     });
 
+    it('makes every column slot tabbable so each is reachable from its bank', () => {
+      const container = renderGrouped();
+
+      const slots = container.querySelectorAll('.cutie-match-slot');
+      expect(slots.length).toBe(3);
+      for (const slot of slots) {
+        expect(slot.getAttribute('tabindex')).toBe('0');
+      }
+    });
+
+    it('keeps every slot tabbable after arrow navigation within a bank', () => {
+      const container = renderGrouped();
+
+      // Arrow within a bank must not collapse the slots into one shared roving
+      // group — each column's slot stays independently reachable via Tab.
+      const firstBankChoice = container.querySelector(
+        '.cutie-match-bank[data-match-group="T_PARAMS"] .cutie-match-choice'
+      ) as HTMLElement;
+      firstBankChoice.focus();
+      firstBankChoice.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })
+      );
+
+      for (const slot of container.querySelectorAll('.cutie-match-slot')) {
+        expect(slot.getAttribute('tabindex')).toBe('0');
+      }
+    });
+
     it('allows a source to associate only with its own column', () => {
       const container = renderGrouped();
 

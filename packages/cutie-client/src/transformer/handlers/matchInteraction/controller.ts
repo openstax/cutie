@@ -146,17 +146,21 @@ export class MatchController {
 
   /**
    * The ordered choices sharing the roving group of `id` — used for arrow-key
-   * navigation. In grouped mode a source's group is its bank and a target's
-   * group is the set of slots; otherwise it is the whole set.
+   * navigation. In grouped mode each column is self-contained: a source's group
+   * is its bank and a target's group is its own column's slot (so every slot
+   * stays independently tabbable rather than collapsing into one shared roving
+   * group). Otherwise the group is the whole set.
    */
   private getRovingGroup(id: string, set: 'source' | 'target'): Map<string, HTMLElement> {
-    if (this.grouped && set === 'source') {
-      const bank = this.choices.get(id)?.element.closest('.cutie-match-bank');
-      if (bank) {
+    if (this.grouped) {
+      const scopeSelector = set === 'source' ? '.cutie-match-bank' : '.cutie-match-column';
+      const scope = this.choices.get(id)?.element.closest(scopeSelector);
+      if (scope) {
+        const ids = set === 'source' ? this.sourceIds : this.targetIds;
         const scoped = new Map<string, HTMLElement>();
-        for (const sourceId of this.sourceIds) {
-          const choice = this.choices.get(sourceId);
-          if (choice && bank.contains(choice.element)) scoped.set(sourceId, choice.element);
+        for (const choiceId of ids) {
+          const choice = this.choices.get(choiceId);
+          if (choice && scope.contains(choice.element)) scoped.set(choiceId, choice.element);
         }
         return scoped;
       }
