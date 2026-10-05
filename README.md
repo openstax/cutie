@@ -327,10 +327,11 @@ start with the `interactionState` option of `mountItem` (default `'enabled'`). `
 |---|---|---|
 | `'enabled'` | the learner is responding | the controls |
 | `'disabled'` | for now, as while a submission is pending | the controls, disabled |
-| `'readonly'` | the response is final: submitted, under review, or a preview | the controls, disabled; an extended text interaction shows its response as content in place of its input |
+| `'readonly'` | the response is final and no longer takes submissions: a finished attempt, an instructor grading it, or a preview | the controls, disabled; an extended text interaction shows its response as content in place of its input |
 
 A submission that ends the attempt goes `'enabled'` → `'disabled'` while it is pending → `update()` with the new
-template → `'readonly'`. With no response, a read-only extended text interaction notes that there is none, or, in a
+template → `'readonly'`. A response awaiting manual scoring (`pendingManualScoring`) still takes submissions, so it
+stays `'enabled'`. With no response, a read-only extended text interaction notes that there is none, or, in a
 preview (`data-cutie-preview`), where students will write it.
 
 ## Shared Stimulus
