@@ -15,6 +15,14 @@ export const DEFAULT_DELIVERY_OPTIONS: ResolvedDeliveryOptions = {
   adaptiveRetryMessage: "That wasn't quite right. Tries remaining: {n}",
 };
 
+/** Turns on every delivery extension: smart tries, feedback, and the correct response. */
+export const ALL_EXTENSIONS_DELIVERY_OPTIONS: ResolvedDeliveryOptions = {
+  ...DEFAULT_DELIVERY_OPTIONS,
+  showFeedback: true,
+  showEvaluation: 'correctResponse',
+  maxTries: 'smart',
+};
+
 const STORAGE_KEY = 'delivery-options';
 
 const pick = <T>(allowed: T[], value: unknown, fallback: T): T =>

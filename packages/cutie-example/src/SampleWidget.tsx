@@ -8,6 +8,7 @@ import type { CutieItemHandle } from './CutieItemView';
 import { ContentCopyIcon } from './icons';
 import { Tabs, TabList, TabPanel } from './Tabs';
 import { attemptInteractionState } from './utils/attempt';
+import { ALL_EXTENSIONS_DELIVERY_OPTIONS } from './utils/deliveryOptions';
 import { isEffectivelyEmptyTemplate } from './utils/qtiUtils';
 import { resolveAssets } from './utils/resolveAssets';
 import { usePreviewTemplate } from './utils/usePreviewTemplate';
@@ -31,7 +32,7 @@ function SamplePreview({ itemXml, onError }: ViewProps) {
   return <CutieItemView template={template} attemptState={null} interactionState="readonly" />;
 }
 
-/** A learner attempt at the item, with cutie-core's default delivery options. */
+/** A learner attempt at the item, with every delivery extension turned on. */
 function SampleTest({ itemXml, onError }: ViewProps) {
   const [result, setResult] = useState<AttemptResult | null>(null);
   const [attemptNumber, setAttemptNumber] = useState(0);
@@ -42,7 +43,7 @@ function SampleTest({ itemXml, onError }: ViewProps) {
 
   useEffect(() => {
     const operationId = ++operationRef.current;
-    beginAttempt(itemXml, { resolveAssets })
+    beginAttempt(itemXml, { resolveAssets }, ALL_EXTENSIONS_DELIVERY_OPTIONS)
       .then((begun) => {
         if (operationId === operationRef.current) setResult(begun);
       })
