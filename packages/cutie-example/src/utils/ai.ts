@@ -4,10 +4,10 @@ import { API_URL, PROMPT_IDS, API_KEY, DEFAULT_MODEL_ID, DEFAULT_FAST_MODEL_ID }
 import { token } from './auth';
 import z from 'zod';
 import { shuffle } from "./misc";
-import { standardExamples } from "../example-items";
+import { generationExamples } from "../example-items";
 
 const formatExamples = (interactionTypes?: string[]) => {
-  let examples = standardExamples;
+  let examples = generationExamples;
 
   if (interactionTypes && interactionTypes.length > 0) {
 
@@ -16,11 +16,15 @@ const formatExamples = (interactionTypes?: string[]) => {
     );
     // Fall back to all examples if no matches found
     if (examples.length === 0) {
-      examples = standardExamples;
+      examples = generationExamples;
     }
   }
   return shuffle(examples)
-    .map(({ name, item }, i) => `=== EXAMPLE ${i + 1}: ${name} ===\n${item.trim()}`)
+    .map(({ name, item, description }, i) => [
+      `=== EXAMPLE ${i + 1}: ${name} ===`,
+      ...(description ? [`Authoring guidance:\n${description.trim()}`, 'Item:'] : []),
+      item.trim(),
+    ].join('\n'))
     .join('\n\n');
 };
 
@@ -29,14 +33,14 @@ const buildSystemPrompt = (interactionTypes?: string[]) => {
     ? `Use the following interaction type(s): ${interactionTypes.join(', ')}.`
     : 'Choose the most appropriate interaction type for the topic.';
 
-  return `You are a QTI v3 assessment item generator. Generate valid QTI v3 XML for assessment items with feedback.
+  return `You are a QTI v3 assessment item generator. Generate valid QTI v3 XML for assessment items.
 
 Requirements:
 - Use the QTI v3 namespace: xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
-- Include response-declaration with correct-response
-- Include outcome-declaration for SCORE and FEEDBACK
 - Include item-body with appropriate interaction(s)
-- Include feedback (inline, block, or modal) that explains why answers are correct/incorrect
+- When an example includes authoring guidance, follow that guidance for items of the same type
+- For automatically scored items: include response-declaration with correct-response, outcome-declaration for SCORE and FEEDBACK, and feedback (inline, block, or modal) that explains why answers are correct/incorrect
+- For items scored by a human grader (a SCORE outcome with external-scored="human", such as extended text): omit the correct response, response processing, and built-in feedback
 - Do NOT include images or external resources
 - Output ONLY the XML, no explanations or markdown
 
@@ -44,7 +48,7 @@ ${typeInstruction} Here are examples of each type:
 
 ${formatExamples(interactionTypes)}
 
-Generate an assessment item about the given topic. ${typeInstruction.replace('.', '')} and always include meaningful feedback that explains why answers are correct or incorrect.`;
+Generate an assessment item about the given topic. ${typeInstruction.replace('.', '')} and, for automatically scored items, always include meaningful feedback that explains why answers are correct or incorrect.`;
 };
 
 const promptExecuteUrl = (promptType: string): string =>

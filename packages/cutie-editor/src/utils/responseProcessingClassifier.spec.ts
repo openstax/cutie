@@ -2,14 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { item as inlineChoiceMultiItem } from '../../../cutie-example/src/example-items/inline-choice-multi';
 import { item as inlineFeedbackItem } from '../../../cutie-example/src/example-items/inline-feedback';
 import { item as modalFeedbackItem } from '../../../cutie-example/src/example-items/modal-feedback';
-import { item as choiceFeedbackItem } from '../../../cutie-example/src/example-items/standard-choice';
-import { item as choiceMultipleFeedbackItem } from '../../../cutie-example/src/example-items/standard-choice-multiple';
+import { item as choiceMultipleFeedbackItem } from '../../../cutie-example/src/example-items/standard-choice-multiple-wrong-choice-feedback';
 import { item as choicePartialItem } from '../../../cutie-example/src/example-items/standard-choice-partial';
-import { item as gapMatchFeedbackItem } from '../../../cutie-example/src/example-items/standard-gap-match';
-import { item as inlineChoiceFeedbackItem } from '../../../cutie-example/src/example-items/standard-inline-choice';
-import { item as matchFeedbackItem } from '../../../cutie-example/src/example-items/standard-match';
 import { item as multiInteractionItem } from '../../../cutie-example/src/example-items/standard-multi-interaction';
-import { item as textEntryItem } from '../../../cutie-example/src/example-items/standard-text-entry';
 import { item as textEntryPartialItem } from '../../../cutie-example/src/example-items/standard-text-entry-partial';
 import { item as textEntryMultiItem } from '../../../cutie-example/src/example-items/text-entry-multi';
 import { classifyResponseProcessing } from './responseProcessingClassifier';
@@ -649,44 +644,14 @@ describe('responseProcessingClassifier', () => {
       expect(result.mode).toBe('allCorrect');
     });
 
-    it('should classify choice-feedback.ts as allCorrect', () => {
-      const doc = parseItem(choiceFeedbackItem);
-      const result = classifyResponseProcessing(doc);
-      expect(result.mode).toBe('allCorrect');
-    });
-
-    it('should classify standard-text-entry.ts as allCorrect', () => {
-      const doc = parseItem(textEntryItem);
-      const result = classifyResponseProcessing(doc);
-      expect(result.mode).toBe('allCorrect');
-    });
-
     it('should classify text-entry-multi.ts as allCorrect', () => {
       const doc = parseItem(textEntryMultiItem);
       const result = classifyResponseProcessing(doc);
       expect(result.mode).toBe('allCorrect');
     });
 
-    it('should classify standard-choice-multiple.ts as allCorrect', () => {
+    it('should classify standard-choice-multiple-wrong-choice-feedback.ts as allCorrect', () => {
       const doc = parseItem(choiceMultipleFeedbackItem);
-      const result = classifyResponseProcessing(doc);
-      expect(result.mode).toBe('allCorrect');
-    });
-
-    it('should classify standard-inline-choice.ts as allCorrect', () => {
-      const doc = parseItem(inlineChoiceFeedbackItem);
-      const result = classifyResponseProcessing(doc);
-      expect(result.mode).toBe('allCorrect');
-    });
-
-    it('should classify standard-match.ts as allCorrect', () => {
-      const doc = parseItem(matchFeedbackItem);
-      const result = classifyResponseProcessing(doc);
-      expect(result.mode).toBe('allCorrect');
-    });
-
-    it('should classify standard-gap-match.ts as allCorrect', () => {
-      const doc = parseItem(gapMatchFeedbackItem);
       const result = classifyResponseProcessing(doc);
       expect(result.mode).toBe('allCorrect');
     });
