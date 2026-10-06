@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ItemStateImpl } from '../../../state/itemState';
 import { registry } from '../../registry';
-import type { TransformContext } from '../../types';
+import type { StyleManager, TransformContext } from '../../types';
 
 // Mock Quill with a minimal functional mock
 interface MockQuillInstance {
@@ -46,12 +46,13 @@ function createMockQuillInstance(container: HTMLElement): MockQuillInstance {
 
 vi.mock('./quillLoader', () => ({
   loadQuill: () => Promise.resolve({
-    default: class MockQuill {
+    Quill: class MockQuill {
       constructor(container: HTMLElement) {
         mockQuillInstance = createMockQuillInstance(container);
         return mockQuillInstance;
       }
     },
+    snowCss: '.ql-snow {}',
   }),
 }));
 
@@ -73,11 +74,13 @@ function createQtiDocument(interactionHtml: string): Document {
 function transformInteraction(
   doc: Document,
   itemState: ItemStateImpl,
+  styleManager?: StyleManager,
 ): DocumentFragment {
   const interaction = doc.querySelector('qti-extended-text-interaction')!;
 
   const context: TransformContext = {
     itemState,
+    styleManager,
     transformChildren: (el: Element) => {
       const frag = document.createDocumentFragment();
       for (const child of Array.from(el.childNodes)) {
@@ -109,8 +112,6 @@ describe('richTextInteraction', () => {
 
   beforeEach(() => {
     itemState = new ItemStateImpl();
-    // Clean up any injected link tags
-    document.getElementById('cutie-quill-snow-css')?.remove();
   });
 
   describe('canHandle', () => {
@@ -928,20 +929,20 @@ describe('richTextInteraction', () => {
   });
 
   describe('Quill CSS injection', () => {
-    it('injects Quill snow CSS link tag', async () => {
+    it('registers the Quill snow CSS with the style manager', async () => {
       const doc = createQtiDocument(`
         <qti-extended-text-interaction response-identifier="R1" format="xhtml">
         </qti-extended-text-interaction>
       `);
+      const styleManager: StyleManager = { addStyle: vi.fn(), hasStyle: () => false };
 
-      const fragment = transformInteraction(doc, itemState);
+      const fragment = transformInteraction(doc, itemState, styleManager);
       const container = document.createElement('div');
       container.appendChild(fragment);
       await waitForQuill();
 
-      const link = document.getElementById('cutie-quill-snow-css') as HTMLLinkElement;
-      expect(link).not.toBeNull();
-      expect(link.rel).toBe('stylesheet');
+      expect(styleManager.addStyle).toHaveBeenCalledWith('quill-snow', '.ql-snow {}');
+      expect(document.querySelector('link[rel="stylesheet"]')).toBeNull();
     });
   });
 

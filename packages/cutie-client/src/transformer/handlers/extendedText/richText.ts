@@ -30,9 +30,6 @@ import {
   wireConstraintDescribedBy,
 } from './utils';
 
-const QUILL_CSS_URL = 'https://cdn.jsdelivr.net/npm/quill@2/dist/quill.snow.css';
-const QUILL_CSS_ID = 'cutie-quill-snow-css';
-
 /**
  * Strip HTML tags and return plain text content.
  * Used to determine if editor content is empty.
@@ -273,19 +270,10 @@ class RichTextInteractionHandler implements ElementHandler {
 
     // Load Quill asynchronously
     loadQuill()
-      .then((quillModule) => {
-        const Quill = quillModule.default;
-
+      .then(({ Quill, snowCss }) => {
         loadingPlaceholder.remove();
 
-        // Inject Quill snow CSS if not already present
-        if (!document.getElementById(QUILL_CSS_ID)) {
-          const link = document.createElement('link');
-          link.id = QUILL_CSS_ID;
-          link.rel = 'stylesheet';
-          link.href = QUILL_CSS_URL;
-          document.head.appendChild(link);
-        }
+        context.styleManager?.addStyle('quill-snow', snowCss);
 
         // Create editor container
         const editorContainer = document.createElement('div');

@@ -1,21 +1,28 @@
 /**
  * Async loader for Quill rich text editor
  *
- * Provides a singleton pattern for loading Quill on demand,
- * avoiding bundling the library with the main bundle.
+ * Provides a singleton pattern for loading Quill and its snow theme CSS on demand,
+ * avoiding bundling either with the main bundle.
  */
 
+export interface LoadedQuill {
+  Quill: typeof import('quill').default;
+  snowCss: string;
+}
+
 // Promise that resolves when Quill is loaded
-let quillPromise: Promise<typeof import('quill')> | null = null;
+let quillPromise: Promise<LoadedQuill> | null = null;
 
 /**
- * Load Quill library asynchronously
+ * Load Quill library and its snow theme CSS asynchronously
  *
  * Returns a cached promise, ensuring the library is only loaded once
  */
-export async function loadQuill(): Promise<typeof import('quill')> {
+export async function loadQuill(): Promise<LoadedQuill> {
   if (!quillPromise) {
-    quillPromise = import('quill');
+    quillPromise = Promise.all([import('quill'), import('./quillSnowCss')]).then(
+      ([quillModule, cssModule]) => ({ Quill: quillModule.default, snowCss: cssModule.QUILL_SNOW_CSS }),
+    );
   }
   return quillPromise;
 }
