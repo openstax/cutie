@@ -129,6 +129,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
 export const gapMatch: Sample = {
   id: 'gap-match',
   name: 'Gap Match',
+  summary: 'Fill the blanks in a passage by dragging words from a word bank; the preferred fill-in-the-blank format.',
   description,
   interactionTypes: ['gap-match'],
   item,

@@ -3,6 +3,8 @@ export interface Sample {
   id: string;
   /** Short human-readable name */
   name: string;
+  /** One-line plain-text summary of when to use this kind of item, for choosing between samples */
+  summary: string;
   /** Markdown authoring guidance describing the conventions this sample demonstrates */
   description: string;
   /** QTI interaction types used by the item, e.g. 'choice', 'text-entry' */

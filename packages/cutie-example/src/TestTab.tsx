@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import type { AttemptResult, AttemptState } from '@openstax/cutie-core';
-import type { InteractionState, MountItemOptions, ResponseData } from '@openstax/cutie-client';
+import type { MountItemOptions, ResponseData } from '@openstax/cutie-client';
+import { AttemptStatus } from './AttemptStatus';
 import { CutieItemView } from './CutieItemView';
 import type { CutieItemHandle } from './CutieItemView';
 import { isEffectivelyEmptyTemplate } from './utils/qtiUtils';
@@ -8,6 +9,7 @@ import { TopicScores } from './TopicScores';
 import { DeliveryOptionsPanel } from './DeliveryOptionsPanel';
 import { EmptyState } from './EmptyState';
 import { SidebarLayout } from './SidebarLayout';
+import { attemptInteractionState } from './utils/attempt';
 import type { ResolvedDeliveryOptions } from './utils/deliveryOptions';
 
 /** The flags of the latest attempt operation's result */
@@ -49,12 +51,7 @@ export function TestTab({ attemptState, sanitizedTemplate, latestResult, respons
   const [isSubmitting, setIsSubmitting] = useState(false);
   const itemRef = useRef<CutieItemHandle>(null);
 
-  // Derived - no state needed
-  // A finished attempt takes no more submissions, except that a response
-  // awaiting manual scoring can still be edited and resubmitted
-  const acceptsResponses = attemptState?.completionStatus !== 'completed' || !!attemptState.pendingManualScoring;
-  // Disabled while a submission is pending, read-only once the response is final
-  const interactionState: InteractionState = isSubmitting ? 'disabled' : acceptsResponses ? 'enabled' : 'readonly';
+  const interactionState = attemptInteractionState(attemptState, isSubmitting);
 
   const handleSubmit = async () => {
     const collectedResponses = itemRef.current?.collectResponses();
@@ -128,22 +125,7 @@ export function TestTab({ attemptState, sanitizedTemplate, latestResult, respons
             interactionState={interactionState}
             themeOptions={themeOptions}
           />
-          {attemptState && attemptState.completionStatus !== 'completed' && attemptState.triesAllowed > 1 && (
-            // A status region, so screen readers hear the count change after each try
-            <div className="tries-remaining" role="status">
-              Try {attemptState.triesUsed + 1} of {attemptState.triesAllowed}
-            </div>
-          )}
-          {attemptState?.completionStatus === 'completed' && attemptState.score && (
-            <div className="score-display">
-              <span>Score: {attemptState.score.raw} / {attemptState.score.max}</span>
-              {attemptState.comments && (
-                <div className="scoring-rationale">
-                  <strong>Scoring Rationale:</strong> {attemptState.comments}
-                </div>
-              )}
-            </div>
-          )}
+          <AttemptStatus attemptState={attemptState} />
           <div className="item-buttons">
             <button
               className="process-button"

@@ -115,6 +115,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
 export const textEntry: Sample = {
   id: 'text-entry',
   name: 'Text Entry',
+  summary: 'Type a short word or phrase into a blank; prefer inline choice or gap match when the answer can be offered as options.',
   description,
   interactionTypes: ['text-entry'],
   item,

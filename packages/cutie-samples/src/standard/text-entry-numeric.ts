@@ -108,6 +108,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
 export const textEntryNumeric: Sample = {
   id: 'text-entry-numeric',
   name: 'Text Entry (Numeric)',
+  summary: 'Type a single numeric answer, such as the result of a calculation.',
   description,
   interactionTypes: ['text-entry'],
   item,

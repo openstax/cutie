@@ -1,12 +1,10 @@
-import { useEffect, useState } from 'react';
-import { renderPreview } from '@openstax/cutie-core';
 import type { PreviewOptions } from '@openstax/cutie-core';
 import { CutieItemView } from './CutieItemView';
 import { EmptyState } from './EmptyState';
 import { PreviewOptionsPanel } from './PreviewOptionsPanel';
 import { SidebarLayout } from './SidebarLayout';
 import { isEffectivelyEmptyTemplate } from './utils/qtiUtils';
-import { resolveAssets } from './utils/resolveAssets';
+import { usePreviewTemplate } from './utils/usePreviewTemplate';
 
 interface PreviewTabProps {
   itemXml: string;
@@ -22,26 +20,7 @@ interface PreviewTabProps {
  * correct answers and, unless compact, all of its feedback.
  */
 export function PreviewTab({ itemXml, previewOptions, onPreviewOptionsChange, onError, isLoading, onOpenGenerateDialog }: PreviewTabProps) {
-  const [preview, setPreview] = useState<{ itemXml: string; compact: boolean; template: string } | null>(null);
-  const compact = previewOptions.compact ?? false;
-
-  useEffect(() => {
-    if (!itemXml.trim()) return;
-
-    let current = true;
-    renderPreview(itemXml, { resolveAssets }, { compact })
-      .then((template) => {
-        if (current) setPreview({ itemXml, compact, template });
-      })
-      .catch((err) => {
-        console.error(err);
-        if (current) onError(err instanceof Error ? err.message : 'Error rendering preview');
-      });
-    return () => { current = false; };
-  }, [itemXml, compact, onError]);
-
-  // A preview of an earlier item, or in the other mode, isn't shown for this one
-  const template = preview && preview.itemXml === itemXml && preview.compact === compact ? preview.template : '';
+  const template = usePreviewTemplate(itemXml, previewOptions.compact ?? false, onError);
 
   return (
     <SidebarLayout

@@ -90,6 +90,11 @@ describe.each(samples)('$id sample', (sample) => {
     expect(sample.description.trim()).not.toBe('');
   });
 
+  it('has a one-line summary', () => {
+    expect(sample.summary.trim()).not.toBe('');
+    expect(sample.summary).not.toContain('\n');
+  });
+
   it('lists the interaction types it uses', () => {
     const used = new Set(Array.from(body.querySelectorAll('*'))
       .map(element => element.tagName.match(/^qti-(.+)-interaction$/)?.[1])

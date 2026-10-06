@@ -40,6 +40,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
 export const extendedText: Sample = {
   id: 'extended-text',
   name: 'Extended Text',
+  summary: 'Write an open-ended prose response that an instructor grades by hand.',
   description,
   interactionTypes: ['extended-text'],
   item,

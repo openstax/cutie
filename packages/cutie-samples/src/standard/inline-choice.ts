@@ -111,6 +111,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
 export const inlineChoice: Sample = {
   id: 'inline-choice',
   name: 'Inline Choice (Drop-down)',
+  summary: 'Pick the correct word or phrase from a drop-down within a sentence.',
   description,
   interactionTypes: ['inline-choice'],
   item,

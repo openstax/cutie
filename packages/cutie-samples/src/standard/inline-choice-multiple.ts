@@ -101,6 +101,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
 export const inlineChoiceMultiple: Sample = {
   id: 'inline-choice-multiple',
   name: 'Inline Choice (Multiple Drop-downs)',
+  summary: 'Complete several blanks in a passage, each with its own drop-down.',
   description,
   interactionTypes: ['inline-choice'],
   item,

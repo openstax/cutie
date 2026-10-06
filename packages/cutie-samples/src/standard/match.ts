@@ -128,6 +128,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
 export const match: Sample = {
   id: 'match',
   name: 'Match',
+  summary: 'Pair items from one set with items from another, such as terms with definitions.',
   description,
   interactionTypes: ['match'],
   item,

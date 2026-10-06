@@ -17,7 +17,7 @@ import { shouldRenewToken } from './utils/auth';
 import { loadDeliveryOptions, saveDeliveryOptions } from './utils/deliveryOptions';
 import type { ResolvedDeliveryOptions } from './utils/deliveryOptions';
 import { resolveAssets } from './utils/resolveAssets';
-import { OpenInNewIcon } from './icons';
+import { MenuBookIcon, OpenInNewIcon } from './icons';
 import './App.css';
 
 type Tab = 'xml' | 'editor' | 'test' | 'preview';
@@ -691,6 +691,14 @@ export function App() {
               onSelect={loadExample}
               disabled={processing}
             />
+            <a
+              href="?page=samples"
+              className="samples-link"
+              aria-label="OpenStax item templates"
+              title="OpenStax item templates"
+            >
+              <MenuBookIcon size={20} />
+            </a>
           </div>
         </nav>
       </header>

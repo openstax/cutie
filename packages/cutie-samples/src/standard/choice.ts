@@ -197,6 +197,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
 export const choice: Sample = {
   id: 'choice',
   name: 'Single Choice',
+  summary: 'Pick the one correct answer from a list of options.',
   description,
   interactionTypes: ['choice'],
   item,

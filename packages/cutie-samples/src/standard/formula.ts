@@ -116,6 +116,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
 export const formula: Sample = {
   id: 'formula',
   name: 'Formula Entry',
+  summary: 'Enter a math expression as the answer, scored by comparison to the expected expression.',
   description,
   interactionTypes: ['extended-text'],
   item,

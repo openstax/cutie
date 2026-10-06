@@ -102,6 +102,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
 export const textEntryMultiple: Sample = {
   id: 'text-entry-multiple',
   name: 'Text Entry (Multiple Blanks)',
+  summary: 'Type short words or phrases into several blanks in a passage.',
   description,
   interactionTypes: ['text-entry'],
   item,

@@ -231,6 +231,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
 export const choiceMultiple: Sample = {
   id: 'choice-multiple',
   name: 'Multiple Choice (Select All)',
+  summary: 'Select all that apply: pick every correct answer from a list of options.',
   description,
   interactionTypes: ['choice'],
   item,
