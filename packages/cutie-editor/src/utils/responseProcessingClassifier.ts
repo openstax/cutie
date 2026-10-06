@@ -1,6 +1,6 @@
 import { domToXmlNode } from '../serialization/xmlNode';
 import type { ResponseProcessingConfig, ResponseProcessingMode, XmlNode } from '../types';
-import { isStandardFeedbackIdentifier } from './feedbackIdentifiers';
+import { isItemFeedbackIdentifier, isStandardFeedbackIdentifier, parseFeedbackIdentifier } from './feedbackIdentifiers';
 
 /**
  * Known response processing template URLs
@@ -129,6 +129,9 @@ function classifyTemplate(templateUrl: string): ResponseProcessingMode {
  *       ...
  *     </qti-sum>
  *   </qti-set-outcome-value>
+ *
+ * Either pattern may also contain an unconditional rule adding ITEM_completed
+ * to FEEDBACK (item-level feedback).
  */
 function classifyInlinePattern(responseProcessing: Element): ResponseProcessingMode {
   // Check for sumScores pattern: qti-set-outcome-value with qti-sum
@@ -174,6 +177,9 @@ function isSumScoresPattern(responseProcessing: Element): boolean {
     const tagName = child.tagName.toLowerCase();
 
     if (tagName === 'qti-set-outcome-value') {
+      if (foundSumScores && isItemFeedbackRule(child)) {
+        continue;
+      }
       const identifier = child.getAttribute('identifier');
       if (identifier === 'SCORE') {
         const sum = child.querySelector('qti-sum');
@@ -187,7 +193,7 @@ function isSumScoresPattern(responseProcessing: Element): boolean {
           }
         }
       }
-      // Non-sum SCORE setter or SCORE setter without valid sum -> not sumScores
+      // Non-sum SCORE setter, SCORE setter without valid sum, or other setter -> not sumScores
       return false;
     }
 
@@ -234,17 +240,26 @@ function isAllCorrectPattern(responseProcessing: Element): boolean {
     }
   }
 
-  return true;
+  // The only unconditional rule allowed is item-level feedback
+  const setters = responseProcessing.querySelectorAll(':scope > qti-set-outcome-value');
+  return Array.from(setters).every(isItemFeedbackRule);
 }
 
 /**
  * Check if a condition follows the allCorrect scoring pattern:
  * A qti-and over qti-match/qti-equal calls (multiple interactions) or
- * a single qti-match/qti-equal call (single interaction)
+ * a single qti-match/qti-equal call (single interaction), setting only SCORE.
+ * Feedback set inside the scoring condition wouldn't survive regeneration,
+ * which emits feedback rules separately.
  */
 function isAllCorrectScoringCondition(condition: Element): boolean {
   const responseIf = condition.querySelector(':scope > qti-response-if');
   if (!responseIf) {
+    return false;
+  }
+
+  const setters = condition.querySelectorAll('qti-set-outcome-value');
+  if (!Array.from(setters).every(setter => setter.getAttribute('identifier') === 'SCORE')) {
     return false;
   }
 
@@ -337,7 +352,7 @@ export function hasMapping(responseDeclaration: XmlNode): boolean {
  * Standard feedback pattern:
  * - Sets FEEDBACK outcome variable
  * - Uses accumulation pattern with qti-multiple
- * - Identifier values match {responseId}_{type} pattern
+ * - Identifier values match {responseId}_{type} pattern, or are ITEM_completed
  *
  * If there are no feedback patterns, returns true (no feedback is valid).
  */
@@ -376,18 +391,32 @@ function isFeedbackOnlyCondition(condition: Element): boolean {
     return false;
   }
 
-  // All setters must be for FEEDBACK and follow standard pattern
+  // All setters must be for FEEDBACK and set a response-level identifier.
+  // Item-level feedback is unconditional, so it never appears in a condition.
   for (const setter of setters) {
     const identifier = setter.getAttribute('identifier');
     if (identifier !== 'FEEDBACK') {
       return false;
     }
-    if (!isStandardFeedbackSetter(setter)) {
+    const feedbackId = getStandardFeedbackSetterValue(setter);
+    if (feedbackId === null || parseFeedbackIdentifier(feedbackId) === null) {
       return false;
     }
   }
 
   return true;
+}
+
+/**
+ * Check if a top-level rule is the unconditional item-level feedback rule
+ * that adds ITEM_completed to FEEDBACK
+ */
+function isItemFeedbackRule(rule: Element): boolean {
+  if (rule.getAttribute('identifier') !== 'FEEDBACK') {
+    return false;
+  }
+  const feedbackId = getStandardFeedbackSetterValue(rule);
+  return feedbackId !== null && isItemFeedbackIdentifier(feedbackId);
 }
 
 /**
@@ -401,40 +430,38 @@ function isFeedbackOnlyCondition(condition: Element): boolean {
  * </qti-set-outcome-value>
  */
 function isStandardFeedbackSetter(setter: Element): boolean {
+  const identifierValue = getStandardFeedbackSetterValue(setter);
+  return identifierValue !== null && isStandardFeedbackIdentifier(identifierValue);
+}
+
+/**
+ * Get the feedback identifier a FEEDBACK setter adds using the accumulation
+ * pattern (see isStandardFeedbackSetter), or null if the setter doesn't follow it
+ */
+function getStandardFeedbackSetterValue(setter: Element): string | null {
   // Must have qti-multiple child
   const multiple = setter.querySelector(':scope > qti-multiple');
   if (!multiple) {
-    return false;
+    return null;
   }
 
   // Must have exactly 2 children: qti-variable and qti-base-value
   const children = Array.from(multiple.children);
   if (children.length !== 2) {
-    return false;
+    return null;
   }
 
   // First child should be qti-variable referencing FEEDBACK (accumulation pattern)
   const variable = multiple.querySelector(':scope > qti-variable');
   if (!variable || variable.getAttribute('identifier') !== 'FEEDBACK') {
-    return false;
+    return null;
   }
 
   // Second child should be qti-base-value with identifier base-type
   const baseValue = multiple.querySelector(':scope > qti-base-value');
-  if (!baseValue) {
-    return false;
+  if (!baseValue || baseValue.getAttribute('base-type') !== 'identifier') {
+    return null;
   }
 
-  const baseType = baseValue.getAttribute('base-type');
-  if (baseType !== 'identifier') {
-    return false;
-  }
-
-  // The identifier value should match our standard pattern
-  const identifierValue = baseValue.textContent?.trim() || '';
-  if (!isStandardFeedbackIdentifier(identifierValue)) {
-    return false;
-  }
-
-  return true;
+  return baseValue.textContent?.trim() || '';
 }

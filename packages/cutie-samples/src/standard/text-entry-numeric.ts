@@ -54,11 +54,8 @@ adaptive="false" time-dependent="false" xml:lang="en">
     <p>A cyclist rides 25 kilometers in 0.4 hours. What is the cyclist's average speed?</p>
     <p><qti-text-entry-interaction response-identifier="RESPONSE" expected-length="6" pattern-mask=".+" data-patternmask-message="Response required"/> km/h</p>
 
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_correct" show-hide="show">
-      <p>Average speed is total distance divided by total time. Dividing 25 km by 0.4 h gives 62.5 km/h. As a check, at 62.5 km/h the cyclist would cover 62.5 × 0.4 = 25 km in 0.4 hours.</p>
-    </qti-feedback-block>
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_incorrect" show-hide="show">
-      <p>Average speed is total distance divided by total time: v = d / t. Here d = 25 km and t = 0.4 h, so v = 25 / 0.4 = 62.5 km/h. A common mistake is to multiply distance by time instead of dividing. Check your answer by multiplying it by the time: 62.5 × 0.4 = 25 km, which matches the distance traveled.</p>
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="ITEM_completed" show-hide="show">
+      <p>Average speed is total distance divided by total time: v = d / t. Here d = 25 km and t = 0.4 h, so v = 25 / 0.4 = 62.5 km/h. A common mistake is to multiply distance by time instead of dividing. To check the answer, multiply it by the time: 62.5 × 0.4 = 25 km, which matches the distance traveled.</p>
     </qti-feedback-block>
   </qti-item-body>
 
@@ -79,29 +76,12 @@ adaptive="false" time-dependent="false" xml:lang="en">
         </qti-set-outcome-value>
       </qti-response-else>
     </qti-response-condition>
-
-    <qti-response-condition>
-      <qti-response-if>
-        <qti-match>
-          <qti-variable identifier="RESPONSE"/>
-          <qti-correct identifier="RESPONSE"/>
-        </qti-match>
-        <qti-set-outcome-value identifier="FEEDBACK">
-          <qti-multiple>
-            <qti-variable identifier="FEEDBACK"/>
-            <qti-base-value base-type="identifier">RESPONSE_correct</qti-base-value>
-          </qti-multiple>
-        </qti-set-outcome-value>
-      </qti-response-if>
-      <qti-response-else>
-        <qti-set-outcome-value identifier="FEEDBACK">
-          <qti-multiple>
-            <qti-variable identifier="FEEDBACK"/>
-            <qti-base-value base-type="identifier">RESPONSE_incorrect</qti-base-value>
-          </qti-multiple>
-        </qti-set-outcome-value>
-      </qti-response-else>
-    </qti-response-condition>
+    <qti-set-outcome-value identifier="FEEDBACK">
+      <qti-multiple>
+        <qti-variable identifier="FEEDBACK"/>
+        <qti-base-value base-type="identifier">ITEM_completed</qti-base-value>
+      </qti-multiple>
+    </qti-set-outcome-value>
   </qti-response-processing>
 </qti-assessment-item>`;
 

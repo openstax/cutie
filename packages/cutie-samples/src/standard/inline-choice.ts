@@ -57,10 +57,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
       </qti-inline-choice-interaction>.
     </p>
 
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_correct" show-hide="show">
-      <p>The law of demand describes an inverse relationship between price and quantity demanded. When a good's price rises, some buyers switch to cheaper substitutes and others can afford less of it, so the quantity demanded decreases. On a graph, this is a movement up and to the left along a downward-sloping demand curve.</p>
-    </qti-feedback-block>
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_incorrect" show-hide="show">
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="ITEM_completed" show-hide="show">
       <p>The law of demand describes an inverse relationship between price and quantity demanded: as one goes up, the other goes down. When a good's price rises, some buyers switch to cheaper substitutes and others can afford less of it. The phrase "all other factors stay the same" tells you the demand curve itself doesn't shift, so the higher price moves you up and to the left along the curve. The quantity demanded decreases.</p>
     </qti-feedback-block>
   </qti-item-body>
@@ -82,29 +79,12 @@ adaptive="false" time-dependent="false" xml:lang="en">
         </qti-set-outcome-value>
       </qti-response-else>
     </qti-response-condition>
-
-    <qti-response-condition>
-      <qti-response-if>
-        <qti-match>
-          <qti-variable identifier="RESPONSE"/>
-          <qti-correct identifier="RESPONSE"/>
-        </qti-match>
-        <qti-set-outcome-value identifier="FEEDBACK">
-          <qti-multiple>
-            <qti-variable identifier="FEEDBACK"/>
-            <qti-base-value base-type="identifier">RESPONSE_correct</qti-base-value>
-          </qti-multiple>
-        </qti-set-outcome-value>
-      </qti-response-if>
-      <qti-response-else>
-        <qti-set-outcome-value identifier="FEEDBACK">
-          <qti-multiple>
-            <qti-variable identifier="FEEDBACK"/>
-            <qti-base-value base-type="identifier">RESPONSE_incorrect</qti-base-value>
-          </qti-multiple>
-        </qti-set-outcome-value>
-      </qti-response-else>
-    </qti-response-condition>
+    <qti-set-outcome-value identifier="FEEDBACK">
+      <qti-multiple>
+        <qti-variable identifier="FEEDBACK"/>
+        <qti-base-value base-type="identifier">ITEM_completed</qti-base-value>
+      </qti-multiple>
+    </qti-set-outcome-value>
   </qti-response-processing>
 </qti-assessment-item>`;
 

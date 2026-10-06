@@ -74,10 +74,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
       </qti-simple-match-set>
     </qti-match-interaction>
 
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_correct" show-hide="show">
-      <p>Macromolecules are polymers made by linking many smaller monomers together. Proteins are chains of amino acids joined by peptide bonds. Nucleic acids such as DNA and RNA are chains of nucleotides, each made of a sugar, a phosphate group, and a nitrogenous base. Carbohydrates such as starch and cellulose are chains of monosaccharides, or simple sugars like glucose.</p>
-    </qti-feedback-block>
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_incorrect" show-hide="show">
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="ITEM_completed" show-hide="show">
       <p>Macromolecules are polymers made by linking many smaller monomers together, and the monomer's name often hints at the polymer it builds. Proteins are chains of amino acids joined by peptide bonds. Nucleic acids such as DNA and RNA are chains of nucleotides, each made of a sugar, a phosphate group, and a nitrogenous base. Carbohydrates such as starch and cellulose are chains of monosaccharides ("single sugars") like glucose.</p>
     </qti-feedback-block>
   </qti-item-body>
@@ -99,29 +96,12 @@ adaptive="false" time-dependent="false" xml:lang="en">
         </qti-set-outcome-value>
       </qti-response-else>
     </qti-response-condition>
-
-    <qti-response-condition>
-      <qti-response-if>
-        <qti-match>
-          <qti-variable identifier="RESPONSE"/>
-          <qti-correct identifier="RESPONSE"/>
-        </qti-match>
-        <qti-set-outcome-value identifier="FEEDBACK">
-          <qti-multiple>
-            <qti-variable identifier="FEEDBACK"/>
-            <qti-base-value base-type="identifier">RESPONSE_correct</qti-base-value>
-          </qti-multiple>
-        </qti-set-outcome-value>
-      </qti-response-if>
-      <qti-response-else>
-        <qti-set-outcome-value identifier="FEEDBACK">
-          <qti-multiple>
-            <qti-variable identifier="FEEDBACK"/>
-            <qti-base-value base-type="identifier">RESPONSE_incorrect</qti-base-value>
-          </qti-multiple>
-        </qti-set-outcome-value>
-      </qti-response-else>
-    </qti-response-condition>
+    <qti-set-outcome-value identifier="FEEDBACK">
+      <qti-multiple>
+        <qti-variable identifier="FEEDBACK"/>
+        <qti-base-value base-type="identifier">ITEM_completed</qti-base-value>
+      </qti-multiple>
+    </qti-set-outcome-value>
   </qti-response-processing>
 </qti-assessment-item>`;
 

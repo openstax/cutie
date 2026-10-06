@@ -20,8 +20,7 @@ case-insensitive by default, while \`qti-match\` on strings is case-sensitive. A
 \`qti-map-entry\` with \`mapped-value="1"\` for every acceptable answer (spelling \
 variants, plurals, abbreviations) and set \`default-value="0"\`. Mark entries \
 where case matters, such as unit or element symbols, \`case-sensitive="true"\`.
-- \`SCORE\` is 1 when \`qti-map-response\` equals 1, otherwise 0. The \
-correct/incorrect feedback condition uses the same check.
+- \`SCORE\` is 1 when \`qti-map-response\` equals 1, otherwise 0.
 - ${workedSolution}
 - ${responseProcessingOrder}
 - ${correctResponse} Put the main answer in \`qti-correct-response\`.
@@ -61,10 +60,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
   <qti-item-body>
     <p>The SI unit of force, equal to one kilogram meter per second squared, is the <qti-text-entry-interaction response-identifier="RESPONSE" expected-length="10" pattern-mask=".+" data-patternmask-message="Response required"/>.</p>
 
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_correct" show-hide="show">
-      <p>Newton's second law says force equals mass times acceleration (F = ma). Multiplying the SI unit of mass (kg) by the SI unit of acceleration (m/s²) gives kg·m/s². This combination is named the newton (N) after Isaac Newton.</p>
-    </qti-feedback-block>
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_incorrect" show-hide="show">
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="ITEM_completed" show-hide="show">
       <p>Start from Newton's second law, F = ma. The SI unit of mass is the kilogram and the SI unit of acceleration is meters per second squared, so the unit of force is kg·m/s². That derived unit is named the newton (N) after Isaac Newton.</p>
     </qti-feedback-block>
   </qti-item-body>
@@ -86,29 +82,12 @@ adaptive="false" time-dependent="false" xml:lang="en">
         </qti-set-outcome-value>
       </qti-response-else>
     </qti-response-condition>
-
-    <qti-response-condition>
-      <qti-response-if>
-        <qti-equal>
-          <qti-map-response identifier="RESPONSE"/>
-          <qti-base-value base-type="float">1</qti-base-value>
-        </qti-equal>
-        <qti-set-outcome-value identifier="FEEDBACK">
-          <qti-multiple>
-            <qti-variable identifier="FEEDBACK"/>
-            <qti-base-value base-type="identifier">RESPONSE_correct</qti-base-value>
-          </qti-multiple>
-        </qti-set-outcome-value>
-      </qti-response-if>
-      <qti-response-else>
-        <qti-set-outcome-value identifier="FEEDBACK">
-          <qti-multiple>
-            <qti-variable identifier="FEEDBACK"/>
-            <qti-base-value base-type="identifier">RESPONSE_incorrect</qti-base-value>
-          </qti-multiple>
-        </qti-set-outcome-value>
-      </qti-response-else>
-    </qti-response-condition>
+    <qti-set-outcome-value identifier="FEEDBACK">
+      <qti-multiple>
+        <qti-variable identifier="FEEDBACK"/>
+        <qti-base-value base-type="identifier">ITEM_completed</qti-base-value>
+      </qti-multiple>
+    </qti-set-outcome-value>
   </qti-response-processing>
 </qti-assessment-item>`;
 

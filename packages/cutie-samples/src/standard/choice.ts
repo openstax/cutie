@@ -83,11 +83,8 @@ adaptive="false" time-dependent="false" xml:lang="en">
       </qti-simple-choice>
     </qti-choice-interaction>
 
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_correct" show-hide="show">
-      <p>Cellular respiration happens in three stages. Glycolysis takes place in the cytoplasm and makes only a small amount of ATP. The citric acid cycle runs in the mitochondrial matrix, and the electron transport chain sits on the inner mitochondrial membrane. Oxidative phosphorylation along that membrane produces the large majority of the cell's ATP, which is why the mitochondrion is often called the powerhouse of the cell.</p>
-    </qti-feedback-block>
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_incorrect" show-hide="show">
-      <p>Start by recalling where each stage of cellular respiration takes place. Glycolysis happens in the cytoplasm and makes only a small amount of ATP. The citric acid cycle runs in the mitochondrial matrix, and the electron transport chain sits on the inner mitochondrial membrane. Because oxidative phosphorylation along that membrane produces most of the cell's ATP, the answer is the mitochondrion.</p>
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="ITEM_completed" show-hide="show">
+      <p>Cellular respiration happens in three stages. Glycolysis takes place in the cytoplasm and makes only a small amount of ATP. The citric acid cycle runs in the mitochondrial matrix, and the electron transport chain sits on the inner mitochondrial membrane. Because oxidative phosphorylation along that membrane produces most of the cell's ATP, the answer is the mitochondrion, which is why it's often called the powerhouse of the cell.</p>
     </qti-feedback-block>
   </qti-item-body>
 
@@ -105,29 +102,6 @@ adaptive="false" time-dependent="false" xml:lang="en">
       <qti-response-else>
         <qti-set-outcome-value identifier="SCORE">
           <qti-base-value base-type="float">0</qti-base-value>
-        </qti-set-outcome-value>
-      </qti-response-else>
-    </qti-response-condition>
-
-    <qti-response-condition>
-      <qti-response-if>
-        <qti-match>
-          <qti-variable identifier="RESPONSE"/>
-          <qti-correct identifier="RESPONSE"/>
-        </qti-match>
-        <qti-set-outcome-value identifier="FEEDBACK">
-          <qti-multiple>
-            <qti-variable identifier="FEEDBACK"/>
-            <qti-base-value base-type="identifier">RESPONSE_correct</qti-base-value>
-          </qti-multiple>
-        </qti-set-outcome-value>
-      </qti-response-if>
-      <qti-response-else>
-        <qti-set-outcome-value identifier="FEEDBACK">
-          <qti-multiple>
-            <qti-variable identifier="FEEDBACK"/>
-            <qti-base-value base-type="identifier">RESPONSE_incorrect</qti-base-value>
-          </qti-multiple>
         </qti-set-outcome-value>
       </qti-response-else>
     </qti-response-condition>
@@ -191,6 +165,12 @@ adaptive="false" time-dependent="false" xml:lang="en">
         </qti-set-outcome-value>
       </qti-response-if>
     </qti-response-condition>
+    <qti-set-outcome-value identifier="FEEDBACK">
+      <qti-multiple>
+        <qti-variable identifier="FEEDBACK"/>
+        <qti-base-value base-type="identifier">ITEM_completed</qti-base-value>
+      </qti-multiple>
+    </qti-set-outcome-value>
   </qti-response-processing>
 </qti-assessment-item>`;
 
