@@ -1,7 +1,6 @@
 export const MATCH_INTERACTION_STYLES = `
   .cutie-match-interaction {
     margin: 1em 0;
-    font-family: system-ui, -apple-system, sans-serif;
   }
 
   .cutie-match-interaction .cutie-prompt {

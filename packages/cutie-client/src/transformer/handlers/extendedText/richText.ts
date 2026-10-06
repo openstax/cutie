@@ -448,7 +448,7 @@ const RICH_TEXT_INTERACTION_STYLES = `
   padding: 8px;
   margin-bottom: 8px;
   border-radius: 4px;
-  font-size: 14px;
+  font-size: var(--cutie-supporting-text-size);
 }
 
 .cutie-rich-text-interaction.qti-height-lines-3 .ql-editor { min-height: calc(4.2em + 16px); }

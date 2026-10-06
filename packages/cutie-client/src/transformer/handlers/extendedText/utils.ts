@@ -244,7 +244,7 @@ const CHARACTER_COUNTER_STYLES = `
 .cutie-character-counter {
   text-align: right;
   color: var(--cutie-text-muted);
-  font-size: 0.85em;
+  font-size: var(--cutie-supporting-text-size);
   margin-left: auto;
 }
 
