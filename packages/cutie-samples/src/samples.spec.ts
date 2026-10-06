@@ -131,6 +131,25 @@ describe.each(samples)('$id sample', (sample) => {
     }
   });
 
+  it('requires a selection in drop-downs', () => {
+    for (const interaction of body.querySelectorAll('qti-inline-choice-interaction')) {
+      expect(interaction.getAttribute('required')).toBe('true');
+    }
+  });
+
+  it('requires every gap to be filled', () => {
+    for (const interaction of body.querySelectorAll('qti-gap-match-interaction')) {
+      expect(interaction.getAttribute('min-associations'))
+        .toBe(String(interaction.querySelectorAll('qti-gap').length));
+    }
+  });
+
+  it('requires a response in extended text', () => {
+    for (const interaction of body.querySelectorAll('qti-extended-text-interaction')) {
+      expect(interaction.getAttribute('min-strings')).toBe('1');
+    }
+  });
+
   it('shows a character counter on free-text extended text', () => {
     for (const interaction of body.querySelectorAll('qti-extended-text-interaction')) {
       const responseIdentifier = interaction.getAttribute('response-identifier');

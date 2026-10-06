@@ -4,6 +4,7 @@ const description = `\
 An open-response question graded by an instructor: \`qti-extended-text-interaction\` \
 with the question in a \`qti-prompt\` and \`format="plain"\`.
 
+- Set \`min-strings="1"\` so a response is required before submitting.
 - Always show a character counter that signals the expected response size: set \
 \`expected-length\` to the suggested number of characters and add \
 \`class="qti-counter-up"\`. This is a soft hint, not a limit. When a hard cap is \
@@ -30,7 +31,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
 
   <qti-item-body>
     <qti-extended-text-interaction response-identifier="RESPONSE" format="plain"
-      expected-length="600" class="qti-counter-up">
+      min-strings="1" expected-length="600" class="qti-counter-up">
       <qti-prompt>Explain the difference between classical conditioning and operant conditioning. Give one everyday example of each.</qti-prompt>
     </qti-extended-text-interaction>
   </qti-item-body>

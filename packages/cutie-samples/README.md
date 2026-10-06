@@ -43,5 +43,7 @@ The package's tests check that every sample:
 - uses response processing the Cutie editor can manage (not `custom`)
 - declares a correct response for every automatically scored response
 - sets every feedback identifier it shows
-- scores its correct response as fully correct, and an incorrect response as 0,
-  through `@openstax/cutie-core`
+- requires a response before it can be submitted
+- if automatically scored, scores its correct response as fully correct and an
+  incorrect response as 0 through `@openstax/cutie-core`; if scored by a grader,
+  waits for manual scoring after submission

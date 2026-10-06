@@ -1,10 +1,12 @@
 /* spell-checker: ignore hotspot hottext */
-import { sampleGroups } from '@openstax/cutie-samples';
+import { sampleGroups, samples } from '@openstax/cutie-samples';
 
 export interface ExampleItem {
   name: string;
   item: string;
   interactionTypes: string[];
+  /** Markdown authoring guidance, provided by canonical samples */
+  description?: string;
 }
 
 export interface ExampleGroup {
@@ -133,6 +135,13 @@ export const standardExamples = [
   textEntryPartialStandard,
   choicePartialStandard,
   multiInteractionStandard,
+];
+
+/* references for AI item generation: the canonical samples, with their
+ * authoring guidance, plus the supported feature examples */
+export const generationExamples: ExampleItem[] = [
+  ...samples,
+  ...standardExamples,
 ];
 
 export const exampleGroups: ExampleGroup[] = [

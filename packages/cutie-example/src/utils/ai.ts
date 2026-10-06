@@ -4,10 +4,10 @@ import { API_URL, PROMPT_IDS, API_KEY, DEFAULT_MODEL_ID, DEFAULT_FAST_MODEL_ID }
 import { token } from './auth';
 import z from 'zod';
 import { shuffle } from "./misc";
-import { standardExamples } from "../example-items";
+import { generationExamples } from "../example-items";
 
 const formatExamples = (interactionTypes?: string[]) => {
-  let examples = standardExamples;
+  let examples = generationExamples;
 
   if (interactionTypes && interactionTypes.length > 0) {
 
@@ -16,11 +16,15 @@ const formatExamples = (interactionTypes?: string[]) => {
     );
     // Fall back to all examples if no matches found
     if (examples.length === 0) {
-      examples = standardExamples;
+      examples = generationExamples;
     }
   }
   return shuffle(examples)
-    .map(({ name, item }, i) => `=== EXAMPLE ${i + 1}: ${name} ===\n${item.trim()}`)
+    .map(({ name, item, description }, i) => [
+      `=== EXAMPLE ${i + 1}: ${name} ===`,
+      ...(description ? [`Authoring guidance:\n${description.trim()}`, 'Item:'] : []),
+      item.trim(),
+    ].join('\n'))
     .join('\n\n');
 };
 
