@@ -1,9 +1,9 @@
 import type { Path } from 'slate';
-import { PropertyField } from '../../components/properties/PropertyField';
-import { ToggleableFormSection } from '../../components/properties/ToggleableFormSection';
-import { MappingMetadataFields } from '../../components/properties/MappingMetadataFields';
-import { MapEntryList } from '../../components/properties/MapEntryList';
-import type { QtiTextEntryInteraction, ElementAttributes, XmlNode } from '../../types';
+import { PropertyField } from '../../components/properties/PropertyField.js';
+import { ToggleableFormSection } from '../../components/properties/ToggleableFormSection.js';
+import { MappingMetadataFields } from '../../components/properties/MappingMetadataFields.js';
+import { MapEntryList } from '../../components/properties/MapEntryList.js';
+import type { QtiTextEntryInteraction, ElementAttributes, XmlNode } from '../../types.js';
 import {
   getCorrectValue,
   updateCorrectValue,
@@ -13,7 +13,7 @@ import {
   updateIdentifier,
   updateBaseType,
   getBaseType,
-} from '../../utils/responseDeclaration';
+} from '../../utils/responseDeclaration.js';
 import {
   hasMapping,
   getMapping,
@@ -22,7 +22,7 @@ import {
   updateMapping,
   type MappingMetadata,
   type MapEntry,
-} from '../../utils/mappingDeclaration';
+} from '../../utils/mappingDeclaration.js';
 
 interface TextEntryPropertiesPanelProps {
   element: QtiTextEntryInteraction;

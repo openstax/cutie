@@ -5,7 +5,7 @@
  * avoiding bundling the large library with the main bundle.
  */
 
-import type { MathLiveFont } from './mathLiveFonts';
+import type { MathLiveFont } from './mathLiveFonts.js';
 
 // Promise that resolves when MathLive is loaded
 let mathLivePromise: Promise<typeof import('mathlive')> | null = null;
@@ -36,7 +36,7 @@ export async function loadMathLive(): Promise<typeof import('mathlive')> {
     // The fonts must be registered before MathLive is imported: evaluating the
     // module upgrades any <math-span>/<math-div> already in the DOM, which
     // checks for the fonts immediately.
-    mathLivePromise = import('./mathLiveFonts')
+    mathLivePromise = import('./mathLiveFonts.js')
       .then(({ MATHLIVE_FONTS }) => Promise.all([registerFonts(MATHLIVE_FONTS), import('mathlive')]))
       .then(([, mathlive]) => {
         // The fonts are registered above, so never fetch them from a path relative to the library

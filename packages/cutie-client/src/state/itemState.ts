@@ -6,7 +6,7 @@ import type {
   ResponseChangeListener,
   ResponseData,
   StateObserver,
-} from '../transformer/types';
+} from '../transformer/types.js';
 
 export interface ItemStateOptions {
   /** Called with the current raw responses whenever a handler reports a learner edit */

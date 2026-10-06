@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { item as inlineChoiceMultiItem } from '../../../cutie-example/src/example-items/inline-choice-multi';
-import { item as inlineFeedbackItem } from '../../../cutie-example/src/example-items/inline-feedback';
-import { item as modalFeedbackItem } from '../../../cutie-example/src/example-items/modal-feedback';
-import { item as choiceMultipleFeedbackItem } from '../../../cutie-example/src/example-items/standard-choice-multiple-wrong-choice-feedback';
-import { item as choicePartialItem } from '../../../cutie-example/src/example-items/standard-choice-partial';
-import { item as multiInteractionItem } from '../../../cutie-example/src/example-items/standard-multi-interaction';
-import { item as textEntryPartialItem } from '../../../cutie-example/src/example-items/standard-text-entry-partial';
-import { item as textEntryMultiItem } from '../../../cutie-example/src/example-items/text-entry-multi';
-import { classifyResponseProcessing } from './responseProcessingClassifier';
+import { item as inlineChoiceMultiItem } from '../../../cutie-example/src/example-items/inline-choice-multi.js';
+import { item as inlineFeedbackItem } from '../../../cutie-example/src/example-items/inline-feedback.js';
+import { item as modalFeedbackItem } from '../../../cutie-example/src/example-items/modal-feedback.js';
+import { item as choiceMultipleFeedbackItem } from '../../../cutie-example/src/example-items/standard-choice-multiple-wrong-choice-feedback.js';
+import { item as choicePartialItem } from '../../../cutie-example/src/example-items/standard-choice-partial.js';
+import { item as multiInteractionItem } from '../../../cutie-example/src/example-items/standard-multi-interaction.js';
+import { item as textEntryPartialItem } from '../../../cutie-example/src/example-items/standard-text-entry-partial.js';
+import { item as textEntryMultiItem } from '../../../cutie-example/src/example-items/text-entry-multi.js';
+import { classifyResponseProcessing } from './responseProcessingClassifier.js';
 
 /**
  * Helper to create a minimal QTI document for testing

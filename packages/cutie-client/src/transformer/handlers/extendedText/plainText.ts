@@ -1,7 +1,7 @@
-import { createMissingAttributeError } from '../../../errors/errorDisplay';
-import { addAriaDescribedBy } from '../../../utils/aria';
-import { registry } from '../../registry';
-import type { ElementHandler, TransformContext } from '../../types';
+import { createMissingAttributeError } from '../../../errors/errorDisplay.js';
+import { addAriaDescribedBy } from '../../../utils/aria.js';
+import { registry } from '../../registry.js';
+import type { ElementHandler, TransformContext } from '../../types.js';
 import {
   clearEvaluated,
   clearVerdictOnEdit,
@@ -9,8 +9,8 @@ import {
   getVerdictText,
   markEvaluated,
   readEvaluation,
-} from '../evaluation';
-import { getDefaultValue } from '../responseUtils';
+} from '../evaluation/index.js';
+import { getDefaultValue } from '../responseUtils.js';
 import {
   clearConstraintResultVerdict,
   createCharacterCounter,
@@ -25,7 +25,7 @@ import {
   processPrompt,
   showConstraintError,
   wireConstraintDescribedBy,
-} from './utils';
+} from './utils.js';
 
 /**
  * Handler for qti-extended-text-interaction elements

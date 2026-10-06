@@ -2,21 +2,21 @@
 import {
   createInvalidAttributeError,
   createMissingAttributeError,
-} from '../../errors/errorDisplay';
+} from '../../errors/errorDisplay.js';
 import {
   type ConstraintMessage,
   createConstraintMessage,
-} from '../../errors/validationDisplay';
-import { announce } from '../../utils/liveRegion';
+} from '../../errors/validationDisplay.js';
+import { announce } from '../../utils/liveRegion.js';
 import {
   focusNext,
   focusPrev,
   initializeRovingTabindex,
   updateRovingTabindex,
-} from '../../utils/rovingTabindex';
-import { registry } from '../registry';
-import type { ElementHandler, InteractionState, TransformContext } from '../types';
-import { getDefaultValue } from './responseUtils';
+} from '../../utils/rovingTabindex.js';
+import { registry } from '../registry.js';
+import type { ElementHandler, InteractionState, TransformContext } from '../types.js';
+import { getDefaultValue } from './responseUtils.js';
 
 /**
  * Build constraint text describing the selection requirements.

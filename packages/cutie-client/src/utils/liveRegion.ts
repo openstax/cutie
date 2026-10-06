@@ -1,4 +1,4 @@
-import type { TransformContext } from '../transformer/types';
+import type { TransformContext } from '../transformer/types.js';
 
 type Urgency = 'polite' | 'assertive';
 

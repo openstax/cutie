@@ -1,7 +1,7 @@
 /* spell-checker: ignore DPAIR */
 import { DOMParser } from '@xmldom/xmldom';
 import { describe, expect, test } from 'vitest';
-import { initializeState } from './initializeState';
+import { initializeState } from './initializeState.js';
 
 // from https://www.imsglobal.org/spec/qti/v3p0/impl#h.hs6z9wmqtzq7
 const minimalItemXml = `<?xml version="1.0" encoding="UTF-8"?>

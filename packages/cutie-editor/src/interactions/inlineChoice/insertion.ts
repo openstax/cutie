@@ -1,6 +1,6 @@
 import { Editor, Transforms } from 'slate';
-import type { InlineChoiceOption } from '../../types';
-import { generateUniqueResponseId } from '../../utils/idGenerator';
+import type { InlineChoiceOption } from '../../types.js';
+import { generateUniqueResponseId } from '../../utils/idGenerator.js';
 
 /**
  * Insert an inline choice interaction at the current selection

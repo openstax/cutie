@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { registry } from '../registry';
-import type { StyleManager, TransformContext } from '../types';
-import { annotateInlineInteractions } from './inlineInteractionAnnotator';
+import { registry } from '../registry.js';
+import type { StyleManager, TransformContext } from '../types.js';
+import { annotateInlineInteractions } from './inlineInteractionAnnotator.js';
 
 // Side-effect registration of handlers
-import './htmlPassthrough';
-import './textEntryInteraction';
-import './inlineChoiceInteraction';
+import './htmlPassthrough.js';
+import './textEntryInteraction.js';
+import './inlineChoiceInteraction.js';
 
 let idCounter = 0;
 const testIdGenerator = () => `s${++idCounter}`;

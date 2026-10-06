@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
 import { useSelected, useFocused } from 'slate-react';
 import type { RenderElementProps } from 'slate-react';
-import type { QtiChoiceInteraction } from '../../types';
-import { getCorrectValues, hasCorrectResponse } from '../../utils/responseDeclaration';
-import { getMapping, hasMapping } from '../../utils/mappingDeclaration';
-import { ChoiceScoringProvider, type ChoiceScoringInfo } from './ChoiceScoringContext';
+import type { QtiChoiceInteraction } from '../../types.js';
+import { getCorrectValues, hasCorrectResponse } from '../../utils/responseDeclaration.js';
+import { getMapping, hasMapping } from '../../utils/mappingDeclaration.js';
+import { ChoiceScoringProvider, type ChoiceScoringInfo } from './ChoiceScoringContext.js';
 
 /**
  * Renders a choice interaction in the editor

@@ -1,7 +1,7 @@
 /* spell-checker: ignore Paris */
 import { DOMParser } from '@xmldom/xmldom';
 import { describe, expect, test } from 'vitest';
-import type { AssetRequest } from './types';
+import type { AssetRequest } from './types.js';
 import {
   type AttemptResult,
   beginAttempt,
@@ -9,7 +9,7 @@ import {
   resumeAttempt,
   setScore,
   submitResponse,
-} from './index';
+} from './index.js';
 
 const parser = new DOMParser();
 

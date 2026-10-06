@@ -1,5 +1,5 @@
 import { Editor, Element, Path, Text, Transforms } from 'slate';
-import type { CustomEditor } from '../types';
+import type { CustomEditor } from '../types.js';
 
 /**
  * Normalize a container element by wrapping consecutive inline content in paragraphs.

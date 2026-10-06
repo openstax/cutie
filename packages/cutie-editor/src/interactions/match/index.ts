@@ -4,11 +4,11 @@ export {
   MatchSourceSetElement,
   MatchTargetSetElement,
   SimpleAssociableChoiceElement,
-} from './Element';
+} from './Element.js';
 export {
   MatchPropertiesPanel,
   SimpleAssociableChoicePropertiesPanel,
-} from './PropertiesPanel';
+} from './PropertiesPanel.js';
 
 // Re-export from other modules
 export {
@@ -16,9 +16,9 @@ export {
   matchSourceSetConfig,
   matchTargetSetConfig,
   simpleAssociableChoiceConfig,
-} from './config';
-export { matchParsers, matchSerializers } from './serialization';
-export { insertMatchInteraction, generateSourceId, generateTargetId } from './insertion';
+} from './config.js';
+export { matchParsers, matchSerializers } from './serialization.js';
+export { insertMatchInteraction, generateSourceId, generateTargetId } from './insertion.js';
 
 // Import components for creating maps
 import {
@@ -26,11 +26,11 @@ import {
   MatchSourceSetElement,
   MatchTargetSetElement,
   SimpleAssociableChoiceElement,
-} from './Element';
+} from './Element.js';
 import {
   MatchPropertiesPanel,
   SimpleAssociableChoicePropertiesPanel,
-} from './PropertiesPanel';
+} from './PropertiesPanel.js';
 
 // Export objects that can be spread (one per concern)
 export const matchRenderers = {

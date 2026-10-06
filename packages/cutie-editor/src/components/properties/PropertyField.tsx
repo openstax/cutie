@@ -1,4 +1,4 @@
-import { useStyle } from '../../hooks/useStyle';
+import { useStyle } from '../../hooks/useStyle.js';
 
 interface PropertyFieldProps {
   label: string;

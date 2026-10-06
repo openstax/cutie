@@ -1,5 +1,5 @@
 /* spell-checker: ignore monosaccharides monosaccharide */
-import type { Sample } from '../types';
+import type { Sample } from '../types.js';
 import {
   allOrNothingMatch,
   correctResponse,
@@ -8,7 +8,7 @@ import {
   responseProcessingOrder,
   shuffle,
   workedSolution,
-} from './conventions';
+} from './conventions.js';
 
 const description = `\
 A matching question: \`qti-match-interaction\` with a \`qti-prompt\` and two \

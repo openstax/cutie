@@ -1,14 +1,14 @@
-import { AttemptState, DeliveryOptions } from '../types';
-import { getChildElements, getFirstChildElement } from '../utils/dom';
-import { generateShuffleOrder, ShuffleItem } from '../utils/shuffle';
-import { parseValue } from '../utils/typeParser';
-import { resolveDeliveryOptions } from './deliveryOptions';
+import { AttemptState, DeliveryOptions } from '../types.js';
+import { getChildElements, getFirstChildElement } from '../utils/dom.js';
+import { generateShuffleOrder, ShuffleItem } from '../utils/shuffle.js';
+import { parseValue } from '../utils/typeParser.js';
+import { resolveDeliveryOptions } from './deliveryOptions.js';
 import {
   evaluateExpression as evaluateExpressionShared,
   type SubEvaluate,
-} from './expressionEvaluator/index';
-import { resolveMaxTries } from './maxTries';
-import { extractStandardOutcomes } from './scoreUtils';
+} from './expressionEvaluator/index.js';
+import { resolveMaxTries } from './maxTries.js';
+import { extractStandardOutcomes } from './scoreUtils.js';
 
 /**
  * Initializes the attempt state by processing template declarations and

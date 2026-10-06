@@ -7,8 +7,8 @@ import type {
   QtiGap,
   QtiGapMatchInteraction,
   SlateElement,
-} from '../../types';
-import { hasCorrectResponse } from '../../utils/responseDeclaration';
+} from '../../types.js';
+import { hasCorrectResponse } from '../../utils/responseDeclaration.js';
 
 /**
  * Recursively find all qti-gap elements within the gap-match-content

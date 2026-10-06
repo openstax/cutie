@@ -1,10 +1,10 @@
 /* spell-checker: ignore hotspot hotspots */
 import { DOMParser } from '@xmldom/xmldom';
 import { describe, expect, test } from 'vitest';
-import { AttemptState } from '../types';
-import { resolveDeliveryOptions } from './deliveryOptions';
-import { processResponse } from './responseProcessing';
-import { instantiateTemplate } from './templateInstance';
+import { AttemptState } from '../types.js';
+import { resolveDeliveryOptions } from './deliveryOptions.js';
+import { processResponse } from './responseProcessing.js';
+import { instantiateTemplate } from './templateInstance.js';
 
 const parser = new DOMParser();
 

@@ -1,4 +1,4 @@
-import type { Sample } from '../types';
+import type { Sample } from '../types.js';
 import {
   allOrNothingMultiple,
   correctResponse,
@@ -6,7 +6,7 @@ import {
   responseProcessingOrder,
   shuffle,
   workedSolution,
-} from './conventions';
+} from './conventions.js';
 
 const description = `\
 A question with several drop-downs: one \`qti-inline-choice-interaction\` per \

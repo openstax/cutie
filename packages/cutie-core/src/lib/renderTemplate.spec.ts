@@ -1,8 +1,8 @@
 /* spell-checker: ignore mrow COEFF */
 import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
 import { describe, expect, test } from 'vitest';
-import { resolveDeliveryOptions } from './deliveryOptions';
-import { renderTemplate } from './renderTemplate';
+import { resolveDeliveryOptions } from './deliveryOptions.js';
+import { renderTemplate } from './renderTemplate.js';
 
 /**
  * Normalizes XML string by parsing and re-serializing it.

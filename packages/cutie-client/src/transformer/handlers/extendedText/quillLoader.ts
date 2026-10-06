@@ -20,7 +20,7 @@ let quillPromise: Promise<LoadedQuill> | null = null;
  */
 export async function loadQuill(): Promise<LoadedQuill> {
   if (!quillPromise) {
-    quillPromise = Promise.all([import('quill'), import('./quillSnowCss')]).then(
+    quillPromise = Promise.all([import('quill'), import('./quillSnowCss.js')]).then(
       ([quillModule, cssModule]) => ({ Quill: quillModule.default, snowCss: cssModule.QUILL_SNOW_CSS }),
     );
   }

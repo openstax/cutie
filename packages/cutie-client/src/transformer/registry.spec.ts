@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { ElementHandler } from './types';
+import type { ElementHandler } from './types.js';
 
 /**
  * HandlerRegistry class for testing (copied to avoid singleton issues in tests)

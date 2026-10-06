@@ -23,4 +23,4 @@ export {
   registerEvaluationStyles,
   type Verdict,
   wrapInlineEvaluation,
-} from './evaluationDisplay';
+} from './evaluationDisplay.js';

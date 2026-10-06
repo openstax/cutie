@@ -1,7 +1,7 @@
 /* spell-checker: ignore MATHML mfrac */
 import { describe, expect, it } from 'vitest';
-import { parseQtiXml } from '../../parser/xmlParser';
-import { createTransformContext, transformChildren } from '../elementTransformer';
+import { parseQtiXml } from '../../parser/xmlParser.js';
+import { createTransformContext, transformChildren } from '../elementTransformer.js';
 
 const MATHML_NS = 'http://www.w3.org/1998/Math/MathML';
 const XHTML_NS = 'http://www.w3.org/1999/xhtml';

@@ -1,5 +1,5 @@
 import { Editor, Element as SlateElement, Transforms } from 'slate';
-import type { CustomEditor, QtiFeedbackBlock } from '../../../types';
+import type { CustomEditor, QtiFeedbackBlock } from '../../../types.js';
 
 /**
  * Insert a feedback block element at the current selection

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { createFeedbackIcon, isFeedbackType } from './feedbackIcons';
-import type { FeedbackType } from './feedbackIcons';
+import { createFeedbackIcon, isFeedbackType } from './feedbackIcons.js';
+import type { FeedbackType } from './feedbackIcons.js';
 
 describe('isFeedbackType', () => {
   it.each(['correct', 'incorrect', 'info'])('should return true for "%s"', (value) => {

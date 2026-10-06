@@ -1,5 +1,5 @@
 /* spell-checker: ignore stomata */
-import type { Sample } from '../types';
+import type { Sample } from '../types.js';
 import {
   allOrNothingMatch,
   correctResponse,
@@ -7,7 +7,7 @@ import {
   pairMappingAlternative,
   responseProcessingOrder,
   workedSolution,
-} from './conventions';
+} from './conventions.js';
 
 const description = `\
 A fill-in-the-blank question with a word bank: \`qti-gap-match-interaction\` with \

@@ -1,7 +1,7 @@
 import type { Descendant } from 'slate';
 import { describe, expect, it } from 'vitest';
-import { serializeSlateToXml } from './slateToXml';
-import { parseXmlToSlate } from './xmlToSlate';
+import { serializeSlateToXml } from './slateToXml.js';
+import { parseXmlToSlate } from './xmlToSlate.js';
 
 /**
  * Wrap content in a minimal QTI assessment item for testing

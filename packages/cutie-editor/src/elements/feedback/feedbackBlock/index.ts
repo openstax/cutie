@@ -1,11 +1,11 @@
-export { FeedbackBlockElement } from './Element';
-export { FeedbackBlockPropertiesPanel } from './PropertiesPanel';
-export { feedbackBlockConfig } from './config';
-export { feedbackBlockParsers, feedbackBlockSerializers } from './serialization';
-export { insertFeedbackBlock, isInFeedbackBlock } from './insertion';
+export { FeedbackBlockElement } from './Element.js';
+export { FeedbackBlockPropertiesPanel } from './PropertiesPanel.js';
+export { feedbackBlockConfig } from './config.js';
+export { feedbackBlockParsers, feedbackBlockSerializers } from './serialization.js';
+export { insertFeedbackBlock, isInFeedbackBlock } from './insertion.js';
 
-import { FeedbackBlockElement } from './Element';
-import { FeedbackBlockPropertiesPanel } from './PropertiesPanel';
+import { FeedbackBlockElement } from './Element.js';
+import { FeedbackBlockPropertiesPanel } from './PropertiesPanel.js';
 
 export const feedbackBlockRenderers = {
   'qti-feedback-block': FeedbackBlockElement,

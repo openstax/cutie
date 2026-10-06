@@ -2,7 +2,7 @@
  * Base value and variable operators
  */
 
-import { parseValue } from '../../utils/typeParser';
+import { parseValue } from '../../utils/typeParser.js';
 
 /**
  * Evaluate qti-base-value element

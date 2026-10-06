@@ -1,8 +1,8 @@
 import { useSelected, useFocused } from 'slate-react';
 import type { RenderElementProps } from 'slate-react';
-import type { QtiSimpleChoice } from '../../types';
-import { useChoiceScoring } from '../../interactions/choice/ChoiceScoringContext';
-import { CheckIcon, CloseIcon } from '../../components/icons';
+import type { QtiSimpleChoice } from '../../types.js';
+import { useChoiceScoring } from '../../interactions/choice/ChoiceScoringContext.js';
+import { CheckIcon, CloseIcon } from '../../components/icons.js';
 
 /**
  * Render a simple choice element

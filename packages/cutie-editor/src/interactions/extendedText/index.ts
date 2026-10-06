@@ -1,15 +1,15 @@
 // Re-export individual components for direct use if needed
-export { ExtendedTextElement } from './Element';
-export { ExtendedTextPropertiesPanel } from './PropertiesPanel';
+export { ExtendedTextElement } from './Element.js';
+export { ExtendedTextPropertiesPanel } from './PropertiesPanel.js';
 
 // Re-export from other modules
-export { extendedTextInteractionConfig } from './config';
-export { extendedTextParsers, extendedTextSerializers } from './serialization';
-export { insertExtendedTextInteraction } from './insertion';
+export { extendedTextInteractionConfig } from './config.js';
+export { extendedTextParsers, extendedTextSerializers } from './serialization.js';
+export { insertExtendedTextInteraction } from './insertion.js';
 
 // Import components for creating maps
-import { ExtendedTextElement } from './Element';
-import { ExtendedTextPropertiesPanel } from './PropertiesPanel';
+import { ExtendedTextElement } from './Element.js';
+import { ExtendedTextPropertiesPanel } from './PropertiesPanel.js';
 
 // Export objects that can be spread (one per concern)
 export const extendedTextRenderers = {

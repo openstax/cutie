@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { type MountedStimulus, mountStimulus } from './mountStimulus';
+import { type MountedStimulus, mountStimulus } from './mountStimulus.js';
 
 function stimulusXml(body: string): string {
   return `<?xml version="1.0" encoding="UTF-8"?>

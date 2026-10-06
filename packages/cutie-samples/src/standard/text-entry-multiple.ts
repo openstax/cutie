@@ -1,4 +1,4 @@
-import type { Sample } from '../types';
+import type { Sample } from '../types.js';
 import {
   allOrNothingMultiple,
   correctResponse,
@@ -7,7 +7,7 @@ import {
   responseProcessingOrder,
   responseRequired,
   workedSolution,
-} from './conventions';
+} from './conventions.js';
 
 const description = `\
 A fill-in-the-blank question with several typed blanks: one \

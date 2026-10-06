@@ -6,9 +6,9 @@
  * that users match to gap placeholders embedded in content.
  */
 
-import { registry } from '../../registry';
-import { GapHandler } from './gapHandler';
-import { GapMatchInteractionHandler } from './gapMatchInteractionHandler';
+import { registry } from '../../registry.js';
+import { GapHandler } from './gapHandler.js';
+import { GapMatchInteractionHandler } from './gapMatchInteractionHandler.js';
 
 // Register handlers
 // GapHandler at priority 45 to be checked before GapMatchInteractionHandler
@@ -17,6 +17,6 @@ registry.register('gap', new GapHandler(), 45);
 registry.register('gap-match-interaction', new GapMatchInteractionHandler(), 50);
 
 // Re-export for external use if needed
-export { GapHandler } from './gapHandler';
-export { GapMatchInteractionHandler } from './gapMatchInteractionHandler';
-export { GapMatchController } from './controller';
+export { GapHandler } from './gapHandler.js';
+export { GapMatchInteractionHandler } from './gapMatchInteractionHandler.js';
+export { GapMatchController } from './controller.js';

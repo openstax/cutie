@@ -2,10 +2,10 @@
  * Comparison operators
  */
 
-import { getChildElements } from '../../utils/dom';
-import { deepEqual, deepEqualUnordered } from '../../utils/equality';
-import { compareMathExpressions, type MathComparisonMode } from './math';
-import type { SubEvaluate } from './types';
+import { getChildElements } from '../../utils/dom.js';
+import { deepEqual, deepEqualUnordered } from '../../utils/equality.js';
+import { compareMathExpressions, type MathComparisonMode } from './math.js';
+import type { SubEvaluate } from './types.js';
 
 /**
  * Helper to find a response identifier from qti-variable or qti-correct children

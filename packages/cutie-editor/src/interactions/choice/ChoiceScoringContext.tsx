@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import type { MapEntry } from '../../utils/mappingDeclaration';
+import type { MapEntry } from '../../utils/mappingDeclaration.js';
 
 /**
  * Scoring information for a choice interaction, provided to child SimpleChoice elements

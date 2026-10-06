@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import type { EditorAssetHandlers } from '../types';
+import type { EditorAssetHandlers } from '../types.js';
 
 /**
  * Context for passing asset handlers (resolve/upload) to element renderers.

@@ -3,7 +3,7 @@ import {
   getMaxAreaMappedValue,
   getMaxMappedValue,
   getResponseMapping,
-} from './responseDeclarations';
+} from './responseDeclarations.js';
 
 /**
  * Derives the maximum score for an assessment item by analyzing the response processing rules.
