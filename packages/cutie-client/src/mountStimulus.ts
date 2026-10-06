@@ -1,9 +1,9 @@
-import { parseQtiStimulusXml } from './parser/xmlParser';
-import { renderToContainer } from './renderer/domRenderer';
-import { registerBaseStyles } from './styles';
-import { applyThemeVars, removeThemeVars, type ThemeOptions } from './theme';
-import { createTransformContext, transformChildren } from './transformer/elementTransformer';
-import { DefaultStyleManager } from './transformer/styleManager';
+import { parseQtiStimulusXml } from './parser/xmlParser.js';
+import { renderToContainer } from './renderer/domRenderer.js';
+import { registerBaseStyles } from './styles/index.js';
+import { applyThemeVars, removeThemeVars, type ThemeOptions } from './theme.js';
+import { createTransformContext, transformChildren } from './transformer/elementTransformer.js';
+import { DefaultStyleManager } from './transformer/styleManager.js';
 
 /**
  * Options for a mounted QTI stimulus: its theme (see ThemeOptions).

@@ -1,7 +1,7 @@
 /* spell-checker: ignore inlines */
 import { DOMParser } from '@xmldom/xmldom';
-import { StimulusReference, StimulusResolver } from '../types';
-import { BaseOf, removeReservedMarkup } from './content';
+import { StimulusReference, StimulusResolver } from '../types.js';
+import { BaseOf, removeReservedMarkup } from './content.js';
 
 /**
  * Shared stimuli (`qti-assessment-stimulus`): content kept outside the items

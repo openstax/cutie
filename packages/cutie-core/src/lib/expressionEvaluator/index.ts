@@ -16,8 +16,8 @@ import {
   evaluateSubtract,
   evaluateSum,
   evaluateTruncate,
-} from './arithmetic';
-import { evaluateBaseValue, evaluateVariable } from './base';
+} from './arithmetic.js';
+import { evaluateBaseValue, evaluateVariable } from './base.js';
 import {
   evaluateEqual,
   evaluateGreaterThan,
@@ -25,7 +25,7 @@ import {
   evaluateLessThan,
   evaluateLessThanOrEqual,
   evaluateMatch,
-} from './comparison';
+} from './comparison.js';
 import {
   evaluateContainerSize,
   evaluateContains,
@@ -35,11 +35,11 @@ import {
   evaluateMultiple,
   evaluateOrdered,
   evaluateRepeat,
-} from './containers';
-import { evaluateAnd, evaluateNot, evaluateOr } from './logical';
-import { evaluateFieldValue, evaluateRecord } from './record';
-import { evaluatePatternMatch, evaluateStringMatch, evaluateSubstring } from './string';
-import type { SubEvaluate } from './types';
+} from './containers.js';
+import { evaluateAnd, evaluateNot, evaluateOr } from './logical.js';
+import { evaluateFieldValue, evaluateRecord } from './record.js';
+import { evaluatePatternMatch, evaluateStringMatch, evaluateSubstring } from './string.js';
+import type { SubEvaluate } from './types.js';
 import {
   evaluateAnyN,
   evaluateIntegerToFloat,
@@ -47,10 +47,10 @@ import {
   evaluateRandom,
   evaluateRandomFloat,
   evaluateRandomInteger,
-} from './utility';
+} from './utility.js';
 
 // Export types
-export type { SubEvaluate } from './types';
+export type { SubEvaluate } from './types.js';
 
 /**
  * Evaluate a QTI expression element

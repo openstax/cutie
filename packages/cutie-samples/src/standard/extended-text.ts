@@ -1,4 +1,4 @@
-import type { Sample } from '../types';
+import type { Sample } from '../types.js';
 
 const description = `\
 An open-response question graded by an instructor: \`qti-extended-text-interaction\` \

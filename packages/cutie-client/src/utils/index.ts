@@ -5,17 +5,17 @@
 export {
   announce,
   LIVE_REGION_STYLES,
-} from './liveRegion';
+} from './liveRegion.js';
 
 export {
   focusNext,
   focusPrev,
   updateRovingTabindex,
   initializeRovingTabindex,
-} from './rovingTabindex';
+} from './rovingTabindex.js';
 
-export { highlightDropTargets, clearDropTargetHighlights } from './dragDrop';
+export { highlightDropTargets, clearDropTargetHighlights } from './dragDrop.js';
 
-export { reportResponseChanges } from './responseChange';
+export { reportResponseChanges } from './responseChange.js';
 
-export { addAriaDescribedBy } from './aria';
+export { addAriaDescribedBy } from './aria.js';

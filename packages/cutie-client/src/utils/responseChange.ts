@@ -1,4 +1,4 @@
-import type { TransformContext } from '../transformer/types';
+import type { TransformContext } from '../transformer/types.js';
 
 /**
  * Wrap a learner-event listener so that, when running it changes the response

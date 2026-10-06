@@ -1,11 +1,11 @@
-export { ModalFeedbackElement } from './Element';
-export { ModalFeedbackPropertiesPanel } from './PropertiesPanel';
-export { modalFeedbackConfig } from './config';
-export { modalFeedbackParsers, modalFeedbackSerializers } from './serialization';
-export { insertModalFeedback, isInModalFeedback } from './insertion';
+export { ModalFeedbackElement } from './Element.js';
+export { ModalFeedbackPropertiesPanel } from './PropertiesPanel.js';
+export { modalFeedbackConfig } from './config.js';
+export { modalFeedbackParsers, modalFeedbackSerializers } from './serialization.js';
+export { insertModalFeedback, isInModalFeedback } from './insertion.js';
 
-import { ModalFeedbackElement } from './Element';
-import { ModalFeedbackPropertiesPanel } from './PropertiesPanel';
+import { ModalFeedbackElement } from './Element.js';
+import { ModalFeedbackPropertiesPanel } from './PropertiesPanel.js';
 
 export const modalFeedbackRenderers = {
   'qti-modal-feedback': ModalFeedbackElement,

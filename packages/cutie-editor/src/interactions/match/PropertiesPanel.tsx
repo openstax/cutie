@@ -1,14 +1,14 @@
 import { Node, Transforms } from 'slate';
 import type { Path } from 'slate';
 import { useSlate } from 'slate-react';
-import { AddIcon, ArrowDownIcon, ArrowUpIcon, DeleteIcon } from '../../components/icons';
-import { MapEntryList } from '../../components/properties/MapEntryList';
-import { MappingMetadataFields } from '../../components/properties/MappingMetadataFields';
-import { PropertyCheckbox } from '../../components/properties/PropertyCheckbox';
-import { PropertyField } from '../../components/properties/PropertyField';
-import { ShuffleRadioGroup } from '../../components/properties/ShuffleRadioGroup';
-import { ToggleableFormSection } from '../../components/properties/ToggleableFormSection';
-import { useStyle } from '../../hooks/useStyle';
+import { AddIcon, ArrowDownIcon, ArrowUpIcon, DeleteIcon } from '../../components/icons.js';
+import { MapEntryList } from '../../components/properties/MapEntryList.js';
+import { MappingMetadataFields } from '../../components/properties/MappingMetadataFields.js';
+import { PropertyCheckbox } from '../../components/properties/PropertyCheckbox.js';
+import { PropertyField } from '../../components/properties/PropertyField.js';
+import { ShuffleRadioGroup } from '../../components/properties/ShuffleRadioGroup.js';
+import { ToggleableFormSection } from '../../components/properties/ToggleableFormSection.js';
+import { useStyle } from '../../hooks/useStyle.js';
 import type {
   ElementAttributes,
   MatchSourceSet,
@@ -16,7 +16,7 @@ import type {
   QtiMatchInteraction,
   QtiSimpleAssociableChoice,
   XmlNode,
-} from '../../types';
+} from '../../types.js';
 import {
   addEmptyMapping,
   getMapping,
@@ -25,14 +25,14 @@ import {
   type MapEntry,
   type MappingMetadata,
   updateMapping,
-} from '../../utils/mappingDeclaration';
+} from '../../utils/mappingDeclaration.js';
 import {
   getCorrectValues,
   hasCorrectResponse,
   removeCorrectResponse,
   updateIdentifier,
-} from '../../utils/responseDeclaration';
-import { generateSourceId, generateTargetId } from './insertion';
+} from '../../utils/responseDeclaration.js';
+import { generateSourceId, generateTargetId } from './insertion.js';
 
 interface MatchPropertiesPanelProps {
   element: QtiMatchInteraction;

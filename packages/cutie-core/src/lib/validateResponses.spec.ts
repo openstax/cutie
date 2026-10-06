@@ -1,6 +1,6 @@
 import { DOMParser } from '@xmldom/xmldom';
 import { describe, expect, it } from 'vitest';
-import { ResponseValidationError, validateSubmission } from './validateResponses';
+import { ResponseValidationError, validateSubmission } from './validateResponses.js';
 
 function parseItem(xml: string): Document {
   return new DOMParser().parseFromString(xml.trim(), 'text/xml');

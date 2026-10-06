@@ -1,8 +1,8 @@
 import { DOMParser } from '@xmldom/xmldom';
 import { describe, expect, test } from 'vitest';
-import { AttemptState } from '../types';
-import { resolveDeliveryOptions } from './deliveryOptions';
-import { instantiateTemplate } from './templateInstance';
+import { AttemptState } from '../types.js';
+import { resolveDeliveryOptions } from './deliveryOptions.js';
+import { instantiateTemplate } from './templateInstance.js';
 
 function state(correctResponses: Record<string, unknown>): AttemptState {
   return {

@@ -8,7 +8,7 @@ import {
   getResponseMapping,
   mapResponse,
   mapResponsePoint,
-} from './responseDeclarations';
+} from './responseDeclarations.js';
 
 /**
  * How a single response was judged.

@@ -1,5 +1,5 @@
-import type { ElementHandler, TransformContext } from '../../types';
-import { GAP_STYLES } from './styles';
+import type { ElementHandler, TransformContext } from '../../types.js';
+import { GAP_STYLES } from './styles.js';
 
 /**
  * Handler for qti-gap elements within gap-match-interaction.

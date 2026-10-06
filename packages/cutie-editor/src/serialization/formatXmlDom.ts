@@ -1,5 +1,5 @@
-import { elementConfigs } from '../plugins/withQtiInteractions';
-import { BLOCK_ELEMENTS_FOR_WHITESPACE } from './xmlToSlate';
+import { elementConfigs } from '../plugins/withQtiInteractions.js';
+import { BLOCK_ELEMENTS_FOR_WHITESPACE } from './xmlToSlate.js';
 
 /**
  * QTI structural elements that appear outside qti-item-body

@@ -1,5 +1,5 @@
 import { Editor, Element as SlateElement, Transforms } from 'slate';
-import type { CustomEditor, QtiModalFeedback } from '../../../types';
+import type { CustomEditor, QtiModalFeedback } from '../../../types.js';
 
 /**
  * Insert a modal feedback element at the bottom of the editor

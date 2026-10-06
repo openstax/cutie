@@ -12,7 +12,7 @@ export default defineConfig({
     {
       name: 'bundled-asset-stubs',
       resolveId: (id) => {
-        const name = /\/([^/]+)$/.exec(id)?.[1];
+        const name = /\/([^/]+?)(?:\.js)?$/.exec(id)?.[1];
         return name && name in BUNDLED_ASSET_STUBS ? STUB_PREFIX + name : null;
       },
       load: (id) => (id.startsWith(STUB_PREFIX) ? BUNDLED_ASSET_STUBS[id.slice(STUB_PREFIX.length)] : null),

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import type { XmlNode } from '../types';
-import { ITEM_COMPLETED_FEEDBACK_ID } from './feedbackIdentifiers';
-import { classifyResponseProcessing } from './responseProcessingClassifier';
-import { generateResponseProcessingXml } from './responseProcessingGenerator';
+import type { XmlNode } from '../types.js';
+import { ITEM_COMPLETED_FEEDBACK_ID } from './feedbackIdentifiers.js';
+import { classifyResponseProcessing } from './responseProcessingClassifier.js';
+import { generateResponseProcessingXml } from './responseProcessingGenerator.js';
 
 const QTI_NAMESPACE = 'http://www.imsglobal.org/xsd/imsqtiasi_v3p0';
 

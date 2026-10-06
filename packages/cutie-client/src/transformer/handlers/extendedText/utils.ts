@@ -1,11 +1,11 @@
 import {
   type ConstraintMessage,
   createConstraintMessage,
-} from '../../../errors/validationDisplay';
-import { addAriaDescribedBy } from '../../../utils/aria';
-import { announce } from '../../../utils/liveRegion';
-import type { StyleManager, TransformContext } from '../../types';
-import { clearConstraintVerdict } from '../evaluation';
+} from '../../../errors/validationDisplay.js';
+import { addAriaDescribedBy } from '../../../utils/aria.js';
+import { announce } from '../../../utils/liveRegion.js';
+import type { StyleManager, TransformContext } from '../../types.js';
+import { clearConstraintVerdict } from '../evaluation/index.js';
 
 /**
  * Create the outer container div for an extended-text interaction variant.

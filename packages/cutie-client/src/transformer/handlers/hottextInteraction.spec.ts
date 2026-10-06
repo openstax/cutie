@@ -1,11 +1,11 @@
 /* spell-checker: ignore hottext radiogroup */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { ItemStateImpl } from '../../state/itemState';
-import { registry } from '../registry';
-import type { TransformContext } from '../types';
+import { ItemStateImpl } from '../../state/itemState.js';
+import { registry } from '../registry.js';
+import type { TransformContext } from '../types.js';
 
 // Side-effect import to register both handlers (hottext + hottext-interaction)
-import './hottextInteraction';
+import './hottextInteraction.js';
 
 function createQtiDocument(interactionHtml: string, responseDeclaration = ''): Document {
   const html = `

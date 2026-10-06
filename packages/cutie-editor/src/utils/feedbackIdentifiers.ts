@@ -1,6 +1,6 @@
 import type { Descendant, Element } from 'slate';
-import { getElementFeedbackIdentifiers } from '../plugins/withQtiInteractions';
-import type { FeedbackIdentifier, FeedbackIdentifierSource, SlateElement } from '../types';
+import { getElementFeedbackIdentifiers } from '../plugins/withQtiInteractions.js';
+import type { FeedbackIdentifier, FeedbackIdentifierSource, SlateElement } from '../types.js';
 
 // Re-export types for convenience
 export type { FeedbackIdentifier, FeedbackIdentifierSource };

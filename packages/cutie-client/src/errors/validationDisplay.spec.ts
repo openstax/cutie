@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createInlineRequiredIndicator } from './validationDisplay';
+import { createInlineRequiredIndicator } from './validationDisplay.js';
 
 describe('createInlineRequiredIndicator', () => {
   it('is aria-hidden so it is not read twice by screen readers', () => {

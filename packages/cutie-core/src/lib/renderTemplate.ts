@@ -1,14 +1,14 @@
 /* spell-checker: ignore inlines */
-import { AttemptState, FeedbackIdentity, ProcessingOptions } from '../types';
-import { createValueContainer } from '../utils/valueContainer';
-import { isAdaptive } from './adaptive';
-import { finishContent, removeReservedMarkup } from './content';
-import { canEvaluate } from './deliveryOptions';
-import { evaluateResponse, ResponseEvaluation } from './evaluateResponses';
-import { getCorrectResponse } from './responseDeclarations';
-import { inlineDockedStimuli } from './stimulus';
-import { evaluateTry } from './tries';
-import { getFeedbackElements, processFeedbackVisibility, processTemplateConditionals } from './visibility';
+import { AttemptState, FeedbackIdentity, ProcessingOptions } from '../types.js';
+import { createValueContainer } from '../utils/valueContainer.js';
+import { isAdaptive } from './adaptive.js';
+import { finishContent, removeReservedMarkup } from './content.js';
+import { canEvaluate } from './deliveryOptions.js';
+import { evaluateResponse, ResponseEvaluation } from './evaluateResponses.js';
+import { getCorrectResponse } from './responseDeclarations.js';
+import { inlineDockedStimuli } from './stimulus.js';
+import { evaluateTry } from './tries.js';
+import { getFeedbackElements, processFeedbackVisibility, processTemplateConditionals } from './visibility.js';
 
 /**
  * Renders a sanitized QTI template for client consumption.

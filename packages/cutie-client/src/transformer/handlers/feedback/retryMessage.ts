@@ -1,8 +1,8 @@
-import { announce } from '../../../utils/liveRegion';
-import { registry } from '../../registry';
-import type { ElementHandler, TransformContext } from '../../types';
-import { registerFeedbackBlockStyles } from './feedbackBlock';
-import { createFeedbackIcon } from './feedbackIcons';
+import { announce } from '../../../utils/liveRegion.js';
+import { registry } from '../../registry.js';
+import type { ElementHandler, TransformContext } from '../../types.js';
+import { registerFeedbackBlockStyles } from './feedbackBlock.js';
+import { createFeedbackIcon } from './feedbackIcons.js';
 
 const RETRY_VERDICTS = ['incorrect', 'partial'] as const;
 type RetryVerdict = (typeof RETRY_VERDICTS)[number];

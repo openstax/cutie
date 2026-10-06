@@ -1,17 +1,17 @@
 import { Editor, Element, Path } from 'slate';
-import { contentBodyConfig } from '../elements/contentBody/config';
-import { feedbackBlockConfig } from '../elements/feedback/feedbackBlock/config';
-import { feedbackInlineConfig } from '../elements/feedback/feedbackInline/config';
-import { modalFeedbackConfig } from '../elements/feedback/modalFeedback/config';
-import { imageConfig } from '../elements/image/config';
-import { promptConfig } from '../elements/prompt/config';
+import { contentBodyConfig } from '../elements/contentBody/config.js';
+import { feedbackBlockConfig } from '../elements/feedback/feedbackBlock/config.js';
+import { feedbackInlineConfig } from '../elements/feedback/feedbackInline/config.js';
+import { modalFeedbackConfig } from '../elements/feedback/modalFeedback/config.js';
+import { imageConfig } from '../elements/image/config.js';
+import { promptConfig } from '../elements/prompt/config.js';
 import {
   choiceContentConfig,
   choiceIdLabelConfig,
   simpleChoiceConfig,
-} from '../elements/simpleChoice/config';
-import { choiceInteractionConfig } from '../interactions/choice/config';
-import { extendedTextInteractionConfig } from '../interactions/extendedText/config';
+} from '../elements/simpleChoice/config.js';
+import { choiceInteractionConfig } from '../interactions/choice/config.js';
+import { extendedTextInteractionConfig } from '../interactions/extendedText/config.js';
 import {
   gapConfig,
   gapImgConfig,
@@ -19,16 +19,16 @@ import {
   gapMatchContentConfig,
   gapMatchInteractionConfig,
   gapTextConfig,
-} from '../interactions/gapMatch/config';
-import { inlineChoiceInteractionConfig } from '../interactions/inlineChoice/config';
+} from '../interactions/gapMatch/config.js';
+import { inlineChoiceInteractionConfig } from '../interactions/inlineChoice/config.js';
 import {
   matchInteractionConfig,
   matchSourceSetConfig,
   matchTargetSetConfig,
   simpleAssociableChoiceConfig,
-} from '../interactions/match/config';
-import { textEntryInteractionConfig } from '../interactions/textEntry/config';
-import type { CustomEditor, ElementConfig, FeedbackIdentifierSource } from '../types';
+} from '../interactions/match/config.js';
+import { textEntryInteractionConfig } from '../interactions/textEntry/config.js';
+import type { CustomEditor, ElementConfig, FeedbackIdentifierSource } from '../types.js';
 
 export const elementConfigs: ElementConfig[] = [
   // Interaction configs

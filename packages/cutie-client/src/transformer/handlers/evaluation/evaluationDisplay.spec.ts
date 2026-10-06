@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DefaultStyleManager } from '../../styleManager';
+import { DefaultStyleManager } from '../../styleManager.js';
 import {
   cloneLabel,
   createCorrectAnswer,
@@ -12,7 +12,7 @@ import {
   parseDirectedPair,
   readEvaluation,
   wrapInlineEvaluation,
-} from './evaluationDisplay';
+} from './evaluationDisplay.js';
 
 function parse(html: string): Document {
   return new DOMParser().parseFromString(`<html><body>${html}</body></html>`, 'text/html');

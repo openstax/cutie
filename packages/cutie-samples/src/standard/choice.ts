@@ -1,5 +1,5 @@
 /* spell-checker: ignore Golgi Lysosome */
-import type { Sample } from '../types';
+import type { Sample } from '../types.js';
 import {
   allOrNothingMatch,
   correctResponse,
@@ -7,7 +7,7 @@ import {
   responseProcessingOrder,
   shuffle,
   workedSolution,
-} from './conventions';
+} from './conventions.js';
 
 const description = `\
 A single-select multiple choice question: \`qti-choice-interaction\` with \

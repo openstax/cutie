@@ -1,11 +1,11 @@
 /* spell-checker: ignore MATHML */
-import { registry } from '../registry';
-import type { ElementHandler, TransformContext } from '../types';
+import { registry } from '../registry.js';
+import type { ElementHandler, TransformContext } from '../types.js';
 import {
   annotateInlineInteractions,
   BLOCK_TAGS,
   SR_ONLY_STYLES,
-} from './inlineInteractionAnnotator';
+} from './inlineInteractionAnnotator.js';
 
 /**
  * MathML 3 is the only imported namespace QTI v3 renders as markup. Everything

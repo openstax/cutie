@@ -1,5 +1,5 @@
 import { Editor, Element, Transforms } from 'slate';
-import { generateUniqueResponseId } from '../../utils/idGenerator';
+import { generateUniqueResponseId } from '../../utils/idGenerator.js';
 
 /**
  * Generate a unique source identifier within the interaction

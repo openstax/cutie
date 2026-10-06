@@ -1,7 +1,7 @@
 import { DOMParser } from '@xmldom/xmldom';
 import { describe, expect, test } from 'vitest';
 // Test fixtures only: the example app's items exercise every supported feature
-import { examples } from '../../cutie-example/src/example-items';
+import { examples } from '../../cutie-example/src/example-items/index.js';
 import {
   type AttemptResult,
   type AttemptState,
@@ -11,7 +11,7 @@ import {
   resumeAttempt,
   setScore,
   submitResponse,
-} from './index';
+} from './index.js';
 
 const MAX_TURNS = 3;
 

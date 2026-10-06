@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
-import { resolveDeliveryOptions } from './lib/deliveryOptions';
-import type { AttemptState } from './types';
+import { resolveDeliveryOptions } from './lib/deliveryOptions.js';
+import type { AttemptState } from './types.js';
 import {
   beginAttempt,
   listItemDependencies,
@@ -8,7 +8,7 @@ import {
   ResponseValidationError,
   setScore,
   submitResponse,
-} from './index';
+} from './index.js';
 
 const externalScoredItem = `<?xml version="1.0" encoding="UTF-8"?>
 <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"

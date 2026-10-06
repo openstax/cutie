@@ -1,10 +1,10 @@
-import { createUnsupportedElement } from '../errors/errorDisplay';
-import { registry } from './registry';
-import { DefaultStyleManager } from './styleManager';
-import type { StyleManager, TransformContext } from './types';
+import { createUnsupportedElement } from '../errors/errorDisplay.js';
+import { registry } from './registry.js';
+import { DefaultStyleManager } from './styleManager.js';
+import type { StyleManager, TransformContext } from './types.js';
 
 // Import handlers to trigger registration
-import './handlers';
+import './handlers/index.js';
 
 /**
  * Create a transform context with styleManager and transformChildren wired up.

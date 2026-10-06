@@ -1,14 +1,14 @@
-import { parseQtiXml } from './parser/xmlParser';
-import { renderToContainer } from './renderer/domRenderer';
-import { ItemStateImpl } from './state/itemState';
-import { registerBaseStyles } from './styles';
-import { applyThemeVars, removeThemeVars, type ThemeOptions } from './theme';
-import { createTransformContext, transformChildren, transformNode } from './transformer/elementTransformer';
-import { announceItemVerdict } from './transformer/handlers/evaluation';
-import { beginFeedbackRender, endFeedbackRender } from './transformer/handlers/feedback/feedbackAnnouncer';
-import { DefaultStyleManager } from './transformer/styleManager';
-import type { InteractionState, ResponseData, TransformContext } from './transformer/types';
-import { acquireLiveRegions, announce } from './utils/liveRegion';
+import { parseQtiXml } from './parser/xmlParser.js';
+import { renderToContainer } from './renderer/domRenderer.js';
+import { ItemStateImpl } from './state/itemState.js';
+import { registerBaseStyles } from './styles/index.js';
+import { applyThemeVars, removeThemeVars, type ThemeOptions } from './theme.js';
+import { createTransformContext, transformChildren, transformNode } from './transformer/elementTransformer.js';
+import { announceItemVerdict } from './transformer/handlers/evaluation/index.js';
+import { beginFeedbackRender, endFeedbackRender } from './transformer/handlers/feedback/feedbackAnnouncer.js';
+import { DefaultStyleManager } from './transformer/styleManager.js';
+import type { InteractionState, ResponseData, TransformContext } from './transformer/types.js';
+import { acquireLiveRegions, announce } from './utils/liveRegion.js';
 
 /**
  * Options for a mounted QTI item: its theme (see ThemeOptions) and behavior.

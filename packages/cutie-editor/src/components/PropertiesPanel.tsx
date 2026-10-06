@@ -1,18 +1,18 @@
 import type { Path } from 'slate';
-import { useStyle } from '../hooks/useStyle';
-import { choicePropertiesPanels } from '../interactions/choice';
-import { textEntryPropertiesPanels } from '../interactions/textEntry';
-import { inlineChoicePropertiesPanels } from '../interactions/inlineChoice';
-import { extendedTextPropertiesPanels } from '../interactions/extendedText';
-import { gapMatchPropertiesPanels } from '../interactions/gapMatch';
-import { matchPropertiesPanels } from '../interactions/match';
-import { imagePropertiesPanels } from '../elements/image';
-import { simpleChoicePropertiesPanels } from '../elements/simpleChoice';
-import { feedbackInlinePropertiesPanels } from '../elements/feedback/feedbackInline';
-import { feedbackBlockPropertiesPanels } from '../elements/feedback/feedbackBlock';
-import { modalFeedbackPropertiesPanels } from '../elements/feedback/modalFeedback';
-import { ResponseProcessingPanel } from './ResponseProcessingPanel';
-import type { SlateElement, ElementAttributes, XmlNode, ResponseProcessingConfig, ResponseProcessingMode } from '../types';
+import { useStyle } from '../hooks/useStyle.js';
+import { choicePropertiesPanels } from '../interactions/choice/index.js';
+import { textEntryPropertiesPanels } from '../interactions/textEntry/index.js';
+import { inlineChoicePropertiesPanels } from '../interactions/inlineChoice/index.js';
+import { extendedTextPropertiesPanels } from '../interactions/extendedText/index.js';
+import { gapMatchPropertiesPanels } from '../interactions/gapMatch/index.js';
+import { matchPropertiesPanels } from '../interactions/match/index.js';
+import { imagePropertiesPanels } from '../elements/image/index.js';
+import { simpleChoicePropertiesPanels } from '../elements/simpleChoice/index.js';
+import { feedbackInlinePropertiesPanels } from '../elements/feedback/feedbackInline/index.js';
+import { feedbackBlockPropertiesPanels } from '../elements/feedback/feedbackBlock/index.js';
+import { modalFeedbackPropertiesPanels } from '../elements/feedback/modalFeedback/index.js';
+import { ResponseProcessingPanel } from './ResponseProcessingPanel.js';
+import type { SlateElement, ElementAttributes, XmlNode, ResponseProcessingConfig, ResponseProcessingMode } from '../types.js';
 
 interface PropertiesPanelProps {
   selectedElement: SlateElement | null;

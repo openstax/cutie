@@ -1,5 +1,5 @@
 import { useId } from 'react';
-import type { ElementAttributes } from '../../types';
+import type { ElementAttributes } from '../../types.js';
 
 /**
  * The author's shuffle choice for an interaction.

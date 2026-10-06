@@ -1,5 +1,5 @@
 /* spell-checker: ignore parsererror */
-import type { ParsedQtiItem, ParsedQtiStimulus } from '../types';
+import type { ParsedQtiItem, ParsedQtiStimulus } from '../types.js';
 
 /**
  * Parse QTI XML string into a structured format

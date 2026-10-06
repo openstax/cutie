@@ -1,17 +1,17 @@
 import React from 'react';
 import { Editor, Transforms, Element as SlateElement } from 'slate';
 import { useSlate } from 'slate-react';
-import { insertChoiceInteraction } from '../interactions/choice';
-import { insertTextEntryInteraction } from '../interactions/textEntry';
-import { insertInlineChoiceInteraction } from '../interactions/inlineChoice';
-import { insertExtendedTextInteraction } from '../interactions/extendedText';
-import { insertGapMatchInteraction } from '../interactions/gapMatch';
-import { insertMatchInteraction } from '../interactions/match';
-import { insertImage } from '../elements/image';
-import { insertFeedbackInline } from '../elements/feedback/feedbackInline';
-import { insertFeedbackBlock } from '../elements/feedback/feedbackBlock';
-import { insertModalFeedback } from '../elements/feedback/modalFeedback';
-import { useAssetHandlers } from '../contexts/AssetContext';
+import { insertChoiceInteraction } from '../interactions/choice/index.js';
+import { insertTextEntryInteraction } from '../interactions/textEntry/index.js';
+import { insertInlineChoiceInteraction } from '../interactions/inlineChoice/index.js';
+import { insertExtendedTextInteraction } from '../interactions/extendedText/index.js';
+import { insertGapMatchInteraction } from '../interactions/gapMatch/index.js';
+import { insertMatchInteraction } from '../interactions/match/index.js';
+import { insertImage } from '../elements/image/index.js';
+import { insertFeedbackInline } from '../elements/feedback/feedbackInline/index.js';
+import { insertFeedbackBlock } from '../elements/feedback/feedbackBlock/index.js';
+import { insertModalFeedback } from '../elements/feedback/modalFeedback/index.js';
+import { useAssetHandlers } from '../contexts/AssetContext.js';
 import {
   BoldIcon,
   ItalicIcon,
@@ -29,8 +29,8 @@ import {
   ImageIcon,
   CheckBoxIcon,
   FeedbackIcon,
-} from '../components/icons';
-import type { TextAlign } from '../types';
+} from '../components/icons.js';
+import type { TextAlign } from '../types.js';
 
 /**
  * Toolbar component for the Slate editor

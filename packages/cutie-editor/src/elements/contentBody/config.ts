@@ -1,6 +1,6 @@
 import { Element } from 'slate';
-import type { ElementConfig } from '../../types';
-import { wrapInlineContentInParagraphs } from '../../utils/normalization';
+import type { ElementConfig } from '../../types.js';
+import { wrapInlineContentInParagraphs } from '../../utils/normalization.js';
 
 export const contentBodyConfig: ElementConfig = {
   type: 'qti-content-body',

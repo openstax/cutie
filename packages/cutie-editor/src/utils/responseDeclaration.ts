@@ -1,8 +1,8 @@
-import type { XmlNode } from '../serialization/xmlNode';
-import { findChild, findChildren } from '../serialization/xmlNode';
+import type { XmlNode } from '../serialization/xmlNode.js';
+import { findChild, findChildren } from '../serialization/xmlNode.js';
 
 // Re-export for convenience
-export { findChild, findChildren } from '../serialization/xmlNode';
+export { findChild, findChildren } from '../serialization/xmlNode.js';
 
 /**
  * Check if a response declaration has a correct response defined

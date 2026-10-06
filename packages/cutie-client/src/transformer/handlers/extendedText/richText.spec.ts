@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ItemStateImpl } from '../../../state/itemState';
-import { registry } from '../../registry';
-import type { StyleManager, TransformContext } from '../../types';
+import { ItemStateImpl } from '../../../state/itemState.js';
+import { registry } from '../../registry.js';
+import type { StyleManager, TransformContext } from '../../types.js';
 
 // Mock Quill with a minimal functional mock
 interface MockQuillInstance {
@@ -44,7 +44,7 @@ function createMockQuillInstance(container: HTMLElement): MockQuillInstance {
   return instance;
 }
 
-vi.mock('./quillLoader', () => ({
+vi.mock('./quillLoader.js', () => ({
   loadQuill: () => Promise.resolve({
     Quill: class MockQuill {
       constructor(container: HTMLElement) {
@@ -57,7 +57,7 @@ vi.mock('./quillLoader', () => ({
 }));
 
 // Side-effect import to register the handler
-import './richText';
+import './richText.js';
 
 function createQtiDocument(interactionHtml: string): Document {
   const html = `

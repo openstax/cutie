@@ -1,5 +1,5 @@
-import { announce } from '../../../utils/liveRegion';
-import type { TransformContext } from '../../types';
+import { announce } from '../../../utils/liveRegion.js';
+import type { TransformContext } from '../../types.js';
 
 /** The feedback the previous render showed */
 const SHOWN_KEYS_STATE_KEY = 'feedbackShownKeys';

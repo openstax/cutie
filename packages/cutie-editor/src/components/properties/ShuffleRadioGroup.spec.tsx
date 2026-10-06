@@ -1,8 +1,8 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { ShuffleRadioGroup, getShuffleValue, setShuffleValue } from './ShuffleRadioGroup';
-import type { ElementAttributes } from '../../types';
+import { ShuffleRadioGroup, getShuffleValue, setShuffleValue } from './ShuffleRadioGroup.js';
+import type { ElementAttributes } from '../../types.js';
 
 // Tell React this environment supports act()
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

@@ -1,8 +1,8 @@
-export { PromptElement } from './Element';
-export { promptConfig } from './config';
-export { promptParsers, promptSerializers } from './serialization';
+export { PromptElement } from './Element.js';
+export { promptConfig } from './config.js';
+export { promptParsers, promptSerializers } from './serialization.js';
 
-import { PromptElement } from './Element';
+import { PromptElement } from './Element.js';
 
 export const promptRenderers = {
   'qti-prompt': PromptElement,

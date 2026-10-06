@@ -1,6 +1,6 @@
-import { deepEqual, deepEqualUnordered } from '../utils/equality';
-import { normalizePair, parseResponseValue } from '../utils/typeParser';
-import { compareMathExpressions, type MathComparisonMode } from './expressionEvaluator/math';
+import { deepEqual, deepEqualUnordered } from '../utils/equality.js';
+import { normalizePair, parseResponseValue } from '../utils/typeParser.js';
+import { compareMathExpressions, type MathComparisonMode } from './expressionEvaluator/math.js';
 
 /**
  * Reads and applies the scoring data carried by qti-response-declaration elements:
