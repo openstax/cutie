@@ -1,11 +1,11 @@
 import { createEditor, type Descendant, Editor, Element } from 'slate';
 import { describe, expect, it } from 'vitest';
-import { withQtiInteractions } from '../plugins/withQtiInteractions';
-import type { CustomEditor } from '../types';
-import { insertChoiceInteraction } from './choice/insertion';
-import { insertGapMatchInteraction } from './gapMatch/insertion';
-import { insertInlineChoiceInteraction } from './inlineChoice/insertion';
-import { insertMatchInteraction } from './match/insertion';
+import { withQtiInteractions } from '../plugins/withQtiInteractions.js';
+import type { CustomEditor } from '../types.js';
+import { insertChoiceInteraction } from './choice/insertion.js';
+import { insertGapMatchInteraction } from './gapMatch/insertion.js';
+import { insertInlineChoiceInteraction } from './inlineChoice/insertion.js';
+import { insertMatchInteraction } from './match/insertion.js';
 
 function createTestEditor(): CustomEditor {
   const editor = withQtiInteractions(createEditor() as CustomEditor);

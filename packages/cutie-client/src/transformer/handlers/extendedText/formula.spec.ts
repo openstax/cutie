@@ -1,17 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ItemStateImpl } from '../../../state/itemState';
-import { registry } from '../../registry';
-import type { TransformContext } from '../../types';
+import { ItemStateImpl } from '../../../state/itemState.js';
+import { registry } from '../../registry.js';
+import type { TransformContext } from '../../types.js';
 
 // Mock MathLive to resolve with a minimal mock
-vi.mock('./mathFieldLoader', () => ({
+vi.mock('./mathFieldLoader.js', () => ({
   loadMathLive: () => Promise.resolve({
     MathfieldElement: class extends HTMLElement {},
   }),
 }));
 
 // Side-effect import to register the handler
-import './formula';
+import './formula.js';
 
 function createQtiDocument(interactionHtml: string): Document {
   const html = `

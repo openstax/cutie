@@ -1,6 +1,6 @@
 import { DOMParser } from '@xmldom/xmldom';
 import { describe, expect, test } from 'vitest';
-import { evaluateResponse } from './evaluateResponses';
+import { evaluateResponse } from './evaluateResponses.js';
 
 const parser = new DOMParser();
 

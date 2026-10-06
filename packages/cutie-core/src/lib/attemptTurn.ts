@@ -1,11 +1,11 @@
-import { AttemptState, FeedbackIdentity, ProcessingOptions } from '../types';
-import { isTerminal } from './deliveryOptions';
+import { AttemptState, FeedbackIdentity, ProcessingOptions } from '../types.js';
+import { isTerminal } from './deliveryOptions.js';
 import {
   buildTemplateDocument,
   collectVisibleFeedback,
   feedbackKey,
   serializeTemplate,
-} from './renderTemplate';
+} from './renderTemplate.js';
 
 /**
  * Result of attempt operations containing updated state and template.

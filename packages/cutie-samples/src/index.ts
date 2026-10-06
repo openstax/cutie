@@ -1,8 +1,8 @@
-import { standard } from './standard';
-import type { Sample, SampleGroup } from './types';
+import { standard } from './standard/index.js';
+import type { Sample, SampleGroup } from './types.js';
 
-export type { Sample, SampleGroup } from './types';
-export { standard } from './standard';
+export type { Sample, SampleGroup } from './types.js';
+export { standard } from './standard/index.js';
 
 export const sampleGroups: SampleGroup[] = [
   standard,

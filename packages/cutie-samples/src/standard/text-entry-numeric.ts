@@ -1,4 +1,4 @@
-import type { Sample } from '../types';
+import type { Sample } from '../types.js';
 import {
   allOrNothingMatch,
   correctResponse,
@@ -6,7 +6,7 @@ import {
   responseProcessingOrder,
   responseRequired,
   workedSolution,
-} from './conventions';
+} from './conventions.js';
 
 const description = `\
 A question with a numeric answer: one \`qti-text-entry-interaction\` placed inline \

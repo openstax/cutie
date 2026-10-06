@@ -1,8 +1,8 @@
 import { useFocused, useSelected } from 'slate-react';
 import type { RenderElementProps } from 'slate-react';
-import { useFeedbackIdentifiers } from '../../../contexts/FeedbackIdentifiersContext';
-import { useStyle } from '../../../hooks/useStyle';
-import type { QtiFeedbackInline } from '../../../types';
+import { useFeedbackIdentifiers } from '../../../contexts/FeedbackIdentifiersContext.js';
+import { useStyle } from '../../../hooks/useStyle.js';
+import type { QtiFeedbackInline } from '../../../types.js';
 
 /**
  * Render a feedback inline element

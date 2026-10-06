@@ -1,14 +1,14 @@
 /* spell-checker: ignore undocked inlines */
 import { DOMParser } from '@xmldom/xmldom';
 import { describe, expect, test, vi } from 'vitest';
-import type { AssetRequest, StimulusResolver } from './types';
+import type { AssetRequest, StimulusResolver } from './types.js';
 import {
   beginAttempt,
   listItemDependencies,
   listStimulusDependencies,
   renderPreview,
   renderStimulus,
-} from './index';
+} from './index.js';
 
 const stimulus = `<?xml version="1.0" encoding="UTF-8"?>
 <qti-assessment-stimulus xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"

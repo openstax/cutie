@@ -1,5 +1,5 @@
-import type { Score } from '../types';
-import { deriveMaxScore } from './deriveMaxScore';
+import type { Score } from '../types.js';
+import { deriveMaxScore } from './deriveMaxScore.js';
 
 /**
  * Builds an xAPI-compatible Score object from raw score and max score values.

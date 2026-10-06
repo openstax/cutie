@@ -2,6 +2,8 @@
   "extends": "./tsconfig.without-specs",
   "compilerOptions": {
     "module": "commonjs",
+    "moduleResolution": "node10",
+    "customConditions": null,
     "outDir": "dist/cjs"
   }
 }

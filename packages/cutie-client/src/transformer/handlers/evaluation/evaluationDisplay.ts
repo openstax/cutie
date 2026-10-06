@@ -17,16 +17,16 @@
  * learner edits that response (see clearVerdictOnEdit). The correct response
  * does not depend on the learner's response and stays.
  */
-import type { ConstraintMessage } from '../../../errors/validationDisplay';
-import { addAriaDescribedBy, removeAriaDescribedBy } from '../../../utils/aria';
-import { announce } from '../../../utils/liveRegion';
-import type { StyleManager, TransformContext } from '../../types';
+import type { ConstraintMessage } from '../../../errors/validationDisplay.js';
+import { addAriaDescribedBy, removeAriaDescribedBy } from '../../../utils/aria.js';
+import { announce } from '../../../utils/liveRegion.js';
+import type { StyleManager, TransformContext } from '../../types.js';
 import {
   createFeedbackIcon,
   FEEDBACK_ICON_STYLES,
   type IconType,
-} from '../feedback/feedbackIcons';
-import { getCorrectResponse, toValueList } from '../responseUtils';
+} from '../feedback/feedbackIcons.js';
+import { getCorrectResponse, toValueList } from '../responseUtils.js';
 
 const VERDICTS = ['correct', 'incorrect', 'partial'] as const;
 

@@ -1,20 +1,20 @@
-import { AttemptState, ResponseData } from '../types';
-import { getChildElements, getFirstChildElement } from '../utils/dom';
-import { normalizePair } from '../utils/typeParser';
-import { isAdaptive } from './adaptive';
+import { AttemptState, ResponseData } from '../types.js';
+import { getChildElements, getFirstChildElement } from '../utils/dom.js';
+import { normalizePair } from '../utils/typeParser.js';
+import { isAdaptive } from './adaptive.js';
 import {
   evaluateExpression as evaluateExpressionShared,
   type SubEvaluate,
-} from './expressionEvaluator/index';
-import { getExternalScoredInfo } from './externalScoring';
+} from './expressionEvaluator/index.js';
+import { getExternalScoredInfo } from './externalScoring.js';
 import {
   compareResponseValues,
   getCorrectResponse,
   getResponseDeclaration,
   mapResponse,
   mapResponsePoint,
-} from './responseDeclarations';
-import { extractStandardOutcomes } from './scoreUtils';
+} from './responseDeclarations.js';
+import { extractStandardOutcomes } from './scoreUtils.js';
 
 /**
  * Coerce a submitted response value to match the expected type from the response declaration.

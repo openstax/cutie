@@ -1,6 +1,6 @@
 import { DOMParser } from '@xmldom/xmldom';
 import { describe, expect, test } from 'vitest';
-import { buildScore, extractStandardOutcomes } from './scoreUtils';
+import { buildScore, extractStandardOutcomes } from './scoreUtils.js';
 
 describe('buildScore', () => {
   test('builds score with correct scaled value', () => {

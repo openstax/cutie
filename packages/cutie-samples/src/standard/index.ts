@@ -1,15 +1,15 @@
-import type { SampleGroup } from '../types';
-import { choice } from './choice';
-import { choiceMultiple } from './choice-multiple';
-import { extendedText } from './extended-text';
-import { formula } from './formula';
-import { gapMatch } from './gap-match';
-import { inlineChoice } from './inline-choice';
-import { inlineChoiceMultiple } from './inline-choice-multiple';
-import { match } from './match';
-import { textEntry } from './text-entry';
-import { textEntryMultiple } from './text-entry-multiple';
-import { textEntryNumeric } from './text-entry-numeric';
+import type { SampleGroup } from '../types.js';
+import { choiceMultiple } from './choice-multiple.js';
+import { choice } from './choice.js';
+import { extendedText } from './extended-text.js';
+import { formula } from './formula.js';
+import { gapMatch } from './gap-match.js';
+import { inlineChoiceMultiple } from './inline-choice-multiple.js';
+import { inlineChoice } from './inline-choice.js';
+import { match } from './match.js';
+import { textEntryMultiple } from './text-entry-multiple.js';
+import { textEntryNumeric } from './text-entry-numeric.js';
+import { textEntry } from './text-entry.js';
 
 export const standard: SampleGroup = {
   id: 'standard',

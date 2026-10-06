@@ -1,6 +1,6 @@
 import { Element, Transforms } from 'slate';
-import type { CustomEditor, ElementConfig, FeedbackIdentifier, QtiExtendedTextInteraction } from '../../types';
-import { hasCorrectResponse } from '../../utils/responseDeclaration';
+import type { CustomEditor, ElementConfig, FeedbackIdentifier, QtiExtendedTextInteraction } from '../../types.js';
+import { hasCorrectResponse } from '../../utils/responseDeclaration.js';
 
 export const extendedTextInteractionConfig: ElementConfig = {
   type: 'qti-extended-text-interaction',

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useSelected, useFocused } from 'slate-react';
 import type { RenderElementProps } from 'slate-react';
-import type { ImageElement as ImageElementType } from '../../types';
-import { useAssetHandlers } from '../../contexts/AssetContext';
+import type { ImageElement as ImageElementType } from '../../types.js';
+import { useAssetHandlers } from '../../contexts/AssetContext.js';
 
 /**
  * Render an image element with asset resolution.

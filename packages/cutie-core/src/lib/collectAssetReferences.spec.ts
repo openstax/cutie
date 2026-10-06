@@ -3,7 +3,7 @@ import { describe, expect, test } from 'vitest';
 import {
   collectAssetReferences,
   uniqueAssetUrls,
-} from './collectAssetReferences';
+} from './collectAssetReferences.js';
 
 function parse(xml: string): Element {
   const parser = new DOMParser();

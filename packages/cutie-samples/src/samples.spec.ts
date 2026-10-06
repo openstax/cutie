@@ -2,8 +2,8 @@
 import { beginAttempt, submitResponse } from '@openstax/cutie-core';
 import { classifyResponseProcessing } from '@openstax/cutie-editor/utils/responseProcessingClassifier';
 import { describe, expect, it } from 'vitest';
-import type { Sample } from './types';
-import { samples } from './index';
+import type { Sample } from './types.js';
+import { samples } from './index.js';
 
 type Submission = Record<string, string | string[]>;
 

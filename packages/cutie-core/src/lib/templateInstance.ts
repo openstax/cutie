@@ -1,5 +1,5 @@
-import { AttemptState } from '../types';
-import { createValueContainer } from '../utils/valueContainer';
+import { AttemptState } from '../types.js';
+import { createValueContainer } from '../utils/valueContainer.js';
 
 /**
  * Makes the item document the attempt's clone of the item template, as far as

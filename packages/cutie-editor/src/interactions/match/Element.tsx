@@ -4,10 +4,10 @@ import type { RenderElementProps } from 'slate-react';
 import type {
   QtiMatchInteraction,
   QtiSimpleAssociableChoice,
-} from '../../types';
-import { getCorrectValues, hasCorrectResponse } from '../../utils/responseDeclaration';
-import { getMapping, hasMapping } from '../../utils/mappingDeclaration';
-import { MatchScoringProvider, type MatchScoringInfo } from './MatchScoringContext';
+} from '../../types.js';
+import { getCorrectValues, hasCorrectResponse } from '../../utils/responseDeclaration.js';
+import { getMapping, hasMapping } from '../../utils/mappingDeclaration.js';
+import { MatchScoringProvider, type MatchScoringInfo } from './MatchScoringContext.js';
 
 /**
  * Renders a match interaction in the editor

@@ -2,8 +2,8 @@
  * Utility operators (type conversion, boolean checks, etc.)
  */
 
-import { getChildElements } from '../../utils/dom';
-import type { SubEvaluate } from './types';
+import { getChildElements } from '../../utils/dom.js';
+import type { SubEvaluate } from './types.js';
 
 /**
  * Evaluate qti-integer-to-float element

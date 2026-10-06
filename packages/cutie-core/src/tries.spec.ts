@@ -1,13 +1,13 @@
 import { DOMParser } from '@xmldom/xmldom';
 import { describe, expect, test } from 'vitest';
-import { deriveSmartMaxTries } from './lib/maxTries';
+import { deriveSmartMaxTries } from './lib/maxTries.js';
 import {
   type AttemptResult,
   beginAttempt,
   type DeliveryOptions,
   resumeAttempt,
   submitResponse,
-} from './index';
+} from './index.js';
 
 const parser = new DOMParser();
 

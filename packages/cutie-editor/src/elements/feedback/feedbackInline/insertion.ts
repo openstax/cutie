@@ -1,5 +1,5 @@
 import { Editor, Range, Transforms } from 'slate';
-import type { CustomEditor, QtiFeedbackInline } from '../../../types';
+import type { CustomEditor, QtiFeedbackInline } from '../../../types.js';
 
 /**
  * Insert a feedback inline element at the current selection

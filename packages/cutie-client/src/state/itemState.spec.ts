@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ItemStateImpl } from './itemState';
+import { ItemStateImpl } from './itemState.js';
 
 describe('ItemStateImpl.collectAll', () => {
   it('returns valid result with response data when all accessors are valid', () => {

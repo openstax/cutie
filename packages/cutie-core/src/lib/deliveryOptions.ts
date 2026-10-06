@@ -1,4 +1,4 @@
-import { AttemptState, DeliveryOptions } from '../types';
+import { AttemptState, DeliveryOptions } from '../types.js';
 
 const DEFAULT_DELIVERY_OPTIONS: Required<DeliveryOptions> = {
   showFeedback: true,

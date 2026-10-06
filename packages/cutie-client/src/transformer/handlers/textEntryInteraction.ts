@@ -1,14 +1,14 @@
-import { createMissingAttributeError } from '../../errors/errorDisplay';
+import { createMissingAttributeError } from '../../errors/errorDisplay.js';
 import {
   type ConstraintMessage,
   createInlineRequiredIndicator,
-} from '../../errors/validationDisplay';
-import { announce } from '../../utils/liveRegion';
-import { registry } from '../registry';
-import type { ElementHandler, InteractionState, ResponseAccessorOptions, TransformContext } from '../types';
-import { parseInputWidth } from '../vocabUtils';
-import { clearInlineVerdict, clearVerdictOnEdit, readEvaluation, wrapInlineEvaluation } from './evaluation';
-import { getDefaultValue } from './responseUtils';
+} from '../../errors/validationDisplay.js';
+import { announce } from '../../utils/liveRegion.js';
+import { registry } from '../registry.js';
+import type { ElementHandler, InteractionState, ResponseAccessorOptions, TransformContext } from '../types.js';
+import { parseInputWidth } from '../vocabUtils.js';
+import { clearInlineVerdict, clearVerdictOnEdit, readEvaluation, wrapInlineEvaluation } from './evaluation/index.js';
+import { getDefaultValue } from './responseUtils.js';
 
 /**
  * Handler for qti-text-entry-interaction elements.

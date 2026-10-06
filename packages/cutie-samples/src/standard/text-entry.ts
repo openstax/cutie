@@ -1,4 +1,4 @@
-import type { Sample } from '../types';
+import type { Sample } from '../types.js';
 import {
   correctResponse,
   outcomes,
@@ -6,7 +6,7 @@ import {
   responseProcessingOrder,
   responseRequired,
   workedSolution,
-} from './conventions';
+} from './conventions.js';
 
 const description = `\
 A fill-in-the-blank question with a typed text answer: one \

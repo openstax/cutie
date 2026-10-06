@@ -1,8 +1,8 @@
 import { DOMParser } from '@xmldom/xmldom';
 import { describe, expect, test } from 'vitest';
 // Test fixture only: the official 1EdTech example the example app carries
-import { item as templateImageItem } from '../../../cutie-example/src/example-items/spec-template-image';
-import { beginAttempt, submitResponse } from '../index';
+import { item as templateImageItem } from '../../../cutie-example/src/example-items/spec-template-image.js';
+import { beginAttempt, submitResponse } from '../index.js';
 
 const speeds: Record<string, number> = { plane: 600, train: 200, bus: 50 };
 

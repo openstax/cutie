@@ -1,6 +1,6 @@
 import { DOMParser } from '@xmldom/xmldom';
 import { describe, expect, test } from 'vitest';
-import { deriveMaxScore } from './deriveMaxScore';
+import { deriveMaxScore } from './deriveMaxScore.js';
 
 describe('deriveMaxScore', () => {
   // Helper to create Document from XML string

@@ -1,10 +1,10 @@
 import type { BaseEditor, Element, Path } from 'slate';
 import type { HistoryEditor } from 'slate-history';
 import type { ReactEditor } from 'slate-react';
-import type { XmlNode } from './serialization/xmlNode';
+import type { XmlNode } from './serialization/xmlNode.js';
 
 // Re-export XmlNode for convenience
-export type { XmlNode } from './serialization/xmlNode';
+export type { XmlNode } from './serialization/xmlNode.js';
 
 // ============================================================================
 // Slate Editor Type Extensions

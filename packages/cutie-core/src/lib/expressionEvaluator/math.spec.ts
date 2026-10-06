@@ -1,6 +1,6 @@
 import { DOMParser } from '@xmldom/xmldom';
 import { describe, expect, test } from 'vitest';
-import { compareMathExpressions, getFormulaComparisonMode } from './math';
+import { compareMathExpressions, getFormulaComparisonMode } from './math.js';
 
 const parser = new DOMParser();
 

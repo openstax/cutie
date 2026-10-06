@@ -1,4 +1,4 @@
-import type { StyleManager } from './types';
+import type { StyleManager } from './types.js';
 
 /**
  * Default implementation of StyleManager.

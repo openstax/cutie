@@ -6,8 +6,8 @@ import {
   highlightDropTargets,
   reportResponseChanges,
   updateRovingTabindex,
-} from '../../../utils';
-import type { TransformContext } from '../../types';
+} from '../../../utils/index.js';
+import type { TransformContext } from '../../types.js';
 
 interface ChoiceData {
   id: string;

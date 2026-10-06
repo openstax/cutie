@@ -1,12 +1,12 @@
 // Client-side QTI v3 rendering library
 // This contains the browser-side functionality for rendering sanitized item templates
 
-export { mountItem } from './mountItem';
-export { mountStimulus } from './mountStimulus';
-export type { ParsedQtiItem, ParsedQtiStimulus } from './types';
-export type { MountedItem, MountItemOptions } from './mountItem';
-export type { MountedStimulus, MountStimulusOptions } from './mountStimulus';
-export type { ThemeOptions } from './theme';
+export { mountItem } from './mountItem.js';
+export { mountStimulus } from './mountStimulus.js';
+export type { ParsedQtiItem, ParsedQtiStimulus } from './types.js';
+export type { MountedItem, MountItemOptions } from './mountItem.js';
+export type { MountedStimulus, MountStimulusOptions } from './mountStimulus.js';
+export type { ThemeOptions } from './theme.js';
 export type {
   ResponseData,
   ResponseAccessorResult,
@@ -16,4 +16,4 @@ export type {
   ResponseAccessor,
   ResponseChangeListener,
   StateObserver,
-} from './transformer/types';
+} from './transformer/types.js';

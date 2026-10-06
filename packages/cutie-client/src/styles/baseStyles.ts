@@ -1,5 +1,5 @@
-import { ERROR_DISPLAY_STYLES } from '../errors/errorDisplay';
-import type { StyleManager } from '../transformer/types';
+import { ERROR_DISPLAY_STYLES } from '../errors/errorDisplay.js';
+import type { StyleManager } from '../transformer/types.js';
 
 const BASE_STYLES_ID = 'cutie-base-styles';
 const ERROR_DISPLAY_STYLES_ID = 'cutie-error-display';

@@ -1,4 +1,4 @@
-import type { ResponseData } from '../types';
+import type { ResponseData } from '../types.js';
 
 interface ValidationError {
   responseIdentifier: string;

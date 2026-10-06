@@ -1,27 +1,27 @@
 /* spell-checker: ignore inlines */
 import { DOMParser } from '@xmldom/xmldom';
-import { isAdaptive } from './lib/adaptive';
-import { AttemptResult, completeTurn, presentState } from './lib/attemptTurn';
+import { isAdaptive } from './lib/adaptive.js';
+import { AttemptResult, completeTurn, presentState } from './lib/attemptTurn.js';
 import {
   collectAssetReferences,
   uniqueAssetUrls,
-} from './lib/collectAssetReferences';
-import { finishContent } from './lib/content';
-import { isTerminal, resolveDeliveryOptions } from './lib/deliveryOptions';
-import { deriveMaxScore } from './lib/deriveMaxScore';
-import { initializeState } from './lib/initializeState';
-import { buildPreviewDocument, serializeTemplate } from './lib/renderTemplate';
-import { processResponse } from './lib/responseProcessing';
-import { buildScore } from './lib/scoreUtils';
+} from './lib/collectAssetReferences.js';
+import { finishContent } from './lib/content.js';
+import { isTerminal, resolveDeliveryOptions } from './lib/deliveryOptions.js';
+import { deriveMaxScore } from './lib/deriveMaxScore.js';
+import { initializeState } from './lib/initializeState.js';
+import { buildPreviewDocument, serializeTemplate } from './lib/renderTemplate.js';
+import { processResponse } from './lib/responseProcessing.js';
+import { buildScore } from './lib/scoreUtils.js';
 import {
   buildStimulusDocument,
   collectStimulusReferences,
   findStimulusDocks,
   parseStimulus,
-} from './lib/stimulus';
-import { instantiateTemplate } from './lib/templateInstance';
-import { endTry } from './lib/tries';
-import { validateSubmission } from './lib/validateResponses';
+} from './lib/stimulus.js';
+import { instantiateTemplate } from './lib/templateInstance.js';
+import { endTry } from './lib/tries.js';
+import { validateSubmission } from './lib/validateResponses.js';
 import {
   AttemptState,
   DeliveryOptions,
@@ -30,7 +30,7 @@ import {
   ProcessingOptions,
   ResponseData,
   StimulusDependencies,
-} from './types';
+} from './types.js';
 
 /**
  * Initializes a new attempt at a QTI assessment item.
@@ -317,11 +317,11 @@ function parseItem(itemXml: string): Document {
   return new DOMParser().parseFromString(itemXml.trim(), 'text/xml');
 }
 
-export { ResponseValidationError } from './lib/validateResponses';
+export { ResponseValidationError } from './lib/validateResponses.js';
 
 // Re-export types for convenience
-export type { AttemptResult } from './lib/attemptTurn';
-export type { ResponseEvaluation } from './lib/evaluateResponses';
+export type { AttemptResult } from './lib/attemptTurn.js';
+export type { ResponseEvaluation } from './lib/evaluateResponses.js';
 export type {
   AssetRequest,
   AssetResolver,
@@ -337,4 +337,4 @@ export type {
   StimulusDependency,
   StimulusReference,
   StimulusResolver,
-} from './types';
+} from './types.js';

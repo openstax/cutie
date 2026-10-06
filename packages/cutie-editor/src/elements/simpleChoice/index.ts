@@ -1,18 +1,18 @@
-export { SimpleChoiceElement } from './Element';
-export { ChoiceIdLabel } from './ChoiceIdLabel';
-export { ChoiceContent } from './ChoiceContent';
-export { SimpleChoicePropertiesPanel } from './PropertiesPanel';
+export { SimpleChoiceElement } from './Element.js';
+export { ChoiceIdLabel } from './ChoiceIdLabel.js';
+export { ChoiceContent } from './ChoiceContent.js';
+export { SimpleChoicePropertiesPanel } from './PropertiesPanel.js';
 export {
   choiceContentConfig,
   choiceIdLabelConfig,
   simpleChoiceConfig,
-} from './config';
-export { simpleChoiceParsers, simpleChoiceSerializers } from './serialization';
+} from './config.js';
+export { simpleChoiceParsers, simpleChoiceSerializers } from './serialization.js';
 
-import { ChoiceContent } from './ChoiceContent';
-import { ChoiceIdLabel } from './ChoiceIdLabel';
-import { SimpleChoiceElement } from './Element';
-import { SimpleChoicePropertiesPanel } from './PropertiesPanel';
+import { ChoiceContent } from './ChoiceContent.js';
+import { ChoiceIdLabel } from './ChoiceIdLabel.js';
+import { SimpleChoiceElement } from './Element.js';
+import { SimpleChoicePropertiesPanel } from './PropertiesPanel.js';
 
 export const simpleChoiceRenderers = {
   'qti-simple-choice': SimpleChoiceElement,

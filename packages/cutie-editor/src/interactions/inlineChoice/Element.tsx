@@ -1,7 +1,7 @@
 import { useSelected, useFocused } from 'slate-react';
 import type { RenderElementProps } from 'slate-react';
-import type { QtiInlineChoiceInteraction } from '../../types';
-import { getCorrectValue } from '../../utils/responseDeclaration';
+import type { QtiInlineChoiceInteraction } from '../../types.js';
+import { getCorrectValue } from '../../utils/responseDeclaration.js';
 
 /**
  * Get the display value for an inline choice interaction.

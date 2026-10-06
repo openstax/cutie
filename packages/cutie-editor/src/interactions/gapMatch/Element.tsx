@@ -6,10 +6,10 @@ import type {
   QtiGapText,
   QtiGapImg,
   QtiGap,
-} from '../../types';
-import { getCorrectValues, hasCorrectResponse } from '../../utils/responseDeclaration';
-import { getMapping, hasMapping } from '../../utils/mappingDeclaration';
-import { GapMatchScoringProvider, type GapMatchScoringInfo } from './GapMatchScoringContext';
+} from '../../types.js';
+import { getCorrectValues, hasCorrectResponse } from '../../utils/responseDeclaration.js';
+import { getMapping, hasMapping } from '../../utils/mappingDeclaration.js';
+import { GapMatchScoringProvider, type GapMatchScoringInfo } from './GapMatchScoringContext.js';
 
 /**
  * Renders a gap-match interaction in the editor
@@ -266,4 +266,4 @@ export function GapElement({
 }
 
 // Import the hook for use in GapElement
-import { useGapMatchScoring } from './GapMatchScoringContext';
+import { useGapMatchScoring } from './GapMatchScoringContext.js';

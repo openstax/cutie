@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ItemStateImpl } from '../../../state/itemState';
-import { registry } from '../../registry';
-import type { TransformContext } from '../../types';
+import { ItemStateImpl } from '../../../state/itemState.js';
+import { registry } from '../../registry.js';
+import type { TransformContext } from '../../types.js';
 
 // Side-effect import to register the handlers (includes gap handler)
-import './index';
+import './index.js';
 
 function createQtiDocument(interactionHtml: string): Document {
   const html = `

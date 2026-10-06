@@ -1,7 +1,7 @@
-import { xmlNodeToDom } from '../serialization/xmlNode';
-import type { ElementConfig, ResponseProcessingConfig, XmlNode } from '../types';
-import { ITEM_COMPLETED_FEEDBACK_ID, parseFeedbackIdentifier } from './feedbackIdentifiers';
-import { getMaxMappedValue, hasMapping } from './mappingDeclaration';
+import { xmlNodeToDom } from '../serialization/xmlNode.js';
+import type { ElementConfig, ResponseProcessingConfig, XmlNode } from '../types.js';
+import { ITEM_COMPLETED_FEEDBACK_ID, parseFeedbackIdentifier } from './feedbackIdentifiers.js';
+import { getMaxMappedValue, hasMapping } from './mappingDeclaration.js';
 
 /**
  * QTI namespace URI

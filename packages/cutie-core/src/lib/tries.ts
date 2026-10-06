@@ -1,8 +1,8 @@
-import { AttemptState } from '../types';
-import { isAdaptive } from './adaptive';
-import { evaluateResponse, ResponseEvaluation } from './evaluateResponses';
-import { resetOutcomeVariables } from './initializeState';
-import { processFeedbackVisibility, processTemplateConditionals } from './visibility';
+import { AttemptState } from '../types.js';
+import { isAdaptive } from './adaptive.js';
+import { evaluateResponse, ResponseEvaluation } from './evaluateResponses.js';
+import { resetOutcomeVariables } from './initializeState.js';
+import { processFeedbackVisibility, processTemplateConditionals } from './visibility.js';
 
 /**
  * The state a submission leaves the attempt in, and whether it ended a try.

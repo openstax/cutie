@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { type MountedItem, mountItem } from '../../../mountItem';
-import { announce } from '../../../utils/liveRegion';
+import { type MountedItem, mountItem } from '../../../mountItem.js';
+import { announce } from '../../../utils/liveRegion.js';
 
-vi.mock('../../../utils/liveRegion', async (importOriginal) => {
-  const original = await importOriginal<typeof import('../../../utils/liveRegion')>();
+vi.mock('../../../utils/liveRegion.js', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../../../utils/liveRegion.js')>();
   return { ...original, announce: vi.fn(original.announce) };
 });
 

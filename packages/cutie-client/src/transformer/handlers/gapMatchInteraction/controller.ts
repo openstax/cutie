@@ -5,8 +5,8 @@ import {
   focusPrev,
   highlightDropTargets,
   reportResponseChanges,
-} from '../../../utils';
-import type { TransformContext } from '../../types';
+} from '../../../utils/index.js';
+import type { TransformContext } from '../../types.js';
 
 /**
  * Controller for managing gap match interaction state and behavior.

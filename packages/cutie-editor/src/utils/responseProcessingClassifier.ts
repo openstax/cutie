@@ -1,6 +1,6 @@
-import { domToXmlNode } from '../serialization/xmlNode';
-import type { ResponseProcessingConfig, ResponseProcessingMode, XmlNode } from '../types';
-import { isItemFeedbackIdentifier, isStandardFeedbackIdentifier, parseFeedbackIdentifier } from './feedbackIdentifiers';
+import { domToXmlNode } from '../serialization/xmlNode.js';
+import type { ResponseProcessingConfig, ResponseProcessingMode, XmlNode } from '../types.js';
+import { isItemFeedbackIdentifier, isStandardFeedbackIdentifier, parseFeedbackIdentifier } from './feedbackIdentifiers.js';
 
 /**
  * Known response processing template URLs

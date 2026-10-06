@@ -1,11 +1,11 @@
-import type { Sample } from '../types';
+import type { Sample } from '../types.js';
 import {
   allOrNothingMatch,
   correctResponse,
   outcomes,
   responseProcessingOrder,
   workedSolution,
-} from './conventions';
+} from './conventions.js';
 
 const description = `\
 A question with a math expression as the answer: \`qti-extended-text-interaction\` \

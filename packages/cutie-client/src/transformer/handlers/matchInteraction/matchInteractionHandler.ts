@@ -1,12 +1,12 @@
 // cspell:ignore draggables
-import { createMissingAttributeError } from '../../../errors/errorDisplay';
+import { createMissingAttributeError } from '../../../errors/errorDisplay.js';
 import {
   type ConstraintMessage,
   createConstraintMessage,
-} from '../../../errors/validationDisplay';
-import { addAriaDescribedBy } from '../../../utils/aria';
-import { announce } from '../../../utils/liveRegion';
-import type { ElementHandler, InteractionState, TransformContext } from '../../types';
+} from '../../../errors/validationDisplay.js';
+import { addAriaDescribedBy } from '../../../utils/aria.js';
+import { announce } from '../../../utils/liveRegion.js';
+import type { ElementHandler, InteractionState, TransformContext } from '../../types.js';
 import {
   clearConstraintVerdict,
   clearEvaluated,
@@ -17,10 +17,10 @@ import {
   markEvaluated,
   parseDirectedPair,
   readEvaluation,
-} from '../evaluation';
-import { getDefaultValue } from '../responseUtils';
-import { MatchController } from './controller';
-import { MATCH_INTERACTION_STYLES } from './styles';
+} from '../evaluation/index.js';
+import { getDefaultValue } from '../responseUtils.js';
+import { MatchController } from './controller.js';
+import { MATCH_INTERACTION_STYLES } from './styles.js';
 
 function buildMatchConstraintText(min: number, max: number): string | null {
   if (min > 0 && max > 0 && min !== max) {

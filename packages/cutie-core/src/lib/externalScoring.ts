@@ -1,4 +1,4 @@
-import { deriveMaxScore } from './deriveMaxScore';
+import { deriveMaxScore } from './deriveMaxScore.js';
 
 /**
  * Information about an externally-scored item.

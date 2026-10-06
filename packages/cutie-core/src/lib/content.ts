@@ -1,6 +1,6 @@
 import { XMLSerializer } from '@xmldom/xmldom';
-import { AssetRequest, AssetResolver, ProcessingOptions } from '../types';
-import { collectAssetReferences } from './collectAssetReferences';
+import { AssetRequest, AssetResolver, ProcessingOptions } from '../types.js';
+import { collectAssetReferences } from './collectAssetReferences.js';
 
 /**
  * Steps shared by every document cutie-core prepares for the client

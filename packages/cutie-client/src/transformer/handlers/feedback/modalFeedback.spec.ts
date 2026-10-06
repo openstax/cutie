@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { registry } from '../../registry';
-import type { StyleManager, TransformContext } from '../../types';
+import { registry } from '../../registry.js';
+import type { StyleManager, TransformContext } from '../../types.js';
 
 // Import the module to trigger handler registration
-import './modalFeedback';
+import './modalFeedback.js';
 
 describe('ModalFeedbackHandler', () => {
   let mockStyleManager: StyleManager;
