@@ -273,7 +273,7 @@ class RichTextInteractionHandler implements ElementHandler {
       .then(({ Quill, snowCss }) => {
         loadingPlaceholder.remove();
 
-        context.styleManager?.addStyle('quill-snow', snowCss);
+        context.styleManager?.addStyle('cutie-quill-snow', snowCss);
 
         // Create editor container
         const editorContainer = document.createElement('div');

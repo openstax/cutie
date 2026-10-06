@@ -941,7 +941,7 @@ describe('richTextInteraction', () => {
       container.appendChild(fragment);
       await waitForQuill();
 
-      expect(styleManager.addStyle).toHaveBeenCalledWith('quill-snow', '.ql-snow {}');
+      expect(styleManager.addStyle).toHaveBeenCalledWith('cutie-quill-snow', '.ql-snow {}');
       expect(document.querySelector('link[rel="stylesheet"]')).toBeNull();
     });
   });
