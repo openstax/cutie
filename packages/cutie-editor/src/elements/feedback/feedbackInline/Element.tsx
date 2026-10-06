@@ -76,7 +76,7 @@ const FEEDBACK_INLINE_STYLES = `
   }
 
   .feedback-inline--correct {
-    border-left: 3px solid #22c55e;
+    border-left: 3px solid #0d7741;
   }
 
   .feedback-inline--incorrect {

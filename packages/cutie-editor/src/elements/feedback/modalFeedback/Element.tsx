@@ -71,7 +71,7 @@ const MODAL_FEEDBACK_STYLES = `
   }
 
   .modal-feedback--correct {
-    border-left: 4px solid #22c55e;
+    border-left: 4px solid #0d7741;
   }
 
   .modal-feedback--incorrect {

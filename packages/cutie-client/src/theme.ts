@@ -16,7 +16,7 @@
  * | `textMutedColor` | Secondary text | 4.5:1 (AA) | `bgColor` |
  * | `borderColor` | Non-text UI | 3:1 (1.4.11) | `bgColor`, `bgAltColor` |
  * | `primaryColor` | Non-text UI + accent text | 3:1 (1.4.11) | `bgColor` |
- * | `feedbackCorrectColor` | Icons, borders | 3:1 (1.4.11) | `bgColor` |
+ * | `feedbackCorrectColor` | Icons, borders, correct-answer text | 4.5:1 (AA) | `bgColor`, `bgAltColor` |
  * | `feedbackIncorrectColor` | Icons, borders, error text | 4.5:1 (AA) | `bgColor`, `bgAltColor` |
  * | `feedbackInfoColor` | Icons, borders | 3:1 (1.4.11) | `bgColor` |
  */
@@ -37,7 +37,7 @@ export interface ThemeOptions {
   primaryFgColor?: string;
   /** Hover shade of primary (default `#1e88e5`). */
   primaryHoverColor?: string;
-  /** Correct feedback icon and border color (default `#22c55e`). Must meet 3:1 against `bgColor`. */
+  /** Correct feedback icon, border, and correct-answer text color (default `#0d7741`). Must meet 4.5:1 against `bgColor` and `bgAltColor`. */
   feedbackCorrectColor?: string;
   /** Incorrect/error icon, border, and text color (default `#d32f2f`). Must meet 4.5:1 against `bgColor` and `bgAltColor`. */
   feedbackIncorrectColor?: string;

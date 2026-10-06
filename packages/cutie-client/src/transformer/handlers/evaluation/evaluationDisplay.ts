@@ -388,9 +388,10 @@ export function createEvaluationSummary(options: EvaluationSummaryOptions): HTML
 const EVALUATION_STYLE_ID = 'cutie-evaluation';
 
 /**
- * Verdict colors come from the feedback theme variables. Text stays in
- * --cutie-text: --cutie-feedback-correct/info only promise 3:1 (non-text)
- * contrast, so they color icons and borders only.
+ * Verdict colors come from the feedback theme variables. Verdict text stays in
+ * --cutie-text: --cutie-feedback-info only promises 3:1 (non-text) contrast,
+ * so verdict colors are for icons and borders. The "Correct answer" label is
+ * the exception: --cutie-feedback-correct promises 4.5:1, so it can color text.
  */
 const EVALUATION_STYLES = `
   .cutie-evaluated--correct,
@@ -462,15 +463,19 @@ const EVALUATION_STYLES = `
     line-height: 1.125;
     letter-spacing: 0.05em;
     font-variant-caps: all-small-caps;
-    color: var(--cutie-text);
+    color: var(--cutie-feedback-correct);
   }
 
-  /* A value (e.g. a word) keeps its own case; the same 1.125em line box */
+  /*
+   * A value (e.g. a word) keeps its own case and the text color; the same
+   * 1.125em line box
+   */
   .cutie-correct-answer-overline--value {
     font-size: 0.75em;
     line-height: 1.5;
     letter-spacing: normal;
     font-variant-caps: normal;
+    color: var(--cutie-text);
   }
 
   /*

@@ -14,7 +14,7 @@ const BASE_STYLES = `
     --cutie-primary: #1976d2;
     --cutie-primary-fg: #fff;
     --cutie-primary-hover: #1e88e5;
-    --cutie-feedback-correct: #22c55e;
+    --cutie-feedback-correct: #0d7741;
     --cutie-feedback-incorrect: #d32f2f;
     --cutie-feedback-info: #4a90e2;
     --cutie-line-height: 1.5;
