@@ -3,13 +3,10 @@ import {
   allOrNothingMultiple,
   correctResponse,
   outcomes,
+  responseProcessingOrder,
   shuffle,
+  workedSolution,
 } from './conventions';
-
-// TODO: add item-level worked solution feedback (shown for correct and
-// incorrect responses) once that feedback type is available in the standard
-// pattern. Per-response RESPONSE_correct / RESPONSE_incorrect blocks can't
-// express a verdict on the whole item.
 
 const description = `\
 A question with several drop-downs: one \`qti-inline-choice-interaction\` per \
@@ -21,6 +18,8 @@ identifiers \`RESPONSE\`, \`RESPONSE_2\`, \`RESPONSE_3\`, and so on.
 interactions.
 - ${allOrNothingMultiple} Each drop-down's check is \`qti-match\` against its \
 \`qti-correct\`.
+- ${workedSolution}
+- ${responseProcessingOrder}
 - ${correctResponse}
 - ${outcomes}`;
 
@@ -54,6 +53,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
       <qti-value>1.0</qti-value>
     </qti-default-value>
   </qti-outcome-declaration>
+  <qti-outcome-declaration identifier="FEEDBACK" cardinality="multiple" base-type="identifier"/>
 
   <qti-item-body>
     <p>
@@ -70,6 +70,9 @@ adaptive="false" time-dependent="false" xml:lang="en">
         <qti-inline-choice identifier="gravity">gravitational field</qti-inline-choice>
       </qti-inline-choice-interaction>.
     </p>
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="ITEM_completed" show-hide="show">
+      <p>Newton's first law, sometimes called the law of inertia, says an object's velocity changes only when a net external force acts on it. An object at rest stays at rest, and an object in motion keeps moving at the same speed in the same direction. A change in mass doesn't change velocity, and a gravitational field matters only when it produces a net force. So the sentence describes Newton's first law, and the condition is a net external force.</p>
+    </qti-feedback-block>
   </qti-item-body>
 
   <qti-response-processing>
@@ -95,6 +98,12 @@ adaptive="false" time-dependent="false" xml:lang="en">
         </qti-set-outcome-value>
       </qti-response-else>
     </qti-response-condition>
+    <qti-set-outcome-value identifier="FEEDBACK">
+      <qti-multiple>
+        <qti-variable identifier="FEEDBACK"/>
+        <qti-base-value base-type="identifier">ITEM_completed</qti-base-value>
+      </qti-multiple>
+    </qti-set-outcome-value>
   </qti-response-processing>
 </qti-assessment-item>`;
 

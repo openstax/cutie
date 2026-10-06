@@ -18,17 +18,19 @@ options depend on their position (such as "All of the above"), mark those option
 \`fixed="true"\` instead of turning shuffle off.`;
 
 export const workedSolution = `\
-After the interaction, include two \`qti-feedback-block\` elements with \
-identifiers \`RESPONSE_correct\` and \`RESPONSE_incorrect\`. Each contains a \
-detailed, step-by-step explanation of how to arrive at the correct answer, worded \
-for that outcome. Do not prefix feedback with "Correct" or "Incorrect"; the \
-delivery system presents the verdict. "Incorrect" means "not fully correct", so \
-it also covers partially correct responses.`;
+After the interactions, include one \`qti-feedback-block\` with identifier \
+\`ITEM_completed\`, shown once the item is completed whether the response is \
+correct or not. It contains a detailed, step-by-step explanation of how to arrive \
+at the correct answer, stating the answer, worded so it reads well for a learner \
+who answered correctly and for one who didn't. Do not prefix it with "Correct" or \
+"Incorrect"; the delivery system presents the verdict. Response processing adds \
+\`ITEM_completed\` to \`FEEDBACK\` with an unconditional \
+\`qti-set-outcome-value\` (not inside a \`qti-response-condition\`).`;
 
 export const responseProcessingOrder = `\
-Response processing is ordered the way the editor generates it: first one \
-condition that sets \`SCORE\`, then one condition that adds \`RESPONSE_correct\` \
-or \`RESPONSE_incorrect\` to \`FEEDBACK\`, then any per-option feedback conditions.`;
+Response processing is ordered the way the editor generates it: first the rules \
+that set \`SCORE\`, then any per-option feedback conditions, then the \
+unconditional rule that adds \`ITEM_completed\` to \`FEEDBACK\`.`;
 
 export const allOrNothingMatch = `\
 Score all-or-nothing with \`qti-match\` against \`qti-correct\`: \`SCORE\` is 1 \
@@ -42,10 +44,8 @@ export const pairMappingAlternative = `\
 **Alternative (partial credit):** when partially correct responses should earn \
 credit, add a \`qti-mapping\` to the response declaration that assigns a value to \
 each correct pair (and optionally a negative value to incorrect pairs) with \
-\`lower-bound="0"\`, set \`SCORE\` from \`qti-map-response\`, and decide the \
-correct/incorrect feedback with \`qti-equal\` between \`qti-map-response\` and the \
-maximum mapped score. Partially correct responses still receive \
-\`RESPONSE_incorrect\`.`;
+\`lower-bound="0"\`, and set \`SCORE\` from \`qti-map-response\`. The worked \
+solution is unchanged.`;
 
 export const responseRequired = `\
 Add \`pattern-mask=".+"\` with \`data-patternmask-message="Response required"\` \

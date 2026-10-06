@@ -1,6 +1,6 @@
 import { xmlNodeToDom } from '../serialization/xmlNode';
 import type { ElementConfig, ResponseProcessingConfig, XmlNode } from '../types';
-import { parseFeedbackIdentifier } from './feedbackIdentifiers';
+import { ITEM_COMPLETED_FEEDBACK_ID, parseFeedbackIdentifier } from './feedbackIdentifiers';
 import { getMaxMappedValue, hasMapping } from './mappingDeclaration';
 
 /**
@@ -418,11 +418,15 @@ function createScoreConditionForUnmapped(identifier: string, doc: Document): Ele
  * - {responseId}_correct / {responseId}_incorrect for correct/incorrect feedback
  * - {responseId}_choice_{choiceId} for per-choice feedback
  *
+ * Then, when item-level feedback is used, an unconditional rule that sets
+ * ITEM_completed: response processing only runs when a submission completes
+ * the (non-adaptive) item.
+ *
  * @param responseIdentifiers - List of response identifiers in the item
  * @param responseDeclarations - Map of response identifier to XmlNode declarations
  * @param feedbackIdentifiersUsed - Set of feedback identifiers used by feedback elements
  * @param doc - The XML document to create elements in
- * @returns Array of qti-response-condition elements for feedback processing
+ * @returns Array of response rules for feedback processing
  */
 function generateFeedbackProcessingXml(
   responseIdentifiers: string[],
@@ -500,6 +504,10 @@ function generateFeedbackProcessingXml(
         conditions.push(condition);
       }
     }
+  }
+
+  if (feedbackIdentifiersUsed.has(ITEM_COMPLETED_FEEDBACK_ID)) {
+    conditions.push(createSetFeedbackElement(ITEM_COMPLETED_FEEDBACK_ID, doc));
   }
 
   return conditions;

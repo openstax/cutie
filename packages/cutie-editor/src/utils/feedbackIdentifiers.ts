@@ -6,6 +6,29 @@ import type { FeedbackIdentifier, FeedbackIdentifierSource, SlateElement } from 
 export type { FeedbackIdentifier, FeedbackIdentifierSource };
 
 /**
+ * Item-level feedback identifier, set whenever response processing runs.
+ * Editor items are never adaptive, so response processing only runs when a
+ * submission completes the item: this feedback shows on completion whatever
+ * the learner's verdict (a try that falls short resets outcomes, hiding it).
+ */
+export const ITEM_COMPLETED_FEEDBACK_ID = 'ITEM_completed';
+
+const ITEM_COMPLETED_OPTION = {
+  id: ITEM_COMPLETED_FEEDBACK_ID,
+  label: 'Item is completed',
+  description: 'Shown once the item is completed, whether the response is correct or incorrect',
+  interactionType: 'item',
+  responseIdentifier: '',
+};
+
+/**
+ * Check if a feedback identifier is the item-level completed identifier
+ */
+export function isItemFeedbackIdentifier(identifier: string): boolean {
+  return identifier === ITEM_COMPLETED_FEEDBACK_ID;
+}
+
+/**
  * Get available feedback identifiers for a single interaction element.
  * Uses the registry-based approach via element configs.
  */
@@ -49,16 +72,7 @@ export function collectFeedbackIdentifiers(nodes: Descendant[]): FeedbackIdentif
  * Get all feedback identifier IDs as a flat set
  */
 export function getAllFeedbackIdentifierIds(nodes: Descendant[]): Set<string> {
-  const sources = collectFeedbackIdentifiers(nodes);
-  const ids = new Set<string>();
-
-  for (const source of sources) {
-    for (const identifier of source.identifiers) {
-      ids.add(identifier.id);
-    }
-  }
-
-  return ids;
+  return new Set(getAllFeedbackIdentifierOptions(nodes).map(option => option.id));
 }
 
 /**
@@ -86,16 +100,25 @@ export function getAllFeedbackIdentifierOptions(
     }
   }
 
+  // Item-level feedback needs response processing, so only once there is an interaction
+  if (sources.length > 0) {
+    options.push(ITEM_COMPLETED_OPTION);
+  }
+
   return options;
 }
 
 /**
- * Parse a feedback identifier to extract its components
- * Returns null if not a recognized pattern
+ * Parse a response-level feedback identifier to extract its components
+ * Returns null if not a recognized pattern (including the item-level identifier)
  */
 export function parseFeedbackIdentifier(
   identifier: string
 ): { responseIdentifier: string; type: 'correct' | 'incorrect' | 'partial' | 'choice'; choiceId?: string } | null {
+  if (isItemFeedbackIdentifier(identifier)) {
+    return null;
+  }
+
   // Check for _correct suffix
   if (identifier.endsWith('_correct')) {
     return {
@@ -138,5 +161,5 @@ export function parseFeedbackIdentifier(
  * that we can manage (regenerate) in response processing
  */
 export function isStandardFeedbackIdentifier(identifier: string): boolean {
-  return parseFeedbackIdentifier(identifier) !== null;
+  return isItemFeedbackIdentifier(identifier) || parseFeedbackIdentifier(identifier) !== null;
 }

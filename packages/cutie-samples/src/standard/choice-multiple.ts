@@ -35,9 +35,7 @@ identifier is in the response.
 **Alternative (penalty for wrong picks):** when wrong selections should cost \
 credit, add a \`qti-mapping\` to the response declaration with positive values for \
 correct choices, negative values for incorrect choices, and \`lower-bound="0"\`. Set \
-\`SCORE\` from \`qti-map-response\` and decide the correct/incorrect feedback with \
-\`qti-equal\` between \`qti-map-response\` and the maximum mapped score. Partially \
-correct responses still receive \`RESPONSE_incorrect\`.`;
+\`SCORE\` from \`qti-map-response\`. The worked solution is unchanged.`;
 
 const item = `<?xml version="1.0" encoding="UTF-8"?>
 <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
@@ -102,10 +100,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
       </qti-simple-choice>
     </qti-choice-interaction>
 
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_correct" show-hide="show">
-      <p>To sort each change, ask whether a new substance forms. In a physical change, the substance keeps its chemical identity even though its state, size, or shape changes. Melting ice, dissolving sugar, and cutting paper all leave the original substance intact. In a chemical change, atoms rearrange into new substances. Rusting iron and burning wood both form new substances, so they are chemical changes.</p>
-    </qti-feedback-block>
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_incorrect" show-hide="show">
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="ITEM_completed" show-hide="show">
       <p>For each change, ask whether a new substance forms. If the substance keeps its chemical identity and only its state, size, or shape changes, it is a physical change. Melting ice, dissolving sugar, and cutting paper fit that description. If atoms rearrange into new substances with different properties, it is a chemical change. Rusting iron forms iron oxide, and burning wood forms carbon dioxide, water, and ash. The physical changes are melting ice, dissolving sugar, and cutting paper.</p>
     </qti-feedback-block>
   </qti-item-body>
@@ -124,29 +119,6 @@ adaptive="false" time-dependent="false" xml:lang="en">
       <qti-response-else>
         <qti-set-outcome-value identifier="SCORE">
           <qti-base-value base-type="float">0</qti-base-value>
-        </qti-set-outcome-value>
-      </qti-response-else>
-    </qti-response-condition>
-
-    <qti-response-condition>
-      <qti-response-if>
-        <qti-match>
-          <qti-variable identifier="RESPONSE"/>
-          <qti-correct identifier="RESPONSE"/>
-        </qti-match>
-        <qti-set-outcome-value identifier="FEEDBACK">
-          <qti-multiple>
-            <qti-variable identifier="FEEDBACK"/>
-            <qti-base-value base-type="identifier">RESPONSE_correct</qti-base-value>
-          </qti-multiple>
-        </qti-set-outcome-value>
-      </qti-response-if>
-      <qti-response-else>
-        <qti-set-outcome-value identifier="FEEDBACK">
-          <qti-multiple>
-            <qti-variable identifier="FEEDBACK"/>
-            <qti-base-value base-type="identifier">RESPONSE_incorrect</qti-base-value>
-          </qti-multiple>
         </qti-set-outcome-value>
       </qti-response-else>
     </qti-response-condition>
@@ -225,6 +197,12 @@ adaptive="false" time-dependent="false" xml:lang="en">
         </qti-set-outcome-value>
       </qti-response-if>
     </qti-response-condition>
+    <qti-set-outcome-value identifier="FEEDBACK">
+      <qti-multiple>
+        <qti-variable identifier="FEEDBACK"/>
+        <qti-base-value base-type="identifier">ITEM_completed</qti-base-value>
+      </qti-multiple>
+    </qti-set-outcome-value>
   </qti-response-processing>
 </qti-assessment-item>`;
 

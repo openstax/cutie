@@ -124,6 +124,11 @@ describe.each(samples)('$id sample', (sample) => {
     }
   });
 
+  it('has a worked solution unless human scored', () => {
+    if (isExternallyScored(doc)) return;
+    expect(feedbackIdentifiers(body)).toContain('ITEM_completed');
+  });
+
   it('leaves verdict styling to the delivery system', () => {
     expect(body.querySelectorAll('[data-feedback-type]')).toHaveLength(0);
   });
@@ -188,10 +193,7 @@ describe.each(samples)('$id sample', (sample) => {
     const { state, shownFeedback } = await submitAndListFeedback(sample, correctSubmission(doc));
     expect(state.score?.max).toBeGreaterThan(0);
     expect(state.score?.raw).toBe(state.score?.max);
-    if (feedbackIdentifiers(body).includes('RESPONSE_correct')) {
-      expect(shownFeedback).toContain('RESPONSE_correct');
-      expect(shownFeedback).not.toContain('RESPONSE_incorrect');
-    }
+    expect(shownFeedback).toContain('ITEM_completed');
   });
 
   it.each(acceptedVariants[sample.id] ?? [])('scores the accepted variant %j as correct', async (submission) => {
@@ -209,9 +211,6 @@ describe.each(samples)('$id sample', (sample) => {
     expect(submission, 'add an incorrect submission for this sample').toBeDefined();
     const { state, shownFeedback } = await submitAndListFeedback(sample, submission);
     expect(state.score?.raw).toBe(0);
-    if (feedbackIdentifiers(body).includes('RESPONSE_incorrect')) {
-      expect(shownFeedback).toContain('RESPONSE_incorrect');
-      expect(shownFeedback).not.toContain('RESPONSE_correct');
-    }
+    expect(shownFeedback).toContain('ITEM_completed');
   });
 });

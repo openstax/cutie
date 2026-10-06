@@ -75,11 +75,8 @@ adaptive="false" time-dependent="false" xml:lang="en">
       </p>
     </qti-gap-match-interaction>
 
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_correct" show-hide="show">
-      <p>The overall equation for photosynthesis is 6CO₂ + 6H₂O + light energy → C₆H₁₂O₆ + 6O₂. Carbon dioxide enters the leaf through small pores called stomata, and water is absorbed by the roots and carried up to the leaves. The light-dependent reactions split water molecules, which releases oxygen as a byproduct. Nitrogen isn't part of this reaction.</p>
-    </qti-feedback-block>
-    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_incorrect" show-hide="show">
-      <p>Start from the overall equation for photosynthesis: 6CO₂ + 6H₂O + light energy → C₆H₁₂O₆ + 6O₂. The reactants are carbon dioxide and water. Carbon dioxide is a gas, so it enters from the air through the stomata, while water comes up from the soil through the roots. The products are glucose and oxygen, so oxygen is the byproduct the plant releases. Nitrogen doesn't appear in the equation at all.</p>
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="ITEM_completed" show-hide="show">
+      <p>Start from the overall equation for photosynthesis: 6CO₂ + 6H₂O + light energy → C₆H₁₂O₆ + 6O₂. The reactants are carbon dioxide and water. Carbon dioxide is a gas, so it enters the leaf from the air through small pores called stomata, while water is absorbed by the roots and carried up to the leaves. The light-dependent reactions split water molecules, releasing oxygen as a byproduct. Nitrogen doesn't appear in the equation at all.</p>
     </qti-feedback-block>
   </qti-item-body>
 
@@ -100,29 +97,12 @@ adaptive="false" time-dependent="false" xml:lang="en">
         </qti-set-outcome-value>
       </qti-response-else>
     </qti-response-condition>
-
-    <qti-response-condition>
-      <qti-response-if>
-        <qti-match>
-          <qti-variable identifier="RESPONSE"/>
-          <qti-correct identifier="RESPONSE"/>
-        </qti-match>
-        <qti-set-outcome-value identifier="FEEDBACK">
-          <qti-multiple>
-            <qti-variable identifier="FEEDBACK"/>
-            <qti-base-value base-type="identifier">RESPONSE_correct</qti-base-value>
-          </qti-multiple>
-        </qti-set-outcome-value>
-      </qti-response-if>
-      <qti-response-else>
-        <qti-set-outcome-value identifier="FEEDBACK">
-          <qti-multiple>
-            <qti-variable identifier="FEEDBACK"/>
-            <qti-base-value base-type="identifier">RESPONSE_incorrect</qti-base-value>
-          </qti-multiple>
-        </qti-set-outcome-value>
-      </qti-response-else>
-    </qti-response-condition>
+    <qti-set-outcome-value identifier="FEEDBACK">
+      <qti-multiple>
+        <qti-variable identifier="FEEDBACK"/>
+        <qti-base-value base-type="identifier">ITEM_completed</qti-base-value>
+      </qti-multiple>
+    </qti-set-outcome-value>
   </qti-response-processing>
 </qti-assessment-item>`;
 

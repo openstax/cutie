@@ -4,13 +4,10 @@ import {
   correctResponse,
   outcomes,
   preferSelectedResponse,
+  responseProcessingOrder,
   responseRequired,
+  workedSolution,
 } from './conventions';
-
-// TODO: add item-level worked solution feedback (shown for correct and
-// incorrect responses) once that feedback type is available in the standard
-// pattern. Per-response RESPONSE_correct / RESPONSE_incorrect blocks can't
-// express a verdict on the whole item.
 
 const description = `\
 A fill-in-the-blank question with several typed blanks: one \
@@ -26,6 +23,8 @@ ${preferSelectedResponse}
 symbols, \`case-sensitive="true"\`. A blank counts as correct when its \
 \`qti-map-response\` equals 1.
 - ${allOrNothingMultiple}
+- ${workedSolution}
+- ${responseProcessingOrder}
 - ${correctResponse}
 - ${outcomes}`;
 
@@ -67,10 +66,14 @@ adaptive="false" time-dependent="false" xml:lang="en">
       <qti-value>1.0</qti-value>
     </qti-default-value>
   </qti-outcome-declaration>
+  <qti-outcome-declaration identifier="FEEDBACK" cardinality="multiple" base-type="identifier"/>
 
   <qti-item-body>
     <p>Complete the sentence about the chemical formula of water, H₂O.</p>
     <p>Each water molecule contains two atoms of <qti-text-entry-interaction response-identifier="RESPONSE" expected-length="10" pattern-mask=".+" data-patternmask-message="Response required"/> bonded to one atom of <qti-text-entry-interaction response-identifier="RESPONSE_2" expected-length="10" pattern-mask=".+" data-patternmask-message="Response required"/>.</p>
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="ITEM_completed" show-hide="show">
+      <p>Read the chemical formula one symbol at a time. H is the symbol for hydrogen, and the subscript 2 means there are two hydrogen atoms. O is the symbol for oxygen, and with no subscript there is one oxygen atom. So each water molecule has two atoms of hydrogen bonded to one atom of oxygen.</p>
+    </qti-feedback-block>
   </qti-item-body>
 
   <qti-response-processing>
@@ -96,6 +99,12 @@ adaptive="false" time-dependent="false" xml:lang="en">
         </qti-set-outcome-value>
       </qti-response-else>
     </qti-response-condition>
+    <qti-set-outcome-value identifier="FEEDBACK">
+      <qti-multiple>
+        <qti-variable identifier="FEEDBACK"/>
+        <qti-base-value base-type="identifier">ITEM_completed</qti-base-value>
+      </qti-multiple>
+    </qti-set-outcome-value>
   </qti-response-processing>
 </qti-assessment-item>`;
 

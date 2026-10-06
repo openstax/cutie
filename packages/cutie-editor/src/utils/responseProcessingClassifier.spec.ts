@@ -626,6 +626,90 @@ describe('responseProcessingClassifier', () => {
     });
   });
 
+  describe('item-level feedback', () => {
+    const itemCompletedRule = `
+      <qti-set-outcome-value identifier="FEEDBACK">
+        <qti-multiple>
+          <qti-variable identifier="FEEDBACK"/>
+          <qti-base-value base-type="identifier">ITEM_completed</qti-base-value>
+        </qti-multiple>
+      </qti-set-outcome-value>`;
+
+    const allCorrectScoring = `
+      <qti-response-condition>
+        <qti-response-if>
+          <qti-match>
+            <qti-variable identifier="RESPONSE"/>
+            <qti-correct identifier="RESPONSE"/>
+          </qti-match>
+          <qti-set-outcome-value identifier="SCORE">
+            <qti-base-value base-type="float">1</qti-base-value>
+          </qti-set-outcome-value>
+        </qti-response-if>
+        <qti-response-else>
+          <qti-set-outcome-value identifier="SCORE">
+            <qti-base-value base-type="float">0</qti-base-value>
+          </qti-set-outcome-value>
+        </qti-response-else>
+      </qti-response-condition>`;
+
+    it('should recognize allCorrect + unconditional ITEM_completed rule', () => {
+      const doc = createQtiDoc(`
+        <qti-response-processing>
+          ${allCorrectScoring}
+          ${itemCompletedRule}
+        </qti-response-processing>
+      `);
+
+      expect(classifyResponseProcessing(doc).mode).toBe('allCorrect');
+    });
+
+    it('should recognize sumScores + unconditional ITEM_completed rule', () => {
+      const doc = createQtiDoc(`
+        <qti-response-processing>
+          <qti-set-outcome-value identifier="SCORE">
+            <qti-sum>
+              <qti-map-response identifier="RESPONSE"/>
+            </qti-sum>
+          </qti-set-outcome-value>
+          ${itemCompletedRule}
+        </qti-response-processing>
+      `);
+
+      expect(classifyResponseProcessing(doc).mode).toBe('sumScores');
+    });
+
+    it('should classify ITEM_completed set inside a condition as custom', () => {
+      const doc = createQtiDoc(`
+        <qti-response-processing>
+          ${allCorrectScoring}
+          <qti-response-condition>
+            <qti-response-if>
+              <qti-match>
+                <qti-variable identifier="RESPONSE"/>
+                <qti-correct identifier="RESPONSE"/>
+              </qti-match>
+              ${itemCompletedRule}
+            </qti-response-if>
+          </qti-response-condition>
+        </qti-response-processing>
+      `);
+
+      expect(classifyResponseProcessing(doc).mode).toBe('custom');
+    });
+
+    it('should classify other unconditional FEEDBACK rules as custom', () => {
+      const doc = createQtiDoc(`
+        <qti-response-processing>
+          ${allCorrectScoring}
+          ${itemCompletedRule.replace('ITEM_completed', 'RESPONSE_correct')}
+        </qti-response-processing>
+      `);
+
+      expect(classifyResponseProcessing(doc).mode).toBe('custom');
+    });
+  });
+
   describe('example items round-trip', () => {
     function parseItem(item: string): Document {
       const parser = new DOMParser();
