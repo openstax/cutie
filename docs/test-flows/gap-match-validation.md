@@ -13,11 +13,11 @@ that constraint errors are announced to screen readers (not just shown visually)
 
 ## Initial Display
 
-**Setup:** Load "Gap Match" from the Supported Examples group in the example dropdown.
+**Setup:** Load "Gap Match" from the Standard Samples group in the example dropdown.
 
 1. Observe the rendered item.
-   - [ ] A prompt is visible: "Drag the words to fill in the blanks in the sentence below."
-   - [ ] Four draggable words are available (word A, word B, word C, plus one unused word)
+   - [ ] A prompt is visible: "Drag the correct term into each blank to complete the description of photosynthesis."
+   - [ ] Four draggable words are available (carbon dioxide, water, oxygen, plus the distractor nitrogen)
    - [ ] Three gaps are present in the sentence, all empty
    - [ ] Constraint text reads "Fill at least 3 gaps."
    - [ ] The constraint text is in its default (non-error) state — no warning icon

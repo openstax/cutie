@@ -55,7 +55,9 @@
     "toggleable",
     "unsimplified",
     "unversioned",
-    "WCAG"
+    "WCAG",
+    "distractor",
+    "distractors"
   ],
   "flagWords": [],
   "ignorePaths": [

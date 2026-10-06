@@ -1,8 +1,12 @@
 /* spell-checker: ignore hotspot hottext */
+import { sampleGroups, samples } from '@openstax/cutie-samples';
+
 export interface ExampleItem {
   name: string;
   item: string;
   interactionTypes: string[];
+  /** Markdown authoring guidance, provided by canonical samples */
+  description?: string;
 }
 
 export interface ExampleGroup {
@@ -33,14 +37,9 @@ import * as multiInput from './multi-input';
 import * as modalFeedback from './modal-feedback';
 import * as inlineFeedback from './inline-feedback';
 import * as blockFeedback from './block-feedback';
-import * as choiceStandard from './standard-choice';
-import * as choiceMultipleStandard from './standard-choice-multiple';
-import * as textEntryStandard from './standard-text-entry';
-import * as inlineChoiceStandard from './standard-inline-choice';
+import * as choiceMultipleStandard from './standard-choice-multiple-wrong-choice-feedback';
 import * as inlineChoiceRationaleDyad from './standard-inline-choice-rationale-dyad';
 import * as inlineChoiceRationaleTriad from './standard-inline-choice-rationale-triad';
-import * as matchStandard from './standard-match';
-import * as gapMatchStandard from './standard-gap-match';
 import * as textEntryPartialStandard from './standard-text-entry-partial';
 import * as choiceHorizontalStandard from './standard-choice-horizontal';
 import * as choicePartialStandard from './standard-choice-partial';
@@ -127,23 +126,29 @@ export const variantExamples = [
  * response processing and feedback patterns, and show extensive feedback as
  * we would expect to see in real assessment items */
 export const standardExamples = [
-  choiceStandard,
   choiceMultipleStandard,
   choiceHorizontalStandard,
-  textEntryStandard,
   textEntryMulti,
-  inlineChoiceStandard,
   inlineChoiceMulti,
   inlineChoiceRationaleDyad,
   inlineChoiceRationaleTriad,
-  matchStandard,
-  gapMatchStandard,
   textEntryPartialStandard,
   choicePartialStandard,
   multiInteractionStandard,
 ];
 
+/* references for AI item generation: the canonical samples, with their
+ * authoring guidance, plus the supported feature examples */
+export const generationExamples: ExampleItem[] = [
+  ...samples,
+  ...standardExamples,
+];
+
 export const exampleGroups: ExampleGroup[] = [
+  ...sampleGroups.map(group => ({
+    label: `${group.label} Samples`,
+    items: group.samples,
+  })),
   {
     label: 'Supported Examples',
     items: standardExamples,

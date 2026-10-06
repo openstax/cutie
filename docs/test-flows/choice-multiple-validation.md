@@ -3,7 +3,7 @@ name: Choice Interaction — Multiple Select Validation
 route: /
 tags: [choice, interaction, multi-select, validation, accessibility]
 examples:
-  - Multiple Choice
+  - Multiple Choice - Wrong Choice Feedback
 ---
 
 # Choice Interaction — Multiple Select Validation
@@ -13,7 +13,7 @@ verifies that constraint errors are announced to screen readers (not just shown 
 
 ## Initial Display
 
-**Setup:** Load "Multiple Choice" from the Supported Examples group in the example dropdown.
+**Setup:** Load "Multiple Choice - Wrong Choice Feedback" from the Supported Examples group in the example dropdown.
 
 1. Observe the rendered item.
    - [ ] A prompt is visible: "Question prompt goes here. Select all that apply."
