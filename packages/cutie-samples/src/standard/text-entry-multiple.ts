@@ -22,8 +22,9 @@ ${preferSelectedResponse}
 - Each blank follows the single text entry rules: ${responseRequired}
 - Score each text blank with a case-insensitive \`qti-mapping\` that has a \
 \`qti-map-entry\` with \`mapped-value="1"\` for every acceptable answer and \
-\`default-value="0"\`. A blank counts as correct when its \`qti-map-response\` \
-equals 1.
+\`default-value="0"\`. Mark entries where case matters, such as unit or element \
+symbols, \`case-sensitive="true"\`. A blank counts as correct when its \
+\`qti-map-response\` equals 1.
 - ${allOrNothingMultiple}
 - ${correctResponse}
 - ${outcomes}`;
@@ -42,7 +43,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
     </qti-correct-response>
     <qti-mapping default-value="0">
       <qti-map-entry map-key="hydrogen" mapped-value="1"/>
-      <qti-map-entry map-key="H" mapped-value="1"/>
+      <qti-map-entry map-key="H" mapped-value="1" case-sensitive="true"/>
     </qti-mapping>
   </qti-response-declaration>
 
@@ -52,7 +53,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
     </qti-correct-response>
     <qti-mapping default-value="0">
       <qti-map-entry map-key="oxygen" mapped-value="1"/>
-      <qti-map-entry map-key="O" mapped-value="1"/>
+      <qti-map-entry map-key="O" mapped-value="1" case-sensitive="true"/>
     </qti-mapping>
   </qti-response-declaration>
 

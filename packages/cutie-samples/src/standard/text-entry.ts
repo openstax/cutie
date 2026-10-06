@@ -18,7 +18,8 @@ ${preferSelectedResponse}
 - Score with a \`qti-mapping\` rather than \`qti-match\`. Mappings are \
 case-insensitive by default, while \`qti-match\` on strings is case-sensitive. Add a \
 \`qti-map-entry\` with \`mapped-value="1"\` for every acceptable answer (spelling \
-variants, plurals, abbreviations) and set \`default-value="0"\`.
+variants, plurals, abbreviations) and set \`default-value="0"\`. Mark entries \
+where case matters, such as unit or element symbols, \`case-sensitive="true"\`.
 - \`SCORE\` is 1 when \`qti-map-response\` equals 1, otherwise 0. The \
 correct/incorrect feedback condition uses the same check.
 - ${workedSolution}
@@ -41,7 +42,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
     <qti-mapping default-value="0">
       <qti-map-entry map-key="newton" mapped-value="1"/>
       <qti-map-entry map-key="newtons" mapped-value="1"/>
-      <qti-map-entry map-key="N" mapped-value="1"/>
+      <qti-map-entry map-key="N" mapped-value="1" case-sensitive="true"/>
     </qti-mapping>
   </qti-response-declaration>
 

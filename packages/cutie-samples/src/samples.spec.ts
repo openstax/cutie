@@ -21,6 +21,17 @@ const incorrectSubmissions: Record<string, Submission> = {
   formula: { RESPONSE: '2x+3' },
 };
 
+/* mapped text entries: forgiving word forms, case-sensitive symbols */
+const acceptedVariants: Record<string, Submission[]> = {
+  'text-entry': [{ RESPONSE: 'Newtons' }, { RESPONSE: 'N' }],
+  'text-entry-multiple': [{ RESPONSE: 'Hydrogen', RESPONSE_2: 'OXYGEN' }, { RESPONSE: 'H', RESPONSE_2: 'O' }],
+};
+
+const rejectedVariants: Record<string, Submission[]> = {
+  'text-entry': [{ RESPONSE: 'n' }],
+  'text-entry-multiple': [{ RESPONSE: 'h', RESPONSE_2: 'O' }, { RESPONSE: 'H', RESPONSE_2: 'o' }],
+};
+
 const SHUFFLED_INTERACTIONS = [
   'qti-choice-interaction',
   'qti-inline-choice-interaction',
@@ -176,6 +187,16 @@ describe.each(samples)('$id sample', (sample) => {
       expect(shownFeedback).toContain('RESPONSE_correct');
       expect(shownFeedback).not.toContain('RESPONSE_incorrect');
     }
+  });
+
+  it.each(acceptedVariants[sample.id] ?? [])('scores the accepted variant %j as correct', async (submission) => {
+    const { state } = await submitAndListFeedback(sample, submission);
+    expect(state.score?.raw).toBe(state.score?.max);
+  });
+
+  it.each(rejectedVariants[sample.id] ?? [])('scores the rejected variant %j as incorrect', async (submission) => {
+    const { state } = await submitAndListFeedback(sample, submission);
+    expect(state.score?.raw).toBe(0);
   });
 
   it('scores an incorrect response as incorrect', async () => {
