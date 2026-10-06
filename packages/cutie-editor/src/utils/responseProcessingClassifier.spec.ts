@@ -698,6 +698,22 @@ describe('responseProcessingClassifier', () => {
       expect(classifyResponseProcessing(doc).mode).toBe('custom');
     });
 
+    it.each(['ITEM_completed', 'RESPONSE_correct'])(
+      'should classify %s set inside the scoring condition as custom',
+      (feedbackId) => {
+        const doc = createQtiDoc(`
+          <qti-response-processing>
+            ${allCorrectScoring.replace(
+              '</qti-response-if>',
+              `${itemCompletedRule.replace('ITEM_completed', feedbackId)}</qti-response-if>`
+            )}
+          </qti-response-processing>
+        `);
+
+        expect(classifyResponseProcessing(doc).mode).toBe('custom');
+      }
+    );
+
     it('should classify other unconditional FEEDBACK rules as custom', () => {
       const doc = createQtiDoc(`
         <qti-response-processing>

@@ -248,11 +248,18 @@ function isAllCorrectPattern(responseProcessing: Element): boolean {
 /**
  * Check if a condition follows the allCorrect scoring pattern:
  * A qti-and over qti-match/qti-equal calls (multiple interactions) or
- * a single qti-match/qti-equal call (single interaction)
+ * a single qti-match/qti-equal call (single interaction), setting only SCORE.
+ * Feedback set inside the scoring condition wouldn't survive regeneration,
+ * which emits feedback rules separately.
  */
 function isAllCorrectScoringCondition(condition: Element): boolean {
   const responseIf = condition.querySelector(':scope > qti-response-if');
   if (!responseIf) {
+    return false;
+  }
+
+  const setters = condition.querySelectorAll('qti-set-outcome-value');
+  if (!Array.from(setters).every(setter => setter.getAttribute('identifier') === 'SCORE')) {
     return false;
   }
 
