@@ -1,11 +1,11 @@
 {
   "name": "@openstax/cutie-samples",
   "description": "Canonical OpenStax QTI v3 assessment item samples with authoring guidance",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "devDependencies": {
     "@eslint/js": "^9.39.1",
-    "@openstax/cutie-core": "2.1.0",
-    "@openstax/cutie-editor": "2.0.0",
+    "@openstax/cutie-core": "2.2.0",
+    "@openstax/cutie-editor": "2.1.0",
     "cspell": "^5.18.5",
     "eslint": "^9.39.1",
     "eslint-plugin-import": "^2.32.0",
