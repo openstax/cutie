@@ -18,6 +18,8 @@ const BASE_STYLES = `
     --cutie-feedback-incorrect: #d32f2f;
     --cutie-feedback-info: #4a90e2;
     --cutie-line-height: 1.5;
+    /* Size of supporting text around interactions: errors, validation messages, counters */
+    --cutie-supporting-text-size: 0.85em;
     /* Width of the colored leading border that marks feedback and evaluated interactions */
     --cutie-status-rail-width: 0.5em;
     /* Space between an interaction's status rail and its content */

@@ -371,7 +371,6 @@ registry.register('choice-interaction', new ChoiceInteractionHandler(), 50);
 const CHOICE_INTERACTION_STYLES = `
   .cutie-choice-interaction {
     margin: 1em 0;
-    font-family: system-ui, -apple-system, sans-serif;
   }
 
   .cutie-choice-interaction .cutie-prompt {

@@ -32,7 +32,7 @@ const VALIDATION_DISPLAY_STYLES = `
     display: flex;
     align-items: center;
     gap: 0.3em;
-    font-size: 1em;
+    font-size: var(--cutie-supporting-text-size);
     color: var(--cutie-text-muted);
     margin-top: 0.5em;
   }

@@ -307,7 +307,7 @@ const FORMULA_INTERACTION_STYLES = `
   width: 100%;
   min-height: 50px;
   padding: 8px;
-  font-size: 18px;
+  font-size: 1.8rem;
   border: 1px solid var(--cutie-border);
   border-radius: 4px;
   box-sizing: border-box;
@@ -344,7 +344,7 @@ const FORMULA_INTERACTION_STYLES = `
   padding: 8px;
   margin-bottom: 8px;
   border-radius: 4px;
-  font-size: 14px;
+  font-size: var(--cutie-supporting-text-size);
 }
 
 
