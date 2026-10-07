@@ -1230,6 +1230,7 @@ export class MatchController {
       } else {
         choice.element.setAttribute('disabled', '');
         choice.element.setAttribute('draggable', 'false');
+        choice.element.setAttribute('tabindex', "-1");
       }
     }
 
