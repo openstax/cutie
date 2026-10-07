@@ -311,12 +311,12 @@ export class MatchInteractionHandler implements ElementHandler {
 
   /**
    * Create the grouped (bowtie) layout: one column per target choice. Each
-   * column is a plain HEADER plus a fixed row of gap boxes (the drop targets),
+   * column is a plain HEADER plus a fixed row of slot boxes (the drop targets),
    * and a per-group bank of the source choices whose match-group names that
-   * target. The gap count is the slot's capacity — its match-max, falling back
+   * target. The slot count is the target's capacity — its match-max, falling back
    * to the interaction's max-associations (capped by the bank size) when the
-   * slot is unbounded. The interaction's qti-choices-* class positions each
-   * bank relative to its header/gaps (via CSS). Columns are derived entirely
+   * target is unbounded. The interaction's qti-choices-* class positions each
+   * bank relative to its header/slots (via CSS). Columns are derived entirely
    * from the target set — no authored layout grid needed.
    */
   private createColumns(
@@ -359,13 +359,13 @@ export class MatchInteractionHandler implements ElementHandler {
       column.className = 'cutie-match-column';
       column.setAttribute('data-match-group', targetId);
 
-      // Header + gaps share the "slot" area so qti-choices-* positioning places
+      // Header + slots share the "target" grid area so qti-choices-* positioning places
       // them together opposite the bank.
-      const slotArea = document.createElement('div');
-      slotArea.className = 'cutie-match-choice-wrapper';
+      const targetArea = document.createElement('div');
+      targetArea.className = 'cutie-match-choice-wrapper';
 
       const header = document.createElement('div');
-      header.className = 'cutie-match-slot-header';
+      header.className = 'cutie-match-target-header';
       const labelId = `cutie-match-label-${responseIdentifier}-${targetId}`;
       header.id = labelId;
       if (context.transformChildren) {
@@ -373,7 +373,7 @@ export class MatchInteractionHandler implements ElementHandler {
       } else {
         header.textContent = targetContent;
       }
-      slotArea.appendChild(header);
+      targetArea.appendChild(header);
       controller.registerGroupedTarget(targetId, header, targetMatchMax, targetContent);
 
       // The sources that may fill this column.
@@ -382,7 +382,7 @@ export class MatchInteractionHandler implements ElementHandler {
         return id && !placedSources.has(id) && groupsOf(sc).includes(targetId);
       });
 
-      // Draw one gap per unit of capacity.
+      // Draw one slot per unit of capacity.
       const bankSize = columnSources.length;
       const capacity = Math.max(
         1,
@@ -391,17 +391,17 @@ export class MatchInteractionHandler implements ElementHandler {
           : maxAssociations > 0 ? Math.min(maxAssociations, bankSize) : bankSize
       );
 
-      const gaps = document.createElement('div');
-      gaps.className = 'cutie-match-gaps';
-      gaps.setAttribute('role', 'group');
-      gaps.setAttribute('aria-labelledby', labelId);
+      const slots = document.createElement('div');
+      slots.className = 'cutie-match-slots';
+      slots.setAttribute('role', 'group');
+      slots.setAttribute('aria-labelledby', labelId);
       for (let i = 0; i < capacity; i++) {
-        const gap = this.createGap();
-        controller.registerGroupedGap(gap, targetId);
-        gaps.appendChild(gap);
+        const slot = this.createSlot();
+        controller.registerGroupedSlot(slot, targetId, i + 1, capacity);
+        slots.appendChild(slot);
       }
-      slotArea.appendChild(gaps);
-      column.appendChild(slotArea);
+      targetArea.appendChild(slots);
+      column.appendChild(targetArea);
 
       // Per-group source bank, labelled by the column header.
       const bank = document.createElement('div');
@@ -431,28 +431,27 @@ export class MatchInteractionHandler implements ElementHandler {
   }
 
   /**
-   * Create a single empty gap box: the drop slot shown under a grouped column
+   * Create a single empty slot: one unit of target capacity shown under a grouped column
    * header. Holds a placeholder (shown when empty) and a content span (shown
-   * when filled). The controller wires its interactions.
+   * when filled). The controller labels it and wires its interactions.
    */
-  private createGap(): HTMLElement {
-    const gap = document.createElement('div');
-    gap.className = 'cutie-match-gap';
-    gap.setAttribute('role', 'button');
-    gap.setAttribute('tabindex', '-1');
-    gap.setAttribute('draggable', 'false');
-    gap.setAttribute('aria-label', 'Gap, empty');
+  private createSlot(): HTMLElement {
+    const slot = document.createElement('div');
+    slot.className = 'cutie-match-slot';
+    slot.setAttribute('role', 'button');
+    slot.setAttribute('tabindex', '-1');
+    slot.setAttribute('draggable', 'false');
 
     const placeholder = document.createElement('span');
-    placeholder.className = 'cutie-match-gap-placeholder';
+    placeholder.className = 'cutie-match-slot-placeholder';
     placeholder.setAttribute('aria-hidden', 'true');
-    gap.appendChild(placeholder);
+    slot.appendChild(placeholder);
 
     const content = document.createElement('span');
-    content.className = 'cutie-match-gap-content';
+    content.className = 'cutie-match-slot-content';
     content.style.display = 'none';
-    gap.appendChild(content);
+    slot.appendChild(content);
 
-    return gap;
+    return slot;
   }
 }

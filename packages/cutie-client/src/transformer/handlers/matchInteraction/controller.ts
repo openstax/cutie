@@ -28,10 +28,10 @@ interface ChoiceData {
  *  - Classic two-set match: both sets are choice boxes; selecting one and then
  *    one from the other set connects them, shown as chips.
  *  - Grouped (bowtie) mode: sources live in per-column word banks and each
- *    column is a plain HEADER plus a fixed row of gap boxes. The gaps are the
- *    only drop targets (the header is just a label); a source drops into a gap,
- *    and dropping onto a filled gap replaces its occupant — mirroring
- *    gap-match. No chips are drawn under a placed source.
+ *    column is a plain HEADER plus a fixed row of slot boxes. The slots are the
+ *    only drop targets (the header is just a label); a source drops into a slot,
+ *    and dropping onto a filled slot replaces its occupant — mirroring
+ *    gap-match, but without chips under a placed source.
  */
 export class MatchController {
   readonly responseIdentifier: string;
@@ -51,7 +51,7 @@ export class MatchController {
   private enabled = true;
 
   // Grouped (bowtie) mode: sources are banked per column and each column is a
-  // header + gap boxes. Off by default (classic two-set match).
+  // header + slot boxes. Off by default (classic two-set match).
   private grouped = false;
 
   // Choice data - unified storage
@@ -59,13 +59,14 @@ export class MatchController {
   private sourceIds: string[] = [];
   private targetIds: string[] = [];
 
-  // Grouped-mode gap state: the gap elements, which source each holds, the
+  // Grouped-mode slot state: the slot elements, which source each holds, the
   // banks (return targets), the current source selection, and the source being
   // dragged (so dragover can validate before the drop's dataTransfer is read).
-  private groupedGaps: HTMLElement[] = [];
-  private gapOccupant = new Map<HTMLElement, string>();
+  private groupedSlots: HTMLElement[] = [];
+  private slotOccupant = new Map<HTMLElement, string>();
+  private slotEmptyLabel = new Map<HTMLElement, string>();
   private groupedBanks: HTMLElement[] = [];
-  private groupedSel: { sourceId: string; fromGap: HTMLElement | null } | null = null;
+  private groupedSel: { sourceId: string; fromSlot: HTMLElement | null } | null = null;
   private draggedSourceId: string | null = null;
 
   // Track pending chip drag for drop-outside-to-remove behavior (classic mode)
@@ -92,7 +93,7 @@ export class MatchController {
 
       const target = e.target as HTMLElement;
       const inside = target.closest(
-        '.cutie-match-choice, .cutie-match-chip, .cutie-match-gap, .cutie-match-bank'
+        '.cutie-match-choice, .cutie-match-chip, .cutie-match-slot, .cutie-match-bank'
       );
 
       if (!inside) {
@@ -109,12 +110,12 @@ export class MatchController {
    * Initialize the controller after all choices are registered.
    */
   initialize(_sourceSetElement?: HTMLElement, _targetSetElement?: HTMLElement): void {
-    // Grouped gaps are built by the handler; nothing to do here.
+    // Grouped slots are built by the handler; nothing to do here.
   }
 
   /**
    * Enable grouped (bowtie) mode. In this mode sources are banked per column,
-   * arrow keys stay within a bank, and the column gaps are the drop targets.
+   * arrow keys stay within a bank, and the column slots are the drop targets.
    */
   enableGroupedMode(): void {
     this.grouped = true;
@@ -155,7 +156,7 @@ export class MatchController {
 
   /**
    * Grouped mode: register a target column. Its element is the plain header,
-   * which only labels the column and is never a drop target — the gaps are.
+   * which only labels the column and is never a drop target — the slots are.
    */
   registerGroupedTarget(
     targetId: string,
@@ -176,13 +177,17 @@ export class MatchController {
   }
 
   /**
-   * Grouped mode: register one gap (drop slot) belonging to a target column.
+   * Grouped mode: register one slot (a unit of the target's capacity) in a target column.
+   * `position` is 1-based within the column's `count` slots.
    */
-  registerGroupedGap(gapElement: HTMLElement, targetId: string): void {
-    gapElement.setAttribute('data-target-id', targetId);
-    gapElement.setAttribute('data-gap-id', String(this.groupedGaps.length));
-    this.groupedGaps.push(gapElement);
-    this.wireGapEvents(gapElement);
+  registerGroupedSlot(slotElement: HTMLElement, targetId: string, position: number, count: number): void {
+    slotElement.setAttribute('data-target-id', targetId);
+    slotElement.setAttribute('data-slot-id', String(this.groupedSlots.length));
+    this.groupedSlots.push(slotElement);
+    const emptyLabel = `Slot ${position} of ${count}, empty`;
+    this.slotEmptyLabel.set(slotElement, emptyLabel);
+    slotElement.setAttribute('aria-label', emptyLabel);
+    this.wireSlotEvents(slotElement);
   }
 
   /**
@@ -230,19 +235,19 @@ export class MatchController {
   }
 
   // ---------------------------------------------------------------------------
-  // Grouped (bowtie) mode: source + gap + bank wiring
+  // Grouped (bowtie) mode: source + slot + bank wiring
   // ---------------------------------------------------------------------------
 
   /**
    * Wire a source choice in a word bank: click/Enter selects it, arrows rove
-   * within the bank, and it can be dragged into a gap.
+   * within the bank, and it can be dragged into a slot.
    */
   private wireGroupedSource(choice: ChoiceData): void {
     const { id, element } = choice;
 
     const toggle = () => {
       if (this.isChoiceExhausted(id)) return;
-      if (this.groupedSel?.sourceId === id && !this.groupedSel.fromGap) {
+      if (this.groupedSel?.sourceId === id && !this.groupedSel.fromSlot) {
         this.clearSelection();
       } else {
         this.selectGroupedSource(id, null);
@@ -297,103 +302,103 @@ export class MatchController {
   }
 
   /**
-   * Wire a gap (the column's drop slot). Empty: accepts a selected/dragged
+   * Wire a slot (one unit of the column target's capacity). Empty: accepts a selected/dragged
    * source. Filled: can be picked up, removed, dragged, or replaced by dropping
    * another source onto it.
    */
-  private wireGapEvents(gap: HTMLElement): void {
+  private wireSlotEvents(slot: HTMLElement): void {
     const activate = () => {
-      const occupant = this.gapOccupant.get(gap);
+      const occupant = this.slotOccupant.get(slot);
       if (this.groupedSel) {
-        const { sourceId, fromGap } = this.groupedSel;
-        if (fromGap === gap) {
+        const { sourceId, fromSlot } = this.groupedSel;
+        if (fromSlot === slot) {
           this.clearSelection();
           return;
         }
-        if (this.canPlaceInGap(gap, sourceId, fromGap)) {
-          this.placeInGap(gap, sourceId, fromGap);
+        if (this.canPlaceInSlot(slot, sourceId, fromSlot)) {
+          this.placeInSlot(slot, sourceId, fromSlot);
           this.clearSelection();
         }
       } else if (occupant) {
-        this.selectGroupedSource(occupant, gap);
+        this.selectGroupedSource(occupant, slot);
       }
     };
 
-    gap.addEventListener('click', (e) => {
+    slot.addEventListener('click', (e) => {
       if (!this.enabled) return;
       e.stopPropagation();
       activate();
     });
 
-    gap.addEventListener('keydown', (e) => {
+    slot.addEventListener('keydown', (e) => {
       if (!this.enabled) return;
-      const occupant = this.gapOccupant.get(gap);
+      const occupant = this.slotOccupant.get(slot);
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         activate();
       } else if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault();
         if (occupant) {
-          this.removeFromGap(gap);
-          gap.focus();
+          this.removeFromSlot(slot);
+          slot.focus();
         }
       } else if (e.key === 'Escape') {
         this.clearSelection();
       }
     });
 
-    gap.addEventListener('dragstart', (e) => {
+    slot.addEventListener('dragstart', (e) => {
       if (!this.enabled) return;
-      const occupant = this.gapOccupant.get(gap);
+      const occupant = this.slotOccupant.get(slot);
       if (!occupant) {
         e.preventDefault();
         return;
       }
-      e.dataTransfer?.setData('text/plain', `gap:${gap.getAttribute('data-gap-id')}`);
+      e.dataTransfer?.setData('text/plain', `slot:${slot.getAttribute('data-slot-id')}`);
       this.draggedSourceId = occupant;
-      gap.classList.add('cutie-match-gap--dragging');
-      this.selectGroupedSource(occupant, gap);
+      slot.classList.add('cutie-match-slot--dragging');
+      this.selectGroupedSource(occupant, slot);
     });
 
-    gap.addEventListener('dragend', () => {
+    slot.addEventListener('dragend', () => {
       this.draggedSourceId = null;
-      gap.classList.remove('cutie-match-gap--dragging');
+      slot.classList.remove('cutie-match-slot--dragging');
       this.clearSelection();
     });
 
-    gap.addEventListener('dragover', (e) => {
+    slot.addEventListener('dragover', (e) => {
       if (!this.enabled) return;
       if (!e.dataTransfer?.types.includes('text/plain')) return;
       // Only signal droppable when the dragged source is actually allowed here.
       if (this.draggedSourceId
-        && !this.canPlaceInGap(gap, this.draggedSourceId, this.draggedFromGap())) {
+        && !this.canPlaceInSlot(slot, this.draggedSourceId, this.draggedFromSlot())) {
         return;
       }
       e.preventDefault();
-      gap.classList.add('cutie-match-gap--drag-over');
+      slot.classList.add('cutie-match-slot--drag-over');
     });
 
-    gap.addEventListener('dragleave', () => {
-      gap.classList.remove('cutie-match-gap--drag-over');
+    slot.addEventListener('dragleave', () => {
+      slot.classList.remove('cutie-match-slot--drag-over');
     });
 
-    gap.addEventListener('drop', (e) => {
+    slot.addEventListener('drop', (e) => {
       if (!this.enabled) return;
       e.preventDefault();
-      gap.classList.remove('cutie-match-gap--drag-over');
+      slot.classList.remove('cutie-match-slot--drag-over');
 
       const data = e.dataTransfer?.getData('text/plain') ?? '';
       if (data.startsWith('source:')) {
         const sourceId = data.slice('source:'.length);
-        if (this.canPlaceInGap(gap, sourceId, null)) {
-          this.placeInGap(gap, sourceId, null);
+        if (this.canPlaceInSlot(slot, sourceId, null)) {
+          this.placeInSlot(slot, sourceId, null);
         }
-      } else if (data.startsWith('gap:')) {
-        const fromGap = this.groupedGaps[Number(data.slice('gap:'.length))];
-        if (fromGap && fromGap !== gap) {
-          const sourceId = this.gapOccupant.get(fromGap);
-          if (sourceId && this.canPlaceInGap(gap, sourceId, fromGap)) {
-            this.placeInGap(gap, sourceId, fromGap);
+      } else if (data.startsWith('slot:')) {
+        const fromSlot = this.groupedSlots[Number(data.slice('slot:'.length))];
+        if (fromSlot && fromSlot !== slot) {
+          const sourceId = this.slotOccupant.get(fromSlot);
+          if (sourceId && this.canPlaceInSlot(slot, sourceId, fromSlot)) {
+            this.placeInSlot(slot, sourceId, fromSlot);
           }
         }
       }
@@ -401,11 +406,11 @@ export class MatchController {
     });
   }
 
-  /** The gap the currently dragged source was picked up from, if any. */
-  private draggedFromGap(): HTMLElement | null {
+  /** The slot the currently dragged source was picked up from, if any. */
+  private draggedFromSlot(): HTMLElement | null {
     if (!this.draggedSourceId) return null;
-    for (const [gap, sourceId] of this.gapOccupant) {
-      if (sourceId === this.draggedSourceId) return gap;
+    for (const [slot, sourceId] of this.slotOccupant) {
+      if (sourceId === this.draggedSourceId) return slot;
     }
     return null;
   }
@@ -418,8 +423,8 @@ export class MatchController {
     bank.addEventListener('dragover', (e) => {
       if (!this.enabled) return;
       if (!e.dataTransfer?.types.includes('text/plain')) return;
-      // Only accept returns of a source currently sitting in a gap.
-      if (!this.draggedFromGap()) return;
+      // Only accept returns of a source currently sitting in a slot.
+      if (!this.draggedFromSlot()) return;
       e.preventDefault();
       bank.classList.add('cutie-match-bank--drag-over');
     });
@@ -434,10 +439,10 @@ export class MatchController {
       if (!this.enabled) return;
       bank.classList.remove('cutie-match-bank--drag-over');
       const data = e.dataTransfer?.getData('text/plain') ?? '';
-      if (data.startsWith('gap:')) {
+      if (data.startsWith('slot:')) {
         e.preventDefault();
-        const fromGap = this.groupedGaps[Number(data.slice('gap:'.length))];
-        if (fromGap) this.removeFromGap(fromGap);
+        const fromSlot = this.groupedSlots[Number(data.slice('slot:'.length))];
+        if (fromSlot) this.removeFromSlot(fromSlot);
       }
     });
 
@@ -445,37 +450,37 @@ export class MatchController {
       if (!this.enabled) return;
       const target = e.target as HTMLElement;
       // Clicking the bank background (not a source) returns a picked-up source.
-      if (!target.closest('.cutie-match-choice') && this.groupedSel?.fromGap) {
-        this.removeFromGap(this.groupedSel.fromGap);
+      if (!target.closest('.cutie-match-choice') && this.groupedSel?.fromSlot) {
+        this.removeFromSlot(this.groupedSel.fromSlot);
         this.clearSelection();
       }
     });
   }
 
   /**
-   * Whether `sourceId` may be placed into `gap`, accounting for match-group,
-   * max-associations, and the source's match-max. `fromGap` is the gap the
+   * Whether `sourceId` may be placed into `slot`, accounting for match-group,
+   * max-associations, and the source's match-max. `fromSlot` is the slot the
    * source is being moved from (which frees a slot), if any.
    */
-  private canPlaceInGap(gap: HTMLElement, sourceId: string, fromGap: HTMLElement | null): boolean {
-    const targetId = gap.getAttribute('data-target-id');
+  private canPlaceInSlot(slot: HTMLElement, sourceId: string, fromSlot: HTMLElement | null): boolean {
+    const targetId = slot.getAttribute('data-target-id');
     if (!targetId) return false;
     if (!this.groupsAllow(sourceId, targetId)) return false;
 
-    const occupant = this.gapOccupant.get(gap);
+    const occupant = this.slotOccupant.get(slot);
     if (occupant === sourceId) return false; // already here
 
-    // A placement adds a net association only when the gap is empty and we are
-    // not moving the source out of another gap.
-    const addsAssociation = !occupant && !fromGap;
+    // A placement adds a net association only when the slot is empty and we are
+    // not moving the source out of another slot.
+    const addsAssociation = !occupant && !fromSlot;
     if (addsAssociation && this.maxAssociations > 0
       && this.associations.size >= this.maxAssociations) {
       return false;
     }
 
-    // The source gains a use unless it's just moving between gaps.
+    // The source gains a use unless it's just moving between slots.
     const source = this.choices.get(sourceId);
-    if (!fromGap && source && source.matchMax > 0
+    if (!fromSlot && source && source.matchMax > 0
       && source.connectedIds.size >= source.matchMax) {
       return false;
     }
@@ -484,15 +489,15 @@ export class MatchController {
   }
 
   /**
-   * Select a source for placement, highlighting the gaps it may fill. `fromGap`
-   * is set when picking a placed source back up out of a gap.
+   * Select a source for placement, highlighting the slots it may fill. `fromSlot`
+   * is set when picking a placed source back up out of a slot.
    */
-  private selectGroupedSource(sourceId: string, fromGap: HTMLElement | null): void {
+  private selectGroupedSource(sourceId: string, fromSlot: HTMLElement | null): void {
     this.clearSelection();
-    this.groupedSel = { sourceId, fromGap };
+    this.groupedSel = { sourceId, fromSlot };
 
-    if (fromGap) {
-      fromGap.classList.add('cutie-match-gap--selected');
+    if (fromSlot) {
+      fromSlot.classList.add('cutie-match-slot--selected');
     } else {
       const el = this.choices.get(sourceId)?.element;
       el?.classList.add('cutie-match-choice--selected');
@@ -500,28 +505,28 @@ export class MatchController {
     }
 
     let available = 0;
-    for (const gap of this.groupedGaps) {
-      const canPlace = this.canPlaceInGap(gap, sourceId, fromGap);
+    for (const slot of this.groupedSlots) {
+      const canPlace = this.canPlaceInSlot(slot, sourceId, fromSlot);
       if (canPlace) {
-        gap.classList.add('cutie-match-gap--drop-target');
+        slot.classList.add('cutie-match-slot--drop-target');
         available++;
       }
-      // Keyboard users tab only through the gaps that can accept this source.
-      gap.setAttribute('tabindex', canPlace ? '0' : '-1');
+      // Keyboard users tab only through the slots that can accept this source.
+      slot.setAttribute('tabindex', canPlace ? '0' : '-1');
     }
 
     // Returning a picked-up source: light its home bank as a target too.
-    if (fromGap) {
+    if (fromSlot) {
       this.bankFor(sourceId)?.classList.add('cutie-match-bank--drop-target');
     }
 
     const content = this.choices.get(sourceId)?.content ?? '';
-    const slots = available === 1 ? 'gap' : 'gaps';
+    const slots = available === 1 ? 'slot' : 'slots';
     announce(
       this.context,
-      fromGap
-        ? `${content} picked up. ${available} ${slots} available. Move it to a gap, or return it to the word bank.`
-        : `${content} selected. ${available} ${slots} available. Choose a gap to place it.`
+      fromSlot
+        ? `${content} picked up. ${available} ${slots} available. Move it to a slot, or return it to the word bank.`
+        : `${content} selected. ${available} ${slots} available. Choose a slot to place it.`
     );
   }
 
@@ -533,58 +538,58 @@ export class MatchController {
   }
 
   /**
-   * Place `sourceId` into `gap`, replacing any current occupant and freeing the
-   * source's previous gap when moving.
+   * Place `sourceId` into `slot`, replacing any current occupant and freeing the
+   * source's previous slot when moving.
    */
-  private placeInGap(gap: HTMLElement, sourceId: string, fromGap: HTMLElement | null): void {
-    const targetId = gap.getAttribute('data-target-id');
+  private placeInSlot(slot: HTMLElement, sourceId: string, fromSlot: HTMLElement | null): void {
+    const targetId = slot.getAttribute('data-target-id');
     if (!targetId) return;
 
-    const occupant = this.gapOccupant.get(gap);
+    const occupant = this.slotOccupant.get(slot);
     if (occupant === sourceId) return;
 
-    // Free the source's previous gap (move) and the target gap's occupant
+    // Free the source's previous slot (move) and the target slot's occupant
     // (replace) before creating the new association.
-    if (fromGap && fromGap !== gap && this.gapOccupant.get(fromGap) === sourceId) {
-      this.removeFromGap(fromGap, true);
+    if (fromSlot && fromSlot !== slot && this.slotOccupant.get(fromSlot) === sourceId) {
+      this.removeFromSlot(fromSlot, true);
     }
     if (occupant) {
-      this.removeFromGap(gap, true);
+      this.removeFromSlot(slot, true);
     }
 
     if (this.createAssociation(sourceId, targetId)) {
-      this.gapOccupant.set(gap, sourceId);
-      this.fillGapVisual(gap, sourceId);
+      this.slotOccupant.set(slot, sourceId);
+      this.fillSlotVisual(slot, sourceId);
       announce(this.context, `${this.choices.get(sourceId)?.content ?? ''} placed.`);
     }
   }
 
-  /** Remove the source currently in `gap`, returning it to its bank. */
-  private removeFromGap(gap: HTMLElement, silent = false): void {
-    const sourceId = this.gapOccupant.get(gap);
-    const targetId = gap.getAttribute('data-target-id');
+  /** Remove the source currently in `slot`, returning it to its bank. */
+  private removeFromSlot(slot: HTMLElement, silent = false): void {
+    const sourceId = this.slotOccupant.get(slot);
+    const targetId = slot.getAttribute('data-target-id');
     if (!sourceId || !targetId) return;
 
-    this.gapOccupant.delete(gap);
+    this.slotOccupant.delete(slot);
     this.removeAssociation(sourceId, targetId, true);
-    this.emptyGapVisual(gap);
+    this.emptySlotVisual(slot);
 
     if (!silent) {
       announce(this.context, `${this.choices.get(sourceId)?.content ?? ''} returned to the word bank.`);
     }
   }
 
-  /** Show `sourceId`'s content inside a filled gap. */
-  private fillGapVisual(gap: HTMLElement, sourceId: string): void {
+  /** Show `sourceId`'s content inside a filled slot. */
+  private fillSlotVisual(slot: HTMLElement, sourceId: string): void {
     const content = this.choices.get(sourceId)?.content ?? '';
-    gap.classList.add('cutie-match-gap--filled');
-    gap.setAttribute('data-source-id', sourceId);
-    gap.setAttribute('draggable', 'true');
-    gap.setAttribute('tabindex', '0');
-    gap.setAttribute('aria-label', `Contains ${content}. Press Enter to pick up, or Backspace to remove.`);
+    slot.classList.add('cutie-match-slot--filled');
+    slot.setAttribute('data-source-id', sourceId);
+    slot.setAttribute('draggable', 'true');
+    slot.setAttribute('tabindex', '0');
+    slot.setAttribute('aria-label', `Contains ${content}. Press Enter to pick up, or Backspace to remove.`);
 
-    const contentSpan = gap.querySelector('.cutie-match-gap-content') as HTMLElement | null;
-    const placeholder = gap.querySelector('.cutie-match-gap-placeholder') as HTMLElement | null;
+    const contentSpan = slot.querySelector('.cutie-match-slot-content') as HTMLElement | null;
+    const placeholder = slot.querySelector('.cutie-match-slot-placeholder') as HTMLElement | null;
     if (contentSpan) {
       contentSpan.textContent = content;
       contentSpan.style.display = '';
@@ -592,16 +597,16 @@ export class MatchController {
     if (placeholder) placeholder.style.display = 'none';
   }
 
-  /** Reset a gap to its empty state. */
-  private emptyGapVisual(gap: HTMLElement): void {
-    gap.classList.remove('cutie-match-gap--filled');
-    gap.removeAttribute('data-source-id');
-    gap.setAttribute('draggable', 'false');
-    gap.setAttribute('tabindex', '-1');
-    gap.setAttribute('aria-label', 'Gap, empty');
+  /** Reset a slot to its empty state. */
+  private emptySlotVisual(slot: HTMLElement): void {
+    slot.classList.remove('cutie-match-slot--filled');
+    slot.removeAttribute('data-source-id');
+    slot.setAttribute('draggable', 'false');
+    slot.setAttribute('tabindex', '-1');
+    slot.setAttribute('aria-label', this.slotEmptyLabel.get(slot) ?? 'Slot, empty');
 
-    const contentSpan = gap.querySelector('.cutie-match-gap-content') as HTMLElement | null;
-    const placeholder = gap.querySelector('.cutie-match-gap-placeholder') as HTMLElement | null;
+    const contentSpan = slot.querySelector('.cutie-match-slot-content') as HTMLElement | null;
+    const placeholder = slot.querySelector('.cutie-match-slot-placeholder') as HTMLElement | null;
     if (contentSpan) {
       contentSpan.textContent = '';
       contentSpan.style.display = 'none';
@@ -863,10 +868,10 @@ export class MatchController {
       'cutie-match-choice--drop-target'
     );
 
-    // Grouped selection + gap/bank highlights.
+    // Grouped selection + slot/bank highlights.
     if (this.groupedSel) {
-      if (this.groupedSel.fromGap) {
-        this.groupedSel.fromGap.classList.remove('cutie-match-gap--selected');
+      if (this.groupedSel.fromSlot) {
+        this.groupedSel.fromSlot.classList.remove('cutie-match-slot--selected');
       } else {
         const el = this.choices.get(this.groupedSel.sourceId)?.element;
         el?.classList.remove('cutie-match-choice--selected');
@@ -875,10 +880,10 @@ export class MatchController {
       this.groupedSel = null;
     }
 
-    for (const gap of this.groupedGaps) {
-      gap.classList.remove('cutie-match-gap--drop-target');
-      // Reset idle tab order: only filled gaps are reachable when nothing is selected.
-      gap.setAttribute('tabindex', this.gapOccupant.has(gap) ? '0' : '-1');
+    for (const slot of this.groupedSlots) {
+      slot.classList.remove('cutie-match-slot--drop-target');
+      // Reset idle tab order: only filled slots are reachable when nothing is selected.
+      slot.setAttribute('tabindex', this.slotOccupant.has(slot) ? '0' : '-1');
     }
     for (const bank of this.groupedBanks) {
       bank.classList.remove('cutie-match-bank--drop-target', 'cutie-match-bank--drag-over');
@@ -950,7 +955,7 @@ export class MatchController {
     sourceChoice?.connectedIds.add(targetId);
     targetChoice?.connectedIds.add(sourceId);
 
-    // Classic mode draws chips; grouped mode manages gap visuals itself.
+    // Classic mode draws chips; grouped mode manages slot visuals itself.
     if (!this.grouped) {
       this.updateChips(sourceId);
       this.updateChips(targetId);
@@ -968,7 +973,7 @@ export class MatchController {
   }
 
   /**
-   * Remove an association. Grouped mode announces via gap place/remove, so it
+   * Remove an association. Grouped mode announces via slot place/remove, so it
    * passes `silent` to avoid double messaging.
    */
   removeAssociation(sourceId: string, targetId: string, silent = false): void {
@@ -984,7 +989,7 @@ export class MatchController {
     sourceChoice?.connectedIds.delete(targetId);
     targetChoice?.connectedIds.delete(sourceId);
 
-    // Classic mode draws chips; grouped mode manages gap visuals itself.
+    // Classic mode draws chips; grouped mode manages slot visuals itself.
     if (!this.grouped) {
       this.updateChips(sourceId);
       this.updateChips(targetId);
@@ -1234,11 +1239,11 @@ export class MatchController {
       }
     }
 
-    // Grouped gaps: filled gaps stay draggable/reachable while enabled.
-    for (const gap of this.groupedGaps) {
-      const filled = this.gapOccupant.has(gap);
-      gap.setAttribute('draggable', enabled && filled ? 'true' : 'false');
-      gap.setAttribute('tabindex', enabled && filled ? '0' : '-1');
+    // Grouped slots: filled slots stay draggable/reachable while enabled.
+    for (const slot of this.groupedSlots) {
+      const filled = this.slotOccupant.has(slot);
+      slot.setAttribute('draggable', enabled && filled ? 'true' : 'false');
+      slot.setAttribute('tabindex', enabled && filled ? '0' : '-1');
     }
   }
 
@@ -1258,12 +1263,12 @@ export class MatchController {
       if (!sourceId || !targetId) continue;
 
       if (this.grouped) {
-        // Place into the first empty gap belonging to this target column.
-        const gap = this.groupedGaps.find(
-          (g) => g.getAttribute('data-target-id') === targetId && !this.gapOccupant.has(g)
+        // Place into the first empty slot belonging to this target column.
+        const slot = this.groupedSlots.find(
+          (g) => g.getAttribute('data-target-id') === targetId && !this.slotOccupant.has(g)
         );
-        if (gap && this.canPlaceInGap(gap, sourceId, null)) {
-          this.placeInGap(gap, sourceId, null);
+        if (slot && this.canPlaceInSlot(slot, sourceId, null)) {
+          this.placeInSlot(slot, sourceId, null);
         }
       } else {
         this.createAssociation(sourceId, targetId);
