@@ -64,7 +64,7 @@ export class MatchController {
   // dragged (so dragover can validate before the drop's dataTransfer is read).
   private groupedSlots: HTMLElement[] = [];
   private slotOccupant = new Map<HTMLElement, string>();
-  private slotEmptyLabel = new Map<HTMLElement, string>();
+  private slotPositionLabel = new Map<HTMLElement, string>();
   private groupedBanks: HTMLElement[] = [];
   private groupedSel: { sourceId: string; fromSlot: HTMLElement | null } | null = null;
   private draggedSourceId: string | null = null;
@@ -184,9 +184,9 @@ export class MatchController {
     slotElement.setAttribute('data-target-id', targetId);
     slotElement.setAttribute('data-slot-id', String(this.groupedSlots.length));
     this.groupedSlots.push(slotElement);
-    const emptyLabel = `Slot ${position} of ${count}, empty`;
-    this.slotEmptyLabel.set(slotElement, emptyLabel);
-    slotElement.setAttribute('aria-label', emptyLabel);
+    const positionLabel = `Slot ${position} of ${count}`;
+    this.slotPositionLabel.set(slotElement, positionLabel);
+    slotElement.setAttribute('aria-label', `${positionLabel}, empty`);
     this.wireSlotEvents(slotElement);
   }
 
@@ -586,7 +586,11 @@ export class MatchController {
     slot.setAttribute('data-source-id', sourceId);
     slot.setAttribute('draggable', 'true');
     slot.setAttribute('tabindex', '0');
-    slot.setAttribute('aria-label', `Contains ${content}. Press Enter to pick up, or Backspace to remove.`);
+    const positionLabel = this.slotPositionLabel.get(slot) ?? 'Slot';
+    slot.setAttribute(
+      'aria-label',
+      `${positionLabel}, contains ${content}. Press Enter to pick up, or Backspace to remove.`,
+    );
 
     const contentSpan = slot.querySelector('.cutie-match-slot-content') as HTMLElement | null;
     const placeholder = slot.querySelector('.cutie-match-slot-placeholder') as HTMLElement | null;
@@ -603,7 +607,7 @@ export class MatchController {
     slot.removeAttribute('data-source-id');
     slot.setAttribute('draggable', 'false');
     slot.setAttribute('tabindex', '-1');
-    slot.setAttribute('aria-label', this.slotEmptyLabel.get(slot) ?? 'Slot, empty');
+    slot.setAttribute('aria-label', `${this.slotPositionLabel.get(slot) ?? 'Slot'}, empty`);
 
     const contentSpan = slot.querySelector('.cutie-match-slot-content') as HTMLElement | null;
     const placeholder = slot.querySelector('.cutie-match-slot-placeholder') as HTMLElement | null;
@@ -1235,7 +1239,7 @@ export class MatchController {
       } else {
         choice.element.setAttribute('disabled', '');
         choice.element.setAttribute('draggable', 'false');
-        choice.element.setAttribute('tabindex', "-1");
+        choice.element.setAttribute('tabindex', '-1');
       }
     }
 

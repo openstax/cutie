@@ -553,6 +553,19 @@ describe('matchInteraction validation', () => {
       expect(slots[1].classList.contains('cutie-match-slot--filled')).toBe(false);
     });
 
+    it('keeps the slot position in its accessible name whether empty or filled', () => {
+      const container = renderGrouped();
+      const slot = slotsFor(container, 'T_ACTIONS')[1];
+      expect(slot.getAttribute('aria-label')).toBe('Slot 2 of 2, empty');
+
+      sourceEl(container, 'ACT1').click();
+      slot.click();
+      expect(slot.getAttribute('aria-label')).toMatch(/^Slot 2 of 2, contains Action 1\./);
+
+      slot.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }));
+      expect(slot.getAttribute('aria-label')).toBe('Slot 2 of 2, empty');
+    });
+
     it('returns a placed source to the bank when its slot is emptied', () => {
       const container = renderGrouped();
 
