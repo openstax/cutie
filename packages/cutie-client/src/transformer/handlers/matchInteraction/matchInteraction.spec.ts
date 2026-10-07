@@ -313,6 +313,27 @@ describe('matchInteraction validation', () => {
       const matchContainer = container.querySelector('.cutie-match-interaction')!;
       expect(matchContainer.classList.contains('cutie-match-interaction--disabled')).toBe(false);
     });
+
+    it('restores one tabbable choice per set when interactions are re-enabled', () => {
+      const doc = createQtiDocument(BASIC_MATCH_QTI);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const tabbableIn = (set: string) =>
+        Array.from(container.querySelectorAll(`.cutie-match-set--${set} .cutie-match-choice`))
+          .filter((c) => c.getAttribute('tabindex') === '0')
+          .map((c) => c.getAttribute('data-identifier'));
+
+      itemState.setInteractionsEnabled(false);
+      expect(tabbableIn('source')).toEqual([]);
+      expect(tabbableIn('target')).toEqual([]);
+
+      itemState.setInteractionsEnabled(true);
+      expect(tabbableIn('source')).toEqual(['S1']);
+      expect(tabbableIn('target')).toEqual(['T1']);
+    });
   });
 
   describe('accessor validation', () => {
@@ -464,6 +485,23 @@ describe('matchInteraction validation', () => {
           expect(choices[i].getAttribute('tabindex')).toBe('-1');
         }
       }
+    });
+
+    it('restores one tabbable choice per bank when interactions are re-enabled', () => {
+      const container = renderGrouped();
+
+      const tabbablePerBank = () =>
+        Array.from(container.querySelectorAll('.cutie-match-bank')).map((bank) =>
+          Array.from(bank.querySelectorAll('.cutie-match-choice'))
+            .filter((c) => c.getAttribute('tabindex') === '0')
+            .map((c) => c.getAttribute('data-identifier'))
+        );
+
+      itemState.setInteractionsEnabled(false);
+      expect(tabbablePerBank()).toEqual([[], [], []]);
+
+      itemState.setInteractionsEnabled(true);
+      expect(tabbablePerBank()).toEqual([['ACT1'], ['COND1'], ['PAR1']]);
     });
 
     it('makes only the selected source’s column slots tabbable drop targets', () => {

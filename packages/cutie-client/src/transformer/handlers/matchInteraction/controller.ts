@@ -4,6 +4,7 @@ import {
   focusNext,
   focusPrev,
   highlightDropTargets,
+  initializeRovingTabindex,
   updateRovingTabindex,
 } from '../../../utils';
 import type { TransformContext } from '../../types';
@@ -222,16 +223,27 @@ export class MatchController {
   private getRovingGroup(id: string, set: 'source' | 'target'): Map<string, HTMLElement> {
     if (this.grouped && set === 'source') {
       const bank = this.choices.get(id)?.element.closest('.cutie-match-bank');
-      if (bank) {
-        const scoped = new Map<string, HTMLElement>();
-        for (const choiceId of this.sourceIds) {
-          const choice = this.choices.get(choiceId);
-          if (choice && bank.contains(choice.element)) scoped.set(choiceId, choice.element);
-        }
-        return scoped;
-      }
+      if (bank) return this.getBankChoiceElements(bank);
     }
     return this.getChoiceElementsInSet(set);
+  }
+
+  private getBankChoiceElements(bank: Element): Map<string, HTMLElement> {
+    const scoped = new Map<string, HTMLElement>();
+    for (const choiceId of this.sourceIds) {
+      const choice = this.choices.get(choiceId);
+      if (choice && bank.contains(choice.element)) scoped.set(choiceId, choice.element);
+    }
+    return scoped;
+  }
+
+  private restoreRovingTabindex(): void {
+    const groups = this.grouped
+      ? this.groupedBanks.map((bank) => this.getBankChoiceElements(bank))
+      : [this.getChoiceElementsInSet('source'), this.getChoiceElementsInSet('target')];
+    for (const group of groups) {
+      initializeRovingTabindex(group);
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -1241,6 +1253,10 @@ export class MatchController {
         choice.element.setAttribute('draggable', 'false');
         choice.element.setAttribute('tabindex', '-1');
       }
+    }
+
+    if (enabled) {
+      this.restoreRovingTabindex();
     }
 
     // Grouped slots: filled slots stay draggable/reachable while enabled.
