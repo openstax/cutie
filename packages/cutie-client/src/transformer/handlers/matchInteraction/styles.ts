@@ -268,9 +268,8 @@ export const MATCH_INTERACTION_STYLES = `
   /*
    * Visual slots. A grouped column draws one slot box per unit of capacity
    * (match-max, else the interaction's max-associations) beneath its header, so
-   * empty capacity reads as an open drop target — the affordance qti-gap gives
-   * gap-match for free, synthesised for plain match. Slots are the drop targets;
-   * dropping onto a filled slot replaces its occupant.
+   * empty capacity is visible. Slots are the drop targets; dropping onto a
+   * filled slot replaces its occupant.
    */
   .cutie-match-slots {
     display: flex;
@@ -284,7 +283,7 @@ export const MATCH_INTERACTION_STYLES = `
     justify-content: center;
     min-height: 2.5em;
     padding: 0.25em 0.5em;
-    border: 2px dashed var(--cutie-border);
+    border: 2px solid var(--cutie-border);
     border-radius: 4px;
     background-color: var(--cutie-bg);
     box-sizing: border-box;
@@ -297,10 +296,29 @@ export const MATCH_INTERACTION_STYLES = `
     outline-offset: 2px;
   }
 
-  .cutie-match-slot:hover,
-  .cutie-match-slot--drop-target,
-  .cutie-match-slot--selected {
+  .cutie-match-slot:hover {
     border-color: var(--cutie-primary);
+    background-color: var(--cutie-bg-alt);
+  }
+
+  /* Filled slots read as a pill holding the placed source. */
+  .cutie-match-slot--filled {
+    border-color: var(--cutie-primary);
+    cursor: grab;
+    font-weight: 600;
+  }
+
+  /*
+   * Selection states mirror a classic match choice and must follow --filled:
+   * dashed while the slot can take the current selection, shaded while its
+   * source is picked up.
+   */
+  .cutie-match-slot--drop-target {
+    border-style: dashed;
+    border-color: var(--cutie-primary);
+  }
+
+  .cutie-match-slot--selected {
     background-color: var(--cutie-bg-alt);
   }
 
@@ -308,15 +326,6 @@ export const MATCH_INTERACTION_STYLES = `
     border-color: var(--cutie-primary);
     background-color: var(--cutie-bg-alt);
     transform: scale(1.02);
-  }
-
-  /* Filled slots read as a solid pill holding the placed source. */
-  .cutie-match-slot--filled {
-    border-style: solid;
-    border-color: var(--cutie-primary);
-    background-color: var(--cutie-bg-alt);
-    cursor: grab;
-    font-weight: 600;
   }
 
   .cutie-match-slot--dragging {
