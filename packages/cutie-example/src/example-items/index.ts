@@ -55,6 +55,7 @@ import * as variantExtendedTextLayouts from './variant-extended-text-layouts';
 import * as variantExtendedTextPattern from './variant-extended-text-pattern';
 import * as variantGapMatchLayout from './variant-gap-match-layout';
 import * as variantBowtieLayout from './variant-bowtie-layout';
+import * as variantBowtieMatchGroupEdgeCases from './variant-bowtie-match-group-edge-cases';
 
 /* these examples are copied exactly from examples in the spec
  * documents, they are used for verification that cutie works
@@ -107,6 +108,7 @@ export const variantExamples = [
   variantExtendedTextPattern,
   variantGapMatchLayout,
   variantBowtieLayout,
+  variantBowtieMatchGroupEdgeCases,
 ];
 
 /* these examples were made for each interaction type to show editor-supported

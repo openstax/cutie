@@ -203,7 +203,8 @@ export class MatchController {
   /**
    * Whether a source→target association is allowed by match-group. A choice
    * with no groups is unrestricted; where a side declares groups, it must name
-   * the other choice's identifier. Sources carry their target column's id.
+   * the other choice's identifier. In grouped mode sources carry their target
+   * column's id.
    */
   private groupsAllow(sourceId: string, targetId: string): boolean {
     const sourceGroups = this.choices.get(sourceId)?.matchGroups;
@@ -915,7 +916,7 @@ export class MatchController {
     // Check if association already exists
     if (this.associations.has(key)) return false;
 
-    // Check match-group restriction (grouped/bowtie mode)
+    // Check match-group restriction
     if (!this.groupsAllow(sourceId, targetId)) return false;
 
     // Check max-associations

@@ -1,4 +1,4 @@
-// cspell:ignore draggables
+// cspell:ignore draggables distractors
 import { createMissingAttributeError } from '../../../errors/errorDisplay';
 import {
   type ConstraintMessage,
@@ -9,6 +9,75 @@ import type { ElementHandler, TransformContext } from '../../types';
 import { getDefaultValue } from '../responseUtils';
 import { MatchController } from './controller';
 import { MATCH_INTERACTION_STYLES } from './styles';
+
+/** A target column in the grouped (bowtie) layout, with the sources banked under it. */
+interface GroupedColumn {
+  target: Element;
+  targetId: string;
+  matchMax: number;
+  sources: Element[];
+  /** Number of slots drawn: one per unit of the target's capacity. */
+  capacity: number;
+}
+
+const getAssociableChoices = (matchSet: Element): Element[] =>
+  Array.from(matchSet.children).filter(
+    (child) => child.tagName.toLowerCase() === 'qti-simple-associable-choice'
+  );
+
+const getMatchGroups = (choice: Element): string[] =>
+  (choice.getAttribute('match-group') ?? '').split(/\s+/).filter(Boolean);
+
+/** match-max per the spec default of 1; 0 means unbounded. */
+const getMatchMax = (choice: Element): number => {
+  const parsed = parseInt(choice.getAttribute('match-max') ?? '1', 10);
+  return isNaN(parsed) ? 1 : parsed;
+};
+
+/**
+ * Plan the grouped (bowtie) layout, or return null when the match isn't a
+ * well-formed bowtie and should render as a classic two-set match instead.
+ *
+ * A well-formed bowtie partitions the sources into the target columns:
+ * - every source names exactly one target identifier in its match-group
+ * - every target is named by at least one source
+ * - every target's slots can be filled (match-max ≤ the sources in its bank;
+ *   extra sources are distractors)
+ *
+ * Anything else (a source with no or an unknown match-group, a source naming
+ * several targets, a column that can't be filled) falls back to the classic layout,
+ * where match-group still restricts pairing.
+ */
+function planGroupedColumns(
+  sourceChoices: Element[],
+  targetChoices: Element[],
+  maxAssociations: number
+): GroupedColumn[] | null {
+  const columns = new Map<string, GroupedColumn>();
+  for (const target of targetChoices) {
+    const targetId = target.getAttribute('identifier');
+    if (!targetId) return null;
+    columns.set(targetId, { target, targetId, matchMax: getMatchMax(target), sources: [], capacity: 0 });
+  }
+
+  for (const source of sourceChoices) {
+    const groups = getMatchGroups(source);
+    const column = groups.length === 1 ? columns.get(groups[0]) : undefined;
+    if (!source.getAttribute('identifier') || !column) return null;
+    column.sources.push(source);
+  }
+
+  for (const column of columns.values()) {
+    const bankSize = column.sources.length;
+    if (bankSize === 0 || column.matchMax > bankSize) return null;
+    // Unbounded targets fall back to max-associations, capped by the bank.
+    column.capacity = column.matchMax > 0
+      ? column.matchMax
+      : maxAssociations > 0 ? Math.min(maxAssociations, bankSize) : bankSize;
+  }
+
+  return Array.from(columns.values());
+}
 
 function buildMatchConstraintText(min: number, max: number): string | null {
   if (min > 0 && max > 0 && min !== max) {
@@ -100,16 +169,18 @@ export class MatchInteractionHandler implements ElementHandler {
       maxAssociations
     );
 
-    // Grouped (bowtie) mode: when source choices carry match-group, render one
-    // column per target choice with per-group source banks instead of two sets
-    // side by side. The interaction stays a legal two-set directedPair match —
-    // only the presentation changes, derived from the target set.
-    const sourceChoiceEls = Array.from(matchSets[0].children).filter(
-      (child) => child.tagName.toLowerCase() === 'qti-simple-associable-choice'
+    // Grouped (bowtie) mode: when the sources' match-groups partition them into
+    // the target columns, render one column per target choice with per-group
+    // source banks instead of two sets side by side. The interaction stays a
+    // legal two-set directedPair match — only the presentation changes, derived
+    // from the target set.
+    const groupedColumns = planGroupedColumns(
+      getAssociableChoices(matchSets[0]),
+      getAssociableChoices(matchSets[1]),
+      maxAssociations
     );
-    const grouped = sourceChoiceEls.some((child) => child.hasAttribute('match-group'));
 
-    if (grouped) {
+    if (groupedColumns) {
       controller.enableGroupedMode();
       // Pass through QTI shared vocabulary (qti-choices-*) so CSS can position
       // each column's bank; flag the interaction so grouped styles are scoped.
@@ -120,9 +191,7 @@ export class MatchInteractionHandler implements ElementHandler {
       container.classList.add('cutie-match-interaction--grouped');
 
       container.appendChild(
-        this.createColumns(
-          matchSets[0], matchSets[1], controller, context, responseIdentifier, maxAssociations
-        )
+        this.createColumns(groupedColumns, controller, context, responseIdentifier)
       );
     } else {
       // Classic two-set layout with orientation from the QTI class attribute.
@@ -226,8 +295,7 @@ export class MatchInteractionHandler implements ElementHandler {
     setType: 'source' | 'target',
     controller: MatchController,
     context: TransformContext,
-    responseIdentifier: string,
-    matchGroups: string[]
+    responseIdentifier: string
   ): { wrapper: HTMLElement; choice: HTMLElement; identifier: string; labelId: string } | null {
     const identifier = choiceElement.getAttribute('identifier');
     if (!identifier) {
@@ -235,8 +303,7 @@ export class MatchInteractionHandler implements ElementHandler {
       return null;
     }
 
-    const matchMaxAttr = parseInt(choiceElement.getAttribute('match-max') ?? '1', 10);
-    const matchMax = isNaN(matchMaxAttr) ? 1 : matchMaxAttr;
+    const matchMax = getMatchMax(choiceElement);
     const content = choiceElement.textContent ?? '';
 
     const wrapper = document.createElement('div');
@@ -269,7 +336,9 @@ export class MatchInteractionHandler implements ElementHandler {
     chipsContainer.className = 'cutie-match-choice-chips';
     wrapper.appendChild(chipsContainer);
 
-    controller.registerChoice(identifier, setType, choiceDiv, matchMax, content, matchGroups);
+    controller.registerChoice(
+      identifier, setType, choiceDiv, matchMax, content, getMatchGroups(choiceElement)
+    );
 
     return { wrapper, choice: choiceDiv, identifier, labelId };
   }
@@ -290,15 +359,11 @@ export class MatchInteractionHandler implements ElementHandler {
     setContainer.setAttribute('role', 'listbox');
     setContainer.setAttribute('aria-label', `${setType === 'source' ? 'Source' : 'Target'} choices`);
 
-    const choiceElements = Array.from(matchSetElement.children).filter(
-      (child) => child.tagName.toLowerCase() === 'qti-simple-associable-choice'
-    );
-
     // Seed one tabbable choice per set; the rest join its roving group.
     let isFirst = true;
-    for (const choiceElement of choiceElements) {
+    for (const choiceElement of getAssociableChoices(matchSetElement)) {
       const created = this.createChoiceWrapper(
-        choiceElement, setType, controller, context, responseIdentifier, []
+        choiceElement, setType, controller, context, responseIdentifier
       );
       if (!created) continue;
       created.choice.setAttribute('tabindex', isFirst ? '0' : '-1');
@@ -310,50 +375,24 @@ export class MatchInteractionHandler implements ElementHandler {
   }
 
   /**
-   * Create the grouped (bowtie) layout: one column per target choice. Each
-   * column is a plain HEADER plus a fixed row of slot boxes (the drop targets),
-   * and a per-group bank of the source choices whose match-group names that
-   * target. The slot count is the target's capacity — its match-max, falling back
-   * to the interaction's max-associations (capped by the bank size) when the
-   * target is unbounded. The interaction's qti-choices-* class positions each
-   * bank relative to its header/slots (via CSS). Columns are derived entirely
-   * from the target set — no authored layout grid needed.
+   * Create the grouped (bowtie) layout from a planned set of columns (see
+   * planGroupedColumns). Each column is a plain HEADER plus a fixed row of slot
+   * boxes (the drop targets), and a per-group bank of the source choices whose
+   * match-group names that target. The interaction's qti-choices-* class
+   * positions each bank relative to its header/slots (via CSS). Columns are
+   * derived entirely from the target set — no authored layout grid needed.
    */
   private createColumns(
-    sourceSetElement: Element,
-    targetSetElement: Element,
+    columns: GroupedColumn[],
     controller: MatchController,
     context: TransformContext,
-    responseIdentifier: string,
-    maxAssociations: number
+    responseIdentifier: string
   ): HTMLElement {
     const columnsRow = document.createElement('div');
     columnsRow.className = 'cutie-match-columns';
 
-    const sourceChoices = Array.from(sourceSetElement.children).filter(
-      (child) => child.tagName.toLowerCase() === 'qti-simple-associable-choice'
-    );
-    const targetChoices = Array.from(targetSetElement.children).filter(
-      (child) => child.tagName.toLowerCase() === 'qti-simple-associable-choice'
-    );
-
-    const groupsOf = (choice: Element): string[] =>
-      (choice.getAttribute('match-group') ?? '').split(/\s+/).filter(Boolean);
-
-    // A source is banked once, under the first target column its match-group
-    // names, so a stray multi-group value can't register it twice.
-    const placedSources = new Set<string>();
-
-    for (const targetChoice of targetChoices) {
-      const targetId = targetChoice.getAttribute('identifier');
-      if (!targetId) {
-        console.warn('qti-simple-associable-choice (target) missing identifier, skipping');
-        continue;
-      }
-
-      const matchMaxRaw = parseInt(targetChoice.getAttribute('match-max') ?? '1', 10);
-      const targetMatchMax = isNaN(matchMaxRaw) ? 1 : matchMaxRaw;
-      const targetContent = targetChoice.textContent ?? '';
+    for (const { target, targetId, matchMax, sources, capacity } of columns) {
+      const targetContent = target.textContent ?? '';
 
       const column = document.createElement('div');
       column.className = 'cutie-match-column';
@@ -369,28 +408,14 @@ export class MatchInteractionHandler implements ElementHandler {
       const labelId = `cutie-match-label-${responseIdentifier}-${targetId}`;
       header.id = labelId;
       if (context.transformChildren) {
-        header.appendChild(context.transformChildren(targetChoice));
+        header.appendChild(context.transformChildren(target));
       } else {
         header.textContent = targetContent;
       }
       targetArea.appendChild(header);
-      controller.registerGroupedTarget(targetId, header, targetMatchMax, targetContent);
-
-      // The sources that may fill this column.
-      const columnSources = sourceChoices.filter((sc) => {
-        const id = sc.getAttribute('identifier');
-        return id && !placedSources.has(id) && groupsOf(sc).includes(targetId);
-      });
+      controller.registerGroupedTarget(targetId, header, matchMax, targetContent);
 
       // Draw one slot per unit of capacity.
-      const bankSize = columnSources.length;
-      const capacity = Math.max(
-        1,
-        targetMatchMax > 0
-          ? targetMatchMax
-          : maxAssociations > 0 ? Math.min(maxAssociations, bankSize) : bankSize
-      );
-
       const slots = document.createElement('div');
       slots.className = 'cutie-match-slots';
       slots.setAttribute('role', 'group');
@@ -411,14 +436,13 @@ export class MatchInteractionHandler implements ElementHandler {
       bank.setAttribute('aria-labelledby', labelId);
 
       let isFirstInBank = true;
-      for (const sourceChoice of columnSources) {
+      for (const sourceChoice of sources) {
         const created = this.createChoiceWrapper(
-          sourceChoice, 'source', controller, context, responseIdentifier, groupsOf(sourceChoice)
+          sourceChoice, 'source', controller, context, responseIdentifier
         );
         if (!created) continue;
         created.choice.setAttribute('tabindex', isFirstInBank ? '0' : '-1');
         bank.appendChild(created.wrapper);
-        placedSources.add(created.identifier);
         isFirstInBank = false;
       }
 

@@ -1,3 +1,4 @@
+// cspell:ignore distractors
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ItemStateImpl } from '../../../state/itemState';
 import { registry } from '../../registry';
@@ -642,6 +643,92 @@ describe('matchInteraction validation', () => {
       expect(container.querySelector('.cutie-match-columns')).toBeNull();
       const matchContainer = container.querySelector('.cutie-match-interaction')!;
       expect(matchContainer.classList.contains('cutie-match-interaction--grouped')).toBe(false);
+    });
+
+    it('banks distractors beyond the target capacity (more sources than slots)', () => {
+      const container = renderGrouped(
+        GROUPED_BOWTIE_QTI.replace(
+          '<qti-simple-associable-choice identifier="COND1"',
+          '<qti-simple-associable-choice identifier="ACT3" match-max="1" match-group="T_ACTIONS">Action 3</qti-simple-associable-choice>\n<qti-simple-associable-choice identifier="COND1"'
+        )
+      );
+
+      expect(slotsFor(container, 'T_ACTIONS').length).toBe(2);
+      expect(
+        container.querySelectorAll('.cutie-match-bank[data-match-group="T_ACTIONS"] .cutie-match-choice').length
+      ).toBe(3);
+    });
+
+    describe('falls back to the classic layout when the match-groups are not a bowtie', () => {
+      const expectClassic = (container: HTMLElement): void => {
+        expect(container.querySelector('.cutie-match-columns')).toBeNull();
+        expect(container.querySelector('.cutie-match-layout')).not.toBeNull();
+        // Every source is still rendered — none are dropped.
+        expect(
+          container.querySelectorAll('.cutie-match-set--source .cutie-match-choice').length
+        ).toBe(6);
+      };
+
+      it('when a source has no match-group', () => {
+        const container = renderGrouped(
+          GROUPED_BOWTIE_QTI.replace(' match-group="T_CONDITION">Condition 2', '>Condition 2')
+        );
+        expectClassic(container);
+        expect(container.querySelector('[data-identifier="COND2"]')).not.toBeNull();
+      });
+
+      it('when a source names a target that does not exist', () => {
+        const container = renderGrouped(
+          GROUPED_BOWTIE_QTI.replace('match-group="T_CONDITION">Condition 2', 'match-group="T_NOPE">Condition 2')
+        );
+        expectClassic(container);
+      });
+
+      it('when a source names more than one target', () => {
+        const container = renderGrouped(
+          GROUPED_BOWTIE_QTI.replace(
+            'match-group="T_CONDITION">Condition 2',
+            'match-group="T_CONDITION T_PARAMS">Condition 2'
+          )
+        );
+        expectClassic(container);
+      });
+
+      it('when a target is named by no source', () => {
+        const container = renderGrouped(
+          GROUPED_BOWTIE_QTI.replace(
+            '</qti-simple-match-set>\n    </qti-match-interaction>',
+            '  <qti-simple-associable-choice identifier="T_EXTRA" match-max="1">Extra</qti-simple-associable-choice>\n      </qti-simple-match-set>\n    </qti-match-interaction>'
+          )
+        );
+        expect(container.querySelector('[data-identifier="T_EXTRA"]')).not.toBeNull();
+        expectClassic(container);
+      });
+
+      it('when a target has more slots than sources to fill them', () => {
+        const container = renderGrouped(
+          GROUPED_BOWTIE_QTI.replace('identifier="T_CONDITION" match-max="1"', 'identifier="T_CONDITION" match-max="3"')
+        );
+        expectClassic(container);
+      });
+
+      it('still enforces match-group restrictions on the classic layout', () => {
+        const container = renderGrouped(
+          GROUPED_BOWTIE_QTI.replace(' match-group="T_CONDITION">Condition 2', '>Condition 2')
+        );
+        const choice = (id: string) =>
+          container.querySelector<HTMLElement>(`.cutie-match-choice[data-identifier="${id}"]`)!;
+
+        // ACT1 is restricted to T_ACTIONS, so pairing it with T_CONDITION is refused.
+        choice('ACT1').click();
+        choice('T_CONDITION').click();
+        expect(itemState.collectAll().responses['RB']).toBeNull();
+
+        // COND2 has no match-group, so it may pair with any target.
+        choice('COND2').click();
+        choice('T_PARAMS').click();
+        expect(itemState.collectAll().responses['RB']).toEqual(['COND2 T_PARAMS']);
+      });
     });
   });
 });
