@@ -169,7 +169,7 @@ export class MatchInteractionHandler implements ElementHandler {
       maxAssociations
     );
 
-    // Grouped (bowtie) mode: when the sources' match-groups partition them into
+    // Grouped (bowtie) layout: when the sources' match-groups partition them into
     // the target columns, render one column per target choice with per-group
     // source banks instead of two sets side by side. The interaction stays a
     // legal two-set directedPair match — only the presentation changes, derived

@@ -1,5 +1,5 @@
 // cspell:ignore tachycardia hypotension mucous
-// Variant test: bowtie rendered with qti-match-interaction (grouped mode).
+// Variant test: bowtie rendered with qti-match-interaction (grouped layout).
 // A two-set match whose source choices carry match-group naming their target
 // column; the handler derives one column per target (Actions | Condition |
 // Parameters). The qti-choices-* class repositions each column's word bank

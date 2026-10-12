@@ -34,10 +34,10 @@ Note: match is entirely **advanced** cert (Q13 is Level 2).
 
 | class | cutie | notes |
 |---|---|---|
-| qti-choices-top | :x: | uses custom cutie layout classes instead |
-| qti-choices-bottom | :x: | |
-| qti-choices-left | :x: | |
-| qti-choices-right | :x: | |
+| qti-choices-top | :white_check_mark: | grouped (bowtie) layout: positions each column's bank above its slot |
+| qti-choices-bottom | :white_check_mark: | grouped (bowtie) layout: bank below its slot (default) |
+| qti-choices-left | :white_check_mark: | grouped (bowtie) layout: bank left of its slot |
+| qti-choices-right | :white_check_mark: | grouped (bowtie) layout: bank right of its slot |
 
 ### tabular layout — advanced cert
 

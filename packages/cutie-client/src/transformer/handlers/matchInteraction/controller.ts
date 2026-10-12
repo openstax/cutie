@@ -16,7 +16,7 @@ interface ChoiceData {
   matchMax: number;
   content: string;
   connectedIds: Set<string>;
-  // Grouped (bowtie) mode: the identifiers of the opposite-set choices this
+  // Grouped (bowtie) layout: the identifiers of the opposite-set choices this
   // choice may associate with. Empty/absent = unrestricted (classic match).
   matchGroups: Set<string>;
 }
@@ -28,7 +28,7 @@ interface ChoiceData {
  * Two presentations share this controller:
  *  - Classic two-set match: both sets are choice boxes; selecting one and then
  *    one from the other set connects them, shown as chips.
- *  - Grouped (bowtie) mode: sources live in per-column word banks and each
+ *  - Grouped (bowtie) layout: sources live in per-column word banks and each
  *    column is a plain HEADER plus a fixed row of slot boxes. The slots are the
  *    only drop targets (the header is just a label); a source drops into a slot,
  *    and dropping onto a filled slot replaces its occupant — mirroring
@@ -51,7 +51,7 @@ export class MatchController {
   } | null = null;
   private enabled = true;
 
-  // Grouped (bowtie) mode: sources are banked per column and each column is a
+  // Grouped (bowtie) layout: sources are banked per column and each column is a
   // header + slot boxes. Off by default (classic two-set match).
   private grouped = false;
 
@@ -115,7 +115,7 @@ export class MatchController {
   }
 
   /**
-   * Enable grouped (bowtie) mode. In this mode sources are banked per column,
+   * Enable grouped (bowtie) layout. In this mode sources are banked per column,
    * arrow keys stay within a bank, and the column slots are the drop targets.
    */
   enableGroupedMode(): void {
@@ -248,7 +248,7 @@ export class MatchController {
   }
 
   // ---------------------------------------------------------------------------
-  // Grouped (bowtie) mode: source + slot + bank wiring
+  // Grouped (bowtie) layout: source + slot + bank wiring
   // ---------------------------------------------------------------------------
 
   /**
