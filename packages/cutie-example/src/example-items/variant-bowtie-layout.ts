@@ -14,7 +14,7 @@ export const name = "Match - Bowtie Layout";
 // source names its column via match-group; targets are fixed so the column
 // order survives shuffle. Reused per interaction with a different bank class.
 const buildBowtie = (rid: string, cls: string, label: string): string => `
-    <qti-match-interaction response-identifier="${rid}" shuffle="true"${cls ? ` class="${cls}"` : ''}>
+    <qti-match-interaction response-identifier="${rid}" shuffle="true" max-associations="5"${cls ? ` class="${cls}"` : ''}>
       <qti-prompt>${label}</qti-prompt>
 
       <qti-simple-match-set>

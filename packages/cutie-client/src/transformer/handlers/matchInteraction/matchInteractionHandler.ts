@@ -43,10 +43,12 @@ const getMatchMax = (choice: Element): number => {
  * - every target is named by at least one source
  * - every target's slots can be filled (match-max ≤ the sources in its bank;
  *   extra sources are distractors)
+ * - all the slots can be filled at once (total slots ≤ max-associations, when
+ *   the interaction limits associations)
  *
  * Anything else (a source with no or an unknown match-group, a source naming
- * several targets, a column that can't be filled) falls back to the classic layout,
- * where match-group still restricts pairing.
+ * several targets, a column or set of columns that can't be filled) falls back
+ * to the classic layout, where match-group still restricts pairing.
  */
 function planGroupedColumns(
   sourceChoices: Element[],
@@ -76,7 +78,11 @@ function planGroupedColumns(
       : maxAssociations > 0 ? Math.min(maxAssociations, bankSize) : bankSize;
   }
 
-  return Array.from(columns.values());
+  const planned = Array.from(columns.values());
+  const totalSlots = planned.reduce((sum, column) => sum + column.capacity, 0);
+  if (maxAssociations > 0 && totalSlots > maxAssociations) return null;
+
+  return planned;
 }
 
 function buildMatchConstraintText(min: number, max: number): string | null {

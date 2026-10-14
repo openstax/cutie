@@ -1,7 +1,8 @@
 // cspell:ignore distractor
 // Variant test: match-group values that don't form a well-formed bowtie.
 // The grouped (bowtie) layout is only used when every source names exactly one
-// target column and every column's slots can be filled. The first interaction
+// target column, every column's slots can be filled, and max-associations
+// allows filling them all. The first interaction
 // is a well-formed bowtie (with a distractor) for comparison; each one after it
 // has one deliberately irregular source or target, so it falls back to the
 // classic two-set layout (where match-group still restricts pairing):
@@ -10,6 +11,9 @@
 //   - a source whose match-group names two targets
 //   - a target that no source names
 //   - a target with more slots (match-max) than sources to fill them
+//   - more slots in total than max-associations allows
+// Each interaction sets max-associations to its total slot count (the spec
+// default is 1), except the last, which sets it lower.
 
 export const name = "Match - Bowtie match-group Edge Cases";
 
@@ -33,23 +37,28 @@ const buildSources = (sources: Source[]): string => `
 ${sources.map(s => `        <qti-simple-associable-choice identifier="${s.id}" match-max="1"${s.group !== undefined ? ` match-group="${s.group}"` : ''}>${s.text}</qti-simple-associable-choice>`).join('\n')}
       </qti-simple-match-set>`;
 
-const variants: Array<{ rid: string; label: string; body: string; correct: string[] }> = [
+const variants: Array<{
+  rid: string; label: string; body: string; maxAssociations: number; correct: string[];
+}> = [
   {
     rid: 'R_VALID',
     label: 'Well-formed bowtie: Tomato is a Fruit distractor (3 sources for 2 slots) — renders grouped',
     body: buildSources([...baseSources, { id: 'TOMATO', group: 'T_FRUIT', text: 'Tomato' }]) + targets,
+    maxAssociations: 4,
     correct: ['APPLE T_FRUIT', 'PEAR T_FRUIT', 'CARROT T_VEG', 'LEEK T_VEG'],
   },
   {
     rid: 'R_NO_GROUP',
     label: 'Tomato has no match-group (all other sources do)',
     body: buildSources([...baseSources, { id: 'TOMATO', text: 'Tomato' }]) + targets,
+    maxAssociations: 4,
     correct: ['APPLE T_FRUIT', 'PEAR T_FRUIT', 'CARROT T_VEG', 'LEEK T_VEG'],
   },
   {
     rid: 'R_MISSING_GROUP',
     label: 'Tomato has match-group="T_BERRY", which is not a target identifier',
     body: buildSources([...baseSources, { id: 'TOMATO', group: 'T_BERRY', text: 'Tomato' }]) + targets,
+    maxAssociations: 4,
     correct: ['APPLE T_FRUIT', 'PEAR T_FRUIT', 'CARROT T_VEG', 'LEEK T_VEG'],
   },
   {
@@ -60,6 +69,7 @@ const variants: Array<{ rid: string; label: string; body: string; correct: strin
         <qti-simple-associable-choice identifier="T_FRUIT" match-max="3" fixed="true">Fruit</qti-simple-associable-choice>
         <qti-simple-associable-choice identifier="T_VEG" match-max="3" fixed="true">Vegetable</qti-simple-associable-choice>
       </qti-simple-match-set>`,
+    maxAssociations: 6,
     correct: ['APPLE T_FRUIT', 'PEAR T_FRUIT', 'TOMATO T_FRUIT', 'CARROT T_VEG', 'LEEK T_VEG'],
   },
   {
@@ -71,6 +81,7 @@ const variants: Array<{ rid: string; label: string; body: string; correct: strin
         <qti-simple-associable-choice identifier="T_VEG" match-max="2" fixed="true">Vegetable</qti-simple-associable-choice>
         <qti-simple-associable-choice identifier="T_GRAIN" match-max="1" fixed="true">Grain</qti-simple-associable-choice>
       </qti-simple-match-set>`,
+    maxAssociations: 5,
     correct: ['APPLE T_FRUIT', 'PEAR T_FRUIT', 'CARROT T_VEG', 'LEEK T_VEG'],
   },
   {
@@ -81,7 +92,15 @@ const variants: Array<{ rid: string; label: string; body: string; correct: strin
         <qti-simple-associable-choice identifier="T_FRUIT" match-max="2" fixed="true">Fruit</qti-simple-associable-choice>
         <qti-simple-associable-choice identifier="T_VEG" match-max="3" fixed="true">Vegetable</qti-simple-associable-choice>
       </qti-simple-match-set>`,
+    maxAssociations: 5,
     correct: ['APPLE T_FRUIT', 'PEAR T_FRUIT', 'CARROT T_VEG', 'LEEK T_VEG'],
+  },
+  {
+    rid: 'R_MAX_ASSOCIATIONS',
+    label: 'max-associations="3" allows fewer associations than the 4 slots',
+    body: buildSources(baseSources) + targets,
+    maxAssociations: 3,
+    correct: ['APPLE T_FRUIT', 'PEAR T_FRUIT', 'CARROT T_VEG'],
   },
 ];
 
@@ -92,8 +111,8 @@ ${correct.map(c => `      <qti-value>${c}</qti-value>`).join('\n')}
     </qti-correct-response>
   </qti-response-declaration>`;
 
-const buildInteraction = (rid: string, label: string, body: string): string => `
-    <qti-match-interaction response-identifier="${rid}" shuffle="true">
+const buildInteraction = (rid: string, label: string, body: string, maxAssociations: number): string => `
+    <qti-match-interaction response-identifier="${rid}" shuffle="true" max-associations="${maxAssociations}">
       <qti-prompt>${label}</qti-prompt>
 ${body}
     </qti-match-interaction>`;
@@ -114,7 +133,7 @@ ${variants.map(v => responseDecl(v.rid, v.correct)).join('')}
   <qti-item-body>
     <p><strong>Bowtie match-group Edge Cases</strong></p>
     <p>The first match is a well-formed bowtie. Each one after it has one irregular source or target, so it falls back to the classic match layout.</p>
-${variants.map(v => buildInteraction(v.rid, v.label, v.body)).join('\n    <hr/>\n')}
+${variants.map(v => buildInteraction(v.rid, v.label, v.body, v.maxAssociations)).join('\n    <hr/>\n')}
   </qti-item-body>
 
   <qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>

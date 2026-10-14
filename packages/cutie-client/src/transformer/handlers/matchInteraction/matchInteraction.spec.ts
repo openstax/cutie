@@ -712,6 +712,25 @@ describe('matchInteraction validation', () => {
         expectClassic(container);
       });
 
+      // Actions 2 + Condition 1 + Parameters 2 = 5 slots.
+      const withMaxAssociations = (max: number): HTMLElement =>
+        renderGrouped(
+          GROUPED_BOWTIE_QTI.replace(
+            'response-identifier="RB"',
+            `response-identifier="RB" max-associations="${max}"`
+          )
+        );
+
+      it('when max-associations allows fewer associations than there are slots', () => {
+        expectClassic(withMaxAssociations(4));
+      });
+
+      it('but not when max-associations covers every slot', () => {
+        const container = withMaxAssociations(5);
+        expect(container.querySelector('.cutie-match-columns')).not.toBeNull();
+        expect(container.querySelector('.cutie-match-layout')).toBeNull();
+      });
+
       it('still enforces match-group restrictions on the classic layout', () => {
         const container = renderGrouped(
           GROUPED_BOWTIE_QTI.replace(' match-group="T_CONDITION">Condition 2', '>Condition 2')
