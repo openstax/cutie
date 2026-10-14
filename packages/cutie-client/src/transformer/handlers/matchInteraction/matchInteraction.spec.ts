@@ -619,6 +619,148 @@ describe('matchInteraction validation', () => {
       expect(slot.classList.contains('cutie-match-slot--filled')).toBe(false);
     });
 
+    it('presents each bank before its target slots in the DOM', () => {
+      const container = renderGrouped();
+
+      for (const column of container.querySelectorAll('.cutie-match-column')) {
+        expect(column.firstElementChild!.classList.contains('cutie-match-bank')).toBe(true);
+        expect(column.lastElementChild!.querySelector('.cutie-match-slots')).not.toBeNull();
+      }
+    });
+
+    it('uses a source at most once, whatever its match-max', () => {
+      const container = renderGrouped(
+        GROUPED_BOWTIE_QTI.replace('identifier="ACT1" match-max="1"', 'identifier="ACT1" match-max="0"')
+      );
+      const [first, second] = slotsFor(container, 'T_ACTIONS');
+
+      sourceEl(container, 'ACT1').click();
+      first.click();
+      sourceEl(container, 'ACT2').click();
+      second.click();
+      expect(sourceEl(container, 'ACT1').getAttribute('aria-disabled')).toBe('true');
+
+      // Placing ACT1 again must not evict ACT2 from the other slot.
+      sourceEl(container, 'ACT1').click();
+      second.click();
+      expect(itemState.collectAll().responses['RB']).toEqual(['ACT1 T_ACTIONS', 'ACT2 T_ACTIONS']);
+      expect(second.getAttribute('data-source-id')).toBe('ACT2');
+    });
+
+    it('moves a placed source to another slot in its column', () => {
+      const container = renderGrouped();
+      const [first, second] = slotsFor(container, 'T_ACTIONS');
+
+      sourceEl(container, 'ACT1').click();
+      first.click();
+      first.click(); // pick it back up
+      second.click();
+
+      expect(first.classList.contains('cutie-match-slot--filled')).toBe(false);
+      expect(second.getAttribute('data-source-id')).toBe('ACT1');
+      expect(itemState.collectAll().responses['RB']).toEqual(['ACT1 T_ACTIONS']);
+    });
+
+    describe('drag and drop', () => {
+      const drag = (el: HTMLElement, type: string, payload = ''): void => {
+        const event = new Event(type, { bubbles: true, cancelable: true });
+        Object.defineProperty(event, 'dataTransfer', {
+          value: { types: ['text/plain'], setData: () => {}, getData: () => payload },
+        });
+        el.dispatchEvent(event);
+      };
+
+      it('places a source dragged from its own bank', () => {
+        const container = renderGrouped();
+        const source = sourceEl(container, 'ACT1');
+
+        drag(source, 'dragstart');
+        drag(slotsFor(container, 'T_ACTIONS')[0], 'drop');
+        drag(source, 'dragend');
+
+        expect(itemState.collectAll().responses['RB']).toEqual(['ACT1 T_ACTIONS']);
+      });
+
+      it('returns a source dragged from its slot onto the bank', () => {
+        const container = renderGrouped();
+        const slot = slotsFor(container, 'T_ACTIONS')[0];
+        sourceEl(container, 'ACT1').click();
+        slot.click();
+
+        drag(slot, 'dragstart');
+        drag(container.querySelector<HTMLElement>('.cutie-match-bank[data-match-group="T_ACTIONS"]')!, 'drop');
+        drag(slot, 'dragend');
+
+        expect(itemState.collectAll().responses['RB']).toBeNull();
+      });
+
+      it('ignores a drop that did not start in this interaction', () => {
+        const container = renderGrouped();
+        const [first, second] = slotsFor(container, 'T_ACTIONS');
+        sourceEl(container, 'ACT1').click();
+        first.click();
+
+        // Payloads another match interaction on the page could carry.
+        drag(second, 'drop', 'source:ACT2');
+        drag(second, 'drop', 'slot:0');
+
+        expect(second.classList.contains('cutie-match-slot--filled')).toBe(false);
+        expect(itemState.collectAll().responses['RB']).toEqual(['ACT1 T_ACTIONS']);
+      });
+    });
+
+    it('clears the selection when a picked-up source is removed with Backspace', () => {
+      const container = renderGrouped();
+      const [first, second] = slotsFor(container, 'T_ACTIONS');
+      sourceEl(container, 'ACT1').click();
+      first.click();
+
+      first.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      expect(first.classList.contains('cutie-match-slot--selected')).toBe(true);
+      first.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }));
+
+      expect(first.classList.contains('cutie-match-slot--selected')).toBe(false);
+      expect(second.classList.contains('cutie-match-slot--drop-target')).toBe(false);
+
+      // Nothing is still held, so activating another slot places nothing.
+      second.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      expect(itemState.collectAll().responses['RB']).toBeNull();
+    });
+
+    it('shows the source’s rich content, not its flattened text, in a filled slot', () => {
+      const container = renderGrouped(
+        GROUPED_BOWTIE_QTI.replace('>Action 1<', '><img src="a.png" alt="Diagram A"><')
+      );
+      const slot = slotsFor(container, 'T_ACTIONS')[0];
+
+      sourceEl(container, 'ACT1').click();
+      slot.click();
+
+      expect(slot.querySelector('.cutie-match-slot-content img')!.getAttribute('alt')).toBe('Diagram A');
+      expect(slot.getAttribute('aria-label')).toMatch(/^Slot 1 of 2, contains Diagram A\./);
+      // The bank keeps its own copy.
+      expect(sourceEl(container, 'ACT1').querySelector('img')).not.toBeNull();
+    });
+
+    it('keeps placed answers reachable but inert when interactions are disabled', () => {
+      const container = renderGrouped();
+      const [filled, empty] = slotsFor(container, 'T_ACTIONS');
+      sourceEl(container, 'ACT1').click();
+      filled.click();
+
+      itemState.setInteractionsEnabled(false);
+      expect(filled.getAttribute('tabindex')).toBe('0');
+      expect(filled.getAttribute('aria-disabled')).toBe('true');
+      expect(filled.getAttribute('draggable')).toBe('false');
+      expect(filled.getAttribute('aria-label')).toBe('Slot 1 of 2, contains Action 1.');
+      expect(empty.getAttribute('tabindex')).toBe('-1');
+
+      itemState.setInteractionsEnabled(true);
+      expect(filled.getAttribute('aria-disabled')).toBe('false');
+      expect(filled.getAttribute('draggable')).toBe('true');
+      expect(filled.getAttribute('aria-label')).toMatch(/Press Enter to pick up/);
+    });
+
     it('derives slot count from max-associations when the target is unbounded (match-max=0)', () => {
       const container = renderGrouped(`
         <qti-match-interaction response-identifier="RB" max-associations="1">
@@ -710,6 +852,33 @@ describe('matchInteraction validation', () => {
           GROUPED_BOWTIE_QTI.replace('identifier="T_CONDITION" match-max="1"', 'identifier="T_CONDITION" match-max="3"')
         );
         expectClassic(container);
+      });
+
+      it('when a target’s own match-group excludes a source in its bank', () => {
+        const container = renderGrouped(
+          GROUPED_BOWTIE_QTI.replace(
+            'identifier="T_CONDITION" match-max="1"',
+            'identifier="T_CONDITION" match-max="1" match-group="COND1"'
+          )
+        );
+        expectClassic(container);
+
+        // The target's restriction is enforced there.
+        const choice = (id: string) =>
+          container.querySelector<HTMLElement>(`.cutie-match-choice[data-identifier="${id}"]`)!;
+        choice('COND2').click();
+        choice('T_CONDITION').click();
+        expect(itemState.collectAll().responses['RB']).toBeNull();
+      });
+
+      it('but not when a target’s own match-group names its whole bank', () => {
+        const container = renderGrouped(
+          GROUPED_BOWTIE_QTI.replace(
+            'identifier="T_CONDITION" match-max="1"',
+            'identifier="T_CONDITION" match-max="1" match-group="COND1 COND2"'
+          )
+        );
+        expect(container.querySelector('.cutie-match-columns')).not.toBeNull();
       });
 
       // Actions 2 + Condition 1 + Parameters 2 = 5 slots.

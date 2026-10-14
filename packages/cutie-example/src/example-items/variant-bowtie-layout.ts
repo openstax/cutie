@@ -3,7 +3,7 @@
 // A two-set match whose source choices carry match-group naming their target
 // column; the handler derives one column per target (Actions | Condition |
 // Parameters). The qti-choices-* class repositions each column's word bank
-// within its own column — DOM order stays slot -> bank, so only the visual
+// within its own column — DOM order stays bank -> slot, so only the visual
 // placement changes. Visual verification of qti-choices-top/bottom/left/right
 // on the grouped column layout.
 
@@ -47,10 +47,10 @@ const responseDecl = (rid: string): string => `
   </qti-response-declaration>`;
 
 const variants: Array<{ rid: string; cls: string; label: string }> = [
-  { rid: 'R_BOTTOM', cls: '', label: 'Default (bottom) — each bank below its column’s slot' },
-  { rid: 'R_TOP', cls: 'qti-choices-top', label: 'qti-choices-top — each bank above its column’s slot' },
-  { rid: 'R_LEFT', cls: 'qti-choices-left', label: 'qti-choices-left — each bank left of its column’s slot' },
-  { rid: 'R_RIGHT', cls: 'qti-choices-right', label: 'qti-choices-right — each bank right of its column’s slot' },
+  { rid: 'R_BOTTOM', cls: 'qti-choices-bottom', label: 'qti-choices-bottom' },
+  { rid: 'R_TOP', cls: 'qti-choices-top', label: 'qti-choices-top' },
+  { rid: 'R_LEFT', cls: 'qti-choices-left', label: 'qti-choices-left' },
+  { rid: 'R_RIGHT', cls: 'qti-choices-right', label: 'qti-choices-right' },
 ];
 
 export const item = `<?xml version="1.0" encoding="UTF-8"?>

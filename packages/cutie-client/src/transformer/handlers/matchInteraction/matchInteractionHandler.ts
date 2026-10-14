@@ -28,7 +28,16 @@ const getAssociableChoices = (matchSet: Element): Element[] =>
 const getMatchGroups = (choice: Element): string[] =>
   (choice.getAttribute('match-group') ?? '').split(/\s+/).filter(Boolean);
 
-/** match-max per the spec default of 1; 0 means unbounded. */
+/**
+ * A choice's plain-text name, used for announcements and accessible labels: its
+ * text, or the alt text of its images when it has no text of its own.
+ */
+const getChoiceText = (choice: Element): string =>
+  choice.textContent?.trim()
+  || Array.from(choice.querySelectorAll('img'), (img) => img.getAttribute('alt') ?? '')
+    .join(' ')
+    .trim();
+
 const getMatchMax = (choice: Element): number => {
   const parsed = parseInt(choice.getAttribute('match-max') ?? '1', 10);
   return isNaN(parsed) ? 1 : parsed;
@@ -41,14 +50,16 @@ const getMatchMax = (choice: Element): number => {
  * A well-formed bowtie partitions the sources into the target columns:
  * - every source names exactly one target identifier in its match-group
  * - every target is named by at least one source
+ * - a target with a match-group of its own names every source in its bank
  * - every target's slots can be filled (match-max ≤ the sources in its bank;
  *   extra sources are distractors)
  * - all the slots can be filled at once (total slots ≤ max-associations, when
  *   the interaction limits associations)
  *
  * Anything else (a source with no or an unknown match-group, a source naming
- * several targets, a column or set of columns that can't be filled) falls back
- * to the classic layout, where match-group still restricts pairing.
+ * several targets, a target that excludes one of its sources, a column or set
+ * of columns that can't be filled) falls back to the classic layout, where
+ * match-group still restricts pairing.
  */
 function planGroupedColumns(
   sourceChoices: Element[],
@@ -72,6 +83,13 @@ function planGroupedColumns(
   for (const column of columns.values()) {
     const bankSize = column.sources.length;
     if (bankSize === 0 || column.matchMax > bankSize) return null;
+
+    const targetGroups = getMatchGroups(column.target);
+    if (targetGroups.length
+      && column.sources.some((source) => !targetGroups.includes(source.getAttribute('identifier') ?? ''))) {
+      return null;
+    }
+
     // Unbounded targets fall back to max-associations, capped by the bank.
     column.capacity = column.matchMax > 0
       ? column.matchMax
@@ -310,7 +328,7 @@ export class MatchInteractionHandler implements ElementHandler {
     }
 
     const matchMax = getMatchMax(choiceElement);
-    const content = choiceElement.textContent ?? '';
+    const content = getChoiceText(choiceElement);
 
     const wrapper = document.createElement('div');
     wrapper.className = 'cutie-match-choice-wrapper';
@@ -382,11 +400,13 @@ export class MatchInteractionHandler implements ElementHandler {
 
   /**
    * Create the grouped (bowtie) layout from a planned set of columns (see
-   * planGroupedColumns). Each column is a plain HEADER plus a fixed row of slot
-   * boxes (the drop targets), and a per-group bank of the source choices whose
-   * match-group names that target. The interaction's qti-choices-* class
-   * positions each bank relative to its header/slots (via CSS). Columns are
-   * derived entirely from the target set — no authored layout grid needed.
+   * planGroupedColumns). Each column is a per-group bank of the source choices
+   * whose match-group names that target, then a plain HEADER plus a fixed row of
+   * slot boxes (the drop targets). The bank comes first in the DOM because the
+   * QTI vocabulary asks for choices to be presented before targets to assistive
+   * technology; the interaction's qti-choices-* class only repositions each
+   * bank visually (via CSS). Columns are derived entirely from the target set —
+   * no authored layout grid needed.
    */
   private createColumns(
     columns: GroupedColumn[],
@@ -398,7 +418,7 @@ export class MatchInteractionHandler implements ElementHandler {
     columnsRow.className = 'cutie-match-columns';
 
     for (const { target, targetId, matchMax, sources, capacity } of columns) {
-      const targetContent = target.textContent ?? '';
+      const targetContent = getChoiceText(target);
 
       const column = document.createElement('div');
       column.className = 'cutie-match-column';
@@ -419,7 +439,9 @@ export class MatchInteractionHandler implements ElementHandler {
         header.textContent = targetContent;
       }
       targetArea.appendChild(header);
-      controller.registerGroupedTarget(targetId, header, matchMax, targetContent);
+      controller.registerGroupedTarget(
+        targetId, header, matchMax, targetContent, getMatchGroups(target)
+      );
 
       // Draw one slot per unit of capacity.
       const slots = document.createElement('div');
@@ -432,7 +454,6 @@ export class MatchInteractionHandler implements ElementHandler {
         slots.appendChild(slot);
       }
       targetArea.appendChild(slots);
-      column.appendChild(targetArea);
 
       // Per-group source bank, labelled by the column header.
       const bank = document.createElement('div');
@@ -453,7 +474,7 @@ export class MatchInteractionHandler implements ElementHandler {
       }
 
       controller.registerGroupedBank(bank);
-      column.appendChild(bank);
+      column.append(bank, targetArea);
       columnsRow.appendChild(column);
     }
 

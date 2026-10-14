@@ -1,3 +1,4 @@
+// cspell:ignore subgrid
 export const MATCH_INTERACTION_STYLES = `
   .cutie-match-interaction {
     margin: 1em 0;
@@ -227,30 +228,38 @@ export const MATCH_INTERACTION_STYLES = `
 
   /*
    * Grouped (bowtie) layout. When source choices carry match-group, the handler
-   * renders one column per target choice: the target heads the column
-   * and each column owns a bank of the sources that may fill it. DOM order is
-   * target -> bank; the interaction's qti-choices-* class only changes visual
-   * placement, so screen-reader order stays stable.
+   * renders one column per target choice: each column owns a bank of the
+   * sources that may fill it, and the target labels the column's slots. DOM
+   * order is bank -> target (choices before targets, as the QTI vocabulary asks
+   * for assistive technology); the interaction's qti-choices-* class only
+   * changes visual placement, so screen-reader order stays stable.
    */
   .cutie-match-columns {
-    display: flex;
-    gap: 2em;
-    justify-content: center;
-    align-items: start;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(11em, 1fr));
+    gap: 1.5em 2em;
   }
 
+  /*
+   * Each column spans three rows of the shared grid (bank, header, slots) and
+   * adopts them as a subgrid, so the columns line up row by row whatever each
+   * holds: every bank is as tall as the tallest, and the headers and the first
+   * slots sit level across the row.
+   */
   .cutie-match-column {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-row: span 3;
+    grid-template-rows: subgrid;
+    row-gap: 0;
     text-align: center;
-    flex: 1 1 0;
-    min-width: 11em;
   }
 
-  /* Only the column's own target area spans the column; bank source pills stay inline. */
+  /* The target area (header + slots) takes the column's header and slot rows. */
   .cutie-match-column > .cutie-match-choice-wrapper {
-    width: 100%;
+    display: grid;
+    grid-row: 2 / span 2;
+    grid-template-rows: subgrid;
+    row-gap: 0;
   }
 
   /*
@@ -258,7 +267,7 @@ export const MATCH_INTERACTION_STYLES = `
    * the only drop targets. It just labels the column.
    */
   .cutie-match-target-header {
-    width: 100%;
+    align-self: end;
     padding: 0.25em 0.5em 0.5em;
     margin-bottom: 0.5em;
     font-weight: 700;
@@ -337,83 +346,114 @@ export const MATCH_INTERACTION_STYLES = `
     content: '\\00a0';
   }
 
-  /* Word bank highlighted as a return target while moving a placed source. */
-  .cutie-match-bank--drop-target,
-  .cutie-match-bank--drag-over {
-    border-color: var(--cutie-primary);
+  /* Slots are inert once the interaction is disabled; a placed answer stays readable. */
+  .cutie-match-interaction--disabled .cutie-match-slot {
+    cursor: default;
+    opacity: 0.8;
+  }
+
+  .cutie-match-interaction--disabled .cutie-match-slot:hover {
+    border-color: var(--cutie-border);
     background-color: var(--cutie-bg);
   }
 
-  /* Source bank: a bordered tray beneath its target by default. */
+  .cutie-match-interaction--disabled .cutie-match-slot--filled:hover {
+    border-color: var(--cutie-primary);
+  }
+
+  /* Source bank: a bordered tray above its target by default (qti-choices-top). */
   .cutie-match-bank {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5em;
     justify-content: center;
     padding: 0.75em;
-    margin-top: 1em;
+    margin-bottom: 1em;
     border: 2px solid var(--cutie-border);
     border-radius: 4px;
     background-color: var(--cutie-bg-alt);
     box-sizing: border-box;
-  }
-
-  /* qti-choices-top: bank above its target */
-  .cutie-match-interaction--grouped.qti-choices-top .cutie-match-bank {
-    order: -1;
-    margin-top: 0;
-    margin-bottom: 1em;
+    /* Banks stretch to the tallest in the row; keep the sources at the top. */
+    align-content: flex-start;
   }
 
   /*
-   * qti-choices-left / -right: bank beside its target via a two-column grid
-   * (bank first for -left, target first for -right) — explicit placement, so it
-   * does not depend on source order.
+   * Word bank highlighted as a return target while moving a placed source. Must
+   * follow the base bank rule, whose border and background it overrides.
+   */
+  .cutie-match-bank--drop-target,
+  .cutie-match-bank--drag-over {
+    border-color: var(--cutie-primary);
+    background-color: var(--cutie-bg);
+  }
+
+  /* qti-choices-bottom: bank below its target (header, slots, then bank rows) */
+  .cutie-match-interaction--grouped.qti-choices-bottom .cutie-match-bank {
+    grid-row: 3;
+    margin-top: 1em;
+    margin-bottom: 0;
+  }
+
+  .cutie-match-interaction--grouped.qti-choices-bottom .cutie-match-column > .cutie-match-choice-wrapper {
+    grid-row: 1 / span 2;
+  }
+
+  /*
+   * qti-choices-left / -right: bank beside its target. The target area keeps the
+   * header and slot rows so they still line up across columns, and the bank
+   * spans all three rows beside it — explicit placement, so it does not depend
+   * on source order.
    */
   .cutie-match-interaction--grouped.qti-choices-left .cutie-match-column,
   .cutie-match-interaction--grouped.qti-choices-right .cutie-match-column {
-    display: grid;
     grid-template-columns: auto auto;
-    align-items: start;
     justify-content: center;
     column-gap: 1em;
   }
 
-  .cutie-match-interaction--grouped.qti-choices-left .cutie-match-column {
-    grid-template-areas: "bank target";
-  }
-
-  .cutie-match-interaction--grouped.qti-choices-right .cutie-match-column {
-    grid-template-areas: "target bank";
+  .cutie-match-interaction--grouped.qti-choices-left .cutie-match-bank,
+  .cutie-match-interaction--grouped.qti-choices-right .cutie-match-bank {
+    grid-row: 1 / -1;
+    margin-bottom: 0;
   }
 
   .cutie-match-interaction--grouped.qti-choices-left .cutie-match-column > .cutie-match-choice-wrapper,
   .cutie-match-interaction--grouped.qti-choices-right .cutie-match-column > .cutie-match-choice-wrapper {
-    grid-area: target;
+    grid-row: 1 / span 2;
   }
 
   .cutie-match-interaction--grouped.qti-choices-left .cutie-match-bank,
-  .cutie-match-interaction--grouped.qti-choices-right .cutie-match-bank {
-    grid-area: bank;
-    margin-top: 0;
+  .cutie-match-interaction--grouped.qti-choices-right .cutie-match-column > .cutie-match-choice-wrapper {
+    grid-column: 1;
   }
 
-  /* Mobile: stack columns and drop the side-by-side target/bank grid. */
+  .cutie-match-interaction--grouped.qti-choices-right .cutie-match-bank,
+  .cutie-match-interaction--grouped.qti-choices-left .cutie-match-column > .cutie-match-choice-wrapper {
+    grid-column: 2;
+  }
+
+  /* Mobile: stack columns and drop the side-by-side target/bank placement. */
   @media (max-width: 600px) {
     .cutie-match-columns {
-      flex-direction: column;
-      gap: 1.5em;
+      grid-template-columns: 1fr;
     }
 
     .cutie-match-interaction--grouped.qti-choices-left .cutie-match-column,
     .cutie-match-interaction--grouped.qti-choices-right .cutie-match-column {
-      display: flex;
-      flex-direction: column;
+      grid-template-columns: 1fr;
     }
 
     .cutie-match-interaction--grouped.qti-choices-left .cutie-match-bank,
     .cutie-match-interaction--grouped.qti-choices-right .cutie-match-bank {
-      margin-top: 1em;
+      grid-row: 1;
+      grid-column: 1;
+      margin-bottom: 1em;
+    }
+
+    .cutie-match-interaction--grouped.qti-choices-left .cutie-match-column > .cutie-match-choice-wrapper,
+    .cutie-match-interaction--grouped.qti-choices-right .cutie-match-column > .cutie-match-choice-wrapper {
+      grid-row: 2 / span 2;
+      grid-column: 1;
     }
   }
 

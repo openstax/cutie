@@ -61,14 +61,15 @@ export class MatchController {
   private targetIds: string[] = [];
 
   // Grouped-mode slot state: the slot elements, which source each holds, the
-  // banks (return targets), the current source selection, and the source being
-  // dragged (so dragover can validate before the drop's dataTransfer is read).
+  // banks (return targets), the current source selection, and the drag in
+  // progress. The drag is recorded by this controller's own dragstart, so a
+  // drag that started anywhere else (another interaction) is never accepted.
   private groupedSlots: HTMLElement[] = [];
   private slotOccupant = new Map<HTMLElement, string>();
   private slotPositionLabel = new Map<HTMLElement, string>();
   private groupedBanks: HTMLElement[] = [];
   private groupedSel: { sourceId: string; fromSlot: HTMLElement | null } | null = null;
-  private draggedSourceId: string | null = null;
+  private groupedDrag: { sourceId: string; fromSlot: HTMLElement | null } | null = null;
 
   // Track pending chip drag for drop-outside-to-remove behavior (classic mode)
   private pendingChipDrag: { sourceId: string; targetId: string } | null = null;
@@ -138,7 +139,9 @@ export class MatchController {
       id,
       set,
       element,
-      matchMax,
+      // A grouped source names a single target and a pair can only be made once,
+      // so it is used up by its first placement whatever its match-max.
+      matchMax: this.grouped ? 1 : matchMax,
       content,
       connectedIds: new Set(),
       matchGroups: new Set(matchGroups),
@@ -163,7 +166,8 @@ export class MatchController {
     targetId: string,
     headerElement: HTMLElement,
     matchMax: number,
-    content: string
+    content: string,
+    matchGroups: string[] = []
   ): void {
     this.choices.set(targetId, {
       id: targetId,
@@ -172,7 +176,7 @@ export class MatchController {
       matchMax,
       content,
       connectedIds: new Set(),
-      matchGroups: new Set(),
+      matchGroups: new Set(matchGroups),
     });
     this.targetIds.push(targetId);
   }
@@ -183,11 +187,9 @@ export class MatchController {
    */
   registerGroupedSlot(slotElement: HTMLElement, targetId: string, position: number, count: number): void {
     slotElement.setAttribute('data-target-id', targetId);
-    slotElement.setAttribute('data-slot-id', String(this.groupedSlots.length));
     this.groupedSlots.push(slotElement);
-    const positionLabel = `Slot ${position} of ${count}`;
-    this.slotPositionLabel.set(slotElement, positionLabel);
-    slotElement.setAttribute('aria-label', `${positionLabel}, empty`);
+    this.slotPositionLabel.set(slotElement, `Slot ${position} of ${count}`);
+    this.updateSlotLabel(slotElement);
     this.wireSlotEvents(slotElement);
   }
 
@@ -302,13 +304,13 @@ export class MatchController {
         return;
       }
       e.dataTransfer?.setData('text/plain', `source:${id}`);
-      this.draggedSourceId = id;
       element.classList.add('cutie-match-choice--dragging');
       this.selectGroupedSource(id, null);
+      this.groupedDrag = { sourceId: id, fromSlot: null };
     });
 
     element.addEventListener('dragend', () => {
-      this.draggedSourceId = null;
+      this.groupedDrag = null;
       element.classList.remove('cutie-match-choice--dragging');
       this.clearSelection();
     });
@@ -328,8 +330,7 @@ export class MatchController {
           this.clearSelection();
           return;
         }
-        if (this.canPlaceInSlot(slot, sourceId, fromSlot)) {
-          this.placeInSlot(slot, sourceId, fromSlot);
+        if (this.placeInSlot(slot, sourceId, fromSlot)) {
           this.clearSelection();
         }
       } else if (occupant) {
@@ -353,6 +354,8 @@ export class MatchController {
         e.preventDefault();
         if (occupant) {
           this.removeFromSlot(slot);
+          // Drop any selection too: it may be this very source, picked up.
+          this.clearSelection();
           slot.focus();
         }
       } else if (e.key === 'Escape') {
@@ -367,26 +370,24 @@ export class MatchController {
         e.preventDefault();
         return;
       }
-      e.dataTransfer?.setData('text/plain', `slot:${slot.getAttribute('data-slot-id')}`);
-      this.draggedSourceId = occupant;
+      e.dataTransfer?.setData('text/plain', `source:${occupant}`);
       slot.classList.add('cutie-match-slot--dragging');
       this.selectGroupedSource(occupant, slot);
+      this.groupedDrag = { sourceId: occupant, fromSlot: slot };
     });
 
     slot.addEventListener('dragend', () => {
-      this.draggedSourceId = null;
+      this.groupedDrag = null;
       slot.classList.remove('cutie-match-slot--dragging');
       this.clearSelection();
     });
 
     slot.addEventListener('dragover', (e) => {
       if (!this.enabled) return;
-      if (!e.dataTransfer?.types.includes('text/plain')) return;
-      // Only signal droppable when the dragged source is actually allowed here.
-      if (this.draggedSourceId
-        && !this.canPlaceInSlot(slot, this.draggedSourceId, this.draggedFromSlot())) {
-        return;
-      }
+      // Only signal droppable for this interaction's own drag, and only when the
+      // dragged source is actually allowed here.
+      const drag = this.groupedDrag;
+      if (!drag || !this.canPlaceInSlot(slot, drag.sourceId, drag.fromSlot)) return;
       e.preventDefault();
       slot.classList.add('cutie-match-slot--drag-over');
     });
@@ -397,35 +398,16 @@ export class MatchController {
 
     slot.addEventListener('drop', (e) => {
       if (!this.enabled) return;
-      e.preventDefault();
       slot.classList.remove('cutie-match-slot--drag-over');
 
-      const data = e.dataTransfer?.getData('text/plain') ?? '';
-      if (data.startsWith('source:')) {
-        const sourceId = data.slice('source:'.length);
-        if (this.canPlaceInSlot(slot, sourceId, null)) {
-          this.placeInSlot(slot, sourceId, null);
-        }
-      } else if (data.startsWith('slot:')) {
-        const fromSlot = this.groupedSlots[Number(data.slice('slot:'.length))];
-        if (fromSlot && fromSlot !== slot) {
-          const sourceId = this.slotOccupant.get(fromSlot);
-          if (sourceId && this.canPlaceInSlot(slot, sourceId, fromSlot)) {
-            this.placeInSlot(slot, sourceId, fromSlot);
-          }
-        }
-      }
+      // The drag is set up by our own dragstart; anything else isn't ours to place.
+      if (!this.groupedDrag) return;
+      e.preventDefault();
+
+      const { sourceId, fromSlot } = this.groupedDrag;
+      this.placeInSlot(slot, sourceId, fromSlot);
       this.clearSelection();
     });
-  }
-
-  /** The slot the currently dragged source was picked up from, if any. */
-  private draggedFromSlot(): HTMLElement | null {
-    if (!this.draggedSourceId) return null;
-    for (const [slot, sourceId] of this.slotOccupant) {
-      if (sourceId === this.draggedSourceId) return slot;
-    }
-    return null;
   }
 
   /**
@@ -435,9 +417,8 @@ export class MatchController {
   private wireBankEvents(bank: HTMLElement): void {
     bank.addEventListener('dragover', (e) => {
       if (!this.enabled) return;
-      if (!e.dataTransfer?.types.includes('text/plain')) return;
-      // Only accept returns of a source currently sitting in a slot.
-      if (!this.draggedFromSlot()) return;
+      // Only accept returns of a source this interaction is dragging out of a slot.
+      if (!this.groupedDrag?.fromSlot) return;
       e.preventDefault();
       bank.classList.add('cutie-match-bank--drag-over');
     });
@@ -451,12 +432,10 @@ export class MatchController {
     bank.addEventListener('drop', (e) => {
       if (!this.enabled) return;
       bank.classList.remove('cutie-match-bank--drag-over');
-      const data = e.dataTransfer?.getData('text/plain') ?? '';
-      if (data.startsWith('slot:')) {
-        e.preventDefault();
-        const fromSlot = this.groupedSlots[Number(data.slice('slot:'.length))];
-        if (fromSlot) this.removeFromSlot(fromSlot);
-      }
+      const fromSlot = this.groupedDrag?.fromSlot;
+      if (!fromSlot) return;
+      e.preventDefault();
+      this.removeFromSlot(fromSlot);
     });
 
     bank.addEventListener('click', (e) => {
@@ -471,30 +450,31 @@ export class MatchController {
   }
 
   /**
-   * Whether `sourceId` may be placed into `slot`, accounting for match-group,
-   * max-associations, and the source's match-max. `fromSlot` is the slot the
-   * source is being moved from (which frees a slot), if any.
+   * Whether `sourceId` may be placed into `slot`: the complete precondition for
+   * placeInSlot, covering match-group, the pair already being made, the source's
+   * match-max, and max-associations. `fromSlot` is the slot the source is being
+   * moved out of, if any; a move frees that pairing first, so it adds no use of
+   * the source and no association.
    */
   private canPlaceInSlot(slot: HTMLElement, sourceId: string, fromSlot: HTMLElement | null): boolean {
     const targetId = slot.getAttribute('data-target-id');
-    if (!targetId) return false;
+    if (!targetId || !this.choices.has(sourceId)) return false;
     if (!this.groupsAllow(sourceId, targetId)) return false;
 
     const occupant = this.slotOccupant.get(slot);
     if (occupant === sourceId) return false; // already here
 
-    // A placement adds a net association only when the slot is empty and we are
-    // not moving the source out of another slot.
-    const addsAssociation = !occupant && !fromSlot;
-    if (addsAssociation && this.maxAssociations > 0
-      && this.associations.size >= this.maxAssociations) {
-      return false;
+    // Only a move if the source really is sitting in fromSlot.
+    const moving = !!fromSlot && this.slotOccupant.get(fromSlot) === sourceId;
+    if (!moving) {
+      if (this.associations.has(`${sourceId} ${targetId}`)) return false;
+      if (!this.canAcceptAssociation(sourceId)) return false;
     }
 
-    // The source gains a use unless it's just moving between slots.
-    const source = this.choices.get(sourceId);
-    if (!fromSlot && source && source.matchMax > 0
-      && source.connectedIds.size >= source.matchMax) {
+    // Replacing an occupant or moving keeps the association count level.
+    const addsAssociation = !occupant && !moving;
+    if (addsAssociation && this.maxAssociations > 0
+      && this.associations.size >= this.maxAssociations) {
       return false;
     }
 
@@ -552,29 +532,28 @@ export class MatchController {
 
   /**
    * Place `sourceId` into `slot`, replacing any current occupant and freeing the
-   * source's previous slot when moving.
+   * source's previous slot when moving. Returns whether it was placed; nothing
+   * is changed when the placement isn't allowed.
    */
-  private placeInSlot(slot: HTMLElement, sourceId: string, fromSlot: HTMLElement | null): void {
+  private placeInSlot(slot: HTMLElement, sourceId: string, fromSlot: HTMLElement | null): boolean {
     const targetId = slot.getAttribute('data-target-id');
-    if (!targetId) return;
-
-    const occupant = this.slotOccupant.get(slot);
-    if (occupant === sourceId) return;
+    if (!targetId || !this.canPlaceInSlot(slot, sourceId, fromSlot)) return false;
 
     // Free the source's previous slot (move) and the target slot's occupant
     // (replace) before creating the new association.
-    if (fromSlot && fromSlot !== slot && this.slotOccupant.get(fromSlot) === sourceId) {
+    if (fromSlot && this.slotOccupant.get(fromSlot) === sourceId) {
       this.removeFromSlot(fromSlot, true);
     }
-    if (occupant) {
+    if (this.slotOccupant.has(slot)) {
       this.removeFromSlot(slot, true);
     }
 
-    if (this.createAssociation(sourceId, targetId)) {
-      this.slotOccupant.set(slot, sourceId);
-      this.fillSlotVisual(slot, sourceId);
-      announce(this.context, `${this.choices.get(sourceId)?.content ?? ''} placed.`);
-    }
+    if (!this.createAssociation(sourceId, targetId)) return false;
+
+    this.slotOccupant.set(slot, sourceId);
+    this.fillSlotVisual(slot, sourceId);
+    announce(this.context, `${this.choices.get(sourceId)?.content ?? ''} placed.`);
+    return true;
   }
 
   /** Remove the source currently in `slot`, returning it to its bank. */
@@ -594,21 +573,21 @@ export class MatchController {
 
   /** Show `sourceId`'s content inside a filled slot. */
   private fillSlotVisual(slot: HTMLElement, sourceId: string): void {
-    const content = this.choices.get(sourceId)?.content ?? '';
     slot.classList.add('cutie-match-slot--filled');
     slot.setAttribute('data-source-id', sourceId);
     slot.setAttribute('draggable', 'true');
     slot.setAttribute('tabindex', '0');
-    const positionLabel = this.slotPositionLabel.get(slot) ?? 'Slot';
-    slot.setAttribute(
-      'aria-label',
-      `${positionLabel}, contains ${content}. Press Enter to pick up, or Backspace to remove.`,
-    );
+    this.updateSlotLabel(slot);
 
     const contentSpan = slot.querySelector('.cutie-match-slot-content') as HTMLElement | null;
     const placeholder = slot.querySelector('.cutie-match-slot-placeholder') as HTMLElement | null;
     if (contentSpan) {
-      contentSpan.textContent = content;
+      // Copy the bank choice's rendered label rather than its flattened text, so
+      // rich content (math, images) reads the same in the slot as in the bank.
+      const label = this.choices.get(sourceId)?.element.querySelector('.cutie-match-choice-label');
+      contentSpan.replaceChildren(
+        ...Array.from(label?.childNodes ?? [], (node) => node.cloneNode(true))
+      );
       contentSpan.style.display = '';
     }
     if (placeholder) placeholder.style.display = 'none';
@@ -620,15 +599,32 @@ export class MatchController {
     slot.removeAttribute('data-source-id');
     slot.setAttribute('draggable', 'false');
     slot.setAttribute('tabindex', '-1');
-    slot.setAttribute('aria-label', `${this.slotPositionLabel.get(slot) ?? 'Slot'}, empty`);
+    this.updateSlotLabel(slot);
 
     const contentSpan = slot.querySelector('.cutie-match-slot-content') as HTMLElement | null;
     const placeholder = slot.querySelector('.cutie-match-slot-placeholder') as HTMLElement | null;
     if (contentSpan) {
-      contentSpan.textContent = '';
+      contentSpan.replaceChildren();
       contentSpan.style.display = 'none';
     }
     if (placeholder) placeholder.style.display = '';
+  }
+
+  /**
+   * Name a slot by its position and occupant. The pick-up/remove hint is only
+   * given while the interaction is enabled, when those keys do something.
+   */
+  private updateSlotLabel(slot: HTMLElement): void {
+    const positionLabel = this.slotPositionLabel.get(slot) ?? 'Slot';
+    const sourceId = this.slotOccupant.get(slot);
+    if (!sourceId) {
+      slot.setAttribute('aria-label', `${positionLabel}, empty`);
+      return;
+    }
+
+    const content = this.choices.get(sourceId)?.content ?? '';
+    const hint = this.enabled ? ' Press Enter to pick up, or Backspace to remove.' : '';
+    slot.setAttribute('aria-label', `${positionLabel}, contains ${content}.${hint}`);
   }
 
   // ---------------------------------------------------------------------------
@@ -1260,11 +1256,14 @@ export class MatchController {
       this.restoreRovingTabindex();
     }
 
-    // Grouped slots: filled slots stay draggable/reachable while enabled.
+    // Grouped slots: filled slots are only draggable while enabled, but stay
+    // reachable when disabled so the placed answers can still be reviewed.
     for (const slot of this.groupedSlots) {
       const filled = this.slotOccupant.has(slot);
       slot.setAttribute('draggable', enabled && filled ? 'true' : 'false');
-      slot.setAttribute('tabindex', enabled && filled ? '0' : '-1');
+      slot.setAttribute('tabindex', filled ? '0' : '-1');
+      slot.setAttribute('aria-disabled', String(!enabled));
+      this.updateSlotLabel(slot);
     }
   }
 
@@ -1288,9 +1287,7 @@ export class MatchController {
         const slot = this.groupedSlots.find(
           (g) => g.getAttribute('data-target-id') === targetId && !this.slotOccupant.has(g)
         );
-        if (slot && this.canPlaceInSlot(slot, sourceId, null)) {
-          this.placeInSlot(slot, sourceId, null);
-        }
+        if (slot) this.placeInSlot(slot, sourceId, null);
       } else {
         this.createAssociation(sourceId, targetId);
       }

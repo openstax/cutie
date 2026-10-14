@@ -24,7 +24,7 @@ Note: match is entirely **advanced** cert (Q13 is Level 2).
 | match-max | advanced | :white_check_mark: | limits associations per choice |
 | fixed | advanced | :white_check_mark: | respected during shuffle |
 | match-min | not in checklist | :x: | |
-| match-group | not in checklist | :white_check_mark: | restricts pairing; when every source names exactly one target and every target's match-max can be filled, renders the grouped (bowtie) layout |
+| match-group | not in checklist | :white_check_mark: | restricts pairing; when every source names exactly one target, no target excludes a source that names it, and every target's match-max can be filled, renders the grouped (bowtie) layout |
 | template-identifier | not in checklist | :white_check_mark: | processed in processTemplateConditionals |
 | show-hide | not in checklist | :white_check_mark: | processed in processTemplateConditionals |
 
@@ -34,10 +34,12 @@ Note: match is entirely **advanced** cert (Q13 is Level 2).
 
 | class | cutie | notes |
 |---|---|---|
-| qti-choices-top | :white_check_mark: | grouped (bowtie) layout: positions each column's bank above its slot |
-| qti-choices-bottom | :white_check_mark: | grouped (bowtie) layout: bank below its slot (default) |
+| qti-choices-top | :white_check_mark: | grouped (bowtie) layout: positions each column's bank above its slot (cutie's default; the spec names none) |
+| qti-choices-bottom | :white_check_mark: | grouped (bowtie) layout: bank below its slot |
 | qti-choices-left | :white_check_mark: | grouped (bowtie) layout: bank left of its slot |
 | qti-choices-right | :white_check_mark: | grouped (bowtie) layout: bank right of its slot |
+
+The bank always precedes its slots in the DOM, whatever the visual placement: the vocab asks for choices to be presented before targets to assistive technology.
 
 ### tabular layout — advanced cert
 
