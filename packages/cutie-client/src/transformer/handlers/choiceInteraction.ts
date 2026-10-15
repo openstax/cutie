@@ -473,8 +473,8 @@ const CHOICE_INTERACTION_STYLES = `
 
   /* Focus-within styling for keyboard navigation */
   .cutie-choice-interaction .cutie-simple-choice:focus-within {
-    outline: 2px solid var(--cutie-primary);
-    outline-offset: 2px;
+    outline: var(--cutie-focus-ring);
+    outline-offset: var(--cutie-focus-ring-offset);
   }
 
   .cutie-choice-interaction .cutie-simple-choice-content {

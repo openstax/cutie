@@ -1,3 +1,4 @@
+/* spell-checker: ignore hottext */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type MountedItem, mountItem } from './mountItem.js';
 import { announce } from './utils/liveRegion.js';
@@ -231,6 +232,46 @@ describe('verdicts on a fresh try', () => {
       q(container, '.cutie-gap[data-identifier="G2"]').click();
 
       expect(container.querySelector('.cutie-evaluated')).toBeNull();
+    });
+
+    it('hottext interaction: drops the verdict and incorrect-answer marks, keeps the correct-answer marks', () => {
+      mount(itemXml(
+        declaration('R1', 'multiple', 'identifier', ['B'], '<qti-correct-response><qti-value>A</qti-value></qti-correct-response>'),
+        `<qti-hottext-interaction response-identifier="R1" max-choices="0" data-cutie-evaluation="incorrect">
+          <p><qti-hottext identifier="A">A</qti-hottext> <qti-hottext identifier="B">B</qti-hottext>
+          <qti-hottext identifier="C">C</qti-hottext></p>
+        </qti-hottext-interaction>`,
+      ));
+      const interaction = q(container, '.cutie-hottext-interaction');
+      expect(interaction.classList.contains('cutie-evaluated--incorrect')).toBe(true);
+      expect(q(container, '#constraint-R1').textContent).toBe('Incorrect response');
+      expect(q(container, '[data-hottext-identifier="B"]').textContent).toBe('Incorrect answer: B');
+
+      q(container, '[data-hottext-identifier="C"]').click();
+
+      expect(interaction.classList.contains('cutie-evaluated')).toBe(false);
+      expect(container.querySelector('#constraint-R1')).toBeNull();
+      expect(interaction.getAttribute('aria-describedby') ?? '').not.toContain('constraint-R1');
+      expect(container.querySelector('.cutie-answer-mark--incorrect')).toBeNull();
+      expect(q(container, '[data-hottext-identifier="B"]').textContent).toBe('B');
+      expect(q(container, '[data-hottext-identifier="A"]').textContent).toBe('Correct answer: A');
+    });
+
+    it('hottext interaction: a selection refused over max-choices announces the constraint, keeps the verdict', () => {
+      mount(itemXml(
+        declaration('R1', 'multiple', 'identifier', ['A', 'B']),
+        `<qti-hottext-interaction response-identifier="R1" max-choices="2" data-cutie-evaluation="incorrect">
+          <p><qti-hottext identifier="A">A</qti-hottext> <qti-hottext identifier="B">B</qti-hottext>
+          <qti-hottext identifier="C">C</qti-hottext></p>
+        </qti-hottext-interaction>`,
+      ));
+
+      q(container, '[data-hottext-identifier="C"]').click();
+
+      const messages = vi.mocked(announce).mock.calls.map((call) => call[1]);
+      expect(messages).toContain('Select up to 2 items.');
+      expect(messages).not.toContain('Incorrect response');
+      expect(q(container, '.cutie-hottext-interaction').classList.contains('cutie-evaluated--incorrect')).toBe(true);
     });
 
     it('leaves the verdicts of other interactions alone', () => {

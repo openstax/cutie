@@ -30,6 +30,9 @@ const BASE_STYLES = `
      * Matches the overline's line box (see .cutie-correct-answer-overline).
      */
     --cutie-overline-slot: 1.125em;
+    /* Keyboard focus indicator, shared by every focusable control */
+    --cutie-focus-ring: 3px solid var(--cutie-primary);
+    --cutie-focus-ring-offset: 2px;
     color: var(--cutie-text);
     background-color: var(--cutie-bg);
     line-height: var(--cutie-line-height);

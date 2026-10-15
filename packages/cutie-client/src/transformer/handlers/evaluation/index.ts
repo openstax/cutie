@@ -12,6 +12,7 @@ export {
   createCorrectAnswer,
   createCorrectAnswerOverline,
   createIncorrectAnswerOverline,
+  createSrText,
   createEvaluationSummary,
   createVerdictMark,
   type EvaluationSummaryOptions,

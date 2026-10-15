@@ -101,8 +101,8 @@ export const MATCH_INTERACTION_STYLES = `
   }
 
   .cutie-match-choice:focus {
-    outline: 3px solid var(--cutie-primary);
-    outline-offset: 2px;
+    outline: var(--cutie-focus-ring);
+    outline-offset: var(--cutie-focus-ring-offset);
   }
 
   .cutie-match-choice--selected {
@@ -181,8 +181,8 @@ export const MATCH_INTERACTION_STYLES = `
   }
 
   .cutie-match-chip:focus {
-    outline: 2px solid var(--cutie-primary);
-    outline-offset: 1px;
+    outline: var(--cutie-focus-ring);
+    outline-offset: var(--cutie-focus-ring-offset);
   }
 
   .cutie-match-chip--selected {

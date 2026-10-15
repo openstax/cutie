@@ -1,4 +1,4 @@
-/* spell-checker: ignore hottext radiogroup */
+/* spell-checker: ignore hottext hottexts radiogroup */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ItemStateImpl } from '../../state/itemState.js';
 import { registry } from '../registry.js';
@@ -556,6 +556,74 @@ describe('hottextInteraction', () => {
     });
   });
 
+  describe('evaluation', () => {
+    const evaluatedDecl = (defaults: string[], correct: string[], cardinality = 'multiple') => `
+      <qti-response-declaration identifier="RESPONSE" cardinality="${cardinality}" base-type="identifier">
+        <qti-default-value>${defaults.map((v) => `<qti-value>${v}</qti-value>`).join('')}</qti-default-value>
+        ${correct.length ? `<qti-correct-response>${correct.map((v) => `<qti-value>${v}</qti-value>`).join('')}</qti-correct-response>` : ''}
+      </qti-response-declaration>`;
+
+    const renderEvaluated = (verdict: string | null, defaults: string[], correct: string[], attrs = 'max-choices="0"', cardinality = 'multiple') => {
+      const evaluationAttr = verdict ? ` data-cutie-evaluation="${verdict}"` : '';
+      const doc = createQtiDocument(
+        `<qti-hottext-interaction response-identifier="RESPONSE" ${attrs}${evaluationAttr}>${passage}</qti-hottext-interaction>`,
+        evaluatedDecl(defaults, correct, cardinality)
+      );
+      return render(doc, itemState);
+    };
+
+    const button = (container: HTMLElement, identifier: string) =>
+      container.querySelector<HTMLElement>(`[data-hottext-identifier="${identifier}"]`)!;
+
+    it('draws the verdict as the status rail and the constraint text', () => {
+      const container = renderEvaluated('partial', ['A'], [], 'max-choices="0" min-choices="1"');
+      const group = container.querySelector('.cutie-hottext-interaction')!;
+
+      expect(group.classList.contains('cutie-evaluated--partial')).toBe(true);
+      const constraint = container.querySelector('#constraint-RESPONSE')!;
+      expect(constraint.textContent).toBe('Partially correct response');
+      expect(group.getAttribute('aria-describedby')).toContain('constraint-RESPONSE');
+    });
+
+    it('shows the verdict text without a constraint hint', () => {
+      const container = renderEvaluated('incorrect', ['A'], [], 'max-choices="1"', 'single');
+      expect(container.querySelector('#constraint-RESPONSE')!.textContent).toBe('Incorrect response');
+    });
+
+    it('marks correct answers and incorrect selections, with their meaning first in the name', () => {
+      const container = renderEvaluated('partial', ['A', 'C'], ['A', 'B']);
+
+      expect(button(container, 'A').classList.contains('cutie-answer-mark--correct')).toBe(true);
+      expect(button(container, 'B').classList.contains('cutie-answer-mark--correct')).toBe(true);
+      expect(button(container, 'C').classList.contains('cutie-answer-mark--incorrect')).toBe(true);
+      expect(button(container, 'D').classList.contains('cutie-answer-mark')).toBe(false);
+
+      expect(button(container, 'B').textContent).toBe('Correct answer: Item B');
+      expect(button(container, 'C').textContent).toBe('Incorrect answer: Item C');
+      expect(button(container, 'D').textContent).toBe('Item D');
+    });
+
+    it('keeps the response and identifiers intact with marks drawn', () => {
+      renderEvaluated('partial', ['A', 'C'], ['A', 'B']);
+      expect(itemState.collectAll().responses).toEqual({ RESPONSE: ['A', 'C'] });
+    });
+
+    it('draws no marks without a correct response', () => {
+      const container = renderEvaluated('incorrect', ['C'], []);
+      expect(container.querySelector('.cutie-answer-mark')).toBeNull();
+      expect(container.querySelector('.cutie-hottext-interaction--answers-shown')).toBeNull();
+    });
+
+    it('draws nothing without an evaluation', () => {
+      const container = renderEvaluated(null, ['C'], []);
+      expect(container.querySelector('.cutie-evaluated')).toBeNull();
+      expect(container.querySelector('.cutie-answer-mark')).toBeNull();
+      expect(container.querySelector('#constraint-RESPONSE')).toBeNull();
+      // The rail is reserved regardless, so evaluation shifts nothing
+      expect(container.querySelector('.cutie-hottext-interaction')!.classList.contains('cutie-status-rail')).toBe(true);
+    });
+  });
+
   describe('enabled state', () => {
     it('toggles aria-disabled and blocks activation when interactions are disabled', () => {
       const doc = createQtiDocument(
@@ -579,6 +647,49 @@ describe('hottextInteraction', () => {
 
       buttons[0]!.click();
       expect(buttons[0]!.getAttribute('aria-pressed')).toBe('true');
+    });
+
+    it('takes disabled hottexts out of the tab order, and restores it when enabled', () => {
+      const doc = createQtiDocument(
+        `<qti-hottext-interaction response-identifier="RESPONSE" max-choices="2">${passage}</qti-hottext-interaction>`,
+        MULTI_DECL
+      );
+      const container = render(doc, itemState);
+      const buttons = Array.from(container.querySelectorAll<HTMLElement>('.cutie-hottext'));
+      const tabStops = () => buttons.map((b) => b.getAttribute('tabindex'));
+
+      expect(tabStops()).toEqual(['0', '0', '0', '0']);
+      itemState.setInteractionState('disabled');
+      expect(tabStops()).toEqual(['-1', '-1', '-1', '-1']);
+      itemState.setInteractionState('enabled');
+      expect(tabStops()).toEqual(['0', '0', '0', '0']);
+    });
+
+    it('restores the roving tab stop on the checked radio in single-select', () => {
+      const doc = createQtiDocument(
+        `<qti-hottext-interaction response-identifier="RESPONSE" max-choices="1">${passage}</qti-hottext-interaction>`,
+        SINGLE_DECL
+      );
+      const container = render(doc, itemState);
+      const buttons = Array.from(container.querySelectorAll<HTMLElement>('.cutie-hottext'));
+      const tabStops = () => buttons.map((b) => b.getAttribute('tabindex'));
+
+      buttons[2]!.click();
+      itemState.setInteractionState('readonly');
+      expect(tabStops()).toEqual(['-1', '-1', '-1', '-1']);
+      itemState.setInteractionState('enabled');
+      expect(tabStops()).toEqual(['-1', '-1', '0', '-1']);
+    });
+
+    it('starts out of the tab order when rendered disabled', () => {
+      itemState.setInteractionState('disabled');
+      const doc = createQtiDocument(
+        `<qti-hottext-interaction response-identifier="RESPONSE" max-choices="2">${passage}</qti-hottext-interaction>`,
+        MULTI_DECL
+      );
+      const container = render(doc, itemState);
+      const buttons = Array.from(container.querySelectorAll<HTMLElement>('.cutie-hottext'));
+      expect(buttons.every((b) => b.getAttribute('tabindex') === '-1')).toBe(true);
     });
   });
 });

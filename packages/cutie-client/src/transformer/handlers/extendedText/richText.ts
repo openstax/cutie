@@ -391,8 +391,8 @@ const RICH_TEXT_INTERACTION_STYLES = `
 }
 
 .cutie-rich-text-wrapper:focus-within {
-  outline: 2px solid var(--cutie-primary);
-  outline-offset: 1px;
+  outline: var(--cutie-focus-ring);
+  outline-offset: var(--cutie-focus-ring-offset);
   border-color: var(--cutie-primary);
 }
 
