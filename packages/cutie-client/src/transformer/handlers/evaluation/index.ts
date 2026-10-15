@@ -11,6 +11,7 @@ export {
   cloneLabel,
   createCorrectAnswer,
   createCorrectAnswerOverline,
+  createIncorrectAnswerOverline,
   createEvaluationSummary,
   createVerdictMark,
   type EvaluationSummaryOptions,

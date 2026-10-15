@@ -80,6 +80,22 @@ describe('verdicts on a fresh try', () => {
       expect(fieldset.getAttribute('aria-describedby') ?? '').not.toContain('constraint-R1');
     });
 
+    it('choice interaction: drops the incorrect-answer marks, keeps the correct-answer marks', () => {
+      mount(itemXml(
+        declaration('R1', 'single', 'identifier', ['B'], '<qti-correct-response><qti-value>A</qti-value></qti-correct-response>'),
+        `<qti-choice-interaction response-identifier="R1" max-choices="1" data-cutie-evaluation="incorrect">
+          <qti-simple-choice identifier="A">A</qti-simple-choice>
+          <qti-simple-choice identifier="B">B</qti-simple-choice>
+        </qti-choice-interaction>`,
+      ));
+      expect(container.querySelector('.cutie-correct-answer-overline--incorrect')).not.toBeNull();
+
+      check(container.querySelectorAll<HTMLInputElement>('input')[0]!);
+
+      expect(container.querySelector('.cutie-correct-answer-overline--incorrect')).toBeNull();
+      expect(container.querySelectorAll('.cutie-correct-answer-overline')).toHaveLength(1);
+    });
+
     it('choice interaction: puts the constraint hint back', () => {
       mount(itemXml(
         declaration('R1', 'multiple', 'identifier', ['A']),

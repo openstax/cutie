@@ -208,6 +208,18 @@ export function createCorrectAnswer(content: Node | string): HTMLElement {
 }
 
 /**
+ * Create the overline labeling a selected option that is not part of the
+ * correct response ("INCORRECT ANSWER", in the incorrect color): plain text,
+ * so it is part of the option's accessible name.
+ */
+export function createIncorrectAnswerOverline(): HTMLSpanElement {
+  const overline = document.createElement('span');
+  overline.className = 'cutie-correct-answer-overline cutie-correct-answer-overline--incorrect';
+  overline.textContent = 'Incorrect answer';
+  return overline;
+}
+
+/**
  * Create the overline placed above an answer option in its reserved slot
  * (--cutie-overline-slot); the interaction positions it.
  *
@@ -464,6 +476,10 @@ const EVALUATION_STYLES = `
     letter-spacing: 0.05em;
     font-variant-caps: all-small-caps;
     color: var(--cutie-feedback-correct);
+  }
+
+  .cutie-correct-answer-overline--incorrect {
+    color: var(--cutie-feedback-incorrect);
   }
 
   /*

@@ -15,6 +15,7 @@ import {
   clearEvaluated,
   clearVerdictOnEdit,
   createCorrectAnswerOverline,
+  createIncorrectAnswerOverline,
   getVerdictText,
   markEvaluated,
   readEvaluation,
@@ -230,20 +231,27 @@ class ChoiceInteractionHandler implements ElementHandler {
       }
     }
 
-    // Draw the evaluation: the status rail, and a "correct answer" overline
-    // on each correct choice, in the slot every choice reserves for it (first
+    // Draw the evaluation: the status rail, a "correct answer" overline on
+    // each correct choice, and an "incorrect answer" overline on each selected
+    // choice that isn't correct, on its own line above the choice text (first
     // in the choice's content, so its name reads "Correct answer <choice>").
     // The verdict is in the constraint text.
     if (evaluation) {
+      const hasCorrectResponse = evaluation.correctResponse.length > 0;
       for (const input of inputElements) {
-        if (!evaluation.correctResponse.includes(input.value)) continue;
         const content = input.parentElement?.querySelector('.cutie-simple-choice-content');
-        content?.prepend(createCorrectAnswerOverline());
+        if (evaluation.correctResponse.includes(input.value)) {
+          content?.prepend(createCorrectAnswerOverline());
+        } else if (hasCorrectResponse && input.checked) {
+          content?.prepend(createIncorrectAnswerOverline());
+        }
       }
       markEvaluated(container, evaluation.verdict);
     }
     clearVerdictOnEdit(context, responseIdentifier, evaluation, () => {
       clearEvaluated(container);
+      // Incorrect-answer marks describe the response, so they go with the verdict
+      container.querySelectorAll('.cutie-correct-answer-overline--incorrect').forEach((mark) => mark.remove());
       clearConstraintVerdict(constraint, choicesContainer, constraintText);
       hintText = constraintText;
     });
@@ -409,12 +417,7 @@ const CHOICE_INTERACTION_STYLES = `
     display: flex;
     align-items: flex-start;
     gap: 0.5em;
-    /* The overline slot is reserved above the text, and the same below so the text stays centered */
-    padding:
-      calc(0.7em + 2px + var(--cutie-overline-slot))
-      calc(1em + 2px)
-      calc(0.7em + 2px + var(--cutie-overline-slot))
-      calc(1em + 2px);
+    padding: calc(0.7em + 2px) calc(1em + 2px) calc(0.7em + 2px) calc(1em + 2px);
     border: 2px solid var(--cutie-border);
     border-radius: 4px;
     background-color: var(--cutie-bg);
@@ -430,11 +433,7 @@ const CHOICE_INTERACTION_STYLES = `
   .cutie-choice-interaction .cutie-simple-choice:has(input:checked) {
     border-color: var(--cutie-primary);
     border-width: 4px;
-    padding:
-      calc(0.7em + var(--cutie-overline-slot))
-      1em
-      calc(0.7em + var(--cutie-overline-slot))
-      1em;
+    padding: 0.7em 1em 0.7em 1em;
   }
 
   .cutie-choice-interaction .cutie-simple-choice:has(input:checked):hover {
@@ -479,7 +478,6 @@ const CHOICE_INTERACTION_STYLES = `
   }
 
   .cutie-choice-interaction .cutie-simple-choice-content {
-    position: relative;
     flex: 1;
     cursor: pointer;
     line-height: 1.5;
@@ -492,12 +490,9 @@ const CHOICE_INTERACTION_STYLES = `
 
   /* ── Evaluated (review) state ───────────────────────────────── */
 
-  /* Sits in the reserved slot, directly above the choice's first line */
+  /* Sits on its own line, directly above the choice's first line */
   .cutie-choice-interaction .cutie-correct-answer-overline {
-    position: absolute;
-    bottom: 100%;
-    left: 0;
-    white-space: nowrap;
+    display: block;
   }
 
   /* ── Choice label vocabulary classes ─────────────────────────── */

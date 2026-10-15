@@ -1008,9 +1008,11 @@ describe('choiceInteraction evaluation', () => {
     return container;
   }
 
-  const markedChoices = (container: HTMLElement) =>
-    Array.from(container.querySelectorAll('.cutie-correct-answer-overline'))
+  const markedChoices = (container: HTMLElement, selector = '.cutie-correct-answer-overline:not(.cutie-correct-answer-overline--incorrect)') =>
+    Array.from(container.querySelectorAll(selector))
       .map((marker) => marker.closest('label')!.querySelector('input')!.value);
+  const incorrectChoices = (container: HTMLElement) =>
+    markedChoices(container, '.cutie-correct-answer-overline--incorrect');
 
   it('renders nothing when there is no verdict or correct response', () => {
     const container = render('', '<qti-default-value><qti-value>B</qti-value></qti-default-value>');
@@ -1069,5 +1071,37 @@ describe('choiceInteraction evaluation', () => {
     );
     expect(markedChoices(container)).toEqual(['A', 'C']);
     expect(container.querySelector('#constraint-R1')!.textContent).toBe('Partially correct response');
+  });
+
+  it('puts an incorrect-answer overline on a selected choice that is not correct', () => {
+    const container = render(
+      'data-cutie-evaluation="incorrect"',
+      `<qti-default-value><qti-value>B</qti-value></qti-default-value>
+       <qti-correct-response><qti-value>A</qti-value></qti-correct-response>`,
+    );
+    expect(incorrectChoices(container)).toEqual(['B']);
+    // First in the choice's content, so the name reads "Incorrect answer Beta"
+    const content = container.querySelector('input[value="B"]')!.closest('label')!
+      .querySelector('.cutie-simple-choice-content')!;
+    expect(content.textContent).toBe('Incorrect answerBeta');
+  });
+
+  it('marks only the selected choices that are not correct for multiple cardinality', () => {
+    const container = render(
+      'data-cutie-evaluation="partial"',
+      `<qti-default-value><qti-value>A</qti-value><qti-value>B</qti-value></qti-default-value>
+       <qti-correct-response><qti-value>A</qti-value><qti-value>C</qti-value></qti-correct-response>`,
+      '3',
+    );
+    expect(markedChoices(container)).toEqual(['A', 'C']);
+    expect(incorrectChoices(container)).toEqual(['B']);
+  });
+
+  it('marks no incorrect answers without a correct response', () => {
+    const container = render(
+      'data-cutie-evaluation="incorrect"',
+      '<qti-default-value><qti-value>B</qti-value></qti-default-value>',
+    );
+    expect(incorrectChoices(container)).toEqual([]);
   });
 });
