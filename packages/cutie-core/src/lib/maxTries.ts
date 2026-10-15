@@ -1,5 +1,7 @@
+/* spell-checker: ignore hottext */
 import { DeliveryOptions } from '../types.js';
 import { hasExternalScoring } from './externalScoring.js';
+import { isFormulaResponse } from './responseDeclarations.js';
 import { processTemplateConditionals } from './visibility.js';
 
 /**
@@ -32,6 +34,7 @@ const GUESSABLE_OPTIONS: Record<string, (interaction: Element) => Element[]> = {
   'qti-order-interaction': (interaction) => descendants(interaction, 'qti-simple-choice'),
   'qti-inline-choice-interaction': (interaction) => descendants(interaction, 'qti-inline-choice'),
   'qti-hotspot-interaction': (interaction) => descendants(interaction, 'qti-hotspot-choice'),
+  'qti-hottext-interaction': (interaction) => descendants(interaction, 'qti-hottext'),
   'qti-gap-match-interaction': (interaction) => [
     ...descendants(interaction, 'qti-gap-text'),
     ...descendants(interaction, 'qti-gap-img'),
@@ -45,9 +48,19 @@ const GUESSABLE_OPTIONS: Record<string, (interaction: Element) => Element[]> = {
 
 /**
  * Interactions that are no easier to answer for being retried, so they don't
- * limit the tries.
+ * limit the tries: a text entry, and a formula entry (an extended text with a
+ * formula response).
  */
-const UNGUESSABLE_INTERACTIONS = new Set(['qti-text-entry-interaction']);
+function isUnguessable(itemDoc: Document, interaction: Element): boolean {
+  switch (interaction.tagName) {
+    case 'qti-text-entry-interaction':
+      return true;
+    case 'qti-extended-text-interaction':
+      return isFormulaResponse(itemDoc, interaction.getAttribute('response-identifier') ?? '');
+    default:
+      return false;
+  }
+}
 
 /**
  * The `'smart'` number of tries: enough to correct a mistake, too few to guess
@@ -55,9 +68,9 @@ const UNGUESSABLE_INTERACTIONS = new Set(['qti-text-entry-interaction']);
  *
  * Each guessable interaction allows half the options this variant shows (after
  * template conditionals), rounded down, and at least one; the item allows the
- * fewest any interaction does. A text entry sets no limit. An item with any
- * other interaction, an externally scored item, or an item nothing limits gets
- * one try.
+ * fewest any interaction does. A text or formula entry sets no limit. An item
+ * with any other interaction, an externally scored item, or an item nothing
+ * limits gets one try.
  */
 export function deriveSmartMaxTries(itemDoc: Document, variables: Record<string, unknown>): number {
   if (hasExternalScoring(itemDoc)) return 1;
@@ -74,7 +87,7 @@ export function deriveSmartMaxTries(itemDoc: Document, variables: Record<string,
 
   let limit = Infinity;
   for (const interaction of interactions) {
-    if (UNGUESSABLE_INTERACTIONS.has(interaction.tagName)) continue;
+    if (isUnguessable(itemDoc, interaction)) continue;
 
     const options = GUESSABLE_OPTIONS[interaction.tagName];
     const tries = options ? Math.max(1, Math.floor(options(interaction).length / 2)) : 1;

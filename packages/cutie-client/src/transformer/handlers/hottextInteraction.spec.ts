@@ -1,5 +1,5 @@
 /* spell-checker: ignore hottext radiogroup */
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ItemStateImpl } from '../../state/itemState.js';
 import { registry } from '../registry.js';
 import type { TransformContext } from '../types.js';
@@ -472,6 +472,87 @@ describe('hottextInteraction', () => {
 
       const result = itemState.collectAll();
       expect(result.responses).toEqual({ RESPONSE: ['B'] });
+    });
+
+    it('reads the response silently without rendering validation', () => {
+      const doc = createQtiDocument(
+        `<qti-hottext-interaction response-identifier="RESPONSE" max-choices="2" min-choices="1">${passage}</qti-hottext-interaction>`,
+        MULTI_DECL
+      );
+      const container = render(doc, itemState);
+
+      expect(itemState.peekAll()).toEqual({ RESPONSE: null });
+
+      const group = container.querySelector('.cutie-hottext-interaction')!;
+      expect(group.hasAttribute('aria-invalid')).toBe(false);
+      const constraint = container.querySelector('.cutie-constraint-text')!;
+      expect(constraint.classList.contains('cutie-constraint-error')).toBe(false);
+    });
+  });
+
+  describe('response changes', () => {
+    it('reports each learner edit once, with the new response', () => {
+      const onResponseChange = vi.fn();
+      const state = new ItemStateImpl(undefined, { onResponseChange });
+      const doc = createQtiDocument(
+        `<qti-hottext-interaction response-identifier="RESPONSE" max-choices="2">${passage}</qti-hottext-interaction>`,
+        MULTI_DECL
+      );
+      const container = render(doc, state);
+      const buttons = container.querySelectorAll<HTMLElement>('.cutie-hottext');
+
+      buttons[0]!.click();
+      buttons[1]!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      buttons[0]!.click();
+
+      expect(onResponseChange.mock.calls.map((call) => call[0])).toEqual([
+        { RESPONSE: ['A'] },
+        { RESPONSE: ['A', 'B'] },
+        { RESPONSE: ['B'] },
+      ]);
+    });
+
+    it('does not report gestures that leave the response unchanged', () => {
+      const onResponseChange = vi.fn();
+      const state = new ItemStateImpl(undefined, { onResponseChange });
+      const doc = createQtiDocument(
+        `<qti-hottext-interaction response-identifier="RESPONSE" max-choices="1">${passage}</qti-hottext-interaction>`,
+        MULTI_DECL
+      );
+      const container = render(doc, state);
+      const buttons = container.querySelectorAll<HTMLElement>('.cutie-hottext');
+
+      buttons[0]!.click();
+      onResponseChange.mockClear();
+
+      // Over max-choices: rejected
+      buttons[1]!.click();
+      // Disabled: ignored
+      state.setInteractionState('disabled');
+      buttons[2]!.click();
+
+      expect(onResponseChange).not.toHaveBeenCalled();
+    });
+
+    it('reports arrow-key selection in single-select', () => {
+      const onResponseChange = vi.fn();
+      const state = new ItemStateImpl(undefined, { onResponseChange });
+      const doc = createQtiDocument(
+        `<qti-hottext-interaction response-identifier="RESPONSE" max-choices="1">${passage}</qti-hottext-interaction>`,
+        SINGLE_DECL
+      );
+      const container = attach(render(doc, state));
+      const buttons = container.querySelectorAll<HTMLElement>('.cutie-hottext');
+
+      buttons[0]!.click();
+      buttons[0]!.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+      // Re-selecting the checked radio changes nothing
+      buttons[1]!.click();
+
+      expect(onResponseChange.mock.calls.map((call) => call[0])).toEqual([
+        { RESPONSE: 'A' },
+        { RESPONSE: 'B' },
+      ]);
     });
   });
 

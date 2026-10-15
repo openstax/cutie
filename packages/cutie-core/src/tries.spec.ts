@@ -1,3 +1,4 @@
+/* spell-checker: ignore hottext hottexts */
 import { DOMParser } from '@xmldom/xmldom';
 import { describe, expect, test } from 'vitest';
 import { deriveSmartMaxTries } from './lib/maxTries.js';
@@ -67,6 +68,12 @@ function itemWithBody(body: string, extra = ''): string {
   ${extra}
   <qti-item-body>${body}</qti-item-body>
 </qti-assessment-item>`;
+}
+
+function formulaDeclaration(identifier: string): string {
+  return `<qti-response-declaration identifier="${identifier}" cardinality="single" base-type="string" data-response-type="formula">
+    <qti-correct-response><qti-value>x^2</qti-value></qti-correct-response>
+  </qti-response-declaration>`;
 }
 
 /**
@@ -668,6 +675,14 @@ describe('tries', () => {
       expect(deriveSmartMaxTries(parser.parseFromString(gapMatch, 'text/xml'), {})).toBe(2);
     });
 
+    test('counts the hottexts of a hottext interaction', () => {
+      const item = itemWithBody(`
+        <qti-hottext-interaction response-identifier="R" max-choices="0">
+          <p>${['H1', 'H2', 'H3', 'H4', 'H5', 'H6'].map((id) => `<qti-hottext identifier="${id}">${id}</qti-hottext>`).join(' ')}</p>
+        </qti-hottext-interaction>`);
+      expect(deriveSmartMaxTries(parser.parseFromString(item, 'text/xml'), {})).toBe(3);
+    });
+
     test('counts only the choices this variant shows', () => {
       const conditional = (id: string, showHide: string) =>
         `<qti-simple-choice identifier="${id}" template-identifier="SHOWN" show-hide="${showHide}">${id}</qti-simple-choice>`;
@@ -694,8 +709,21 @@ describe('tries', () => {
       expect(deriveSmartMaxTries(parser.parseFromString(item, 'text/xml'), {})).toBe(3);
     });
 
+    test('ignores formula entries', () => {
+      const item = itemWithBody(
+        `<qti-choice-interaction response-identifier="R1">${choices(6)}</qti-choice-interaction>
+        <qti-extended-text-interaction response-identifier="R2"/>`,
+        formulaDeclaration('R2')
+      );
+      expect(deriveSmartMaxTries(parser.parseFromString(item, 'text/xml'), {})).toBe(3);
+    });
+
     test.each([
       ['only text entries', itemWithBody('<p><qti-text-entry-interaction response-identifier="R"/></p>')],
+      [
+        'only formula entries',
+        itemWithBody('<qti-extended-text-interaction response-identifier="R"/>', formulaDeclaration('R')),
+      ],
       ['no interactions', itemWithBody('<p>Read this</p>')],
       [
         'an extended text',

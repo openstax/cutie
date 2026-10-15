@@ -31,6 +31,14 @@ function getResponseCardinality(itemDoc: Document, identifier: string): string {
 }
 
 /**
+ * Whether a response is a formula (data-response-type="formula"), compared
+ * as math rather than as text
+ */
+export function isFormulaResponse(itemDoc: Document, identifier: string): boolean {
+  return getResponseDeclaration(itemDoc, identifier)?.getAttribute('data-response-type') === 'formula';
+}
+
+/**
  * Compare response values, using formula comparison when appropriate
  *
  * This is the single source of truth for response comparison. It detects

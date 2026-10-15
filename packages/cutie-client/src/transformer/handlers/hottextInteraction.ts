@@ -8,6 +8,7 @@ import {
   createConstraintMessage,
 } from '../../errors/validationDisplay.js';
 import { announce } from '../../utils/liveRegion.js';
+import { reportResponseChanges } from '../../utils/responseChange.js';
 import {
   focusNext,
   focusPrev,
@@ -15,7 +16,7 @@ import {
   updateRovingTabindex,
 } from '../../utils/rovingTabindex.js';
 import { registry } from '../registry.js';
-import type { ElementHandler, InteractionState, TransformContext } from '../types.js';
+import type { ElementHandler, InteractionState, ResponseAccessorOptions, TransformContext } from '../types.js';
 import { getDefaultValue } from './responseUtils.js';
 
 /**
@@ -218,6 +219,12 @@ class HottextInteractionHandler implements ElementHandler {
     };
     const selectedCount = (): number => buttons.filter(isSelected).length;
 
+    const getResponse = (): string | string[] | null => {
+      const selected = buttons.filter(isSelected).map(getIdentifier);
+      if (selected.length === 0) return null;
+      return isSingleSelect ? (selected[0] ?? null) : selected;
+    };
+
     const isDisabled = (button: HTMLElement): boolean =>
       button.getAttribute('aria-disabled') === 'true';
 
@@ -326,10 +333,14 @@ class HottextInteractionHandler implements ElementHandler {
       if (checkValidity()) clearErrors();
     };
 
-    for (const button of buttons) {
-      button.addEventListener('click', () => activate(button));
+    // Learner gestures report the response changes they make to the item state
+    const reported = <E extends Event>(listener: (event: E) => void) =>
+      reportResponseChanges(context, responseIdentifier, getResponse, listener);
 
-      button.addEventListener('keydown', (event) => {
+    for (const button of buttons) {
+      button.addEventListener('click', reported(() => activate(button)));
+
+      button.addEventListener('keydown', reported((event: KeyboardEvent) => {
         if (isDisabled(button)) return;
 
         if (event.key === 'Enter' || event.key === ' ') {
@@ -353,21 +364,17 @@ class HottextInteractionHandler implements ElementHandler {
           selectExclusive(moved);
           if (checkValidity()) clearErrors();
         }
-      });
+      }));
     }
 
     // Register response accessor with itemState
     if (context.itemState) {
-      const getResponse = (): string | string[] | null => {
-        const selected = buttons.filter(isSelected).map(getIdentifier);
-        if (selected.length === 0) return null;
-        return isSingleSelect ? (selected[0] ?? null) : selected;
-      };
-
-      const accessor = () => {
+      const accessor = (options?: ResponseAccessorOptions) => {
         const value = getResponse();
         const valid = checkValidity();
-        if (valid) { clearErrors(); } else { showErrors(); }
+        if (!options?.silent) {
+          if (valid) { clearErrors(); } else { showErrors(); }
+        }
         return { value, valid };
       };
 
