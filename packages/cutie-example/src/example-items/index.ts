@@ -76,9 +76,6 @@ export const specExamples = [
   extendedText,
   associate,
   hottext,
-  hottextMultiple,
-  hottextHighlightFindings,
-  hottextHighlightTable,
   math,
   selectPoint,
   multiInput,
@@ -120,6 +117,8 @@ export const variantExamples = [
   variantExtendedTextPattern,
   variantGapMatchLayout,
   variantBowtieLayout,
+  hottextHighlightFindings,
+  hottextHighlightTable,
 ];
 
 /* these examples were made for each interaction type to show editor-supported
@@ -135,6 +134,7 @@ export const standardExamples = [
   textEntryPartialStandard,
   choicePartialStandard,
   multiInteractionStandard,
+  hottextMultiple,
 ];
 
 /* references for AI item generation: the canonical samples, with their
