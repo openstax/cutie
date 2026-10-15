@@ -183,3 +183,28 @@
 .sample-widget-loading {
   margin: 2rem auto;
 }
+
+.samples-tabs {
+  display: flex;
+  margin: 0 0 2.4rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+  width: fit-content;
+}
+
+.samples-content .tab-panel {
+  overflow: visible;
+}
+
+.samples-group-description {
+  max-width: 80rem;
+  font-size: 1.5rem;
+  margin: 0 0 2.4rem;
+}
+
+.samples-empty {
+  color: #555;
+  font-size: 1.5rem;
+}

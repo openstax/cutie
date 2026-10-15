@@ -145,7 +145,7 @@ export const generationExamples: ExampleItem[] = [
 ];
 
 export const exampleGroups: ExampleGroup[] = [
-  ...sampleGroups.map(group => ({
+  ...sampleGroups.filter(group => group.samples.length > 0).map(group => ({
     label: `${group.label} Samples`,
     items: group.samples,
   })),
