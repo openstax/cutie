@@ -23,10 +23,10 @@ export const GAP_STYLES = `
     transition: border-color 0.2s, background-color 0.2s, border-style 0.2s;
   }
 
-  /* The correct answer, centered in the slot just above the gap's border */
+  /* The correct answer, centered in the slot above the gap, clear of its border */
   .cutie-gap .cutie-correct-answer-overline {
     position: absolute;
-    bottom: calc(100% + 2px);
+    bottom: calc(100% + 2px + 0.25em);
     left: 50%;
     transform: translateX(-50%);
     white-space: nowrap;

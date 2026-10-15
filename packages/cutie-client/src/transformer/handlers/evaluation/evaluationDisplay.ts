@@ -486,11 +486,11 @@ const EVALUATION_STYLES = `
   }
 
   /*
-   * A value (e.g. a word) keeps its own case and the text color; the same
-   * 1.125em line box
+   * A value (e.g. a word) keeps its own case and the text color. Its line
+   * box (plus a gap) is the --cutie-overline-slot reserved above options.
    */
   .cutie-correct-answer-overline--value {
-    font-size: 0.75em;
+    font-size: 0.875em;
     line-height: 1.5;
     letter-spacing: normal;
     font-variant-caps: normal;
@@ -499,7 +499,7 @@ const EVALUATION_STYLES = `
 
   /*
    * An inline control with its evaluation. The control reserves the overline
-   * slot as its top margin, so the overline sits at the top of this box,
+   * slot as its top margin, so the overline sits in that margin, below the clearance,
    * centered over the control.
    */
   .cutie-inline-evaluation {
@@ -507,9 +507,13 @@ const EVALUATION_STYLES = `
     display: inline-block;
   }
 
+  /*
+   * The clearance resolves in the overline's own (0.875em) font size, so it
+   * is scaled back to the control's em
+   */
   .cutie-inline-evaluation > .cutie-correct-answer-overline {
     position: absolute;
-    top: 0;
+    top: calc(var(--cutie-overline-clearance) / 0.875);
     left: 50%;
     transform: translateX(-50%);
     display: inline-flex;

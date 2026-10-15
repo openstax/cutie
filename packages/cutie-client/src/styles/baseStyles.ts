@@ -27,9 +27,11 @@ const BASE_STYLES = `
     /*
      * Room reserved above an answer option (a choice's text, a gap) for its
      * correct-answer overline, so showing the overline shifts nothing.
-     * Matches the overline's line box (see .cutie-correct-answer-overline).
+     * Clearance from the line above, the overline's line box (see
+     * .cutie-correct-answer-overline--value), and a gap above the option.
      */
-    --cutie-overline-slot: 1.125em;
+    --cutie-overline-clearance: 0.5em;
+    --cutie-overline-slot: calc(var(--cutie-overline-clearance) + 0.875em * 1.5 + 0.25em);
     /* Keyboard focus indicator, shared by every focusable control */
     --cutie-focus-ring: 3px solid var(--cutie-primary);
     --cutie-focus-ring-offset: 2px;
