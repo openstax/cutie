@@ -34,8 +34,8 @@ export const GAP_STYLES = `
   }
 
   .cutie-gap:focus {
-    outline: 3px solid var(--cutie-primary);
-    outline-offset: 2px;
+    outline: var(--cutie-focus-ring);
+    outline-offset: var(--cutie-focus-ring-offset);
   }
 
   .cutie-gap:hover {
@@ -176,8 +176,8 @@ export const GAP_MATCH_INTERACTION_STYLES = `
   }
 
   .cutie-gap-text:focus {
-    outline: 3px solid var(--cutie-primary);
-    outline-offset: 2px;
+    outline: var(--cutie-focus-ring);
+    outline-offset: var(--cutie-focus-ring-offset);
   }
 
   .cutie-gap-text--selected {

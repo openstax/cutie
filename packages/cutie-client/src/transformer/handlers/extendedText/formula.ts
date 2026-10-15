@@ -314,6 +314,8 @@ const FORMULA_INTERACTION_STYLES = `
 }
 
 .cutie-formula-field:focus-within {
+  outline: var(--cutie-focus-ring);
+  outline-offset: var(--cutie-focus-ring-offset);
   border-color: var(--cutie-primary);
   box-shadow: none;
 }
@@ -321,6 +323,10 @@ const FORMULA_INTERACTION_STYLES = `
 .cutie-formula-field[aria-invalid="true"],
 .cutie-formula-field[aria-invalid="true"]:focus-within {
   border-color: var(--cutie-feedback-incorrect);
+}
+
+.cutie-formula-field[aria-invalid="true"]:focus-within {
+  outline-color: var(--cutie-feedback-incorrect);
 }
 
 .cutie-formula-field[disabled] {

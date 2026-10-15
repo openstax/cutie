@@ -1,4 +1,4 @@
-/* spell-checker: ignore hottext radiogroup deselectable */
+/* spell-checker: ignore hottext hottexts radiogroup deselectable */
 import {
   createInvalidAttributeError,
   createMissingAttributeError,
@@ -17,6 +17,15 @@ import {
 } from '../../utils/rovingTabindex.js';
 import { registry } from '../registry.js';
 import type { ElementHandler, InteractionState, ResponseAccessorOptions, TransformContext } from '../types.js';
+import {
+  clearConstraintVerdict,
+  clearEvaluated,
+  clearVerdictOnEdit,
+  createSrText,
+  getVerdictText,
+  markEvaluated,
+  readEvaluation,
+} from './evaluation/index.js';
 import { getDefaultValue } from './responseUtils.js';
 
 /**
@@ -54,6 +63,58 @@ function getResponseCardinality(
     `qti-response-declaration[identifier="${responseIdentifier}"]`
   );
   return responseDeclaration?.getAttribute('cardinality') ?? null;
+}
+
+const ANSWER_MARKS = {
+  correct: { className: 'cutie-answer-mark--correct', text: 'Correct answer' },
+  incorrect: { className: 'cutie-answer-mark--incorrect', text: 'Incorrect answer' },
+} as const;
+
+type AnswerMark = keyof typeof ANSWER_MARKS;
+
+/**
+ * Mark a hottext with an answer mark: the underline, and visually hidden text
+ * leading its accessible name.
+ */
+function markAnswer(button: HTMLElement, mark: AnswerMark): void {
+  const { className, text } = ANSWER_MARKS[mark];
+  button.classList.add('cutie-answer-mark', className);
+  const label = createSrText(`${text}: `);
+  label.setAttribute('data-answer-mark', mark);
+  button.prepend(label);
+}
+
+/**
+ * Mark the hottexts in the correct response, and the selected hottexts that
+ * aren't. Draws nothing when there is no correct response to mark.
+ */
+function drawAnswerMarks(
+  container: HTMLElement,
+  buttons: HTMLElement[],
+  correctResponse: string[],
+  isSelected: (button: HTMLElement) => boolean
+): void {
+  if (correctResponse.length === 0) return;
+
+  container.classList.add('cutie-hottext-interaction--answers-shown');
+  for (const button of buttons) {
+    const identifier = button.getAttribute('data-hottext-identifier') ?? '';
+    if (correctResponse.includes(identifier)) {
+      markAnswer(button, 'correct');
+    } else if (isSelected(button)) {
+      markAnswer(button, 'incorrect');
+    }
+  }
+}
+
+/**
+ * Remove the incorrect-answer marks.
+ */
+function clearIncorrectAnswerMarks(container: HTMLElement): void {
+  container.querySelectorAll(`.${ANSWER_MARKS.incorrect.className}`).forEach((marked) => {
+    marked.classList.remove('cutie-answer-mark', ANSWER_MARKS.incorrect.className);
+    marked.querySelector('[data-answer-mark="incorrect"]')?.remove();
+  });
 }
 
 /**
@@ -159,8 +220,8 @@ class HottextInteractionHandler implements ElementHandler {
     const container = document.createElement('div');
     const sourceClasses = element.getAttribute('class');
     container.className = sourceClasses
-      ? `cutie-hottext-interaction ${sourceClasses}`
-      : 'cutie-hottext-interaction';
+      ? `cutie-hottext-interaction cutie-status-rail ${sourceClasses}`
+      : 'cutie-hottext-interaction cutie-status-rail';
     container.setAttribute('data-response-identifier', responseIdentifier);
     container.setAttribute('role', isSingleSelect ? 'radiogroup' : 'group');
     if (isSingleSelect && minChoices >= 1) {
@@ -244,11 +305,17 @@ class HottextInteractionHandler implements ElementHandler {
       setSelected(button, true);
     };
 
-    // Constraint message
+    // Evaluation of a finished attempt when the delivery options show one,
+    // or the last try's verdict on a fresh try
+    const evaluation = readEvaluation(element, responseIdentifier, context.styleManager);
+
+    // Constraint message. A verdict describes the response in its place, so it
+    // is announced with the group; the status rail is the visual verdict.
     const minSelectionsMessage = element.getAttribute('data-min-selections-message');
     const maxSelectionsMessage = element.getAttribute('data-max-selections-message');
     let constraint: ConstraintMessage | undefined;
-    const hintText = buildConstraintText(minChoices, maxChoices, isSingleSelect);
+    const constraintText = buildConstraintText(minChoices, maxChoices, isSingleSelect);
+    let hintText = evaluation?.verdict ? getVerdictText(evaluation.verdict) : constraintText;
     if (hintText) {
       constraint = createConstraintMessage(
         `constraint-${responseIdentifier}`,
@@ -277,14 +344,37 @@ class HottextInteractionHandler implements ElementHandler {
       }
     }
 
-    if (isSingleSelect) {
+    // Tab stops while enabled: every toggle, or for single-select the checked
+    // radio (else the first). Disabled hottexts have none.
+    const restoreTabStops = (): void => {
+      if (!isSingleSelect) {
+        for (const button of buttons) button.setAttribute('tabindex', '0');
+        return;
+      }
       const checked = buttons.find(isSelected);
       if (checked) {
         updateRovingTabindex(radioMap, checked);
       } else {
         initializeRovingTabindex(radioMap);
       }
+    };
+    restoreTabStops();
+
+    // Draw the evaluation: the status rail, a solid underline on each hottext
+    // in the correct response, and a wavy underline on each selected hottext
+    // that isn't. Each marked hottext's name starts with what its mark means.
+    // The verdict is in the constraint text.
+    if (evaluation) {
+      drawAnswerMarks(container, buttons, evaluation.correctResponse, isSelected);
+      markEvaluated(container, evaluation.verdict);
     }
+    clearVerdictOnEdit(context, responseIdentifier, evaluation, () => {
+      clearEvaluated(container);
+      // Incorrect-answer marks describe the response, so they go with the verdict
+      clearIncorrectAnswerMarks(container);
+      clearConstraintVerdict(constraint, container, constraintText);
+      hintText = constraintText;
+    });
 
     const checkValidity = (): boolean => {
       const count = selectedCount();
@@ -323,7 +413,9 @@ class HottextInteractionHandler implements ElementHandler {
         setSelected(button, false);
       } else {
         if (maxChoices > 0 && selectedCount() >= maxChoices) {
-          const msg = maxSelectionsMessage ?? hintText;
+          // The selection is refused, so the response (and any verdict on it)
+          // stands; announce the constraint, not the verdict
+          const msg = maxSelectionsMessage ?? constraintText;
           if (msg) announce(context, msg, 'assertive');
           return;
         }
@@ -388,8 +480,10 @@ class HottextInteractionHandler implements ElementHandler {
             button.removeAttribute('aria-disabled');
           } else {
             button.setAttribute('aria-disabled', 'true');
+            button.setAttribute('tabindex', '-1');
           }
         }
+        if (isEnabled) restoreTabStops();
       };
 
       context.itemState.addObserver(updateInteractionState);
@@ -410,71 +504,96 @@ registry.register('hottext-interaction', new HottextInteractionHandler(), 50);
 
 /**
  * CSS styles for inline hottext toggle words.
+ *
+ * Every visual state is carried by shape, not color, so a theme that remaps
+ * the colors (e.g. high contrast) keeps every meaning.
+ *
+ * While the learner is answering, one line sits under the text: dotted while
+ * selectable, thick and solid when selected. The padding is even, so the
+ * focus ring (an outline, a shape no line takes) is centered on the text.
+ *
+ * Once answers are shown the interaction is disabled, with no focus ring to
+ * center: the answer mark takes the line under the text (solid for a correct
+ * answer, wavy for an incorrect one), and the padding shifts to the bottom
+ * to hold the selection, a bar below the mark.
+ *
+ * Vertical padding on an inline box changes neither the line height nor
+ * where the text sits, so selecting a hottext or showing answers moves no
+ * text. There is no side padding (which would move text), so the underlines
+ * and the selection bar all span exactly the text.
  */
 const HOTTEXT_STYLES = `
   .cutie-hottext {
     display: inline;
-    padding: 0.05em 0.2em;
+    padding: 1px 0;
     margin: 0;
     border: none;
-    border-radius: 3px;
+    border-radius: 2px;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
     background-color: transparent;
     color: inherit;
     font: inherit;
     line-height: inherit;
     text-align: inherit;
+    text-decoration: none;
+    text-decoration-skip-ink: none;
+    text-underline-offset: 0.15em;
     cursor: pointer;
-    text-decoration: underline;
-    text-decoration-style: dotted;
-    text-underline-offset: 0.2em;
-    transition: background-color 0.2s, color 0.2s, text-decoration-color 0.2s;
   }
 
-  .cutie-hottext:hover {
+  .cutie-hottext-interaction:not(.cutie-hottext-interaction--answers-shown) .cutie-hottext {
+    text-decoration: underline dotted;
+    text-decoration-thickness: 1px;
+  }
+
+  .cutie-hottext-interaction:not(.cutie-hottext-interaction--answers-shown)
+    .cutie-hottext:not([aria-pressed="true"]):not([aria-checked="true"]):not([aria-disabled="true"]):hover {
+    text-decoration-thickness: 2px;
+  }
+
+  .cutie-hottext-interaction:not(.cutie-hottext-interaction--answers-shown) .cutie-hottext[aria-pressed="true"],
+  .cutie-hottext-interaction:not(.cutie-hottext-interaction--answers-shown) .cutie-hottext[aria-checked="true"] {
     text-decoration-style: solid;
+    text-decoration-thickness: 3px;
+    text-decoration-color: var(--cutie-primary);
   }
 
   .cutie-hottext:focus-visible {
-    outline: 2px solid var(--cutie-primary);
-    outline-offset: 2px;
+    outline: var(--cutie-focus-ring);
+    outline-offset: var(--cutie-focus-ring-offset);
   }
 
-  .cutie-hottext[aria-pressed="true"],
-  .cutie-hottext[aria-checked="true"] {
-    background-color: var(--cutie-primary);
-    color: var(--cutie-bg);
-    text-decoration: none;
+  /* Square corners, so the selection bar's ends are square too */
+  .cutie-hottext-interaction--answers-shown .cutie-hottext {
+    padding: 0 0 6px;
+    border-radius: 0;
   }
 
-  .cutie-hottext[aria-pressed="true"]:hover,
-  .cutie-hottext[aria-checked="true"]:hover {
-    background-color: var(--cutie-primary);
+  /*
+   * The selection bar takes the bottom of the padding, so it sits where the
+   * padding ends either way. A border rather than a shadow: forced colors
+   * (e.g. Windows High Contrast) keep borders and drop shadows.
+   */
+  .cutie-hottext-interaction--answers-shown .cutie-hottext[aria-pressed="true"],
+  .cutie-hottext-interaction--answers-shown .cutie-hottext[aria-checked="true"] {
+    padding-bottom: 3px;
+    border-bottom: 3px solid var(--cutie-primary);
   }
 
   .cutie-hottext[aria-disabled="true"] {
     cursor: default;
-    opacity: 0.7;
-  }
-
-  .cutie-hottext[aria-disabled="true"]:hover {
-    background-color: transparent;
-  }
-
-  .cutie-hottext[aria-pressed="true"][aria-disabled="true"],
-  .cutie-hottext[aria-checked="true"][aria-disabled="true"] {
-    background-color: var(--cutie-primary);
-    opacity: 0.7;
   }
 
   .cutie-hottext--error {
     color: var(--cutie-feedback-incorrect);
-    text-decoration: underline;
-    text-decoration-style: wavy;
+    text-decoration: underline wavy;
   }
 `;
 
 /**
- * CSS styles for the hottext interaction container.
+ * CSS styles for the hottext interaction container, and the answer marks it
+ * draws on its hottexts.
  */
 const HOTTEXT_INTERACTION_STYLES = `
   .cutie-hottext-interaction {
@@ -487,11 +606,45 @@ const HOTTEXT_INTERACTION_STYLES = `
     color: var(--cutie-text);
   }
 
+  /*
+   * Room around each line for a hottext's focus ring, so it overlaps neither
+   * the lines above and below nor, on a hottext that wraps, itself. The
+   * selection bar shown with answers needs less.
+   */
   .cutie-hottext-interaction .cutie-hottext-content {
-    line-height: 1.8;
+    line-height: 2.4;
   }
 
   .cutie-hottext-interaction .cutie-hottext-content .cutie-hottext {
     overflow-wrap: break-word;
+  }
+
+  /*
+   * Where the selected underline is while answering (see .cutie-hottext), so
+   * the line under the text keeps its place once answers are shown, clear of
+   * the selection bar below
+   */
+  .cutie-hottext-interaction .cutie-answer-mark {
+    text-decoration-line: underline;
+    text-decoration-skip-ink: none;
+    text-underline-offset: 0.15em;
+  }
+
+  .cutie-hottext-interaction .cutie-answer-mark--correct {
+    text-decoration-style: solid;
+    text-decoration-thickness: 2px;
+    text-decoration-color: var(--cutie-feedback-correct);
+  }
+
+  /*
+   * A wave is taller than a solid line of the same thickness: 1px, and raised
+   * 1px so its top lines up with the solid line's, keeps it clear of the
+   * selection bar below (a thicker wave runs into it)
+   */
+  .cutie-hottext-interaction .cutie-answer-mark--incorrect {
+    text-decoration-style: wavy;
+    text-decoration-thickness: 1px;
+    text-decoration-color: var(--cutie-feedback-incorrect);
+    text-underline-offset: calc(0.15em - 1px);
   }
 `;

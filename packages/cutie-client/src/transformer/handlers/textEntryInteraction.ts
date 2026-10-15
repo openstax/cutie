@@ -213,8 +213,8 @@ const TEXT_ENTRY_INTERACTION_STYLES = `
   }
 
   .cutie-text-entry-interaction:focus {
-    outline: 2px solid var(--cutie-primary);
-    outline-offset: 1px;
+    outline: var(--cutie-focus-ring);
+    outline-offset: var(--cutie-focus-ring-offset);
     border-color: var(--cutie-primary);
   }
 

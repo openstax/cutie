@@ -329,7 +329,10 @@ export function clearInlineVerdict(control: HTMLElement, id: string): void {
   }
 }
 
-function createSrText(text: string): HTMLSpanElement {
+/**
+ * Create visually hidden text, read by assistive technology only.
+ */
+export function createSrText(text: string): HTMLSpanElement {
   const span = document.createElement('span');
   span.className = 'cutie-evaluation-sr-only';
   span.textContent = text;
