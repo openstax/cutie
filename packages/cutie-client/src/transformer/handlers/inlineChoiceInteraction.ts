@@ -3,6 +3,7 @@ import { createMissingAttributeError } from '../../errors/errorDisplay.js';
 import {
   type ConstraintMessage,
   createInlineRequiredIndicator,
+  wrapInlineRequired,
 } from '../../errors/validationDisplay.js';
 import { announce } from '../../utils/liveRegion.js';
 import { registry } from '../registry.js';
@@ -184,10 +185,7 @@ class InlineChoiceInteractionHandler implements ElementHandler {
       select.disabled = context.itemState.interactionState !== 'enabled';
     }
 
-    fragment.appendChild(placed);
-    if (indicator) {
-      fragment.appendChild(indicator.element);
-    }
+    fragment.appendChild(wrapInlineRequired(placed, indicator));
 
     return fragment;
   }

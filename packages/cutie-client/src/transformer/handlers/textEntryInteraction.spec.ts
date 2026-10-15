@@ -390,6 +390,34 @@ describe('textEntryInteraction', () => {
       expect(indicator!.textContent).toBe('*');
     });
 
+    it('keeps the input and indicator together in one wrapper', () => {
+      const doc = createQtiDocument(`
+        <qti-text-entry-interaction response-identifier="R1" pattern-mask="^\\d+$">
+        </qti-text-entry-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const wrapper = container.querySelector('.cutie-inline-required')!;
+      expect(wrapper.querySelector('input')).not.toBeNull();
+      expect(wrapper.lastElementChild!.classList.contains('cutie-required-indicator')).toBe(true);
+    });
+
+    it('does not wrap the input when pattern-mask is absent', () => {
+      const doc = createQtiDocument(`
+        <qti-text-entry-interaction response-identifier="R1">
+        </qti-text-entry-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      expect(container.querySelector('.cutie-inline-required')).toBeNull();
+    });
+
     it('uses custom data-patternmask-message as indicator title', () => {
       const doc = createQtiDocument(`
         <qti-text-entry-interaction response-identifier="R1" pattern-mask="^\\d+$" data-patternmask-message="Enter a number">

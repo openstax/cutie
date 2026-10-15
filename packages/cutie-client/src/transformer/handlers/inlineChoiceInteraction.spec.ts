@@ -184,6 +184,36 @@ describe('inlineChoiceInteraction', () => {
       expect(indicator!.getAttribute('title')).toBe('Selection required');
     });
 
+    it('keeps the select and indicator together in one wrapper', () => {
+      const doc = createQtiDocument(`
+        <qti-inline-choice-interaction response-identifier="R1" required="true">
+          <qti-inline-choice identifier="A">Alpha</qti-inline-choice>
+        </qti-inline-choice-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const wrapper = container.querySelector('.cutie-inline-required')!;
+      expect(wrapper.querySelector('select')).not.toBeNull();
+      expect(wrapper.lastElementChild!.classList.contains('cutie-required-indicator')).toBe(true);
+    });
+
+    it('does not wrap the select when unconstrained', () => {
+      const doc = createQtiDocument(`
+        <qti-inline-choice-interaction response-identifier="R1">
+          <qti-inline-choice identifier="A">Alpha</qti-inline-choice>
+        </qti-inline-choice-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      expect(container.querySelector('.cutie-inline-required')).toBeNull();
+    });
+
     it('uses data-min-selections-message as indicator title', () => {
       const doc = createQtiDocument(`
         <qti-inline-choice-interaction response-identifier="R1" required="true"
