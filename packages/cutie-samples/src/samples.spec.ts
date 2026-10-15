@@ -19,6 +19,15 @@ const incorrectSubmissions: Record<string, Submission> = {
   match: { RESPONSE: ['proteins nucleotides', 'nucleicAcids aminoAcids', 'carbohydrates monosaccharides'] },
   'gap-match': { RESPONSE: ['water G1', 'carbonDioxide G2', 'oxygen G3'] },
   formula: { RESPONSE: '2x+3' },
+  'nclex-select-all': { RESPONSE: ['choiceD', 'choiceE'] },
+  'nclex-select-n': { RESPONSE: ['choiceD', 'choiceE', 'choiceF'] },
+  'nclex-drop-down-cloze': { RESPONSE: 'giveInsulin', RESPONSE_2: 'proteinSnack', RESPONSE_3: 'oneHour' },
+  'nclex-drop-down-rationale': { RESPONSE: 'aspiration', RESPONSE_2: 'rightWeakness' },
+  'nclex-drop-down-table': { RESPONSE: 'declined', RESPONSE_2: 'noChange', RESPONSE_3: 'improved', RESPONSE_4: 'improved' },
+  'nclex-drag-and-drop-cloze': { RESPONSE: ['droplet G1', 'positivePressure G2', 'surgicalMask G3'] },
+  'nclex-drag-and-drop-rationale': { RESPONSE: ['bleeding G1', 'whiteCells G2'] },
+  'nclex-highlight-passage': { RESPONSE: ['pain', 'leftCalf'] },
+  'nclex-highlight-table': { RESPONSE: ['bloodPressure', 'glucose'] },
 };
 
 /* mapped text entries: forgiving word forms, case-sensitive symbols */
