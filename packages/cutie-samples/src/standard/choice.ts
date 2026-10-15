@@ -16,8 +16,8 @@ A single-select multiple choice question: \`qti-choice-interaction\` with \
 - Set \`min-choices="1"\` so a choice must be selected before submitting.
 - ${shuffle}
 - Every choice ends with its own \`qti-feedback-block\` with identifier \
-\`RESPONSE_choice_<choiceId>\`, shown when that choice is selected. The text is in \
-italics and explains why that specific choice is right or wrong (for example, the \
+\`RESPONSE_choice_<choiceId>\`, shown when that choice is selected. The text \
+explains why that specific choice is right or wrong (for example, the \
 misconception it reflects). It has no \`data-feedback-type\` and no \
 "Correct"/"Incorrect" prefix; the delivery system presents the verdict.
 - ${workedSolution}
@@ -60,25 +60,25 @@ adaptive="false" time-dependent="false" xml:lang="en">
       <qti-simple-choice identifier="choiceA">
         Mitochondrion
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceA" show-hide="show">
-          <p><em>The citric acid cycle and the electron transport chain both take place in the mitochondrion, and together they produce most of the ATP made during cellular respiration.</em></p>
+          <p>The citric acid cycle and the electron transport chain both take place in the mitochondrion, and together they produce most of the ATP made during cellular respiration.</p>
         </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceB">
         Ribosome
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceB" show-hide="show">
-          <p><em>Ribosomes use ATP to build proteins, but they don't produce it. Their job is translating mRNA into chains of amino acids.</em></p>
+          <p>Ribosomes use ATP to build proteins, but they don't produce it. Their job is translating mRNA into chains of amino acids.</p>
         </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceC">
         Golgi apparatus
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceC" show-hide="show">
-          <p><em>The Golgi apparatus modifies, sorts, and packages proteins and lipids for transport. It isn't involved in producing energy.</em></p>
+          <p>The Golgi apparatus modifies, sorts, and packages proteins and lipids for transport. It isn't involved in producing energy.</p>
         </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceD">
         Lysosome
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceD" show-hide="show">
-          <p><em>Lysosomes break down waste and worn-out cell parts with digestive enzymes. Breaking molecules down there doesn't capture energy as ATP.</em></p>
+          <p>Lysosomes break down waste and worn-out cell parts with digestive enzymes. Breaking molecules down there doesn't capture energy as ATP.</p>
         </qti-feedback-block>
       </qti-simple-choice>
     </qti-choice-interaction>

@@ -21,7 +21,7 @@ sometimes desirable.
 - ${shuffle}
 - Every choice ends with its own \`qti-feedback-block\` with identifier \
 \`RESPONSE_choice_<choiceId>\`, shown when that choice is selected, so several can \
-show at once. The text is in italics and explains why that specific choice is right \
+show at once. The text explains why that specific choice is right \
 or wrong. It has no \`data-feedback-type\` and no "Correct"/"Incorrect" prefix; the \
 delivery system presents the verdict.
 - ${workedSolution}
@@ -71,31 +71,31 @@ adaptive="false" time-dependent="false" xml:lang="en">
       <qti-simple-choice identifier="choiceA">
         Ice melting into liquid water
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceA" show-hide="show">
-          <p><em>Melting changes water from a solid to a liquid, but the molecules are still H₂O. A change of state is a physical change.</em></p>
+          <p>Melting changes water from a solid to a liquid, but the molecules are still H₂O. A change of state is a physical change.</p>
         </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceB">
         Sugar dissolving in water
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceB" show-hide="show">
-          <p><em>Dissolved sugar molecules spread out among the water molecules but stay sugar. Evaporating the water gets the sugar back, so this is a physical change.</em></p>
+          <p>Dissolved sugar molecules spread out among the water molecules but stay sugar. Evaporating the water gets the sugar back, so this is a physical change.</p>
         </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceC">
         Iron rusting
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceC" show-hide="show">
-          <p><em>Rusting is a chemical change. Iron reacts with oxygen and water to form iron oxide, a new substance with different properties.</em></p>
+          <p>Rusting is a chemical change. Iron reacts with oxygen and water to form iron oxide, a new substance with different properties.</p>
         </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceD">
         Wood burning
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceD" show-hide="show">
-          <p><em>Burning is a chemical change. Combustion turns the wood into carbon dioxide, water vapor, and ash, which can't be turned back into wood.</em></p>
+          <p>Burning is a chemical change. Combustion turns the wood into carbon dioxide, water vapor, and ash, which can't be turned back into wood.</p>
         </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceE">
         Cutting paper into pieces
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceE" show-hide="show">
-          <p><em>Cutting changes the size and shape of the paper, but each piece is still paper. Changes to size or shape are physical changes.</em></p>
+          <p>Cutting changes the size and shape of the paper, but each piece is still paper. Changes to size or shape are physical changes.</p>
         </qti-feedback-block>
       </qti-simple-choice>
     </qti-choice-interaction>
