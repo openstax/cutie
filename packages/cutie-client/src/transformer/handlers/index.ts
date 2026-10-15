@@ -20,5 +20,8 @@ import './contentBody.js'; // priority 50 - transparent container for feedback c
 // Unsupported qti-* catch-all (priority 500)
 import './unsupported.js';
 
+// Presentational stimulus containers (priority 900)
+import './tabContainer.js';
+
 // Generic HTML/XHTML passthrough (priority 1000)
 import './htmlPassthrough.js';
