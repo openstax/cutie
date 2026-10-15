@@ -570,9 +570,15 @@ const HOTTEXT_STYLES = `
     border-radius: 0;
   }
 
+  /*
+   * The selection bar takes the bottom of the padding, so it sits where the
+   * padding ends either way. A border rather than a shadow: forced colors
+   * (e.g. Windows High Contrast) keep borders and drop shadows.
+   */
   .cutie-hottext-interaction--answers-shown .cutie-hottext[aria-pressed="true"],
   .cutie-hottext-interaction--answers-shown .cutie-hottext[aria-checked="true"] {
-    box-shadow: inset 0 -3px 0 var(--cutie-primary);
+    padding-bottom: 3px;
+    border-bottom: 3px solid var(--cutie-primary);
   }
 
   .cutie-hottext[aria-disabled="true"] {
