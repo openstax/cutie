@@ -3,12 +3,11 @@ import { focusNext, focusPrev, updateRovingTabindex } from '../../utils/rovingTa
 import { registry } from '../registry.js';
 import type { ElementHandler, TransformContext } from '../types.js';
 
-/**
- * Custom presentation class (QTI 3 has no tab vocabulary; the implementation
- * guide permits custom classes for presentation the shared vocabulary lacks).
- */
 const TAB_CONTAINER_CLASS = 'cutie-tab-container';
 const TAB_CONTAINER_SELECTOR = `[class~="${TAB_CONTAINER_CLASS}"]`;
+const TABLIST_LABEL_ATTRIBUTES = ['aria-label', 'aria-labelledby'];
+const FOCUSABLE_SELECTOR =
+  'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"]), [contenteditable="true"]';
 
 let idCounter = 0;
 
@@ -28,10 +27,7 @@ function isHeading(element: Element): boolean {
 /**
  * Split a container's flat content into tabs. Each heading at the level of the
  * container's first heading starts a tab; everything up to the next such
- * heading (including lower-level headings) is that tab's panel.
- *
- * Returns null when the content doesn't prove the shape: no leading heading,
- * or text before it. The container then renders as plain stacked HTML.
+ * heading is that tab's panel.
  */
 function splitSections(element: Element): TabSection[] | null {
   const first = element.firstElementChild;
@@ -58,13 +54,7 @@ function splitSections(element: Element): TabSection[] | null {
 }
 
 /**
- * Handler for `<div class="cutie-tab-container">`: flat heading-delimited
- * stimulus content (e.g. an NCLEX-style client record) rendered as WAI-ARIA
- * tabs. Systems without this handler show the same markup as stacked headings
- * and paragraphs.
- *
- * Tabs are presentational, so they ignore the item's interaction state and
- * stay usable after submission. The selected tab persists across update().
+ * Handler for `<div class="cutie-tab-container">`
  */
 class TabContainerHandler implements ElementHandler {
   canHandle(element: Element): boolean {
@@ -80,14 +70,16 @@ class TabContainerHandler implements ElementHandler {
     }
 
     const container = document.createElement('div');
-    for (const attr of Array.from(element.attributes)) {
-      container.setAttribute(attr.name, attr.value);
-    }
-
     const tablist = document.createElement('div');
     tablist.className = 'cutie-tablist';
     tablist.setAttribute('role', 'tablist');
     container.appendChild(tablist);
+
+    // The container has no role, so an authored label names the tablist instead
+    for (const attr of Array.from(element.attributes)) {
+      const target = TABLIST_LABEL_ATTRIBUTES.includes(attr.name) ? tablist : container;
+      target.setAttribute(attr.name, attr.value);
+    }
 
     const tabs = new Map<string, HTMLElement>();
     const panels = new Map<string, HTMLElement>();
@@ -108,8 +100,6 @@ class TabContainerHandler implements ElementHandler {
       tablist.appendChild(tab);
       tabs.set(id, tab);
 
-      // Transform the panel's nodes through the normal pipeline via a shallow
-      // copy of the container that holds only this section's content.
       const panelSource = element.cloneNode(false) as Element;
       for (const node of section.content) {
         panelSource.appendChild(node.cloneNode(true));
@@ -120,9 +110,13 @@ class TabContainerHandler implements ElementHandler {
       panel.id = panelId;
       panel.setAttribute('role', 'tabpanel');
       panel.setAttribute('aria-labelledby', id);
-      panel.setAttribute('tabindex', '0');
       if (context.transformChildren) {
         panel.appendChild(context.transformChildren(panelSource));
+      }
+      // Panels without focusable content need a tab stop so keyboard users can
+      // reach them; otherwise Tab goes straight to the panel's first control.
+      if (!panel.querySelector(FOCUSABLE_SELECTOR)) {
+        panel.setAttribute('tabindex', '0');
       }
       container.appendChild(panel);
       panels.set(id, panel);
@@ -177,11 +171,6 @@ class TabContainerHandler implements ElementHandler {
 // Ahead of the html-passthrough catch-all (priority 1000)
 registry.register('tab-container', new TabContainerHandler(), 900);
 
-/**
- * Folder-tab styles: unselected tabs sit on the alt background; the selected
- * tab takes the panel background and covers the panel's top border so the two
- * read as one surface.
- */
 const TAB_CONTAINER_STYLES = `
   .cutie-tab-container {
     margin: 1em 0;
@@ -209,8 +198,16 @@ const TAB_CONTAINER_STYLES = `
 
   .cutie-tab-container .cutie-tab[aria-selected="true"] {
     z-index: 1;
+    padding-top: calc(0.4em - 3px);
+    border-top: 4px solid var(--cutie-primary);
     background-color: var(--cutie-bg);
     border-bottom-color: var(--cutie-bg);
+  }
+
+  @media (forced-colors: active) {
+    .cutie-tab-container .cutie-tab[aria-selected="true"] {
+      border-top-color: Highlight;
+    }
   }
 
   .cutie-tab-container .cutie-tabpanel {

@@ -37,7 +37,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
 
     <div class="qti-layout-row">
       <div class="qti-layout-col7">
-        <div class="cutie-tab-container">
+        <div class="cutie-tab-container" aria-label="Bench record">
           <h3>Bench Profile</h3>
           <p>Tomato seedlings, three weeks old, in 4-inch pots. Irrigation runs automatically
             at 0700 and 1500. The roof vent opens automatically above 85 °F; maintenance

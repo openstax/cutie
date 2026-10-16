@@ -63,6 +63,32 @@ describe('tabContainer', () => {
     expect(root.querySelector('[role="tablist"]')).not.toBeNull();
   });
 
+  it('names the tablist with an authored label', () => {
+    const container = render(`
+      <div class="cutie-tab-container" aria-label="Client record">
+        <h3>Notes</h3>
+        <p>Text</p>
+      </div>`);
+    const root = container.querySelector('.cutie-tab-container')!;
+
+    expect(root.querySelector('[role="tablist"]')!.getAttribute('aria-label')).toBe('Client record');
+    expect(root.hasAttribute('aria-label')).toBe(false);
+  });
+
+  it('makes a panel a tab stop only when it has no focusable content', () => {
+    const container = render(`
+      <div class="cutie-tab-container">
+        <h3>Notes</h3>
+        <p>Text</p>
+        <h3>Sources</h3>
+        <p><a href="https://example.com">Reference</a></p>
+      </div>`);
+    const [text, links] = panels(container);
+
+    expect(text!.getAttribute('tabindex')).toBe('0');
+    expect(links!.hasAttribute('tabindex')).toBe(false);
+  });
+
   it('wires tabs and panels together and shows only the first panel', () => {
     const container = render(RECORD);
     const [first, second] = tabs(container);
