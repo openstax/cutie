@@ -761,12 +761,12 @@ export class MatchController {
             return;
           } else {
             // Clicked on a different item - move the association. Only free the
-            // old pairing if the new one is actually placeable (group-compatible
-            // and within match-max), so a disallowed target can't strand it.
+            // old pairing if the new one can actually be made, so a disallowed
+            // target can't strand it.
             const newSourceId = originSet === 'source' ? originId : choiceId;
             const newTargetId = originSet === 'source' ? choiceId : originId;
 
-            if (this.groupsAllow(newSourceId, newTargetId) && this.canAcceptAssociation(choiceId)) {
+            if (this.canMoveAssociation(newSourceId, newTargetId, choiceId)) {
               this.removeAssociation(existingAssociation.sourceId, existingAssociation.targetId);
               this.createAssociation(newSourceId, newTargetId);
             }
@@ -833,13 +833,11 @@ export class MatchController {
         // Don't highlight the current connected item (clicking it just clears selection now)
         if (elId === connectedId) return false;
 
-        // For a move operation, we need to check if the new partner can accept
-        // (the original choice's count will be freed when we remove the old
-        // association) and that it is group-compatible with the origin.
+        // For a move operation, the new pairing replaces the existing one.
         if (existingAssociation) {
           const sourceId = choice.set === 'source' ? originId : elId;
           const targetId = choice.set === 'source' ? elId : originId;
-          return this.groupsAllow(sourceId, targetId) && this.canAcceptAssociation(elId);
+          return this.canMoveAssociation(sourceId, targetId, elId);
         }
 
         // For a fresh selection, check full association validity
@@ -934,6 +932,18 @@ export class MatchController {
     }
 
     return true;
+  }
+
+  /**
+   * Check if an existing association can be moved so it pairs sourceId with
+   * targetId. The origin only swaps partners, so its count and the total are
+   * unchanged: only duplication, match-group, and the new partner's match-max
+   * matter.
+   */
+  private canMoveAssociation(sourceId: string, targetId: string, newPartnerId: string): boolean {
+    return !this.associations.has(`${sourceId} ${targetId}`)
+      && this.groupsAllow(sourceId, targetId)
+      && this.canAcceptAssociation(newPartnerId);
   }
 
   /**

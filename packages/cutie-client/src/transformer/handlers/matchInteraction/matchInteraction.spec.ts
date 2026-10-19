@@ -337,6 +337,59 @@ describe('matchInteraction validation', () => {
     });
   });
 
+  describe('moving an association via its chip', () => {
+    // L allows two pairs, so it can share M with D and still accept more.
+    const MOVE_QTI = `
+      <qti-match-interaction response-identifier="R1" max-associations="4">
+        <qti-simple-match-set>
+          <qti-simple-associable-choice identifier="C" match-max="1">Capulet</qti-simple-associable-choice>
+          <qti-simple-associable-choice identifier="D" match-max="1">Demetrius</qti-simple-associable-choice>
+          <qti-simple-associable-choice identifier="L" match-max="2">Lysander</qti-simple-associable-choice>
+        </qti-simple-match-set>
+        <qti-simple-match-set>
+          <qti-simple-associable-choice identifier="M" match-max="4">Midsummer</qti-simple-associable-choice>
+          <qti-simple-associable-choice identifier="R" match-max="4">Romeo</qti-simple-associable-choice>
+        </qti-simple-match-set>
+      </qti-match-interaction>
+    `;
+
+    const renderWithTwoPairsOnM = (): HTMLElement => {
+      const container = document.createElement('div');
+      container.appendChild(transformInteraction(createQtiDocument(MOVE_QTI), itemState));
+      const click = (id: string) =>
+        (container.querySelector(`.cutie-match-choice[data-identifier="${id}"]`) as HTMLElement).click();
+      click('D');
+      click('M');
+      click('L');
+      click('M');
+      // Select the M chip under D: moving M's end of the D-M pair.
+      (container.querySelector('.cutie-match-chip[data-source-id="D"][data-connected-id="M"]') as HTMLElement).click();
+      return container;
+    };
+
+    const choiceEl = (container: HTMLElement, id: string) =>
+      container.querySelector(`.cutie-match-choice[data-identifier="${id}"]`) as HTMLElement;
+
+    it('moves the pair to a new partner that can accept it', () => {
+      const container = renderWithTwoPairsOnM();
+
+      expect(choiceEl(container, 'C').classList.contains('cutie-match-choice--drop-target')).toBe(true);
+      choiceEl(container, 'C').click();
+
+      expect(itemState.collectAll().responses['R1']).toEqual(['L M', 'C M']);
+    });
+
+    it('does not offer or apply a move onto a pair that already exists', () => {
+      const container = renderWithTwoPairsOnM();
+
+      // L has room (1 of 2), but L-M already exists.
+      expect(choiceEl(container, 'L').classList.contains('cutie-match-choice--drop-target')).toBe(false);
+      choiceEl(container, 'L').click();
+
+      expect(itemState.collectAll().responses['R1']).toEqual(['D M', 'L M']);
+    });
+  });
+
   describe('accessor validation', () => {
     it('returns valid:true when no min-associations constraint', () => {
       const doc = createQtiDocument(BASIC_MATCH_QTI);
