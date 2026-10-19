@@ -1,6 +1,6 @@
-import { createUnsupportedElement } from '../../errors/errorDisplay';
-import { registry } from '../registry';
-import type { ElementHandler, TransformContext } from '../types';
+import { createUnsupportedElement } from '../../errors/errorDisplay.js';
+import { registry } from '../registry.js';
+import type { ElementHandler, TransformContext } from '../types.js';
 
 /**
  * Handler for unsupported qti-* elements

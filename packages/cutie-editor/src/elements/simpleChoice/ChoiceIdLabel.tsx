@@ -1,5 +1,5 @@
 import type { RenderElementProps } from 'slate-react';
-import type { ChoiceIdLabel as ChoiceIdLabelType } from '../../types';
+import type { ChoiceIdLabel as ChoiceIdLabelType } from '../../types.js';
 
 /**
  * Renders a decorative (non-editable) choice identifier label

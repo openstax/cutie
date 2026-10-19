@@ -1,12 +1,14 @@
-import { AttemptState } from '../types';
-import { getChildElements, getFirstChildElement } from '../utils/dom';
-import { generateShuffleOrder, ShuffleItem } from '../utils/shuffle';
-import { parseValue } from '../utils/typeParser';
+import { AttemptState, DeliveryOptions } from '../types.js';
+import { getChildElements, getFirstChildElement } from '../utils/dom.js';
+import { generateShuffleOrder, ShuffleItem } from '../utils/shuffle.js';
+import { parseValue } from '../utils/typeParser.js';
+import { resolveDeliveryOptions } from './deliveryOptions.js';
 import {
   evaluateExpression as evaluateExpressionShared,
   type SubEvaluate,
-} from './expressionEvaluator/index';
-import { extractStandardOutcomes } from './scoreUtils';
+} from './expressionEvaluator/index.js';
+import { resolveMaxTries } from './maxTries.js';
+import { extractStandardOutcomes } from './scoreUtils.js';
 
 /**
  * Initializes the attempt state by processing template declarations and
@@ -15,33 +17,38 @@ import { extractStandardOutcomes } from './scoreUtils';
  * This function:
  * 1. Parses qti-template-declaration elements to identify template variables
  * 2. Executes qti-template-processing rules to set initial values (randomization, etc.)
- * 3. Initializes outcome variables to their default values
- * 4. Creates the initial AttemptState with all variables
+ * 3. Initializes outcome variables to their default values, and the
+ *    built-in numAttempts to 0
+ * 4. Creates the initial AttemptState with all variables, and the tries the
+ *    delivery options allow
  *
  * Template processing only runs once at the beginning of an attempt.
  * Template variables remain constant throughout the attempt.
  *
  * @param itemDoc - Parsed QTI assessment item XML document
+ * @param options - Resolved delivery options the attempt begins under
  * @returns Initial attempt state with template and outcome variables
  */
-export function initializeState(itemDoc: Document): AttemptState {
-  const variables: Record<string, unknown> = {};
+export function initializeState(
+  itemDoc: Document,
+  options: Required<DeliveryOptions> = resolveDeliveryOptions()
+): AttemptState {
   const MAX_CONSTRAINT_RETRIES = 1000; // Prevent infinite loops
 
-  // Initialize outcome variables with default values
-  initializeOutcomeVariables(itemDoc, variables);
-
-  // Execute template processing with constraint retry logic
+  // Execute template processing with constraint retry logic. Each run starts
+  // afresh, so nothing a run that failed its constraint set carries over.
+  let variables = initialVariables(itemDoc);
+  let results: TemplateResults = { correctResponses: {}, defaultValues: {} };
   let retryCount = 0;
   while (retryCount < MAX_CONSTRAINT_RETRIES) {
     try {
-      executeTemplateProcessing(itemDoc, variables);
+      executeTemplateProcessing(itemDoc, variables, results);
       break; // Success, exit retry loop
     } catch (error) {
       if (error instanceof ConstraintViolationError) {
-        // Reset template variables and retry
         retryCount++;
-        resetTemplateVariables(itemDoc, variables);
+        variables = initialVariables(itemDoc);
+        results = { correctResponses: {}, defaultValues: {} };
       } else {
         throw error;
       }
@@ -50,15 +57,32 @@ export function initializeState(itemDoc: Document): AttemptState {
 
   const score = extractStandardOutcomes(variables, itemDoc);
 
-  // Generate shuffle orders for interactions with shuffle="true"
-  const shuffleOrders = initializeShuffleOrders(itemDoc);
+  // Generate shuffle orders for interactions that are shuffled
+  const shuffleOrders = initializeShuffleOrders(itemDoc, options.shuffleOverride);
+  const triesAllowed = resolveMaxTries(itemDoc, options.maxTries, variables);
 
   return {
     variables,
     completionStatus: 'not_attempted',
     score,
+    options,
+    triesAllowed,
+    triesUsed: 0,
+    triesRemaining: triesAllowed,
     ...(shuffleOrders && { shuffleOrders }),
+    ...(Object.keys(results.correctResponses).length > 0 && { correctResponses: results.correctResponses }),
+    ...(Object.keys(results.defaultValues).length > 0 && { defaultValues: results.defaultValues }),
   };
+}
+
+/**
+ * The correct responses and default values template processing sets, which
+ * belong to the attempt's state rather than its variables (see
+ * AttemptState.correctResponses and AttemptState.defaultValues).
+ */
+interface TemplateResults {
+  correctResponses: Record<string, unknown>;
+  defaultValues: Record<string, unknown>;
 }
 
 /**
@@ -78,6 +102,33 @@ class ExitTemplateError extends Error {
   constructor() {
     super('Exit template');
     this.name = 'ExitTemplateError';
+  }
+}
+
+/**
+ * Resets outcome variables to their default values, for a fresh try: the
+ * declared ones, or those template processing set (see AttemptState.defaultValues).
+ */
+export function resetOutcomeVariables(
+  itemDoc: Document,
+  variables: Record<string, unknown>,
+  defaultValues: Record<string, unknown> = {}
+): void {
+  const outcomeDeclarations = itemDoc.getElementsByTagName('qti-outcome-declaration');
+  const outcomeIdentifiers: string[] = [];
+
+  for (let i = 0; i < outcomeDeclarations.length; i++) {
+    const identifier = outcomeDeclarations[i].getAttribute('identifier');
+    if (identifier) {
+      outcomeIdentifiers.push(identifier);
+      delete variables[identifier];
+    }
+  }
+
+  initializeOutcomeVariables(itemDoc, variables);
+
+  for (const identifier of outcomeIdentifiers) {
+    if (identifier in defaultValues) variables[identifier] = defaultValues[identifier];
   }
 }
 
@@ -133,23 +184,24 @@ function initializeOutcomeVariables(itemDoc: Document, variables: Record<string,
 }
 
 /**
- * Reset template variables (remove them from state)
+ * The variables before template processing: outcome defaults, and the
+ * built-in numAttempts at 0
  */
-function resetTemplateVariables(itemDoc: Document, variables: Record<string, unknown>): void {
-  const templateDeclarations = itemDoc.getElementsByTagName('qti-template-declaration');
-
-  for (let i = 0; i < templateDeclarations.length; i++) {
-    const identifier = templateDeclarations[i].getAttribute('identifier');
-    if (identifier) {
-      delete variables[identifier];
-    }
-  }
+function initialVariables(itemDoc: Document): Record<string, unknown> {
+  const variables: Record<string, unknown> = {};
+  initializeOutcomeVariables(itemDoc, variables);
+  variables.numAttempts = 0;
+  return variables;
 }
 
 /**
  * Execute template processing rules
  */
-function executeTemplateProcessing(itemDoc: Document, variables: Record<string, unknown>): void {
+function executeTemplateProcessing(
+  itemDoc: Document,
+  variables: Record<string, unknown>,
+  results: TemplateResults
+): void {
   const templateProcessing = itemDoc.getElementsByTagName('qti-template-processing')[0];
 
   if (!templateProcessing) {
@@ -159,7 +211,7 @@ function executeTemplateProcessing(itemDoc: Document, variables: Record<string, 
   try {
     // Execute each child rule in order
     for (const child of getChildElements(templateProcessing)) {
-      executeTemplateRule(child, itemDoc, variables);
+      executeTemplateRule(child, itemDoc, variables, results);
     }
   } catch (error) {
     if (error instanceof ExitTemplateError) {
@@ -173,7 +225,12 @@ function executeTemplateProcessing(itemDoc: Document, variables: Record<string, 
 /**
  * Execute a single template rule
  */
-function executeTemplateRule(rule: Element, itemDoc: Document, variables: Record<string, unknown>): void {
+function executeTemplateRule(
+  rule: Element,
+  itemDoc: Document,
+  variables: Record<string, unknown>,
+  results: TemplateResults
+): void {
   const localName = rule.localName;
 
   switch (localName) {
@@ -181,7 +238,7 @@ function executeTemplateRule(rule: Element, itemDoc: Document, variables: Record
       executeSetTemplateValue(rule, itemDoc, variables);
       break;
     case 'qti-template-condition':
-      executeTemplateCondition(rule, itemDoc, variables);
+      executeTemplateCondition(rule, itemDoc, variables, results);
       break;
     case 'qti-template-constraint':
       executeTemplateConstraint(rule, itemDoc, variables);
@@ -189,10 +246,10 @@ function executeTemplateRule(rule: Element, itemDoc: Document, variables: Record
     case 'qti-exit-template':
       throw new ExitTemplateError();
     case 'qti-set-correct-response':
-      executeSetCorrectResponse(rule, itemDoc, variables);
+      executeSetCorrectResponse(rule, itemDoc, variables, results);
       break;
     case 'qti-set-default-value':
-      executeSetDefaultValue(rule, itemDoc, variables);
+      executeSetDefaultValue(rule, itemDoc, variables, results);
       break;
   }
 }
@@ -216,21 +273,26 @@ function executeSetTemplateValue(rule: Element, itemDoc: Document, variables: Re
 /**
  * Execute qti-template-condition rule
  */
-function executeTemplateCondition(rule: Element, itemDoc: Document, variables: Record<string, unknown>): void {
+function executeTemplateCondition(
+  rule: Element,
+  itemDoc: Document,
+  variables: Record<string, unknown>,
+  results: TemplateResults
+): void {
   // Find template-if, template-else-if, and template-else elements
   for (const child of getChildElements(rule)) {
     const localName = child.localName;
 
     if (localName === 'qti-template-if') {
-      if (evaluateTemplateIf(child, itemDoc, variables)) {
+      if (evaluateTemplateIf(child, itemDoc, variables, results)) {
         return;
       }
     } else if (localName === 'qti-template-else-if') {
-      if (evaluateTemplateIf(child, itemDoc, variables)) {
+      if (evaluateTemplateIf(child, itemDoc, variables, results)) {
         return;
       }
     } else if (localName === 'qti-template-else') {
-      executeTemplateBlock(child, itemDoc, variables);
+      executeTemplateBlock(child, itemDoc, variables, results);
       return;
     }
   }
@@ -240,7 +302,12 @@ function executeTemplateCondition(rule: Element, itemDoc: Document, variables: R
  * Evaluate a template-if or template-else-if block
  * Returns true if the condition was true and the block was executed
  */
-function evaluateTemplateIf(element: Element, itemDoc: Document, variables: Record<string, unknown>): boolean {
+function evaluateTemplateIf(
+  element: Element,
+  itemDoc: Document,
+  variables: Record<string, unknown>,
+  results: TemplateResults
+): boolean {
   // First child is the condition expression
   // Remaining children are the rules to execute
   let conditionResult = false;
@@ -258,7 +325,7 @@ function evaluateTemplateIf(element: Element, itemDoc: Document, variables: Reco
     } else {
       // These are the rules to execute if condition is true
       if (conditionResult) {
-        executeTemplateRule(child, itemDoc, variables);
+        executeTemplateRule(child, itemDoc, variables, results);
       }
     }
   }
@@ -269,9 +336,14 @@ function evaluateTemplateIf(element: Element, itemDoc: Document, variables: Reco
 /**
  * Execute all rules in a template block (used for template-else)
  */
-function executeTemplateBlock(element: Element, itemDoc: Document, variables: Record<string, unknown>): void {
+function executeTemplateBlock(
+  element: Element,
+  itemDoc: Document,
+  variables: Record<string, unknown>,
+  results: TemplateResults
+): void {
   for (const child of getChildElements(element)) {
-    executeTemplateRule(child, itemDoc, variables);
+    executeTemplateRule(child, itemDoc, variables, results);
   }
 }
 
@@ -296,34 +368,42 @@ function executeTemplateConstraint(rule: Element, itemDoc: Document, variables: 
 /**
  * Execute qti-set-correct-response rule
  */
-function executeSetCorrectResponse(rule: Element, itemDoc: Document, variables: Record<string, unknown>): void {
+function executeSetCorrectResponse(
+  rule: Element,
+  itemDoc: Document,
+  variables: Record<string, unknown>,
+  results: TemplateResults
+): void {
   const identifier = rule.getAttribute('identifier');
   if (!identifier) return;
 
-  // Store the correct response value for later comparison
-  // We'll store it with a special prefix to distinguish from actual response values
   const child = getFirstChildElement(rule);
   if (!child) {
     throw new Error('Expected child element in <qti-set-correct-response>');
   }
-  const value = evaluateExpression(child, itemDoc, variables);
-  variables[`__correct_${identifier}`] = value;
+  results.correctResponses[identifier] = evaluateExpression(child, itemDoc, variables);
 }
 
 /**
  * Execute qti-set-default-value rule
  */
-function executeSetDefaultValue(rule: Element, itemDoc: Document, variables: Record<string, unknown>): void {
+function executeSetDefaultValue(
+  rule: Element,
+  itemDoc: Document,
+  variables: Record<string, unknown>,
+  results: TemplateResults
+): void {
   const identifier = rule.getAttribute('identifier');
   if (!identifier) return;
 
-  // Set the default value for an outcome variable
+  // The variable starts from its default; the default itself is kept for resets
   const child = getFirstChildElement(rule);
   if (!child) {
     throw new Error('Expected child element in <qti-set-default-value>');
   }
   const value = evaluateExpression(child, itemDoc, variables);
   variables[identifier] = value;
+  results.defaultValues[identifier] = value;
 }
 
 /**
@@ -336,25 +416,45 @@ function evaluateExpression(element: Element, itemDoc: Document, variables: Reco
   return evaluateExpressionShared(element, itemDoc, variables, subEvaluate);
 }
 
+type ShuffleOverride = Required<DeliveryOptions>['shuffleOverride'];
+
 /**
- * Initialize shuffle orders for interactions with shuffle="true".
+ * Whether an interaction's choices are shuffled, given its shuffle attribute
+ * and the attempt's shuffle override.
+ */
+function shouldShuffle(interaction: Element, shuffleOverride: ShuffleOverride): boolean {
+  switch (shuffleOverride) {
+    case 'never':
+      return false;
+    case 'shuffle':
+      return interaction.getAttribute('shuffle') !== 'false';
+    case 'none':
+      return interaction.getAttribute('shuffle') === 'true';
+  }
+}
+
+/**
+ * Initialize shuffle orders for interactions that are shuffled (see shouldShuffle).
  * Returns a record mapping response identifiers to ordered arrays of choice identifiers,
  * or undefined if no shuffled interactions are found.
  */
-function initializeShuffleOrders(itemDoc: Document): Record<string, string[]> | undefined {
+function initializeShuffleOrders(
+  itemDoc: Document,
+  shuffleOverride: ShuffleOverride
+): Record<string, string[]> | undefined {
   const shuffleOrders: Record<string, string[]> = {};
 
   // Process choice interactions
-  processChoiceInteractions(itemDoc, shuffleOrders);
+  processChoiceInteractions(itemDoc, shuffleOrders, shuffleOverride);
 
   // Process inline-choice interactions
-  processInlineChoiceInteractions(itemDoc, shuffleOrders);
+  processInlineChoiceInteractions(itemDoc, shuffleOrders, shuffleOverride);
 
   // Process match interactions (has two match sets)
-  processMatchInteractions(itemDoc, shuffleOrders);
+  processMatchInteractions(itemDoc, shuffleOrders, shuffleOverride);
 
   // Process gap-match interactions
-  processGapMatchInteractions(itemDoc, shuffleOrders);
+  processGapMatchInteractions(itemDoc, shuffleOrders, shuffleOverride);
 
   // Return undefined if no shuffle orders were generated
   return Object.keys(shuffleOrders).length > 0 ? shuffleOrders : undefined;
@@ -365,13 +465,14 @@ function initializeShuffleOrders(itemDoc: Document): Record<string, string[]> | 
  */
 function processChoiceInteractions(
   itemDoc: Document,
-  shuffleOrders: Record<string, string[]>
+  shuffleOrders: Record<string, string[]>,
+  shuffleOverride: ShuffleOverride
 ): void {
   const interactions = itemDoc.getElementsByTagName('qti-choice-interaction');
 
   for (let i = 0; i < interactions.length; i++) {
     const interaction = interactions[i];
-    if (interaction.getAttribute('shuffle') !== 'true') continue;
+    if (!shouldShuffle(interaction, shuffleOverride)) continue;
 
     const responseId = interaction.getAttribute('response-identifier');
     if (!responseId) continue;
@@ -401,13 +502,14 @@ function processChoiceInteractions(
  */
 function processInlineChoiceInteractions(
   itemDoc: Document,
-  shuffleOrders: Record<string, string[]>
+  shuffleOrders: Record<string, string[]>,
+  shuffleOverride: ShuffleOverride
 ): void {
   const interactions = itemDoc.getElementsByTagName('qti-inline-choice-interaction');
 
   for (let i = 0; i < interactions.length; i++) {
     const interaction = interactions[i];
-    if (interaction.getAttribute('shuffle') !== 'true') continue;
+    if (!shouldShuffle(interaction, shuffleOverride)) continue;
 
     const responseId = interaction.getAttribute('response-identifier');
     if (!responseId) continue;
@@ -438,13 +540,14 @@ function processInlineChoiceInteractions(
  */
 function processMatchInteractions(
   itemDoc: Document,
-  shuffleOrders: Record<string, string[]>
+  shuffleOrders: Record<string, string[]>,
+  shuffleOverride: ShuffleOverride
 ): void {
   const interactions = itemDoc.getElementsByTagName('qti-match-interaction');
 
   for (let i = 0; i < interactions.length; i++) {
     const interaction = interactions[i];
-    if (interaction.getAttribute('shuffle') !== 'true') continue;
+    if (!shouldShuffle(interaction, shuffleOverride)) continue;
 
     const responseId = interaction.getAttribute('response-identifier');
     if (!responseId) continue;
@@ -481,13 +584,14 @@ function processMatchInteractions(
  */
 function processGapMatchInteractions(
   itemDoc: Document,
-  shuffleOrders: Record<string, string[]>
+  shuffleOrders: Record<string, string[]>,
+  shuffleOverride: ShuffleOverride
 ): void {
   const interactions = itemDoc.getElementsByTagName('qti-gap-match-interaction');
 
   for (let i = 0; i < interactions.length; i++) {
     const interaction = interactions[i];
-    if (interaction.getAttribute('shuffle') !== 'true') continue;
+    if (!shouldShuffle(interaction, shuffleOverride)) continue;
 
     const responseId = interaction.getAttribute('response-identifier');
     if (!responseId) continue;

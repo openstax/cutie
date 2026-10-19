@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildInlineInteractionLabel } from './inlineInteractionLabel';
+import { buildInlineInteractionLabel } from './inlineInteractionLabel.js';
 
 function createElement(tag: string, children: Element[] = []): Element {
   const el = document.createElement(tag);

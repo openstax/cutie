@@ -1,11 +1,11 @@
 import { Editor, Element, Node, Path, Transforms } from 'slate';
-import type { CustomEditor } from '../types';
+import type { CustomEditor } from '../types.js';
 import {
   elementNeedsSpacers,
   getElementCategories,
   getElementForbiddenDescendants,
   normalizeElement,
-} from './withQtiInteractions';
+} from './withQtiInteractions.js';
 
 /**
  * Check if an element is a text-editable block (can hold cursor for editing)

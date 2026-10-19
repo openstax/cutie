@@ -1,21 +1,21 @@
 import type { Descendant } from 'slate';
-import { contentBodySerializers } from '../elements/contentBody';
-import { feedbackBlockSerializers } from '../elements/feedback/feedbackBlock';
-import { feedbackInlineSerializers } from '../elements/feedback/feedbackInline';
-import { modalFeedbackSerializers } from '../elements/feedback/modalFeedback';
-import { promptSerializers } from '../elements/prompt';
-import { simpleChoiceSerializers } from '../elements/simpleChoice';
-import { choiceSerializers } from '../interactions/choice';
-import { extendedTextSerializers } from '../interactions/extendedText';
-import { gapMatchSerializers } from '../interactions/gapMatch';
-import { inlineChoiceSerializers } from '../interactions/inlineChoice';
-import { matchSerializers } from '../interactions/match';
-import { textEntrySerializers } from '../interactions/textEntry';
-import type { DocumentMetadata, ElementConfig, ResponseProcessingConfig, SerializationResult, SlateElement, SlateText, TextAlign, ValidationError } from '../types';
-import { generateResponseProcessingXml } from '../utils/responseProcessingGenerator';
-import { formatXmlDom } from './formatXmlDom';
-import { type XmlNode, xmlNodeToDom } from './xmlNode';
-import { createXmlDocument, createXmlElement } from './xmlUtils';
+import { contentBodySerializers } from '../elements/contentBody/index.js';
+import { feedbackBlockSerializers } from '../elements/feedback/feedbackBlock/index.js';
+import { feedbackInlineSerializers } from '../elements/feedback/feedbackInline/index.js';
+import { modalFeedbackSerializers } from '../elements/feedback/modalFeedback/index.js';
+import { promptSerializers } from '../elements/prompt/index.js';
+import { simpleChoiceSerializers } from '../elements/simpleChoice/index.js';
+import { choiceSerializers } from '../interactions/choice/index.js';
+import { extendedTextSerializers } from '../interactions/extendedText/index.js';
+import { gapMatchSerializers } from '../interactions/gapMatch/index.js';
+import { inlineChoiceSerializers } from '../interactions/inlineChoice/index.js';
+import { matchSerializers } from '../interactions/match/index.js';
+import { textEntrySerializers } from '../interactions/textEntry/index.js';
+import type { DocumentMetadata, ElementConfig, ResponseProcessingConfig, SerializationResult, SlateElement, SlateText, TextAlign, ValidationError } from '../types.js';
+import { generateResponseProcessingXml } from '../utils/responseProcessingGenerator.js';
+import { formatXmlDom } from './formatXmlDom.js';
+import { type XmlNode, xmlNodeToDom } from './xmlNode.js';
+import { createXmlDocument, createXmlElement } from './xmlUtils.js';
 
 const QTI_NAMESPACE = 'http://www.imsglobal.org/xsd/imsqtiasi_v3p0';
 

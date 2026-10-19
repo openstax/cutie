@@ -46,18 +46,21 @@ npm run ci --workspace @openstax/cutie-core
 npm run ci --workspace @openstax/cutie-client
 npm run ci --workspace @openstax/cutie-editor
 npm run ci --workspace @openstax/cutie-example
+npm run ci --workspace @openstax/cutie-samples
 
 # Linting
 npm run ci:lint --workspace @openstax/cutie-core
 npm run ci:lint --workspace @openstax/cutie-client
 npm run ci:lint --workspace @openstax/cutie-editor
 npm run ci:lint --workspace @openstax/cutie-example
+npm run ci:lint --workspace @openstax/cutie-samples
 
 # Type checking
 npm run ci:typecheck --workspace @openstax/cutie-core
 npm run ci:typecheck --workspace @openstax/cutie-client
 npm run ci:typecheck --workspace @openstax/cutie-editor
 npm run ci:typecheck --workspace @openstax/cutie-example
+npm run ci:typecheck --workspace @openstax/cutie-samples
 
 # Spell checking (root level)
 npm run ci:spelling
@@ -90,5 +93,8 @@ If the spellcheck fails, fix the typos or add spellcheck ignore comments to the 
   - Useful for testing and development
 - **`packages/cutie-editor/`**: WYSIWYG QTI item editor (`@openstax/cutie-editor`) 
   - React library exporting Editor component 
+- **`packages/cutie-samples/`**: Canonical OpenStax QTI items (`@openstax/cutie-samples`)
+  - Item XML plus Markdown authoring guidance for each question type, grouped by category
+  - Specs check samples against cutie-core scoring and the cutie-editor response processing classifier
 - **`scripts/`**: Build and publishing automation scripts
 - **`.github/workflows/`**: CI workflows for lint, tests, and deployment

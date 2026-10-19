@@ -1,13 +1,15 @@
-import { createMissingAttributeError } from '../../errors/errorDisplay';
+import { createMissingAttributeError } from '../../errors/errorDisplay.js';
 import {
   type ConstraintMessage,
   createInlineRequiredIndicator,
-} from '../../errors/validationDisplay';
-import { announce } from '../../utils/liveRegion';
-import { registry } from '../registry';
-import type { ElementHandler, TransformContext } from '../types';
-import { parseInputWidth } from '../vocabUtils';
-import { getDefaultValue } from './responseUtils';
+  wrapInlineRequired,
+} from '../../errors/validationDisplay.js';
+import { announce } from '../../utils/liveRegion.js';
+import { registry } from '../registry.js';
+import type { ElementHandler, InteractionState, ResponseAccessorOptions, TransformContext } from '../types.js';
+import { parseInputWidth } from '../vocabUtils.js';
+import { clearInlineVerdict, clearVerdictOnEdit, readEvaluation, wrapInlineEvaluation } from './evaluation/index.js';
+import { getDefaultValue } from './responseUtils.js';
 
 /**
  * Handler for qti-text-entry-interaction elements.
@@ -115,6 +117,18 @@ class TextEntryInteractionHandler implements ElementHandler {
       input.setAttribute('aria-describedby', constraintId);
     }
 
+    // Evaluation of a finished attempt or a fresh try: the verdict icon and
+    // the correct answer above the input, describing it
+    let placed: HTMLElement = input;
+    const evaluation = readEvaluation(element, responseIdentifier, context.styleManager);
+    if (evaluation) {
+      const correctText = evaluation.correctResponse.join(', ');
+      placed = wrapInlineEvaluation(input, `evaluation-${responseIdentifier}`, evaluation, correctText || null);
+    }
+    clearVerdictOnEdit(context, responseIdentifier, evaluation, () =>
+      clearInlineVerdict(input, `evaluation-${responseIdentifier}`)
+    );
+
     // Register response accessor with itemState if available
     if (context.itemState) {
       // Check the pattern-mask constraint and decorate the input's error state.
@@ -131,8 +145,13 @@ class TextEntryInteractionHandler implements ElementHandler {
         return isValid;
       };
 
-      const responseAccessor = () => {
+      const responseAccessor = (options?: ResponseAccessorOptions) => {
         const value = input.value.trim();
+
+        if (options?.silent) {
+          const valid = !hasConstraint || new RegExp(patternMask).test(input.value);
+          return { value: value === '' ? null : value, valid };
+        }
 
         if (hasConstraint) {
           const isValid = new RegExp(patternMask).test(input.value);
@@ -155,37 +174,34 @@ class TextEntryInteractionHandler implements ElementHandler {
 
       context.itemState.registerResponse(responseIdentifier, responseAccessor);
 
-      // Clear the error in real time once the field is already in an error state.
-      if (hasConstraint) {
-        input.addEventListener('input', () => {
-          if (input.hasAttribute('aria-invalid')) validate();
-        });
-      }
+      input.addEventListener('input', () => {
+        // Clear the error in real time once the field is already in an error state.
+        if (input.hasAttribute('aria-invalid')) validate();
+        context.itemState?.notifyResponseChange(responseIdentifier);
+      });
 
       // Observe interaction enabled state to enable/disable input
-      const observer = (state: { interactionsEnabled: boolean }) => {
-        input.disabled = !state.interactionsEnabled;
+      const observer = (state: { interactionState: InteractionState }) => {
+        input.disabled = state.interactionState !== 'enabled';
       };
 
       context.itemState.addObserver(observer);
 
       // Set initial disabled state
-      input.disabled = !context.itemState.interactionsEnabled;
+      input.disabled = context.itemState.interactionState !== 'enabled';
     }
 
-    fragment.appendChild(input);
-    if (indicator) {
-      fragment.appendChild(indicator.element);
-    }
+    fragment.appendChild(wrapInlineRequired(placed, indicator));
 
     return fragment;
   }
 }
 
 const TEXT_ENTRY_INTERACTION_STYLES = `
+  /* The top margin reserves the slot for the evaluation overline, above the text line */
   .cutie-text-entry-interaction {
     display: inline-block;
-    margin: 0 0.25em;
+    margin: var(--cutie-overline-slot) 0.25em 0;
     padding: 0.25em 0.5em;
     border: 1px solid var(--cutie-border);
     border-radius: 3px;
@@ -195,8 +211,8 @@ const TEXT_ENTRY_INTERACTION_STYLES = `
   }
 
   .cutie-text-entry-interaction:focus {
-    outline: 2px solid var(--cutie-primary);
-    outline-offset: 1px;
+    outline: var(--cutie-focus-ring);
+    outline-offset: var(--cutie-focus-ring-offset);
     border-color: var(--cutie-primary);
   }
 

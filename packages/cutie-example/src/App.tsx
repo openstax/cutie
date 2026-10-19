@@ -1,37 +1,26 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { beginAttempt, submitResponse, setScore } from '@openstax/cutie-core';
-import type { AttemptState, ProcessingOptions } from '@openstax/cutie-core';
+import type { AttemptResult, AttemptState, PreviewOptions } from '@openstax/cutie-core';
 import type { ResponseData } from '@openstax/cutie-client';
 import { examples, exampleGroups } from './example-items';
 import { ExampleDropdown } from './ExampleDropdown';
 import { EditorTab } from './EditorTab';
 import { PreviewTab } from './PreviewTab';
+import { TestTab } from './TestTab';
+import type { LatestResult } from './TestTab';
 import { GenerateDialog } from './GenerateDialog';
 import { Tabs, TabList, TabPanel } from './Tabs';
 import { Toast } from './Toast';
 import { beginQuiz, continueQuiz, DEFAULT_FAST_MODEL_ID, generateQtiItem, scoreExternalResponse } from './utils/ai';
 import type { QuizResponse, InteractionType } from './utils/ai';
 import { shouldRenewToken } from './utils/auth';
-import { OpenInNewIcon } from './icons';
+import { loadDeliveryOptions, saveDeliveryOptions } from './utils/deliveryOptions';
+import type { ResolvedDeliveryOptions } from './utils/deliveryOptions';
+import { resolveAssets } from './utils/resolveAssets';
+import { MenuBookIcon, OpenInNewIcon } from './icons';
 import './App.css';
 
-/**
- * Asset resolver for the example app.
- * In development, Vite serves files from public/ at the root.
- * This resolver prepends '/' to relative paths to resolve them correctly.
- */
-const resolveAssets: ProcessingOptions['resolveAssets'] = async (urls) => {
-  return urls.map((url) => {
-    // If already an absolute URL, data URL, or starts with /, return as-is
-    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('/') || url.startsWith('data:')) {
-      return url;
-    }
-    // Prepend / to make it resolve from public/
-    return `/${url}`;
-  });
-};
-
-type Tab = 'xml' | 'editor' | 'preview';
+type Tab = 'xml' | 'editor' | 'test' | 'preview';
 
 interface QuizQuestion {
   description: string;
@@ -82,10 +71,13 @@ const determineResult = (state: AttemptState): 'correct' | 'incorrect' | 'partia
 };
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<Tab>('preview');
+  const [activeTab, setActiveTab] = useState<Tab>('test');
   const [itemXml, setItemXml] = useState('');
   const [attemptState, setAttemptState] = useState<AttemptState | null>(null);
   const [sanitizedTemplate, setSanitizedTemplate] = useState<string>('');
+  const [latestResult, setLatestResult] = useState<LatestResult>({ hasNewFeedback: false, tryConsumed: false });
+  const [deliveryOptions, setDeliveryOptions] = useState<ResolvedDeliveryOptions>(loadDeliveryOptions);
+  const [previewOptions, setPreviewOptions] = useState<PreviewOptions>({ compact: false });
   const [error, setError] = useState<string>('');
   const [processing, setProcessing] = useState(false);
   const [responses, setResponses] = useState<ResponseData | null>(null);
@@ -97,6 +89,51 @@ export function App() {
     nextQuestion: Promise<string> | null;
     nextQuiz: Promise<{ quiz: QuizResponse; firstQuestionXml: string }> | null;
   }>({ nextQuestion: null, nextQuiz: null });
+
+  useEffect(() => {
+    saveDeliveryOptions(deliveryOptions);
+  }, [deliveryOptions]);
+
+  // Counts attempt operations, so a result that arrives after a newer operation began is dropped
+  const attemptOperationRef = useRef(0);
+
+  const applyResult = (result: AttemptResult) => {
+    setAttemptState(result.state);
+    setSanitizedTemplate(result.template);
+    setLatestResult({ hasNewFeedback: result.hasNewFeedback, tryConsumed: result.tryConsumed });
+  };
+
+  /** Shows a result that is already current, superseding any operation still in flight. */
+  const showResult = (result: AttemptResult) => {
+    attemptOperationRef.current++;
+    applyResult(result);
+  };
+
+  /**
+   * Runs an attempt operation and applies its result, unless a newer operation has begun
+   * since. Everything that depends on the result belongs in `apply`, so it is dropped too.
+   */
+  const runAttemptOperation = async (
+    operation: () => Promise<AttemptResult>,
+    apply: (result: AttemptResult) => void = applyResult
+  ) => {
+    const operationId = ++attemptOperationRef.current;
+    const result = await operation();
+    if (operationId === attemptOperationRef.current) {
+      apply(result);
+    }
+  };
+
+  /**
+   * Begins a learner attempt on the given item with the current (or given) delivery
+   * options, and shows it: the item, its state and template, and no responses yet.
+   */
+  const startAttempt = (xml: string, options: ResolvedDeliveryOptions = deliveryOptions) =>
+    runAttemptOperation(() => beginAttempt(xml, { resolveAssets }, options), (result) => {
+      applyResult(result);
+      setItemXml(xml);
+      setResponses(null);
+    });
 
   const loadExample = async (exampleName: string) => {
     const example = examples.find(ex => ex.name === exampleName);
@@ -111,9 +148,7 @@ export function App() {
     setError('');
     setProcessing(true);
     try {
-      const result = await beginAttempt(example.item, { resolveAssets });
-      setAttemptState(result.state);
-      setSanitizedTemplate(result.template);
+      await startAttempt(example.item);
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : 'Unknown error occurred');
@@ -127,6 +162,8 @@ export function App() {
     if (param) {
       loadExample(param);
     }
+    // Runs once on mount to load the item from the URL
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleAIGenerate = async (xml: string) => {
@@ -137,9 +174,7 @@ export function App() {
     setError('');
     setProcessing(true);
     try {
-      const result = await beginAttempt(xml, { resolveAssets });
-      setAttemptState(result.state);
-      setSanitizedTemplate(result.template);
+      await startAttempt(xml);
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : 'Unknown error occurred');
@@ -153,10 +188,7 @@ export function App() {
     setProcessing(true);
 
     try {
-      const result = await beginAttempt(itemXml, { resolveAssets });
-      setAttemptState(result.state);
-      setSanitizedTemplate(result.template);
-      setResponses(null);
+      await startAttempt(itemXml);
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : 'Unknown error occurred');
@@ -170,45 +202,51 @@ export function App() {
 
     setResponses(newResponses);
     try {
-      let result = await submitResponse(newResponses, attemptState, itemXml, { resolveAssets });
+      await runAttemptOperation(async () => {
+        let result = await submitResponse(newResponses, attemptState, itemXml, { resolveAssets });
 
-      if (result.state.pendingManualScoring) {
-        if (shouldRenewToken()) {
-          setError('AI scoring unavailable — please log in');
+        if (result.state.pendingManualScoring) {
+          if (shouldRenewToken()) {
+            setError('AI scoring unavailable — please log in');
+          } else {
+            const scoringModelId = quizState.isActive ? quizState.fastModelId : DEFAULT_FAST_MODEL_ID;
+            const aiResult = await scoreExternalResponse(
+              scoringModelId,
+              itemXml,
+              result.state.pendingManualScoring.maxScore,
+              newResponses,
+            );
+            result = await setScore(aiResult.score, aiResult.comments, result.state, itemXml, { resolveAssets });
+          }
         } else {
-          const scoringModelId = quizState.isActive ? quizState.fastModelId : DEFAULT_FAST_MODEL_ID;
-          const aiResult = await scoreExternalResponse(
-            scoringModelId,
-            itemXml,
-            result.state.pendingManualScoring.maxScore,
-            newResponses,
-          );
-          result = await setScore(aiResult.score, aiResult.comments, result.state, itemXml, { resolveAssets });
+          // Brief delay to show submitting state when scoring is instant
+          await new Promise(r => setTimeout(r, 1000));
         }
-      } else {
-        // Brief delay to show submitting state when scoring is instant
-        await new Promise(r => setTimeout(r, 1000));
-      }
 
-      setAttemptState(result.state);
-      setSanitizedTemplate(result.template);
+        return result;
+      });
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : 'Error processing response');
     }
   };
 
-  const handleResetAttempt = async () => {
+  const resetAttempt = async (options: ResolvedDeliveryOptions) => {
     if (!itemXml) return;
     setError('');
     try {
-      const result = await beginAttempt(itemXml, { resolveAssets });
-      setAttemptState(result.state);
-      setSanitizedTemplate(result.template);
-      setResponses(null);
+      await startAttempt(itemXml, options);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error resetting attempt');
     }
+  };
+
+  const handleResetAttempt = () => resetAttempt(deliveryOptions);
+
+  // Delivery options are fixed per attempt, so a change starts a new one
+  const handleDeliveryOptionsChange = (options: ResolvedDeliveryOptions) => {
+    setDeliveryOptions(options);
+    resetAttempt(options);
   };
 
   const loadQuizQuestion = async (quiz: QuizResponse, questionIndex: number, modelId?: number) => {
@@ -223,11 +261,7 @@ export function App() {
     }
 
     // Process the item
-    const result = await beginAttempt(xml, { resolveAssets });
-    setItemXml(xml);
-    setAttemptState(result.state);
-    setSanitizedTemplate(result.template);
-    setResponses(null);
+    await startAttempt(xml);
 
     return xml;
   };
@@ -304,7 +338,7 @@ export function App() {
 
   const handleStartQuiz = async (topic: string, modelId: number, fastModelId: number) => {
     setGenerateDialogOpen(false);
-    setActiveTab('preview');
+    setActiveTab('test');
     setError('');
     setProcessing(true);
     // Clear previous content and prefetched data while loading
@@ -343,7 +377,7 @@ export function App() {
         setQuizState({ ...newQuizState });
       }
 
-      setActiveTab('preview');
+      setActiveTab('test');
 
       // Trigger eager generation of next question (uses main model for quality)
       triggerEagerGeneration(quizResponse, 0, topic, newQuizState.history, modelId, fastModelId);
@@ -387,11 +421,7 @@ export function App() {
         if (xml) {
           // Use prefetched content - instant transition (or after awaiting in-progress)
           console.log('Using prefetched next question');
-          const xmlResult = await beginAttempt(xml, { resolveAssets });
-          setItemXml(xml);
-          setAttemptState(xmlResult.state);
-          setSanitizedTemplate(xmlResult.template);
-          setResponses(null);
+          await startAttempt(xml);
 
           quizState.currentQuiz.questions[nextIndex].xml = xml;
           const updatedQuizState = {
@@ -467,11 +497,7 @@ export function App() {
           console.log('Using prefetched next quiz');
           const { quiz: nextQuizResponse, firstQuestionXml } = nextQuizData;
 
-          const xmlResult = await beginAttempt(firstQuestionXml, { resolveAssets });
-          setItemXml(firstQuestionXml);
-          setAttemptState(xmlResult.state);
-          setSanitizedTemplate(xmlResult.template);
-          setResponses(null);
+          await startAttempt(firstQuestionXml);
 
           const newQuizState: QuizState = {
             ...quizState,
@@ -600,19 +626,22 @@ export function App() {
         <EditorTab
           itemXml={itemXml}
           setItemXml={setItemXml}
-          setSanitizedTemplate={setSanitizedTemplate}
-          setAttemptState={setAttemptState}
+          deliveryOptions={deliveryOptions}
+          onAttemptBegun={showResult}
         />
       ),
     },
     {
-      id: 'preview',
-      label: 'Preview',
+      id: 'test',
+      label: 'Test',
       content: (
-        <PreviewTab
+        <TestTab
           attemptState={attemptState}
           sanitizedTemplate={sanitizedTemplate}
+          latestResult={latestResult}
           responses={responses}
+          deliveryOptions={deliveryOptions}
+          onDeliveryOptionsChange={handleDeliveryOptionsChange}
           onSubmitResponses={handleSubmitResponses}
           onResetAttempt={handleResetAttempt}
           isLoading={processing}
@@ -624,6 +653,20 @@ export function App() {
             history: quizState.history,
             currentQuiz: quizState.currentQuiz,
           } : undefined}
+        />
+      ),
+    },
+    {
+      id: 'preview',
+      label: 'Preview',
+      content: (
+        <PreviewTab
+          itemXml={itemXml}
+          previewOptions={previewOptions}
+          onPreviewOptionsChange={setPreviewOptions}
+          onError={setError}
+          isLoading={processing}
+          onOpenGenerateDialog={() => setGenerateDialogOpen(true)}
         />
       ),
     },
@@ -648,6 +691,14 @@ export function App() {
               onSelect={loadExample}
               disabled={processing}
             />
+            <a
+              href="?page=samples"
+              className="samples-link"
+              aria-label="OpenStax item templates"
+              title="OpenStax item templates"
+            >
+              <MenuBookIcon size={20} />
+            </a>
           </div>
         </nav>
       </header>

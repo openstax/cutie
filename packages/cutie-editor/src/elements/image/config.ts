@@ -1,5 +1,5 @@
 import type { Element } from 'slate';
-import type { ElementConfig } from '../../types';
+import type { ElementConfig } from '../../types.js';
 
 export const imageConfig: ElementConfig = {
   type: 'image',

@@ -1,6 +1,6 @@
 import { DOMParser } from '@xmldom/xmldom';
 import { describe, expect, test } from 'vitest';
-import { buildScore, extractStandardOutcomes } from './scoreUtils';
+import { buildScore, extractStandardOutcomes } from './scoreUtils.js';
 
 describe('buildScore', () => {
   test('builds score with correct scaled value', () => {
@@ -127,8 +127,8 @@ describe('extractStandardOutcomes', () => {
       <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0">
         <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="identifier">
           <qti-mapping lower-bound="0" upper-bound="5">
-            <qti-map-entry map-key="A" mapped-value="1"/>
-            <qti-map-entry map-key="B" mapped-value="2"/>
+            <qti-map-entry map-key="A" mapped-value="3"/>
+            <qti-map-entry map-key="B" mapped-value="4"/>
             <qti-map-entry map-key="C" mapped-value="-1"/>
           </qti-mapping>
         </qti-response-declaration>

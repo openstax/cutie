@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        module: [cutie-core, cutie-client, cutie-editor, cutie-example]
+        module: [cutie-core, cutie-client, cutie-editor, cutie-example, cutie-samples]
     env:
       CI: true
     steps:

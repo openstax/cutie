@@ -37,6 +37,9 @@ interaction types. Interaction-specific coverage is tracked in interaction docs.
 
 Note: cutie is an **item-level** renderer and processor. Test-level delivery
 features (test parts, sections, navigation, time limits) are out of scope.
+Cutie's own delivery options (feedback withholding, evaluation, shuffle
+override, multiple tries) stand in for some item session controls; see
+[Delivery Extensions](../../README.md#delivery-extensions).
 
 ---
 
@@ -60,7 +63,7 @@ features (test parts, sections, navigation, time limits) are out of scope.
 | composite items | I17 | :white_check_mark: | multiple interactions per item body |
 | MathML v2/v3 | I18 | :white_check_mark: | pass-through + template variable substitution in `<m:mi>`/`<m:mn>` |
 | rubric block (HTML) | I11 | :white_check_mark: | server strips non-candidate views; candidate rubrics rendered |
-| shared stimulus | I4 | :x: | `qti-assessment-stimulus-ref` not implemented |
+| shared stimulus | I4 | :white_check_mark: | docked stimuli inlined server-side; others rendered by the host with `renderStimulus` + `mountStimulus`; stimulus stylesheets and catalogs not supported. See [Shared Stimulus](../../README.md#shared-stimulus) |
 | ARIA subset | A2a | :white_check_mark: | aria attributes pass through in HTML |
 | captions (`<track>`) | A13b | :x: | video/audio elements pass through but no caption UI |
 | glossary on-screen | A15 | :x: | requires catalog resource support |

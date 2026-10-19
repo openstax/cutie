@@ -1,5 +1,5 @@
 import { Editor, Transforms } from 'slate';
-import type { CustomEditor, DocumentMetadata, ResponseProcessingMode } from '../types';
+import type { CustomEditor, DocumentMetadata, ResponseProcessingMode } from '../types.js';
 
 /**
  * Update the response processing mode in the document metadata.

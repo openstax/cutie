@@ -7,8 +7,8 @@ import type {
   MatchTargetSet,
   QtiMatchInteraction,
   QtiSimpleAssociableChoice,
-} from '../../types';
-import { hasCorrectResponse } from '../../utils/responseDeclaration';
+} from '../../types.js';
+import { hasCorrectResponse } from '../../utils/responseDeclaration.js';
 
 /**
  * Get all simple associable choices from a match set

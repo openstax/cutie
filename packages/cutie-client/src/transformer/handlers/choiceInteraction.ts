@@ -1,16 +1,26 @@
 import {
   createInvalidAttributeError,
   createMissingAttributeError,
-} from '../../errors/errorDisplay';
+} from '../../errors/errorDisplay.js';
 import {
   type ConstraintMessage,
   createConstraintMessage,
-} from '../../errors/validationDisplay';
-import { announce } from '../../utils/liveRegion';
-import { initializeRovingTabindex, updateRovingTabindex } from '../../utils/rovingTabindex';
-import { registry } from '../registry';
-import type { ElementHandler, TransformContext } from '../types';
-import { getDefaultValue } from './responseUtils';
+} from '../../errors/validationDisplay.js';
+import { announce } from '../../utils/liveRegion.js';
+import { initializeRovingTabindex, updateRovingTabindex } from '../../utils/rovingTabindex.js';
+import { registry } from '../registry.js';
+import type { ElementHandler, InteractionState, ResponseAccessorOptions, TransformContext } from '../types.js';
+import {
+  clearConstraintVerdict,
+  clearEvaluated,
+  clearVerdictOnEdit,
+  createCorrectAnswerOverline,
+  createIncorrectAnswerOverline,
+  getVerdictText,
+  markEvaluated,
+  readEvaluation,
+} from './evaluation/index.js';
+import { getDefaultValue } from './responseUtils.js';
 
 /**
  * Build constraint text describing the selection requirements.
@@ -78,8 +88,8 @@ class ChoiceInteractionHandler implements ElementHandler {
     const container = document.createElement('div');
     const sourceClasses = element.getAttribute('class');
     container.className = sourceClasses
-      ? `cutie-choice-interaction ${sourceClasses}`
-      : 'cutie-choice-interaction';
+      ? `cutie-choice-interaction cutie-status-rail ${sourceClasses}`
+      : 'cutie-choice-interaction cutie-status-rail';
     container.setAttribute('data-response-identifier', responseIdentifier);
     container.setAttribute('data-max-choices', maxChoicesAttr);
 
@@ -179,11 +189,19 @@ class ChoiceInteractionHandler implements ElementHandler {
 
     container.appendChild(choicesContainer);
 
-    // Add constraint text if applicable
+    // Evaluation of a finished attempt when the delivery options show one,
+    // or the last try's verdict on a fresh try
+    const evaluation = readEvaluation(element, responseIdentifier, context.styleManager);
+
+    // Add constraint text if applicable. A finished attempt with a verdict
+    // describes the response in its place, so it is announced with the
+    // fieldset; the status rail is the visual verdict.
     let constraint: ConstraintMessage | undefined;
     const minSelectionsMessage = element.getAttribute('data-min-selections-message');
     const maxSelectionsMessage = element.getAttribute('data-max-selections-message');
-    const hintText = buildConstraintText(minChoices, maxChoices, isSingleSelect);
+    const verdict = evaluation?.verdict ?? null;
+    const constraintText = buildConstraintText(minChoices, maxChoices, isSingleSelect);
+    let hintText = verdict ? getVerdictText(verdict) : constraintText;
     if (hintText) {
       constraint = createConstraintMessage(
         `constraint-${responseIdentifier}`,
@@ -212,6 +230,31 @@ class ChoiceInteractionHandler implements ElementHandler {
         }
       }
     }
+
+    // Draw the evaluation: the status rail, a "correct answer" overline on
+    // each correct choice, and an "incorrect answer" overline on each selected
+    // choice that isn't correct, on its own line above the choice text (first
+    // in the choice's content, so its name reads "Correct answer <choice>").
+    // The verdict is in the constraint text.
+    if (evaluation) {
+      const hasCorrectResponse = evaluation.correctResponse.length > 0;
+      for (const input of inputElements) {
+        const content = input.parentElement?.querySelector('.cutie-simple-choice-content');
+        if (evaluation.correctResponse.includes(input.value)) {
+          content?.prepend(createCorrectAnswerOverline());
+        } else if (hasCorrectResponse && input.checked) {
+          content?.prepend(createIncorrectAnswerOverline());
+        }
+      }
+      markEvaluated(container, evaluation.verdict);
+    }
+    clearVerdictOnEdit(context, responseIdentifier, evaluation, () => {
+      clearEvaluated(container);
+      // Incorrect-answer marks describe the response, so they go with the verdict
+      container.querySelectorAll('.cutie-correct-answer-overline--incorrect').forEach((mark) => mark.remove());
+      clearConstraintVerdict(constraint, choicesContainer, constraintText);
+      hintText = constraintText;
+    });
 
     // For single-select (radio), use roving tabindex to ensure Tab always
     // enters the group at the correct radio. Without this, browsers remember
@@ -278,10 +321,12 @@ class ChoiceInteractionHandler implements ElementHandler {
         }
       };
 
-      const accessor = () => {
+      const accessor = (options?: ResponseAccessorOptions) => {
         const value = getResponse();
         const valid = checkValidity();
-        if (valid) { clearErrors(); } else { showErrors(); }
+        if (!options?.silent) {
+          if (valid) { clearErrors(); } else { showErrors(); }
+        }
         return { value, valid };
       };
 
@@ -290,6 +335,9 @@ class ChoiceInteractionHandler implements ElementHandler {
       // Real-time validation on user interaction
       inputElements.forEach((input) => {
         input.addEventListener('change', () => {
+          // Report the edit first: it clears a verdict the constraint message
+          // may be showing, so validation below uses the constraint's own text
+          context.itemState?.notifyResponseChange(responseIdentifier);
           if (checkValidity()) {
             clearErrors();
           } else {
@@ -303,8 +351,8 @@ class ChoiceInteractionHandler implements ElementHandler {
       });
 
       // Observe interaction enabled state changes
-      const updateInteractionState = (state: { interactionsEnabled: boolean }) => {
-        const isEnabled = state.interactionsEnabled;
+      const updateInteractionState = (state: { interactionState: InteractionState }) => {
+        const isEnabled = state.interactionState === 'enabled';
         inputElements.forEach((input) => {
           input.disabled = !isEnabled;
         });
@@ -313,7 +361,7 @@ class ChoiceInteractionHandler implements ElementHandler {
       context.itemState.addObserver(updateInteractionState);
 
       // Set initial state
-      updateInteractionState({ interactionsEnabled: context.itemState.interactionsEnabled });
+      updateInteractionState({ interactionState: context.itemState.interactionState });
     }
 
     fragment.appendChild(container);
@@ -331,7 +379,6 @@ registry.register('choice-interaction', new ChoiceInteractionHandler(), 50);
 const CHOICE_INTERACTION_STYLES = `
   .cutie-choice-interaction {
     margin: 1em 0;
-    font-family: system-ui, -apple-system, sans-serif;
   }
 
   .cutie-choice-interaction .cutie-prompt {
@@ -426,8 +473,8 @@ const CHOICE_INTERACTION_STYLES = `
 
   /* Focus-within styling for keyboard navigation */
   .cutie-choice-interaction .cutie-simple-choice:focus-within {
-    outline: 2px solid var(--cutie-primary);
-    outline-offset: 2px;
+    outline: var(--cutie-focus-ring);
+    outline-offset: var(--cutie-focus-ring-offset);
   }
 
   .cutie-choice-interaction .cutie-simple-choice-content {
@@ -439,6 +486,13 @@ const CHOICE_INTERACTION_STYLES = `
 
   .cutie-choice-interaction .cutie-simple-choice:has(input:disabled) .cutie-simple-choice-content {
     cursor: not-allowed;
+  }
+
+  /* ── Evaluated (review) state ───────────────────────────────── */
+
+  /* Sits on its own line, directly above the choice's first line */
+  .cutie-choice-interaction .cutie-correct-answer-overline {
+    display: block;
   }
 
   /* ── Choice label vocabulary classes ─────────────────────────── */

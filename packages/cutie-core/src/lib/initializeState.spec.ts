@@ -1,7 +1,7 @@
 /* spell-checker: ignore DPAIR */
 import { DOMParser } from '@xmldom/xmldom';
 import { describe, expect, test } from 'vitest';
-import { initializeState } from './initializeState';
+import { initializeState } from './initializeState.js';
 
 // from https://www.imsglobal.org/spec/qti/v3p0/impl#h.hs6z9wmqtzq7
 const minimalItemXml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -243,7 +243,7 @@ describe('initializeState', () => {
       const itemDoc = parser.parseFromString(xml, 'text/xml');
       const state = initializeState(itemDoc);
 
-      expect(state.variables.POINT_VAR).toEqual([100, 200]);
+      expect(state.variables.POINT_VAR).toBe('100 200');
     });
 
     test('declares template variable with directedPair base type', () => {
@@ -262,7 +262,7 @@ describe('initializeState', () => {
       const itemDoc = parser.parseFromString(xml, 'text/xml');
       const state = initializeState(itemDoc);
 
-      expect(state.variables.DPAIR_VAR).toEqual(['A', 'B']);
+      expect(state.variables.DPAIR_VAR).toBe('A B');
     });
 
     test('declares template variable with pair base type', () => {
@@ -281,7 +281,7 @@ describe('initializeState', () => {
       const itemDoc = parser.parseFromString(xml, 'text/xml');
       const state = initializeState(itemDoc);
 
-      expect(state.variables.PAIR_VAR).toEqual(['A', 'B']);
+      expect(state.variables.PAIR_VAR).toBe('A B');
     });
 
     test('declares template variable with duration base type', () => {
@@ -2235,7 +2235,7 @@ describe('initializeState', () => {
           identifier="mapping-test" title="Mapping Test">
           <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier">
             <qti-mapping default-value="0" upper-bound="5">
-              <qti-map-entry map-key="A" mapped-value="1"/>
+              <qti-map-entry map-key="A" mapped-value="6"/>
               <qti-map-entry map-key="B" mapped-value="2"/>
             </qti-mapping>
           </qti-response-declaration>
@@ -2550,5 +2550,38 @@ describe('initializeState', () => {
       expect(state.shuffleOrders?.R1).toHaveLength(2);
       expect(state.shuffleOrders?.R2).toBeUndefined();
     });
+  });
+});
+
+describe('initializeState template constraint retries', () => {
+  // X is 1 or 2 at random; a run that picks 1 sets OUT's default, then fails
+  // the constraint, so only runs that pick 2 succeed and OUT keeps no default
+  const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="retry" title="Retry">
+  <qti-outcome-declaration identifier="OUT" cardinality="single" base-type="integer"/>
+  <qti-template-declaration identifier="X" cardinality="single" base-type="integer"/>
+  <qti-template-processing>
+    <qti-set-template-value identifier="X"><qti-random-integer min="1" max="2"/></qti-set-template-value>
+    <qti-template-condition>
+      <qti-template-if>
+        <qti-match><qti-variable identifier="X"/><qti-base-value base-type="integer">1</qti-base-value></qti-match>
+        <qti-set-default-value identifier="OUT"><qti-base-value base-type="integer">7</qti-base-value></qti-set-default-value>
+      </qti-template-if>
+    </qti-template-condition>
+    <qti-template-constraint>
+      <qti-match><qti-variable identifier="X"/><qti-base-value base-type="integer">2</qti-base-value></qti-match>
+    </qti-template-constraint>
+  </qti-template-processing>
+  <qti-item-body><p>Item</p></qti-item-body>
+</qti-assessment-item>`;
+
+  test('keep nothing a failed run set', () => {
+    const itemDoc = new DOMParser().parseFromString(itemXml, 'text/xml');
+    for (let run = 0; run < 20; run++) {
+      const state = initializeState(itemDoc);
+      expect(state.variables.X).toBe(2);
+      expect(state.variables.OUT).toBeUndefined();
+      expect(state.defaultValues).toBeUndefined();
+    }
   });
 });

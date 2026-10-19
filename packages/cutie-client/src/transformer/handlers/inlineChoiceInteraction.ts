@@ -1,14 +1,16 @@
 /* spell-checker: ignore bqti */
-import { createMissingAttributeError } from '../../errors/errorDisplay';
+import { createMissingAttributeError } from '../../errors/errorDisplay.js';
 import {
   type ConstraintMessage,
   createInlineRequiredIndicator,
-} from '../../errors/validationDisplay';
-import { announce } from '../../utils/liveRegion';
-import { registry } from '../registry';
-import type { ElementHandler, TransformContext } from '../types';
-import { parseInputWidth } from '../vocabUtils';
-import { getDefaultValue } from './responseUtils';
+  wrapInlineRequired,
+} from '../../errors/validationDisplay.js';
+import { announce } from '../../utils/liveRegion.js';
+import { registry } from '../registry.js';
+import type { ElementHandler, InteractionState, ResponseAccessorOptions, TransformContext } from '../types.js';
+import { parseInputWidth } from '../vocabUtils.js';
+import { clearInlineVerdict, clearVerdictOnEdit, readEvaluation, wrapInlineEvaluation } from './evaluation/index.js';
+import { getDefaultValue } from './responseUtils.js';
 
 /**
  * Handler for qti-inline-choice-interaction elements.
@@ -125,11 +127,29 @@ class InlineChoiceInteractionHandler implements ElementHandler {
       select.setAttribute('aria-describedby', constraintId);
     }
 
+    // Evaluation of a finished attempt or a fresh try: the verdict icon and
+    // the correct answer (the choice's displayed text) above the select, describing it
+    let placed: HTMLElement = select;
+    const evaluation = readEvaluation(element, responseIdentifier, context.styleManager);
+    if (evaluation) {
+      const correctText = evaluation.correctResponse
+        .map((id) => Array.from(select.options).find((option) => option.value === id)?.textContent ?? id)
+        .join(', ');
+      placed = wrapInlineEvaluation(select, `evaluation-${responseIdentifier}`, evaluation, correctText || null);
+    }
+    clearVerdictOnEdit(context, responseIdentifier, evaluation, () =>
+      clearInlineVerdict(select, `evaluation-${responseIdentifier}`)
+    );
+
     // Register response accessor with itemState if available
     if (context.itemState) {
-      const responseAccessor = () => {
+      const responseAccessor = (options?: ResponseAccessorOptions) => {
         const value = select.value;
         const isValid = !isConstrained || value !== '';
+
+        if (options?.silent) {
+          return { value: value === '' ? null : value, valid: isValid };
+        }
 
         if (!isValid) {
           select.setAttribute('aria-invalid', 'true');
@@ -151,32 +171,31 @@ class InlineChoiceInteractionHandler implements ElementHandler {
           select.removeAttribute('aria-invalid');
           indicator?.setError(false);
         }
+        context.itemState?.notifyResponseChange(responseIdentifier);
       });
 
       // Observe interaction enabled state to enable/disable select
-      const observer = (state: { interactionsEnabled: boolean }) => {
-        select.disabled = !state.interactionsEnabled;
+      const observer = (state: { interactionState: InteractionState }) => {
+        select.disabled = state.interactionState !== 'enabled';
       };
 
       context.itemState.addObserver(observer);
 
       // Set initial disabled state
-      select.disabled = !context.itemState.interactionsEnabled;
+      select.disabled = context.itemState.interactionState !== 'enabled';
     }
 
-    fragment.appendChild(select);
-    if (indicator) {
-      fragment.appendChild(indicator.element);
-    }
+    fragment.appendChild(wrapInlineRequired(placed, indicator));
 
     return fragment;
   }
 }
 
 const INLINE_CHOICE_INTERACTION_STYLES = `
+  /* The top margin reserves the slot for the evaluation overline, above the text line */
   .cutie-inline-choice-interaction {
     display: inline-block;
-    margin: 0 0.25em;
+    margin: var(--cutie-overline-slot) 0.25em 0;
     padding: 0.25em 0.5em;
     border: 1px solid var(--cutie-border);
     border-radius: 3px;
@@ -189,8 +208,8 @@ const INLINE_CHOICE_INTERACTION_STYLES = `
   }
 
   .cutie-inline-choice-interaction:focus {
-    outline: 2px solid var(--cutie-primary);
-    outline-offset: 1px;
+    outline: var(--cutie-focus-ring);
+    outline-offset: var(--cutie-focus-ring-offset);
     border-color: var(--cutie-primary);
   }
 

@@ -1,6 +1,6 @@
-import { registry } from '../../registry';
-import type { ElementHandler, TransformContext } from '../../types';
-import { createFeedbackIcon, FEEDBACK_ICON_STYLES, isFeedbackType } from './feedbackIcons';
+import { registry } from '../../registry.js';
+import type { ElementHandler, TransformContext } from '../../types.js';
+import { createFeedbackIcon, FEEDBACK_ICON_STYLES, isFeedbackType } from './feedbackIcons.js';
 
 /**
  * Handler for qti-modal-feedback elements.

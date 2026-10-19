@@ -1,5 +1,5 @@
 import { Editor, Transforms } from 'slate';
-import { generateUniqueResponseId } from '../../utils/idGenerator';
+import { generateUniqueResponseId } from '../../utils/idGenerator.js';
 
 /**
  * Insert a text entry interaction at the current selection

@@ -1,18 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { item as inlineChoiceMultiItem } from '../../../cutie-example/src/example-items/inline-choice-multi';
-import { item as inlineFeedbackItem } from '../../../cutie-example/src/example-items/inline-feedback';
-import { item as modalFeedbackItem } from '../../../cutie-example/src/example-items/modal-feedback';
-import { item as choiceFeedbackItem } from '../../../cutie-example/src/example-items/standard-choice';
-import { item as choiceMultipleFeedbackItem } from '../../../cutie-example/src/example-items/standard-choice-multiple';
-import { item as choicePartialItem } from '../../../cutie-example/src/example-items/standard-choice-partial';
-import { item as gapMatchFeedbackItem } from '../../../cutie-example/src/example-items/standard-gap-match';
-import { item as inlineChoiceFeedbackItem } from '../../../cutie-example/src/example-items/standard-inline-choice';
-import { item as matchFeedbackItem } from '../../../cutie-example/src/example-items/standard-match';
-import { item as multiInteractionItem } from '../../../cutie-example/src/example-items/standard-multi-interaction';
-import { item as textEntryItem } from '../../../cutie-example/src/example-items/standard-text-entry';
-import { item as textEntryPartialItem } from '../../../cutie-example/src/example-items/standard-text-entry-partial';
-import { item as textEntryMultiItem } from '../../../cutie-example/src/example-items/text-entry-multi';
-import { classifyResponseProcessing } from './responseProcessingClassifier';
+import { item as inlineChoiceMultiItem } from '../../../cutie-example/src/example-items/inline-choice-multi.js';
+import { item as inlineFeedbackItem } from '../../../cutie-example/src/example-items/inline-feedback.js';
+import { item as modalFeedbackItem } from '../../../cutie-example/src/example-items/modal-feedback.js';
+import { item as choiceMultipleFeedbackItem } from '../../../cutie-example/src/example-items/standard-choice-multiple-wrong-choice-feedback.js';
+import { item as choicePartialItem } from '../../../cutie-example/src/example-items/standard-choice-partial.js';
+import { item as multiInteractionItem } from '../../../cutie-example/src/example-items/standard-multi-interaction.js';
+import { item as textEntryPartialItem } from '../../../cutie-example/src/example-items/standard-text-entry-partial.js';
+import { item as textEntryMultiItem } from '../../../cutie-example/src/example-items/text-entry-multi.js';
+import { classifyResponseProcessing } from './responseProcessingClassifier.js';
 
 /**
  * Helper to create a minimal QTI document for testing
@@ -631,6 +626,106 @@ describe('responseProcessingClassifier', () => {
     });
   });
 
+  describe('item-level feedback', () => {
+    const itemCompletedRule = `
+      <qti-set-outcome-value identifier="FEEDBACK">
+        <qti-multiple>
+          <qti-variable identifier="FEEDBACK"/>
+          <qti-base-value base-type="identifier">ITEM_completed</qti-base-value>
+        </qti-multiple>
+      </qti-set-outcome-value>`;
+
+    const allCorrectScoring = `
+      <qti-response-condition>
+        <qti-response-if>
+          <qti-match>
+            <qti-variable identifier="RESPONSE"/>
+            <qti-correct identifier="RESPONSE"/>
+          </qti-match>
+          <qti-set-outcome-value identifier="SCORE">
+            <qti-base-value base-type="float">1</qti-base-value>
+          </qti-set-outcome-value>
+        </qti-response-if>
+        <qti-response-else>
+          <qti-set-outcome-value identifier="SCORE">
+            <qti-base-value base-type="float">0</qti-base-value>
+          </qti-set-outcome-value>
+        </qti-response-else>
+      </qti-response-condition>`;
+
+    it('should recognize allCorrect + unconditional ITEM_completed rule', () => {
+      const doc = createQtiDoc(`
+        <qti-response-processing>
+          ${allCorrectScoring}
+          ${itemCompletedRule}
+        </qti-response-processing>
+      `);
+
+      expect(classifyResponseProcessing(doc).mode).toBe('allCorrect');
+    });
+
+    it('should recognize sumScores + unconditional ITEM_completed rule', () => {
+      const doc = createQtiDoc(`
+        <qti-response-processing>
+          <qti-set-outcome-value identifier="SCORE">
+            <qti-sum>
+              <qti-map-response identifier="RESPONSE"/>
+            </qti-sum>
+          </qti-set-outcome-value>
+          ${itemCompletedRule}
+        </qti-response-processing>
+      `);
+
+      expect(classifyResponseProcessing(doc).mode).toBe('sumScores');
+    });
+
+    it('should classify ITEM_completed set inside a condition as custom', () => {
+      const doc = createQtiDoc(`
+        <qti-response-processing>
+          ${allCorrectScoring}
+          <qti-response-condition>
+            <qti-response-if>
+              <qti-match>
+                <qti-variable identifier="RESPONSE"/>
+                <qti-correct identifier="RESPONSE"/>
+              </qti-match>
+              ${itemCompletedRule}
+            </qti-response-if>
+          </qti-response-condition>
+        </qti-response-processing>
+      `);
+
+      expect(classifyResponseProcessing(doc).mode).toBe('custom');
+    });
+
+    it.each(['ITEM_completed', 'RESPONSE_correct'])(
+      'should classify %s set inside the scoring condition as custom',
+      (feedbackId) => {
+        const doc = createQtiDoc(`
+          <qti-response-processing>
+            ${allCorrectScoring.replace(
+              '</qti-response-if>',
+              `${itemCompletedRule.replace('ITEM_completed', feedbackId)}</qti-response-if>`
+            )}
+          </qti-response-processing>
+        `);
+
+        expect(classifyResponseProcessing(doc).mode).toBe('custom');
+      }
+    );
+
+    it('should classify other unconditional FEEDBACK rules as custom', () => {
+      const doc = createQtiDoc(`
+        <qti-response-processing>
+          ${allCorrectScoring}
+          ${itemCompletedRule.replace('ITEM_completed', 'RESPONSE_correct')}
+        </qti-response-processing>
+      `);
+
+      expect(classifyResponseProcessing(doc).mode).toBe('custom');
+    });
+  });
+
   describe('example items round-trip', () => {
     function parseItem(item: string): Document {
       const parser = new DOMParser();
@@ -649,44 +744,14 @@ describe('responseProcessingClassifier', () => {
       expect(result.mode).toBe('allCorrect');
     });
 
-    it('should classify choice-feedback.ts as allCorrect', () => {
-      const doc = parseItem(choiceFeedbackItem);
-      const result = classifyResponseProcessing(doc);
-      expect(result.mode).toBe('allCorrect');
-    });
-
-    it('should classify standard-text-entry.ts as allCorrect', () => {
-      const doc = parseItem(textEntryItem);
-      const result = classifyResponseProcessing(doc);
-      expect(result.mode).toBe('allCorrect');
-    });
-
     it('should classify text-entry-multi.ts as allCorrect', () => {
       const doc = parseItem(textEntryMultiItem);
       const result = classifyResponseProcessing(doc);
       expect(result.mode).toBe('allCorrect');
     });
 
-    it('should classify standard-choice-multiple.ts as allCorrect', () => {
+    it('should classify standard-choice-multiple-wrong-choice-feedback.ts as allCorrect', () => {
       const doc = parseItem(choiceMultipleFeedbackItem);
-      const result = classifyResponseProcessing(doc);
-      expect(result.mode).toBe('allCorrect');
-    });
-
-    it('should classify standard-inline-choice.ts as allCorrect', () => {
-      const doc = parseItem(inlineChoiceFeedbackItem);
-      const result = classifyResponseProcessing(doc);
-      expect(result.mode).toBe('allCorrect');
-    });
-
-    it('should classify standard-match.ts as allCorrect', () => {
-      const doc = parseItem(matchFeedbackItem);
-      const result = classifyResponseProcessing(doc);
-      expect(result.mode).toBe('allCorrect');
-    });
-
-    it('should classify standard-gap-match.ts as allCorrect', () => {
-      const doc = parseItem(gapMatchFeedbackItem);
       const result = classifyResponseProcessing(doc);
       expect(result.mode).toBe('allCorrect');
     });

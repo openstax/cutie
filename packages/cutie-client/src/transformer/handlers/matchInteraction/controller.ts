@@ -5,9 +5,10 @@ import {
   focusPrev,
   highlightDropTargets,
   initializeRovingTabindex,
+  reportResponseChanges,
   updateRovingTabindex,
-} from '../../../utils';
-import type { TransformContext } from '../../types';
+} from '../../../utils/index.js';
+import type { TransformContext } from '../../types.js';
 
 interface ChoiceData {
   id: string;
@@ -338,13 +339,13 @@ export class MatchController {
       }
     };
 
-    slot.addEventListener('click', (e) => {
+    slot.addEventListener('click', this.reportingEdits((e: MouseEvent) => {
       if (!this.enabled) return;
       e.stopPropagation();
       activate();
-    });
+    }));
 
-    slot.addEventListener('keydown', (e) => {
+    slot.addEventListener('keydown', this.reportingEdits((e: KeyboardEvent) => {
       if (!this.enabled) return;
       const occupant = this.slotOccupant.get(slot);
       if (e.key === 'Enter' || e.key === ' ') {
@@ -361,7 +362,7 @@ export class MatchController {
       } else if (e.key === 'Escape') {
         this.clearSelection();
       }
-    });
+    }));
 
     slot.addEventListener('dragstart', (e) => {
       if (!this.enabled) return;
@@ -396,7 +397,7 @@ export class MatchController {
       slot.classList.remove('cutie-match-slot--drag-over');
     });
 
-    slot.addEventListener('drop', (e) => {
+    slot.addEventListener('drop', this.reportingEdits((e: DragEvent) => {
       if (!this.enabled) return;
       slot.classList.remove('cutie-match-slot--drag-over');
 
@@ -407,7 +408,7 @@ export class MatchController {
       const { sourceId, fromSlot } = this.groupedDrag;
       this.placeInSlot(slot, sourceId, fromSlot);
       this.clearSelection();
-    });
+    }));
   }
 
   /**
@@ -429,16 +430,16 @@ export class MatchController {
       }
     });
 
-    bank.addEventListener('drop', (e) => {
+    bank.addEventListener('drop', this.reportingEdits((e: DragEvent) => {
       if (!this.enabled) return;
       bank.classList.remove('cutie-match-bank--drag-over');
       const fromSlot = this.groupedDrag?.fromSlot;
       if (!fromSlot) return;
       e.preventDefault();
       this.removeFromSlot(fromSlot);
-    });
+    }));
 
-    bank.addEventListener('click', (e) => {
+    bank.addEventListener('click', this.reportingEdits((e: MouseEvent) => {
       if (!this.enabled) return;
       const target = e.target as HTMLElement;
       // Clicking the bank background (not a source) returns a picked-up source.
@@ -446,7 +447,7 @@ export class MatchController {
         this.removeFromSlot(this.groupedSel.fromSlot);
         this.clearSelection();
       }
-    });
+    }));
   }
 
   /**
@@ -638,16 +639,16 @@ export class MatchController {
     const { id, set, element } = choice;
 
     // Click to select/connect
-    element.addEventListener('click', (e) => {
+    element.addEventListener('click', this.reportingEdits((e: MouseEvent) => {
       if (!this.enabled) return;
       // Ignore clicks on chips
       if ((e.target as HTMLElement).closest('.cutie-match-chip')) return;
 
       this.handleChoiceClick(id);
-    });
+    }));
 
     // Keyboard navigation
-    element.addEventListener('keydown', (e) => {
+    element.addEventListener('keydown', this.reportingEdits((e: KeyboardEvent) => {
       if (!this.enabled) return;
 
       switch (e.key) {
@@ -683,7 +684,7 @@ export class MatchController {
           this.clearSelection();
           break;
       }
-    });
+    }));
 
     // Drag and drop
     element.addEventListener('dragstart', (e) => {
@@ -720,7 +721,7 @@ export class MatchController {
       element.classList.remove('cutie-match-choice--drag-over');
     });
 
-    element.addEventListener('drop', (e) => {
+    element.addEventListener('drop', this.reportingEdits((e: DragEvent) => {
       if (!this.enabled) return;
       e.preventDefault();
       element.classList.remove('cutie-match-choice--drag-over');
@@ -732,7 +733,7 @@ export class MatchController {
       this.pendingChipDrag = null;
 
       this.handleChoiceClick(id);
-    });
+    }));
   }
 
   /**
@@ -1071,7 +1072,7 @@ export class MatchController {
 
     // Click to select chip - selecting the chip means selecting what it represents (connectedId)
     // Tap-again-to-remove: if this chip's association is already selected, remove it
-    chip.addEventListener('click', (e) => {
+    chip.addEventListener('click', this.reportingEdits((e: MouseEvent) => {
       e.stopPropagation();
       if (!this.enabled) return;
 
@@ -1084,10 +1085,10 @@ export class MatchController {
       }
 
       this.select(connectedId, existingAssociation, chip);
-    });
+    }));
 
     // Keyboard support for chip
-    chip.addEventListener('keydown', (e) => {
+    chip.addEventListener('keydown', this.reportingEdits((e: KeyboardEvent) => {
       if (!this.enabled) return;
 
       if (e.key === 'Enter' || e.key === ' ') {
@@ -1114,7 +1115,7 @@ export class MatchController {
         this.clearSelection();
         choice.element.focus();
       }
-    });
+    }));
 
     // Drag support - select the chip and set up drag data
     chip.addEventListener('dragstart', (e) => {
@@ -1134,7 +1135,7 @@ export class MatchController {
       chip.classList.add('cutie-match-chip--dragging');
     });
 
-    chip.addEventListener('dragend', () => {
+    chip.addEventListener('dragend', this.reportingEdits(() => {
       chip.classList.remove('cutie-match-chip--dragging');
       this.clearSelection();
 
@@ -1144,7 +1145,7 @@ export class MatchController {
         this.pendingChipDrag = null;
         this.removeAssociation(pendingSourceId, pendingTargetId);
       }
-    });
+    }));
 
     return chip;
   }
@@ -1265,6 +1266,14 @@ export class MatchController {
       slot.setAttribute('aria-disabled', String(!enabled));
       this.updateSlotLabel(slot);
     }
+  }
+
+  /**
+   * Wrap a learner-event listener so any response change it causes is
+   * reported once to the item state (see reportResponseChanges).
+   */
+  private reportingEdits<E extends Event>(listener: (event: E) => void): (event: E) => void {
+    return reportResponseChanges(this.context, this.responseIdentifier, () => this.getResponse(), listener);
   }
 
   /**

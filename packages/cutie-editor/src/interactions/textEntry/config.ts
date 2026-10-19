@@ -1,14 +1,14 @@
 import type { Element } from 'slate';
-import type { ElementConfig, FeedbackIdentifier, QtiTextEntryInteraction, XmlNode } from '../../types';
-import { parseFeedbackIdentifier } from '../../utils/feedbackIdentifiers';
-import { getMaxMappedValue, hasMapping } from '../../utils/mappingDeclaration';
-import { hasCorrectResponse } from '../../utils/responseDeclaration';
+import type { ElementConfig, FeedbackIdentifier, QtiTextEntryInteraction, XmlNode } from '../../types.js';
+import { parseFeedbackIdentifier } from '../../utils/feedbackIdentifiers.js';
+import { getMaxMappedValue, hasMapping } from '../../utils/mappingDeclaration.js';
+import { hasCorrectResponse } from '../../utils/responseDeclaration.js';
 import {
   createMapResponseEqualElement,
   createMapResponseGtZeroElement,
   createMatchElement,
   createSetFeedbackElement,
-} from '../../utils/responseProcessingGenerator';
+} from '../../utils/responseProcessingGenerator.js';
 
 const QTI_NAMESPACE = 'http://www.imsglobal.org/xsd/imsqtiasi_v3p0';
 

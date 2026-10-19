@@ -1,5 +1,5 @@
 import { Element } from 'slate';
-import type { CustomEditor } from '../types';
+import type { CustomEditor } from '../types.js';
 
 /**
  * Plugin to handle unknown QTI elements

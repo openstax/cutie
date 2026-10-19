@@ -2,8 +2,8 @@
  * Record operators
  */
 
-import { getChildElements } from '../../utils/dom';
-import type { SubEvaluate } from './types';
+import { getChildElements } from '../../utils/dom.js';
+import type { SubEvaluate } from './types.js';
 
 /**
  * Evaluate qti-record element

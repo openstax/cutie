@@ -14,7 +14,7 @@ scoring, feedback, and accessibility.
 
 ## Basic Display, Validation & Submission
 
-**Setup:** Load "Single Choice" from the example dropdown.
+**Setup:** Load "Single Choice" from the Standard Samples group in the example dropdown.
 
 1. Observe the rendered item.
    - [ ] A question prompt is visible above the choices

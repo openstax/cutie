@@ -1,4 +1,4 @@
-import type { FeedbackIdentifierOption } from './types';
+import type { FeedbackIdentifierOption } from './types.js';
 
 interface IdentifierSelectorProps {
   value: string;

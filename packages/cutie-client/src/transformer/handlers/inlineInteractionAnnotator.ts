@@ -52,6 +52,14 @@ function isInteraction(node: Node): node is HTMLElement {
   );
 }
 
+/**
+ * Content hidden from assistive technology: never label text, however it sits
+ * beside an interaction
+ */
+function isAriaHidden(node: Node): boolean {
+  return node.nodeType === Node.ELEMENT_NODE && (node as Element).getAttribute('aria-hidden') === 'true';
+}
+
 function isInlineElement(node: Node): boolean {
   if (node.nodeType !== Node.ELEMENT_NODE) return false;
   return INLINE_TAGS.has((node as Element).tagName.toLowerCase());
@@ -291,6 +299,13 @@ function processContainer(
 
       // Record the interaction with region-based before/after tracking
       trackInteraction(tracker, node as HTMLElement);
+      continue;
+    }
+
+    if (isAriaHidden(node)) {
+      // Not label text: close the current group (keeping DOM order) and skip it
+      flushAndTrack(currentGroup, generateId, tracker, allSpanIds);
+      currentGroup = [];
       continue;
     }
 

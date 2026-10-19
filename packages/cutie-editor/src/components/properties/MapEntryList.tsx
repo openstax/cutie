@@ -1,5 +1,5 @@
-import { useStyle } from '../../hooks/useStyle';
-import type { MapEntry } from '../../utils/mappingDeclaration';
+import { useStyle } from '../../hooks/useStyle.js';
+import type { MapEntry } from '../../utils/mappingDeclaration.js';
 
 interface MapEntryListProps {
   entries: MapEntry[];

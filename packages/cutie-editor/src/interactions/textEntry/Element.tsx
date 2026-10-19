@@ -1,8 +1,8 @@
 import { useSelected, useFocused } from 'slate-react';
 import type { RenderElementProps } from 'slate-react';
-import type { QtiTextEntryInteraction } from '../../types';
-import { getCorrectValue } from '../../utils/responseDeclaration';
-import { getMapping } from '../../utils/mappingDeclaration';
+import type { QtiTextEntryInteraction } from '../../types.js';
+import { getCorrectValue } from '../../utils/responseDeclaration.js';
+import { getMapping } from '../../utils/mappingDeclaration.js';
 
 /**
  * Get the display value for a text entry interaction.

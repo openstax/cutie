@@ -2,9 +2,9 @@
  * Container operators
  */
 
-import { getChildElements } from '../../utils/dom';
-import { deepEqual } from '../../utils/equality';
-import type { SubEvaluate } from './types';
+import { getChildElements } from '../../utils/dom.js';
+import { deepEqual } from '../../utils/equality.js';
+import type { SubEvaluate } from './types.js';
 
 /**
  * Evaluate qti-multiple element (unordered container)

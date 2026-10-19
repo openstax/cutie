@@ -1,7 +1,7 @@
-import { registry } from '../../registry';
-import type { ElementHandler, TransformContext } from '../../types';
-import { announceFeedback } from './feedbackAnnouncer';
-import { createFeedbackIcon, FEEDBACK_ICON_STYLES, isFeedbackType } from './feedbackIcons';
+import { registry } from '../../registry.js';
+import type { ElementHandler, TransformContext } from '../../types.js';
+import { announceFeedback } from './feedbackAnnouncer.js';
+import { createFeedbackIcon, FEEDBACK_ICON_STYLES, isFeedbackType } from './feedbackIcons.js';
 
 /**
  * Handler for qti-feedback-inline elements.

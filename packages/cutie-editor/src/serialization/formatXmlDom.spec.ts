@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatXmlDom } from './formatXmlDom';
+import { formatXmlDom } from './formatXmlDom.js';
 
 function parseXml(xml: string): Document {
   return new DOMParser().parseFromString(xml, 'application/xml');

@@ -1,9 +1,9 @@
 import type { Descendant } from 'slate';
-import type { SerializationContext } from '../../serialization/slateToXml';
-import type { ConvertChildrenFn, ParserContext } from '../../serialization/xmlToSlate';
-import { createXmlElement } from '../../serialization/xmlUtils';
-import type { InlineChoiceOption, SlateElement, XmlNode } from '../../types';
-import { inlineChoiceInteractionConfig } from './config';
+import type { SerializationContext } from '../../serialization/slateToXml.js';
+import type { ConvertChildrenFn, ParserContext } from '../../serialization/xmlToSlate.js';
+import { createXmlElement } from '../../serialization/xmlUtils.js';
+import type { InlineChoiceOption, SlateElement, XmlNode } from '../../types.js';
+import { inlineChoiceInteractionConfig } from './config.js';
 
 /**
  * Create a default response declaration for an inline choice interaction

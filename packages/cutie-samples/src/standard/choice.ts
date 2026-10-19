@@ -1,17 +1,39 @@
-// Scoring mode: allCorrect
-// All responses must be correct for SCORE=1, otherwise SCORE=0.
-// See README.md "allCorrect Mode" for full pattern documentation.
+/* spell-checker: ignore Golgi Lysosome */
+import type { Sample } from '../types.js';
+import {
+  allOrNothingMatch,
+  correctResponse,
+  outcomes,
+  responseProcessingOrder,
+  shuffle,
+  workedSolution,
+} from './conventions.js';
 
-// Single Choice with Per-Choice Inline Feedback
+const description = `\
+A single-select multiple choice question: \`qti-choice-interaction\` with \
+\`max-choices="1"\` and the question in a \`qti-prompt\`. Any number of choices is fine.
 
-export const name = "Single Choice";
+- Set \`min-choices="1"\` so a choice must be selected before submitting.
+- ${shuffle}
+- Every choice ends with its own \`qti-feedback-block\` with identifier \
+\`RESPONSE_choice_<choiceId>\`, shown when that choice is selected. The text \
+explains why that specific choice is right or wrong (for example, the \
+misconception it reflects). It has no \`data-feedback-type\` and no \
+"Correct"/"Incorrect" prefix; the delivery system presents the verdict.
+- ${workedSolution}
+- ${allOrNothingMatch}
+- Each per-choice feedback condition uses \`qti-match\` between the response and \
+the choice identifier.
+- ${responseProcessingOrder}
+- ${correctResponse}
+- ${outcomes}`;
 
-export const item = `<?xml version="1.0" encoding="UTF-8"?>
+const item = `<?xml version="1.0" encoding="UTF-8"?>
 <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 xsi:schemaLocation="http://www.imsglobal.org/xsd/imsqtiasi_v3p0
 https://purl.imsglobal.org/spec/qti/v3p0/schema/xsd/imsqti_asiv3p0p1_v1p0.xsd"
-identifier="choice-feedback" title="Single Choice - Per-Choice Feedback"
+identifier="sample-choice" title="Cellular Respiration Organelle"
 adaptive="false" time-dependent="false" xml:lang="en">
 
   <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier">
@@ -34,36 +56,39 @@ adaptive="false" time-dependent="false" xml:lang="en">
 
   <qti-item-body>
     <qti-choice-interaction response-identifier="RESPONSE" shuffle="true" min-choices="1" max-choices="1">
-      <qti-prompt>Question prompt goes here. Select the best answer.</qti-prompt>
+      <qti-prompt>In a eukaryotic cell, which organelle produces most of the cell's ATP through cellular respiration?</qti-prompt>
       <qti-simple-choice identifier="choiceA">
-        Correct answer text
-        <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceA" show-hide="show" data-feedback-type="correct">
-          <strong>Correct!</strong> This option demonstrates the key concept being assessed. It correctly applies the principle discussed in the question.
-        </qti-feedback-inline>
+        Mitochondrion
+        <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceA" show-hide="show">
+          <p>The citric acid cycle and the electron transport chain both take place in the mitochondrion, and together they produce most of the ATP made during cellular respiration.</p>
+        </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceB">
-        Wrong answer B text
-        <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceB" show-hide="show" data-feedback-type="incorrect">
-          <strong>Incorrect.</strong> This option represents a common misconception. Consider how the key terms relate to each other differently.
-        </qti-feedback-inline>
+        Ribosome
+        <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceB" show-hide="show">
+          <p>Ribosomes use ATP to build proteins, but they don't produce it. Their job is translating mRNA into chains of amino acids.</p>
+        </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceC">
-        Wrong answer C text
-        <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceC" show-hide="show" data-feedback-type="incorrect">
-          <strong>Incorrect.</strong> While this may seem plausible, it misses an important distinction. Review the fundamental principles involved.
-        </qti-feedback-inline>
+        Golgi apparatus
+        <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceC" show-hide="show">
+          <p>The Golgi apparatus modifies, sorts, and packages proteins and lipids for transport. It isn't involved in producing energy.</p>
+        </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceD">
-        Wrong answer D text
-        <qti-feedback-inline outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceD" show-hide="show" data-feedback-type="incorrect">
-          <strong>Incorrect.</strong> This option confuses related but distinct concepts. Think about the specific criteria mentioned in the question.
-        </qti-feedback-inline>
+        Lysosome
+        <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceD" show-hide="show">
+          <p>Lysosomes break down waste and worn-out cell parts with digestive enzymes. Breaking molecules down there doesn't capture energy as ATP.</p>
+        </qti-feedback-block>
       </qti-simple-choice>
     </qti-choice-interaction>
+
+    <qti-feedback-block outcome-identifier="FEEDBACK" identifier="ITEM_completed" show-hide="show">
+      <p>Cellular respiration happens in three stages. Glycolysis takes place in the cytoplasm and makes only a small amount of ATP. The citric acid cycle runs in the mitochondrial matrix, and the electron transport chain sits on the inner mitochondrial membrane. Because oxidative phosphorylation along that membrane produces most of the cell's ATP, the answer is the mitochondrion, which is why it's often called the powerhouse of the cell.</p>
+    </qti-feedback-block>
   </qti-item-body>
 
   <qti-response-processing>
-    <!-- Scoring: all-or-nothing via qti-match -->
     <qti-response-condition>
       <qti-response-if>
         <qti-match>
@@ -81,7 +106,6 @@ adaptive="false" time-dependent="false" xml:lang="en">
       </qti-response-else>
     </qti-response-condition>
 
-    <!-- Per-choice feedback using qti-match against specific choice identifiers -->
     <qti-response-condition>
       <qti-response-if>
         <qti-match>
@@ -97,7 +121,6 @@ adaptive="false" time-dependent="false" xml:lang="en">
       </qti-response-if>
     </qti-response-condition>
 
-    <!-- Set feedback for choiceB -->
     <qti-response-condition>
       <qti-response-if>
         <qti-match>
@@ -113,7 +136,6 @@ adaptive="false" time-dependent="false" xml:lang="en">
       </qti-response-if>
     </qti-response-condition>
 
-    <!-- Set feedback for choiceC -->
     <qti-response-condition>
       <qti-response-if>
         <qti-match>
@@ -129,7 +151,6 @@ adaptive="false" time-dependent="false" xml:lang="en">
       </qti-response-if>
     </qti-response-condition>
 
-    <!-- Set feedback for choiceD -->
     <qti-response-condition>
       <qti-response-if>
         <qti-match>
@@ -144,7 +165,20 @@ adaptive="false" time-dependent="false" xml:lang="en">
         </qti-set-outcome-value>
       </qti-response-if>
     </qti-response-condition>
+    <qti-set-outcome-value identifier="FEEDBACK">
+      <qti-multiple>
+        <qti-variable identifier="FEEDBACK"/>
+        <qti-base-value base-type="identifier">ITEM_completed</qti-base-value>
+      </qti-multiple>
+    </qti-set-outcome-value>
   </qti-response-processing>
 </qti-assessment-item>`;
 
-export const interactionTypes: string[] = ['choice'];
+export const choice: Sample = {
+  id: 'choice',
+  name: 'Single Choice',
+  summary: 'Pick the one correct answer from a list of options.',
+  description,
+  interactionTypes: ['choice'],
+  item,
+};

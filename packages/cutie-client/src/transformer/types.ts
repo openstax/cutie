@@ -16,9 +16,26 @@ export interface CollectResult {
 }
 
 /**
+ * Options for reading a response through its accessor
+ */
+export interface ResponseAccessorOptions {
+  /**
+   * When true, report the value and validity without side effects: no
+   * validation message is rendered and nothing is announced. Defaults to false
+   * (submit-time behavior: validation errors are shown and announced).
+   */
+  silent?: boolean;
+}
+
+/**
  * Function that retrieves current response value from an interaction
  */
-export type ResponseAccessor = () => ResponseAccessorResult;
+export type ResponseAccessor = (options?: ResponseAccessorOptions) => ResponseAccessorResult;
+
+/**
+ * Listener invoked with the current raw value of every response, valid or not
+ */
+export type ResponseChangeListener = (responses: ResponseData) => void;
 
 /**
  * Response data format expected by cutie-core
@@ -26,9 +43,18 @@ export type ResponseAccessor = () => ResponseAccessorResult;
 export type ResponseData = Record<string, unknown>;
 
 /**
+ * What the learner can do with the interactions:
+ * - `'enabled'`: respond
+ * - `'disabled'`: nothing for now, as while a submission is pending; the controls show disabled
+ * - `'readonly'`: nothing, as the response is final (submitted, under review, or a preview);
+ *   interactions may show the response as content in place of their controls
+ */
+export type InteractionState = 'enabled' | 'disabled' | 'readonly';
+
+/**
  * Observer callback for state changes
  */
-export type StateObserver = (state: { interactionsEnabled: boolean }) => void;
+export type StateObserver = (state: { interactionState: InteractionState }) => void;
 
 /**
  * Manages style injection for handlers.
@@ -62,9 +88,22 @@ export interface ItemState {
   getResponseIdentifiers(): string[];
   unregisterResponse(responseIdentifier: string): void;
 
+  /**
+   * Signal that a learner edit changed a response value. Handlers call this
+   * from learner-edit event paths only — never when restoring values
+   * programmatically (e.g. from qti-default-value).
+   */
+  notifyResponseChange(responseIdentifier: string): void;
+
+  /**
+   * Call `listener` on each learner edit that changes the given response
+   * (as reported by notifyResponseChange).
+   */
+  onResponseEdit(responseIdentifier: string, listener: () => void): void;
+
   // State management with observer pattern
-  readonly interactionsEnabled: boolean;
-  setInteractionsEnabled(enabled: boolean): void;
+  readonly interactionState: InteractionState;
+  setInteractionState(interactionState: InteractionState): void;
   addObserver(observer: StateObserver): void;
   removeObserver(observer: StateObserver): void;
 }
@@ -106,10 +145,17 @@ export interface TransformContext {
   onMount?: (callback: () => void) => void;
 
   /**
-   * Register a teardown callback to run when the item is unmounted.
-   * Use for cleanup of resources that persist beyond a single render (e.g., live regions on document.body).
+   * Register a teardown callback to run when this render is torn down: on the
+   * next update() or on unmount. Use for resources a render sets up outside its
+   * own DOM (e.g., document-level event listeners).
    */
   onCleanup?: (callback: () => void) => void;
+
+  /**
+   * Register a teardown callback to run only when the item is unmounted. Use for
+   * resources that must persist across renders.
+   */
+  onUnmount?: (callback: () => void) => void;
 
   /**
    * The top-level container element that the item is rendered into.

@@ -1,5 +1,5 @@
 import { Editor } from 'slate';
-import { collectExistingResponseIds } from '../plugins/withQtiInteractions';
+import { collectExistingResponseIds } from '../plugins/withQtiInteractions.js';
 
 // Re-export for backwards compatibility - uses element registry to find interactions
 export { collectExistingResponseIds };

@@ -1,6 +1,6 @@
 import { DOMParser } from '@xmldom/xmldom';
 import { describe, expect, test } from 'vitest';
-import { getExternalScoredInfo } from './externalScoring';
+import { getExternalScoredInfo } from './externalScoring.js';
 
 const parser = new DOMParser();
 

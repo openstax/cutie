@@ -1,6 +1,6 @@
 import type { Descendant } from 'slate';
 import { describe, expect, it } from 'vitest';
-import { serializeSlateToQti, serializeSlateToXml } from './slateToXml';
+import { serializeSlateToQti, serializeSlateToXml } from './slateToXml.js';
 
 describe('serializeSlateToQti', () => {
   describe('new document creation', () => {

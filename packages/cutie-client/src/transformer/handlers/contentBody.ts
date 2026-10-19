@@ -1,5 +1,5 @@
-import { registry } from '../registry';
-import type { ElementHandler, TransformContext } from '../types';
+import { registry } from '../registry.js';
+import type { ElementHandler, TransformContext } from '../types.js';
 
 /**
  * Handler for qti-content-body elements.

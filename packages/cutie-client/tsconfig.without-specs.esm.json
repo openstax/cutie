@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig.without-specs",
   "compilerOptions": {
-    "module": "es2020",
+    "module": "nodenext",
     "outDir": "dist/esm"
   }
 }

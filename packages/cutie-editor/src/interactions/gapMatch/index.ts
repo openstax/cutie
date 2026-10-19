@@ -6,13 +6,13 @@ export {
   GapTextElement,
   GapImgElement,
   GapElement,
-} from './Element';
+} from './Element.js';
 export {
   GapMatchPropertiesPanel,
   GapTextPropertiesPanel,
   GapImgPropertiesPanel,
   GapPropertiesPanel,
-} from './PropertiesPanel';
+} from './PropertiesPanel.js';
 
 // Re-export from other modules
 export {
@@ -22,9 +22,9 @@ export {
   gapTextConfig,
   gapImgConfig,
   gapConfig,
-} from './config';
-export { gapMatchParsers, gapMatchSerializers } from './serialization';
-export { insertGapMatchInteraction, insertGapAtSelection, generateGapId, generateChoiceId } from './insertion';
+} from './config.js';
+export { gapMatchParsers, gapMatchSerializers } from './serialization.js';
+export { insertGapMatchInteraction, insertGapAtSelection, generateGapId, generateChoiceId } from './insertion.js';
 
 // Import components for creating maps
 import {
@@ -34,13 +34,13 @@ import {
   GapMatchContentElement,
   GapMatchInteractionElement,
   GapTextElement,
-} from './Element';
+} from './Element.js';
 import {
   GapImgPropertiesPanel,
   GapMatchPropertiesPanel,
   GapPropertiesPanel,
   GapTextPropertiesPanel,
-} from './PropertiesPanel';
+} from './PropertiesPanel.js';
 
 // Export objects that can be spread (one per concern)
 export const gapMatchRenderers = {

@@ -1,21 +1,21 @@
 import type { Descendant, Element as SlateElementType } from 'slate';
-import { contentBodyParsers } from '../elements/contentBody';
-import { feedbackBlockParsers } from '../elements/feedback/feedbackBlock';
-import { feedbackInlineParsers } from '../elements/feedback/feedbackInline';
-import { modalFeedbackParsers } from '../elements/feedback/modalFeedback';
-import { promptParsers } from '../elements/prompt';
-import { simpleChoiceParsers } from '../elements/simpleChoice';
-import { choiceParsers } from '../interactions/choice';
-import { extendedTextParsers } from '../interactions/extendedText';
-import { gapMatchParsers } from '../interactions/gapMatch';
-import { inlineChoiceParsers } from '../interactions/inlineChoice';
-import { matchParsers } from '../interactions/match';
-import { textEntryParsers } from '../interactions/textEntry';
-import { isElementInline } from '../plugins/withQtiInteractions';
-import type { DocumentMetadata, ElementAttributes, SlateElement, SlateText, TextAlign } from '../types';
-import { classifyResponseProcessing } from '../utils/responseProcessingClassifier';
-import { domToXmlNode, type XmlNode } from './xmlNode';
-import { isQtiElement, normalizeTagName, parseXml, serializeElement } from './xmlUtils';
+import { contentBodyParsers } from '../elements/contentBody/index.js';
+import { feedbackBlockParsers } from '../elements/feedback/feedbackBlock/index.js';
+import { feedbackInlineParsers } from '../elements/feedback/feedbackInline/index.js';
+import { modalFeedbackParsers } from '../elements/feedback/modalFeedback/index.js';
+import { promptParsers } from '../elements/prompt/index.js';
+import { simpleChoiceParsers } from '../elements/simpleChoice/index.js';
+import { choiceParsers } from '../interactions/choice/index.js';
+import { extendedTextParsers } from '../interactions/extendedText/index.js';
+import { gapMatchParsers } from '../interactions/gapMatch/index.js';
+import { inlineChoiceParsers } from '../interactions/inlineChoice/index.js';
+import { matchParsers } from '../interactions/match/index.js';
+import { textEntryParsers } from '../interactions/textEntry/index.js';
+import { isElementInline } from '../plugins/withQtiInteractions.js';
+import type { DocumentMetadata, ElementAttributes, SlateElement, SlateText, TextAlign } from '../types.js';
+import { classifyResponseProcessing } from '../utils/responseProcessingClassifier.js';
+import { domToXmlNode, type XmlNode } from './xmlNode.js';
+import { isQtiElement, normalizeTagName, parseXml, serializeElement } from './xmlUtils.js';
 
 /**
  * Parser context for passing response declarations to interaction parsers
