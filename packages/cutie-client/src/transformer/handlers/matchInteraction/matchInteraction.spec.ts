@@ -1,5 +1,5 @@
 // cspell:ignore distractors
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ItemStateImpl } from '../../../state/itemState.js';
 import { registry } from '../../registry.js';
 import type { TransformContext } from '../../types.js';
@@ -852,6 +852,56 @@ describe('matchInteraction validation', () => {
       expect(
         container.querySelectorAll('.cutie-match-bank[data-match-group="T_ACTIONS"] .cutie-match-choice').length
       ).toBe(3);
+    });
+
+    describe('with other interactions on the page', () => {
+      // Document click handlers only see clicks on attached elements.
+      const attached: HTMLElement[] = [];
+      const renderAttached = (qti = GROUPED_BOWTIE_QTI): HTMLElement => {
+        const container = renderGrouped(qti);
+        document.body.appendChild(container);
+        attached.push(container);
+        return container;
+      };
+      afterEach(() => {
+        attached.splice(0).forEach((el) => el.remove());
+      });
+
+      const isSelected = (container: HTMLElement, id: string) =>
+        sourceEl(container, id).classList.contains('cutie-match-choice--selected');
+
+      it('lets slot clicks reach document click handlers', () => {
+        const container = renderAttached();
+        const onDocumentClick = vi.fn();
+        document.addEventListener('click', onDocumentClick);
+
+        slotsFor(container, 'T_ACTIONS')[0].click();
+        document.removeEventListener('click', onDocumentClick);
+
+        expect(onDocumentClick).toHaveBeenCalledTimes(1);
+      });
+
+      it('clears the selection when a slot in another bowtie is clicked', () => {
+        const a = renderAttached();
+        const b = renderAttached(GROUPED_BOWTIE_QTI.replace('response-identifier="RB"', 'response-identifier="RB2"'));
+        sourceEl(a, 'ACT1').click();
+
+        slotsFor(b, 'T_ACTIONS')[0].click();
+
+        expect(isSelected(a, 'ACT1')).toBe(false);
+        expect(slotsFor(a, 'T_ACTIONS')[0].classList.contains('cutie-match-slot--drop-target')).toBe(false);
+      });
+
+      it('keeps the selection when its own slot or bank is clicked', () => {
+        const container = renderAttached();
+        sourceEl(container, 'ACT1').click();
+
+        // A slot that can't take ACT1 leaves the selection in place.
+        slotsFor(container, 'T_CONDITION')[0].click();
+        container.querySelector<HTMLElement>('.cutie-match-bank[data-match-group="T_ACTIONS"]')!.click();
+
+        expect(isSelected(container, 'ACT1')).toBe(true);
+      });
     });
 
     describe('falls back to the classic layout when the match-groups are not a bowtie', () => {

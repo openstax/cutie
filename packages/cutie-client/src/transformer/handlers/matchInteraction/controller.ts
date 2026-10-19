@@ -96,9 +96,10 @@ export class MatchController {
       if (!this.selection && !this.groupedSel) return;
 
       const target = e.target as HTMLElement;
-      const inside = target.closest(
-        '.cutie-match-choice, .cutie-match-chip, .cutie-match-slot, .cutie-match-bank'
-      );
+      // Slots and banks only count when they belong to this interaction, so a
+      // click on another bowtie's slot clears this selection.
+      const inside = target.closest('.cutie-match-choice, .cutie-match-chip')
+        || (this.container.contains(target) && target.closest('.cutie-match-slot, .cutie-match-bank'));
 
       if (!inside) {
         this.clearSelection();
@@ -340,9 +341,8 @@ export class MatchController {
       }
     };
 
-    slot.addEventListener('click', this.reportingEdits((e: MouseEvent) => {
+    slot.addEventListener('click', this.reportingEdits(() => {
       if (!this.enabled) return;
-      e.stopPropagation();
       activate();
     }));
 
