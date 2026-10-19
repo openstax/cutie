@@ -9,6 +9,7 @@ import {
   updateRovingTabindex,
 } from '../../../utils/index.js';
 import type { TransformContext } from '../../types.js';
+import { cloneLabel } from '../evaluation/index.js';
 
 interface ChoiceData {
   id: string;
@@ -586,9 +587,7 @@ export class MatchController {
       // Copy the bank choice's rendered label rather than its flattened text, so
       // rich content (math, images) reads the same in the slot as in the bank.
       const label = this.choices.get(sourceId)?.element.querySelector('.cutie-match-choice-label');
-      contentSpan.replaceChildren(
-        ...Array.from(label?.childNodes ?? [], (node) => node.cloneNode(true))
-      );
+      contentSpan.replaceChildren(...(label ? [cloneLabel(label)] : []));
       contentSpan.style.display = '';
     }
     if (placeholder) placeholder.style.display = 'none';
