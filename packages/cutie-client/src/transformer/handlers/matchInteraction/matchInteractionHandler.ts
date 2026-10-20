@@ -273,10 +273,10 @@ export class MatchInteractionHandler implements ElementHandler {
       }
 
       layoutContainer.appendChild(
-        this.createMatchSet(matchSets[0], 'source', controller, context, responseIdentifier)
+        this.createMatchSet(matchSets[0], 'source', controller, context)
       );
       layoutContainer.appendChild(
-        this.createMatchSet(matchSets[1], 'target', controller, context, responseIdentifier)
+        this.createMatchSet(matchSets[1], 'target', controller, context)
       );
 
       container.appendChild(layoutContainer);
@@ -380,16 +380,13 @@ export class MatchInteractionHandler implements ElementHandler {
    * Create a single choice: a wrapper holding the choice element and its chips
    * container as siblings (avoids nested draggables). Registers the choice with
    * the controller. tabindex defaults to -1; callers seed the roving tabbable.
-   * Label ids are scoped by response-identifier so repeated choice identifiers
-   * across interactions on one page stay unique.
    */
   private createChoiceWrapper(
     choiceElement: Element,
     setType: 'source' | 'target',
     controller: MatchController,
-    context: TransformContext,
-    responseIdentifier: string
-  ): { wrapper: HTMLElement; choice: HTMLElement; identifier: string; labelId: string } | null {
+    context: TransformContext
+  ): { wrapper: HTMLElement; choice: HTMLElement; identifier: string } | null {
     const identifier = choiceElement.getAttribute('identifier');
     if (!identifier) {
       console.warn('qti-simple-associable-choice missing identifier, skipping');
@@ -414,8 +411,6 @@ export class MatchInteractionHandler implements ElementHandler {
     // Label — use transformChildren for rich content (HTML/MathML)
     const labelSpan = document.createElement('span');
     labelSpan.className = 'cutie-match-choice-label';
-    const labelId = `cutie-match-label-${responseIdentifier}-${identifier}`;
-    labelSpan.id = labelId;
     if (context.transformChildren) {
       labelSpan.appendChild(context.transformChildren(choiceElement));
     } else {
@@ -433,7 +428,7 @@ export class MatchInteractionHandler implements ElementHandler {
       identifier, setType, choiceDiv, matchMax, content, getMatchGroups(choiceElement)
     );
 
-    return { wrapper, choice: choiceDiv, identifier, labelId };
+    return { wrapper, choice: choiceDiv, identifier };
   }
 
   /**
@@ -510,8 +505,7 @@ export class MatchInteractionHandler implements ElementHandler {
     matchSetElement: Element,
     setType: 'source' | 'target',
     controller: MatchController,
-    context: TransformContext,
-    responseIdentifier: string
+    context: TransformContext
   ): HTMLElement {
     const setContainer = document.createElement('div');
     setContainer.className = `cutie-match-set cutie-match-set--${setType}`;
@@ -521,9 +515,7 @@ export class MatchInteractionHandler implements ElementHandler {
     // Seed one tabbable choice per set; the rest join its roving group.
     let isFirst = true;
     for (const choiceElement of getAssociableChoices(matchSetElement)) {
-      const created = this.createChoiceWrapper(
-        choiceElement, setType, controller, context, responseIdentifier
-      );
+      const created = this.createChoiceWrapper(choiceElement, setType, controller, context);
       if (!created) continue;
       created.choice.setAttribute('tabindex', isFirst ? '0' : '-1');
       setContainer.appendChild(created.wrapper);
@@ -599,9 +591,7 @@ export class MatchInteractionHandler implements ElementHandler {
 
       let isFirstInBank = true;
       for (const sourceChoice of sources) {
-        const created = this.createChoiceWrapper(
-          sourceChoice, 'source', controller, context, responseIdentifier
-        );
+        const created = this.createChoiceWrapper(sourceChoice, 'source', controller, context);
         if (!created) continue;
         created.choice.setAttribute('tabindex', isFirstInBank ? '0' : '-1');
         bank.appendChild(created.wrapper);
