@@ -471,4 +471,12 @@ export const MATCH_INTERACTION_STYLES = `
   .cutie-match-choice-wrapper > .cutie-correct-answer > .cutie-correct-answer__value {
     margin-top: 0;
   }
+
+  /*
+   * A grouped column's correct answer, under its last slot: the label, then the
+   * sources that belong in the slots, centered like the column
+   */
+  .cutie-match-slots > .cutie-correct-answer {
+    margin-top: 0.25em;
+  }
 `;

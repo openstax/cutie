@@ -1,4 +1,4 @@
-// cspell:ignore draggables distractors
+// cspell:ignore draggables distractors subgrid
 import { createMissingAttributeError } from '../../../errors/errorDisplay.js';
 import {
   type ConstraintMessage,
@@ -21,6 +21,32 @@ import {
 import { getDefaultValue } from '../responseUtils.js';
 import { MatchController } from './controller.js';
 import { MATCH_INTERACTION_STYLES } from './styles.js';
+
+type DirectedPair = NonNullable<ReturnType<typeof parseDirectedPair>>;
+
+/** The rendered choices of an interaction, by identifier. */
+const getChoicesById = (container: HTMLElement): Map<string, HTMLElement> => {
+  const choices = new Map<string, HTMLElement>();
+  for (const choice of container.querySelectorAll<HTMLElement>('.cutie-match-choice')) {
+    const id = choice.getAttribute('data-identifier');
+    if (id) choices.set(id, choice);
+  }
+  return choices;
+};
+
+/**
+ * The displayed labels of the given choices, comma separated, for a
+ * correct-answer key; a choice that isn't found shows its identifier.
+ */
+const joinChoiceLabels = (ids: string[], choices: Map<string, HTMLElement>): DocumentFragment => {
+  const content = document.createDocumentFragment();
+  ids.forEach((id, index) => {
+    if (index > 0) content.append(', ');
+    const label = choices.get(id)?.querySelector('.cutie-match-choice-label');
+    content.append(label ? cloneLabel(label) : id);
+  });
+  return content;
+};
 
 /** A target column in the grouped (bowtie) layout, with the sources banked under it. */
 interface GroupedColumn {
@@ -294,43 +320,16 @@ export class MatchInteractionHandler implements ElementHandler {
       controller.initializeFromDefaults(defaults);
     }
 
-    // Draw the evaluation: the status rail, and under each choice (above its
-    // chips, and reciprocally, like the chips) the choices it is correctly
-    // matched with, by their displayed labels. Each choice is described by
-    // its own correct answer. The verdict is in the constraint text.
+    // Draw the evaluation: the status rail and the correct answer, placed to
+    // suit the layout. The verdict is in the constraint text.
     if (evaluation) {
-      const choices = new Map<string, HTMLElement>();
-      for (const choice of container.querySelectorAll<HTMLElement>('.cutie-match-choice')) {
-        const id = choice.getAttribute('data-identifier');
-        if (id) choices.set(id, choice);
-      }
-
-      const partners = new Map<string, string[]>();
-      const addPartner = (id: string, partner: string) => {
-        partners.set(id, [...(partners.get(id) ?? []), partner]);
-      };
-      for (const pair of evaluation.correctResponse.map(parseDirectedPair)) {
-        if (!pair) continue;
-        addPartner(pair.source, pair.target);
-        addPartner(pair.target, pair.source);
-      }
-
-      for (const [id, partnerIds] of partners) {
-        const choice = choices.get(id);
-        const chips = choice?.parentElement?.querySelector('.cutie-match-choice-chips');
-        if (!choice || !chips) continue;
-
-        const content = document.createDocumentFragment();
-        partnerIds.forEach((partnerId, index) => {
-          if (index > 0) content.append(', ');
-          const label = choices.get(partnerId)?.querySelector('.cutie-match-choice-label');
-          content.append(label ? cloneLabel(label) : partnerId);
-        });
-
-        const answer = createCorrectAnswer(content);
-        answer.id = `evaluation-${responseIdentifier}-${id}`;
-        chips.before(answer);
-        addAriaDescribedBy(choice, answer.id);
+      const pairs = evaluation.correctResponse
+        .map(parseDirectedPair)
+        .filter((pair): pair is DirectedPair => pair !== null);
+      if (groupedColumns) {
+        this.drawGroupedKey(container, pairs, responseIdentifier);
+      } else {
+        this.drawClassicKey(container, pairs, responseIdentifier);
       }
       markEvaluated(container, evaluation.verdict);
     }
@@ -435,6 +434,72 @@ export class MatchInteractionHandler implements ElementHandler {
     );
 
     return { wrapper, choice: choiceDiv, identifier, labelId };
+  }
+
+  /**
+   * Classic key: under each choice (above its chips, and reciprocally, like the
+   * chips) the choices it is correctly matched with, by their displayed labels.
+   * Each choice is described by its own correct answer.
+   */
+  private drawClassicKey(
+    container: HTMLElement,
+    pairs: DirectedPair[],
+    responseIdentifier: string
+  ): void {
+    const choices = getChoicesById(container);
+
+    const partners = new Map<string, string[]>();
+    const addPartner = (id: string, partner: string) => {
+      partners.set(id, [...(partners.get(id) ?? []), partner]);
+    };
+    for (const { source, target } of pairs) {
+      addPartner(source, target);
+      addPartner(target, source);
+    }
+
+    for (const [id, partnerIds] of partners) {
+      const choice = choices.get(id);
+      const chips = choice?.parentElement?.querySelector('.cutie-match-choice-chips');
+      if (!choice || !chips) continue;
+
+      const answer = createCorrectAnswer(joinChoiceLabels(partnerIds, choices));
+      answer.id = `evaluation-${responseIdentifier}-${id}`;
+      chips.before(answer);
+      addAriaDescribedBy(choice, answer.id);
+    }
+  }
+
+  /**
+   * Grouped (bowtie) key: under each column's last slot, the sources that belong
+   * there, by their displayed labels — like the per-gap key of a gap match. A
+   * source's column is already shown by the bank it sits in, so sources carry
+   * no key of their own. Each slot of the column is described by the key.
+   */
+  private drawGroupedKey(
+    container: HTMLElement,
+    pairs: DirectedPair[],
+    responseIdentifier: string
+  ): void {
+    const choices = getChoicesById(container);
+    const correctByTarget = new Map<string, string[]>();
+    for (const { source, target } of pairs) {
+      correctByTarget.set(target, [...(correctByTarget.get(target) ?? []), source]);
+    }
+
+    for (const column of container.querySelectorAll<HTMLElement>('.cutie-match-column')) {
+      const targetId = column.getAttribute('data-match-group');
+      const sourceIds = targetId ? correctByTarget.get(targetId) : undefined;
+      const slots = column.querySelector<HTMLElement>('.cutie-match-slots');
+      if (!targetId || !sourceIds || !slots) continue;
+
+      const answer = createCorrectAnswer(joinChoiceLabels(sourceIds, choices));
+      answer.id = `evaluation-${responseIdentifier}-${targetId}`;
+      for (const slot of slots.querySelectorAll<HTMLElement>('.cutie-match-slot')) {
+        addAriaDescribedBy(slot, answer.id);
+      }
+      // Inside the slots' grid row: the column's subgrid has no row of its own for it
+      slots.append(answer);
+    }
   }
 
   /**

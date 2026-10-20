@@ -55,6 +55,26 @@ const BASIC_MATCH_QTI = `
   </qti-match-interaction>
 `;
 
+// A bowtie: source choices carry match-group naming their target column, so
+// the handler renders one column per target with a per-group source bank.
+const GROUPED_BOWTIE_QTI = `
+  <qti-match-interaction response-identifier="RB">
+    <qti-simple-match-set>
+      <qti-simple-associable-choice identifier="ACT1" match-max="1" match-group="T_ACTIONS">Action 1</qti-simple-associable-choice>
+      <qti-simple-associable-choice identifier="ACT2" match-max="1" match-group="T_ACTIONS">Action 2</qti-simple-associable-choice>
+      <qti-simple-associable-choice identifier="COND1" match-max="1" match-group="T_CONDITION">Condition 1</qti-simple-associable-choice>
+      <qti-simple-associable-choice identifier="COND2" match-max="1" match-group="T_CONDITION">Condition 2</qti-simple-associable-choice>
+      <qti-simple-associable-choice identifier="PAR1" match-max="1" match-group="T_PARAMS">Parameter 1</qti-simple-associable-choice>
+      <qti-simple-associable-choice identifier="PAR2" match-max="1" match-group="T_PARAMS">Parameter 2</qti-simple-associable-choice>
+    </qti-simple-match-set>
+    <qti-simple-match-set>
+      <qti-simple-associable-choice identifier="T_ACTIONS" match-max="2" fixed="true">Actions to Take</qti-simple-associable-choice>
+      <qti-simple-associable-choice identifier="T_CONDITION" match-max="1" fixed="true">Condition</qti-simple-associable-choice>
+      <qti-simple-associable-choice identifier="T_PARAMS" match-max="2" fixed="true">Parameters to Monitor</qti-simple-associable-choice>
+    </qti-simple-match-set>
+  </qti-match-interaction>
+`;
+
 describe('matchInteraction validation', () => {
   let itemState: ItemStateImpl;
 
@@ -449,26 +469,6 @@ describe('matchInteraction validation', () => {
       expect(constraintEl.classList.contains('cutie-constraint-error')).toBe(true);
     });
   });
-
-  // A bowtie: source choices carry match-group naming their target column, so
-  // the handler renders one column per target with a per-group source bank.
-  const GROUPED_BOWTIE_QTI = `
-    <qti-match-interaction response-identifier="RB">
-      <qti-simple-match-set>
-        <qti-simple-associable-choice identifier="ACT1" match-max="1" match-group="T_ACTIONS">Action 1</qti-simple-associable-choice>
-        <qti-simple-associable-choice identifier="ACT2" match-max="1" match-group="T_ACTIONS">Action 2</qti-simple-associable-choice>
-        <qti-simple-associable-choice identifier="COND1" match-max="1" match-group="T_CONDITION">Condition 1</qti-simple-associable-choice>
-        <qti-simple-associable-choice identifier="COND2" match-max="1" match-group="T_CONDITION">Condition 2</qti-simple-associable-choice>
-        <qti-simple-associable-choice identifier="PAR1" match-max="1" match-group="T_PARAMS">Parameter 1</qti-simple-associable-choice>
-        <qti-simple-associable-choice identifier="PAR2" match-max="1" match-group="T_PARAMS">Parameter 2</qti-simple-associable-choice>
-      </qti-simple-match-set>
-      <qti-simple-match-set>
-        <qti-simple-associable-choice identifier="T_ACTIONS" match-max="2" fixed="true">Actions to Take</qti-simple-associable-choice>
-        <qti-simple-associable-choice identifier="T_CONDITION" match-max="1" fixed="true">Condition</qti-simple-associable-choice>
-        <qti-simple-associable-choice identifier="T_PARAMS" match-max="2" fixed="true">Parameters to Monitor</qti-simple-associable-choice>
-      </qti-simple-match-set>
-    </qti-match-interaction>
-  `;
 
   describe('grouped bowtie layout', () => {
     const renderGrouped = (qti = GROUPED_BOWTIE_QTI): HTMLElement => {
@@ -942,8 +942,8 @@ describe('matchInteraction validation', () => {
       it('when a target is named by no source', () => {
         const container = renderGrouped(
           GROUPED_BOWTIE_QTI.replace(
-            '</qti-simple-match-set>\n    </qti-match-interaction>',
-            '  <qti-simple-associable-choice identifier="T_EXTRA" match-max="1">Extra</qti-simple-associable-choice>\n      </qti-simple-match-set>\n    </qti-match-interaction>'
+            /(<\/qti-simple-match-set>\s*<\/qti-match-interaction>)/,
+            '<qti-simple-associable-choice identifier="T_EXTRA" match-max="1">Extra</qti-simple-associable-choice>$1'
           )
         );
         expect(container.querySelector('[data-identifier="T_EXTRA"]')).not.toBeNull();
@@ -1089,5 +1089,58 @@ describe('matchInteraction evaluation', () => {
     expect(key.classList.contains('cutie-correct-answer')).toBe(true);
     expect(key.nextElementSibling!.classList.contains('cutie-match-choice-chips')).toBe(true);
     expect(source.getAttribute('aria-describedby')).toContain(key.id);
+  });
+
+  describe('grouped bowtie layout', () => {
+    const renderGrouped = (): HTMLElement => {
+      const doc = createQtiDocument(`
+        <qti-response-declaration identifier="RB" cardinality="multiple" base-type="directedPair">
+          <qti-correct-response>
+            <qti-value>ACT1 T_ACTIONS</qti-value>
+            <qti-value>ACT2 T_ACTIONS</qti-value>
+            <qti-value>COND1 T_CONDITION</qti-value>
+            <qti-value>PAR2 T_PARAMS</qti-value>
+          </qti-correct-response>
+        </qti-response-declaration>
+        ${GROUPED_BOWTIE_QTI.replace('response-identifier="RB"', 'response-identifier="RB" data-cutie-evaluation="incorrect"')}
+      `);
+      const container = document.createElement('div');
+      container.appendChild(transformInteraction(doc, itemState));
+      return container;
+    };
+    const column = (container: HTMLElement, targetId: string) =>
+      container.querySelector<HTMLElement>(`.cutie-match-column[data-match-group="${targetId}"]`)!;
+
+    it('shows each column the sources that belong in its slots, by displayed labels', () => {
+      const container = renderGrouped();
+      const keyText = (targetId: string) =>
+        column(container, targetId).querySelector('.cutie-correct-answer')!.textContent;
+
+      expect(keyText('T_ACTIONS')).toBe('Correct answer: Action 1, Action 2');
+      expect(keyText('T_CONDITION')).toBe('Correct answer: Condition 1');
+      expect(keyText('T_PARAMS')).toBe('Correct answer: Parameter 2');
+    });
+
+    it('places the key under the last slot, describing each slot of the column', () => {
+      const container = renderGrouped();
+      const slots = column(container, 'T_ACTIONS').querySelector('.cutie-match-slots')!;
+      const key = slots.lastElementChild!;
+
+      expect(key.classList.contains('cutie-correct-answer')).toBe(true);
+      expect(key.previousElementSibling!.classList.contains('cutie-match-slot')).toBe(true);
+      const slotElements = slots.querySelectorAll('.cutie-match-slot');
+      expect(slotElements).toHaveLength(2);
+      for (const slot of slotElements) {
+        expect(slot.getAttribute('aria-describedby')).toContain(key.id);
+      }
+    });
+
+    it('gives the bank sources no key of their own', () => {
+      const container = renderGrouped();
+      for (const bank of container.querySelectorAll('.cutie-match-bank')) {
+        expect(bank.querySelector('.cutie-correct-answer')).toBeNull();
+      }
+      expect(container.querySelectorAll('.cutie-correct-answer')).toHaveLength(3);
+    });
   });
 });
