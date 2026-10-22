@@ -4,8 +4,9 @@
 - spec: https://www.imsglobal.org/spec/qti/v3p0/impl
 
 Places where cutie-core's template/response processing diverges from the
-QTI 3.0 spec. Ordered roughly by how likely they are to change the behavior
-of a real item. Line references are as of cutie-core 1.0.2.
+QTI 3.0 spec. Items keep their numbers when they're fixed or new ones are
+added, so the numbering isn't an order of importance. Line references are as
+of cutie-core 2.2.1.
 
 ---
 
@@ -15,11 +16,12 @@ of a real item. Line references are as of cutie-core 1.0.2.
 looks up the template variable `template-identifier` names and compares its
 value with the element's `identifier`, following the QTI 3 Information Model
 (TemplateBlock §5.145, TemplateInline §5.155, SimpleChoice §5.132). The 1EdTech
-`template_image.xml` example is in the example app and covered by tests.
+`template_image.xml` example is in the example app
+(`cutie-example/src/example-items/spec-template-image.ts`) and covered by tests.
 
 ## 2. Outcome variables are not reset between submissions
 
-**File:** `packages/cutie-core/src/lib/responseProcessing.ts:157`
+**File:** `packages/cutie-core/src/lib/responseProcessing.ts:84`
 
 **Spec:** For **non-adaptive** items (`adaptive="false"`), outcome variables
 are reset to their defaults before each response processing run. Adaptive
@@ -27,26 +29,28 @@ items (`adaptive="true"`) keep their outcomes across submissions. That's how
 adaptive items such as the spec's Monty Hall example track their state from
 one turn to the next.
 
-**Cutie:** Always starts from `{ ...currentState.variables }`, so outcomes
-carry over between submissions for every item. This behavior was built around
-adaptive items, which are the only items cutie currently lets a learner submit
-more than once. A non-adaptive item is finished after its first submission,
-so its outcomes are never reused.
+**Cutie:** `processResponse` always starts from `{ ...currentState.variables }`,
+with no reset. Most resubmissions are covered elsewhere:
 
-**When this matters:** Only when an item accepts another submission instead of
-finishing. That means an item that puts itself in a non-terminal state after
-the first submission (for example, by setting `completionStatus` to
-`incomplete`) without being adaptive. In that case, outcomes that should be
-worked out again from scratch, such as `FEEDBACK`, would build up from earlier
-submissions.
+- A non-adaptive item is set to `completed` after any submission
+  (`responseProcessing.ts:118`), so it can't put itself back into an
+  unfinished state.
+- With `maxTries`, starting the next try resets outcomes with
+  `resetOutcomeVariables` (`tries.ts`, `beginNextTry`).
 
-**Suggested fix:** When `adaptive` isn't `true`, re-apply outcome defaults
-(reusing `initializeOutcomeVariables`) before running the rules. Adaptive
-items must keep the current behavior.
+**When this matters:** A completed attempt can be submitted again while it
+awaits manual scoring (`index.ts:125`, `pendingManualScoring`). That
+submission runs response processing on the previous submission's outcomes, so
+outcomes that should be worked out again from scratch, such as `FEEDBACK`, can
+build up.
+
+**Suggested fix:** When `adaptive` isn't `true`, reset outcomes before running
+the rules, reusing `resetOutcomeVariables` (`initializeState.ts:112`).
+Adaptive items must keep the current behavior.
 
 ## 3. Missing default values and built-in variables
 
-**File:** `packages/cutie-core/src/lib/initializeState.ts:87`
+**File:** `packages/cutie-core/src/lib/initializeState.ts:190` (`initialVariables`)
 
 **Spec:**
 - Template variables start at their `qti-default-value` before template
@@ -57,12 +61,13 @@ items must keep the current behavior.
 - The built-in outcome `completionStatus` starts as `not_attempted`.
 
 **Cutie:** Only outcome defaults are loaded. Template and response defaults
-are ignored. `numAttempts` and `duration` aren't maintained, so rules that read
-them get NULL. `completionStatus` exists only on `AttemptState`, not as a
-variable, until response processing sets it.
+are ignored. `duration` isn't maintained, so rules that read it get NULL.
+`completionStatus` exists only on `AttemptState`, not as a variable, until
+response processing sets it. (`numAttempts` is maintained: it starts at 0, goes
+up by one on each submission, and starts over with each try.)
 
 **Suggested fix:** Load template and response defaults in `initializeState`,
-seed `completionStatus`, and increment `numAttempts` in `processResponse`.
+and seed `completionStatus`.
 
 ## 4. NULL propagation: operators throw instead of returning NULL
 
@@ -73,11 +78,19 @@ example `qti-sum`, `qti-lt`, `qti-gt`, `qti-and`, `qti-or`, `qti-not`,
 `qti-match`, `qti-equal`). A condition that evaluates to NULL counts as false
 in `qti-response-if` and `qti-template-if`.
 
-**Cutie:** Type checks throw on non-number or non-boolean values, including
-NULL. So an unanswered response inside `qti-sum` or `qti-lt` breaks processing
-completely. `qti-match` with a NULL operand returns `false`, not NULL. The
-`if` / `else-if` evaluators also throw on non-boolean conditions instead of
-treating NULL as false.
+**Cutie:** Operators handle NULL in three different ways:
+
+- **Throw:** `qti-lt`, `qti-gt`, `qti-lte`, `qti-gte`, `qti-subtract`, `qti-and`,
+  `qti-or` and `qti-not` type-check their operands and throw on NULL. So an
+  unanswered response inside `qti-lt` breaks processing completely.
+- **Skip:** `qti-sum` and `qti-product` leave NULL operands out and return a
+  number, where the spec says the result is NULL.
+- **Return false:** `qti-match` and `qti-equal` return `false` for a NULL
+  operand, not NULL.
+
+The `if` / `else-if` evaluators also throw on a NULL condition
+(`responseProcessing.ts:299`, and the same code at `initializeState.ts:320`)
+instead of treating it as false.
 
 **Suggested fix:** Return NULL from operators when any operand is NULL.
 Treat NULL conditions as false in the condition evaluators.
@@ -89,8 +102,9 @@ Treat NULL conditions as false in the condition evaluators.
 **Spec:** Sub-expressions that are NULL are left out of the container. If
 there are no sub-expressions, or they're all NULL, the result is NULL.
 
-**Cutie:** NULL sub-expressions are added to the container as `null`, and an
-empty container comes back as `[]` instead of NULL.
+**Cutie:** NULL sub-expressions are added to the container as `null`, so an
+all-NULL container comes back as `[null]`. An empty container comes back as
+`[]`. Both should be NULL.
 
 **Example:** The common "append to feedback" pattern
 `FEEDBACK = multiple(FEEDBACK, INCORRECT)`, with `FEEDBACK` starting out NULL,
@@ -104,7 +118,7 @@ when the result is empty.
 
 ## 5. `qti-equal` ignores `tolerance-mode`
 
-**File:** `packages/cutie-core/src/lib/expressionEvaluator/comparison.ts:175`
+**File:** `packages/cutie-core/src/lib/expressionEvaluator/comparison.ts:179`
 
 **Spec:** `tolerance-mode` accepts `exact`, `absolute`, or `relative`, using
 the `tolerance`, `include-lower-bound`, and `include-upper-bound` attributes.
@@ -119,7 +133,7 @@ accept near answers once this is implemented.
 
 ## 6. `qti-printed-variable` ignores formatting attributes
 
-**File:** `packages/cutie-core/src/lib/renderTemplate.ts:84`
+**File:** `packages/cutie-core/src/lib/renderTemplate.ts:395` (`substituteVariables`)
 
 **Spec:** Supports `format` (printf-style), `base`, `index`, `power-form`,
 `field`, and `delimiter`. Container values are printed using the delimiter
@@ -158,41 +172,33 @@ namespace instead of by prefix.
 
 ## 8. `pair` / `directedPair` / `point` values are stored differently in different places
 
-**File:** `packages/cutie-core/src/utils/typeParser.ts:23`, `:65`
-
-**Spec:** A pair is an unordered pair of identifiers. A directedPair is
-ordered. A point is two integers. How a value is stored shouldn't depend on
-where it came from.
-
-**Cutie:** `parseValue`, used for `qti-base-value` and template or outcome
-defaults, returns arrays. `parseResponseValue`, used for correct responses and
-submissions, keeps strings. Comparing a `qti-base-value` pair with a response
-in `qti-match` or `qti-member` can therefore fail. Pairs are also compared by
-order, so `"A B"` doesn't equal `"B A"`.
-
-**Suggested fix:** Store each base-type one way everywhere, and compare
-`pair` values without regard to order.
+**Status:** Fixed. `parseValue` and `parseResponseValue`
+(`utils/typeParser.ts:22`, `:61`) both keep `point` and `directedPair` values as
+strings, and both normalize `pair` values with `normalizePair` (`:6`), so a
+`pair` matches without regard to order. Submitted responses are normalized the
+same way.
 
 ## 9. `map_response` / `qti-map-response` details
 
-**File:** `packages/cutie-core/src/lib/responseProcessing.ts:258`, `:386`, `:414`
+**File:** `packages/cutie-core/src/lib/responseDeclarations.ts:187` (`mapResponse`),
+`:151` (`getMappedValue`), `:128` (`case-sensitive`)
 
 **Spec:**
 - For multiple cardinality, each distinct value is mapped once. Duplicates
   aren't counted twice.
-- Keys for `pair` responses should match without regard to order.
 - `case-sensitive` on `qti-map-entry`: *needs verification*. The QTI 3
   default may be `true`, and cutie treats it as `false`.
 
-**Cutie:** Adds up every array element, duplicates included. Compares keys as
-raw strings. Matches case-insensitively unless `case-sensitive="true"`.
+**Cutie:** Adds up every array element, duplicates included. Matches
+case-insensitively unless `case-sensitive="true"`. (Keys for `pair` responses
+already match without regard to order.)
 
-**Suggested fix:** Remove duplicates before mapping. Normalize pair keys.
-Check the case-sensitivity default against the spec and XSD.
+**Suggested fix:** Remove duplicates before mapping. Check the
+case-sensitivity default against the spec and XSD.
 
 ## 10. Template variables are deleted when constraint retries run out
 
-**File:** `packages/cutie-core/src/lib/initializeState.ts:29`
+**File:** `packages/cutie-core/src/lib/initializeState.ts:36`
 
 **Spec:** If `qti-template-constraint` still fails after the maximum number of
 retries (the spec suggests 100), processing continues with the **last
@@ -207,7 +213,7 @@ them. Consider lowering the cap to match the spec's guidance.
 
 ## 11. Unimplemented operators
 
-**File:** `packages/cutie-core/src/lib/expressionEvaluator/index.ts:174`
+**File:** `packages/cutie-core/src/lib/expressionEvaluator/index.ts:175`
 
 Any unrecognized expression throws `Unsupported expression type`. Notable
 gaps include `qti-lookup-outcome-value`, `qti-default`, `qti-inside`,
@@ -277,3 +283,19 @@ NULL for fewer than 1 repeat.
 **Still open:** `qti-repeat` should accept several sub-expressions, add the
 values of ordered ones individually, and ignore NULL ones. It currently takes
 exactly one and adds its value as is.
+
+## 15. `qti-exit-response` crashes submission
+
+**File:** `packages/cutie-core/src/lib/responseProcessing.ts:232`
+
+**Spec:** QTI 3 Information Model, ResponseRuleGroup §6.39.5: "The exit
+response rule terminates response processing immediately (for this
+invocation)." It ends processing; it isn't an error.
+
+**Cutie:** It throws `ExitResponseError`, and nothing in cutie-core catches
+it, so `submitResponse` fails with "Exit response". Template processing handles
+the matching rule correctly: `qti-exit-template` throws `ExitTemplateError`,
+which `initializeState.ts:217` catches.
+
+**Suggested fix:** Catch `ExitResponseError` where response processing runs
+its rules, the same way template processing catches `ExitTemplateError`.

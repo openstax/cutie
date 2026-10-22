@@ -65,12 +65,13 @@ parameters to monitor on the other, each column filled from its own list of opti
 0/1 (+1 for each correct placement). Case information is usually shown in tabs.
 
 **Why not made:** the item structure is changing. On `main`, bowtie renders as a gap match with
-`match-group` banks (example: "Gap Match - Bowtie Layout"). CORE-2917 (branch `bowtie-match`)
-is converting it to a plain match interaction. A canonical sample written now would be outdated
+`match-group` banks (example: "Gap Match - Bowtie Layout"). CORE-2917 (branch `bowtie-match`,
+not yet merged into `main`) is converting it to a plain match interaction. A canonical sample written now would be outdated
 when that lands.
 
 **Needed:** finish CORE-2917, then write the sample on the match structure with a `qti-mapping`
-(+1 per correct pair, `lower-bound="0"`) so scoring is 0/1 and not all-or-nothing.
+(+1 per correct pair, `lower-bound="0"`) so scoring is 0/1 and not all-or-nothing. Its response
+processing classifies as `sumScores`; `lower-bound` changes the score, not the classification.
 
 ### Drop-Down: Rationale (triad)
 
@@ -97,7 +98,9 @@ mean a single `qti-correct-response` can't describe every correct answer.
 **Needed:** the gated scoring mode above, designed so the two effect gaps are scored without
 depending on their order. The interaction is gap match, as in the dyad sample. The PRD's draft
 mentions `order`, but the client has no order interaction and the in-progress work (CORE-2689,
-branch `core-2689`) uses gap match.
+branch `core-2689`, not yet merged) uses gap match. That branch also changes gap match rendering
+(a word bank per group) and is built on the earlier bowtie work, so it will likely need a rebase
+once `bowtie-match` lands.
 
 ### Matrix Multiple-Choice
 
@@ -109,8 +112,8 @@ drag a source onto a target). It has no grid layout with one radio button per ce
 
 **Needed:** a grid rendering mode for `qti-match-interaction` in
 `packages/cutie-client/src/transformer/handlers/matchInteraction/`, with `match-max="1"` on each
-row choice for radio-button behavior. Check the QTI v3 shared vocabulary for a class that
-selects this layout (possibly `qti-match-tabular`) before adding anything. Scoring already
+row choice for radio-button behavior. The QTI v3 shared vocabulary class for this layout is
+`qti-match-tabular`, listed as unsupported in `docs/qti/interactions/match.md`. Scoring already
 works (`qti-mapping` with +1 per correct pair, classified as `sumScores`). There's no Jira
 ticket for this yet.
 
@@ -130,8 +133,8 @@ No Jira ticket yet.
 results) shown in tabs, with the question built from one of the other types, usually
 drop-downs or multiple response. Scoring follows the type used.
 
-**Why not made:** the client has no tabbed presentation of case information. CORE-2690 is in
-progress. The PRD's draft suggests custom JS and CSS that falls back to stacked headings in
+**Why not made:** the client has no tabbed presentation of case information. CORE-2690 covers
+this, but there's no branch for it yet. The PRD's draft suggests custom JS and CSS that falls back to stacked headings in
 other systems.
 
 **Needed:** decide how tabbed case information is represented within strict QTI v3 before
