@@ -6,6 +6,7 @@ import { applyThemeVars, removeThemeVars, type ThemeOptions } from './theme.js';
 import { createTransformContext, transformChildren, transformNode } from './transformer/elementTransformer.js';
 import { announceItemVerdict } from './transformer/handlers/evaluation/index.js';
 import { beginFeedbackRender, endFeedbackRender } from './transformer/handlers/feedback/feedbackAnnouncer.js';
+import { annotateInlineInteractions, SR_ONLY_STYLES } from './transformer/handlers/inlineInteractionAnnotator.js';
 import { DefaultStyleManager } from './transformer/styleManager.js';
 import type { InteractionState, ResponseData, TransformContext } from './transformer/types.js';
 import { acquireLiveRegions, announce } from './utils/liveRegion.js';
@@ -134,6 +135,12 @@ export function mountItem(
       fragment.appendChild(transformNode(modalFeedback, context));
     }
     endFeedbackRender(state);
+
+    // Label inline interactions once the whole body is built, so each one is
+    // labelled with all of its surrounding content in place
+    if (annotateInlineInteractions(fragment) && !styleManager.hasStyle('cutie-sr-only')) {
+      styleManager.addStyle('cutie-sr-only', SR_ONLY_STYLES);
+    }
 
     unmountDom = renderToContainer(container, fragment);
 

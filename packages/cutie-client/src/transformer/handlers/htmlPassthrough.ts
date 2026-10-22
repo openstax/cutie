@@ -1,11 +1,6 @@
 /* spell-checker: ignore MATHML */
 import { registry } from '../registry.js';
 import type { ElementHandler, TransformContext } from '../types.js';
-import {
-  annotateInlineInteractions,
-  BLOCK_TAGS,
-  SR_ONLY_STYLES,
-} from './inlineInteractionAnnotator.js';
 
 /**
  * MathML 3 is the only imported namespace QTI v3 renders as markup. Everything
@@ -32,22 +27,6 @@ class HtmlPassthroughHandler implements ElementHandler {
     if (context.transformChildren) {
       const childrenFragment = context.transformChildren(element);
       cloned.appendChild(childrenFragment);
-    }
-
-    // After building the output for a block-level element, annotate any
-    // inline interactions with aria-labelledby referencing surrounding text.
-    // Inner blocks are processed first (via recursion above), so nested
-    // interactions are already annotated and get skipped.
-    if (BLOCK_TAGS.has(element.tagName.toLowerCase())) {
-      const wrapperFragment = document.createDocumentFragment();
-      wrapperFragment.appendChild(cloned);
-      if (annotateInlineInteractions(wrapperFragment)) {
-        if (context.styleManager && !context.styleManager.hasStyle('cutie-sr-only')) {
-          context.styleManager.addStyle('cutie-sr-only', SR_ONLY_STYLES);
-        }
-      }
-      fragment.appendChild(wrapperFragment);
-      return fragment;
     }
 
     fragment.appendChild(cloned);

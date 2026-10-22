@@ -19,10 +19,21 @@ const INTERACTION_SELECTOR =
 
 const SENTENCE_BOUNDARY = /[.!?]\s+/;
 
-export const BLOCK_TAGS = new Set([
-  'p', 'div', 'blockquote', 'li', 'td', 'th',
-  'dt', 'dd', 'section', 'article', 'header',
-  'footer', 'figcaption',
+/**
+ * Elements that bound an interaction's label: QTI v3's BlockContentModel
+ * (Information Model 6.3), `details` from its FlowContentModel, and the
+ * blocks that only appear inside those (list items, cells, captions)
+ */
+const BLOCK_TAGS = new Set([
+  // BlockContentModel
+  'pre', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p',
+  'address', 'dl', 'ol', 'ul', 'hr', 'blockquote',
+  'table', 'div', 'article', 'aside', 'audio', 'figure',
+  'footer', 'header', 'nav', 'section', 'video',
+  // FlowContentModel, not inline
+  'details',
+  // Inside the blocks above
+  'li', 'dt', 'dd', 'caption', 'td', 'th', 'figcaption', 'summary',
 ]);
 
 const INLINE_TAGS = new Set([
@@ -33,7 +44,7 @@ const INLINE_TAGS = new Set([
   'bdi', 'bdo', 'wbr', 'del', 'ins', 'label',
 ]);
 
-const ATOMIC_TAGS = new Set(['math', 'img', 'svg', 'picture', 'video', 'audio', 'canvas', 'iframe']);
+const ATOMIC_TAGS = new Set(['math', 'img', 'svg', 'picture', 'canvas', 'iframe']);
 
 /** Module-level counter for default ID generation */
 let idCounter = 0;
@@ -341,9 +352,10 @@ function processContainer(
     }
 
     if (isBlockElement(node)) {
-      // Block element — flush and stop (defensive)
+      // Block element — flush and skip it; like BR, it is a region boundary
       flushAndTrack(currentGroup, generateId, tracker, allSpanIds);
       currentGroup = [];
+      startNewRegion(tracker);
       continue;
     }
 

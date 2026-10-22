@@ -1,12 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { registry } from '../registry.js';
-import type { StyleManager, TransformContext } from '../types.js';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { annotateInlineInteractions } from './inlineInteractionAnnotator.js';
-
-// Side-effect registration of handlers
-import './htmlPassthrough.js';
-import './textEntryInteraction.js';
-import './inlineChoiceInteraction.js';
 
 let idCounter = 0;
 const testIdGenerator = () => `s${++idCounter}`;
@@ -627,78 +620,105 @@ describe('annotateInlineInteractions', () => {
   });
 });
 
-describe('Integration: htmlPassthrough pipeline', () => {
+describe('block elements beside an interaction', () => {
   beforeEach(() => {
     resetIds();
   });
 
-  function createMockStyleManager(): StyleManager {
-    const styles = new Map<string, string>();
-    return {
-      addStyle: vi.fn((id: string, css: string) => { styles.set(id, css); }),
-      hasStyle: vi.fn((id: string) => styles.has(id)),
-    };
+  /** The text an interaction's aria-labelledby names, without the interaction itself */
+  function labelText(fragment: DocumentFragment, input: Element): string {
+    return input.getAttribute('aria-labelledby')!.split(' ')
+      .filter((id) => id !== input.id)
+      .map((id) => normalizeHtml(fragment.getElementById(id)!.textContent!))
+      .join(' ');
   }
 
-  it('annotates interactions when transforming a block element through htmlPassthrough', () => {
-    const handler = registry.findHandler(document.createElement('p'));
-    expect(handler).toBeTruthy();
-
-    const styleManager = createMockStyleManager();
-
-    // Build a transformChildren that returns a fragment with text + interaction
-    const context: TransformContext = {
-      styleManager,
-      transformChildren: () => {
-        const frag = document.createDocumentFragment();
-        frag.appendChild(document.createTextNode('The year was '));
-        const input = document.createElement('input');
-        input.className = 'cutie-text-entry-interaction';
-        frag.appendChild(input);
-        frag.appendChild(document.createTextNode('.'));
-        return frag;
-      },
-    };
-
-    const source = document.createElement('p');
-    const result = handler!.transform(source, context);
-
-    const p = result.querySelector('p')!;
-    const input = p.querySelector('input')!;
-
-    // aria-labelledby should be set on the interaction
-    expect(input.getAttribute('aria-labelledby')).toBeTruthy();
-
-    // styleManager.addStyle should have been called with 'cutie-sr-only'
-    expect(styleManager.addStyle).toHaveBeenCalledWith(
-      'cutie-sr-only',
-      expect.any(String)
+  it('leaves a heading before the interaction out of its label', () => {
+    const fragment = fragmentFromHtml(
+      '<h2>Vitals</h2> Enter the dose <input class="cutie-text-entry-interaction"/>'
     );
+
+    annotateInlineInteractions(fragment, testIdGenerator);
+
+    expect(labelText(fragment, fragment.querySelector('input')!)).toBe('Enter the dose');
+    expect(fragment.querySelector('h2')!.parentNode).toBe(fragment);
   });
 
-  it('does not annotate when no interactions are present', () => {
-    const handler = registry.findHandler(document.createElement('p'));
-    const styleManager = createMockStyleManager();
-
-    const context: TransformContext = {
-      styleManager,
-      transformChildren: () => {
-        const frag = document.createDocumentFragment();
-        frag.appendChild(document.createTextNode('Just some text.'));
-        return frag;
-      },
-    };
-
-    const source = document.createElement('p');
-    const result = handler!.transform(source, context);
-
-    const p = result.querySelector('p')!;
-    expect(p.querySelectorAll('span[id]').length).toBe(0);
-
-    // styleManager.addStyle should NOT have been called with 'cutie-sr-only'
-    expect(styleManager.addStyle).not.toHaveBeenCalledWith(
-      'cutie-sr-only',
-      expect.any(String)
+  it('leaves a heading out inside a div', () => {
+    const fragment = fragmentFromHtml(
+      '<div><h2>Vitals</h2> Enter the dose <input class="cutie-text-entry-interaction"/></div>'
     );
+
+    annotateInlineInteractions(fragment, testIdGenerator);
+
+    expect(labelText(fragment, fragment.querySelector('input')!)).toBe('Enter the dose');
+    expect(fragment.querySelector('h2')!.parentElement!.tagName).toBe('DIV');
+  });
+
+  it('labels an interaction inside a heading from the heading text', () => {
+    const fragment = fragmentFromHtml(
+      '<h3>Dose: <input class="cutie-text-entry-interaction"/></h3>'
+    );
+
+    annotateInlineInteractions(fragment, testIdGenerator);
+
+    expect(labelText(fragment, fragment.querySelector('input')!)).toBe('Dose:');
+  });
+
+  it('leaves a list after the interaction out of its label', () => {
+    const fragment = fragmentFromHtml(
+      '<div>Dose <input class="cutie-text-entry-interaction"/><ul><li>Note</li></ul></div>'
+    );
+
+    annotateInlineInteractions(fragment, testIdGenerator);
+
+    expect(labelText(fragment, fragment.querySelector('input')!)).toBe('Dose');
+    expect(fragment.querySelector('ul')!.parentElement!.tagName).toBe('DIV');
+  });
+
+  it('leaves a table after the interaction out of its label', () => {
+    const fragment = fragmentFromHtml(
+      'Dose <input class="cutie-text-entry-interaction"/><table><tr><td>Weight</td></tr></table>'
+    );
+
+    annotateInlineInteractions(fragment, testIdGenerator);
+
+    expect(labelText(fragment, fragment.querySelector('input')!)).toBe('Dose');
+    expect(fragment.querySelector('table')!.parentNode).toBe(fragment);
+  });
+
+  it('keeps labels from carrying across a block between two interactions', () => {
+    const fragment = fragmentFromHtml(
+      '<div>Dose <input class="cutie-text-entry-interaction"/> mg<h2>Next</h2>Rate <input class="cutie-text-entry-interaction"/> per min</div>'
+    );
+
+    annotateInlineInteractions(fragment, testIdGenerator);
+
+    const [first, second] = Array.from(fragment.querySelectorAll('input'));
+    expect(labelText(fragment, first!)).toBe('Dose mg');
+    expect(labelText(fragment, second!)).toBe('Rate per min');
+  });
+
+  it('keeps labels from carrying across sibling paragraphs at the root', () => {
+    const fragment = fragmentFromHtml(
+      'Dose <input class="cutie-text-entry-interaction"/> mg<p>Aside</p>Rate <input class="cutie-text-entry-interaction"/> per min'
+    );
+
+    annotateInlineInteractions(fragment, testIdGenerator);
+
+    const [first, second] = Array.from(fragment.querySelectorAll('input'));
+    expect(labelText(fragment, first!)).toBe('Dose mg');
+    expect(labelText(fragment, second!)).toBe('Rate per min');
+  });
+
+  it('leaves a video before the interaction out of its label', () => {
+    const fragment = fragmentFromHtml(
+      '<div><video src="clip.mp4">Fallback text</video> Rate <input class="cutie-text-entry-interaction"/></div>'
+    );
+
+    annotateInlineInteractions(fragment, testIdGenerator);
+
+    expect(labelText(fragment, fragment.querySelector('input')!)).toBe('Rate');
+    expect(fragment.querySelector('video')!.parentElement!.tagName).toBe('DIV');
   });
 });

@@ -537,3 +537,83 @@ describe('mountItem docked stimulus', () => {
     container.remove();
   });
 });
+
+describe('mountItem inline interaction labels', () => {
+  let container: HTMLElement;
+  let mounted: MountedItem | undefined;
+
+  const TEXT_ENTRY_DECLARATIONS = `
+    <qti-response-declaration identifier="R1" cardinality="single" base-type="string"/>
+    <qti-response-declaration identifier="R2" cardinality="single" base-type="string"/>`;
+
+  const mountBody = (body: string): void => {
+    mounted = mountItem(container, itemXml(TEXT_ENTRY_DECLARATIONS, body));
+  };
+
+  /** The text an interaction's aria-labelledby names, without the interaction itself */
+  function labelText(el: HTMLElement): string {
+    return (el.getAttribute('aria-labelledby') ?? '')
+      .split(' ')
+      .filter((id) => id && id !== el.id)
+      .map((id) => document.getElementById(id)!.textContent!.trim())
+      .join(' ');
+  }
+
+  beforeEach(() => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+  });
+
+  afterEach(() => {
+    mounted?.unmount();
+    mounted = undefined;
+    container.remove();
+  });
+
+  it('labels an interaction from the text of its block', () => {
+    mountBody('<p>Answer: <qti-text-entry-interaction response-identifier="R1"/></p>');
+
+    expect(labelText(q(container, 'input'))).toBe('Answer:');
+    expect(document.head.textContent).toContain('.cutie-sr-only');
+  });
+
+  it('adds no screen-reader-only styles without inline interactions', () => {
+    mountBody('<p>Just some text.</p>');
+
+    expect(container.querySelectorAll('span[id]')).toHaveLength(0);
+    expect(document.head.textContent).not.toContain('.cutie-sr-only');
+  });
+
+  describe('interactions in the item body with no block parent', () => {
+    it('labels an interaction from the text around it', () => {
+      mountBody('Enter the dose <qti-text-entry-interaction response-identifier="R1"/> in mg.');
+
+      expect(labelText(q(container, 'input'))).toBe('Enter the dose in mg.');
+    });
+
+    it('labels an interaction inside an inline element', () => {
+      mountBody('<span>Dose <qti-text-entry-interaction response-identifier="R1"/></span>');
+
+      expect(labelText(q(container, 'input'))).toBe('Dose');
+    });
+
+    it('labels each of several interactions and gives their positions', () => {
+      mountBody(`First <qti-text-entry-interaction response-identifier="R1"/>
+        then <qti-text-entry-interaction response-identifier="R2"/>`);
+
+      const [first, second] = Array.from(container.querySelectorAll('input'));
+      expect(labelText(first!)).toBe('First then');
+      expect(labelText(second!)).toBe('then');
+      expect(document.getElementById(first!.getAttribute('aria-describedby')!)!.textContent).toBe('blank 1 of 2');
+      expect(document.getElementById(second!.getAttribute('aria-describedby')!)!.textContent).toBe('blank 2 of 2');
+    });
+
+    it('falls back to "blank" with no text around it', () => {
+      mountBody('<qti-text-entry-interaction response-identifier="R1"/>');
+
+      const input = q(container, 'input');
+      expect(input.hasAttribute('aria-labelledby')).toBe(false);
+      expect(input.getAttribute('aria-label')).toBe('blank');
+    });
+  });
+});
