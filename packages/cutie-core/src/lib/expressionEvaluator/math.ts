@@ -89,8 +89,8 @@ export function compareMathExpressions(
           return trimmedResponse === trimmedCorrect;
         }
 
-        // Use isEqual for full mathematical equivalence
-        return responseExpr.isEqual(correctExpr);
+        // Use isEqual for full mathematical equivalence (undefined means undecided)
+        return responseExpr.isEqual(correctExpr) === true;
       }
 
       default:
