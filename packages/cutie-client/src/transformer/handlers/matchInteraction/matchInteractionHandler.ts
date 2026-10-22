@@ -1,4 +1,4 @@
-// cspell:ignore draggables
+// cspell:ignore draggables distractors subgrid
 import { createMissingAttributeError } from '../../../errors/errorDisplay.js';
 import {
   type ConstraintMessage,
@@ -22,6 +22,125 @@ import { getDefaultValue } from '../responseUtils.js';
 import { MatchController } from './controller.js';
 import { MATCH_INTERACTION_STYLES } from './styles.js';
 
+type DirectedPair = NonNullable<ReturnType<typeof parseDirectedPair>>;
+
+/** The rendered choices of an interaction, by identifier. */
+const getChoicesById = (container: HTMLElement): Map<string, HTMLElement> => {
+  const choices = new Map<string, HTMLElement>();
+  for (const choice of container.querySelectorAll<HTMLElement>('.cutie-match-choice')) {
+    const id = choice.getAttribute('data-identifier');
+    if (id) choices.set(id, choice);
+  }
+  return choices;
+};
+
+/**
+ * The displayed labels of the given choices, comma separated, for a
+ * correct-answer key; a choice that isn't found shows its identifier.
+ */
+const joinChoiceLabels = (ids: string[], choices: Map<string, HTMLElement>): DocumentFragment => {
+  const content = document.createDocumentFragment();
+  ids.forEach((id, index) => {
+    if (index > 0) content.append(', ');
+    const label = choices.get(id)?.querySelector('.cutie-match-choice-label');
+    content.append(label ? cloneLabel(label) : id);
+  });
+  return content;
+};
+
+/** A target column in the grouped (bowtie) layout, with the sources banked under it. */
+interface GroupedColumn {
+  target: Element;
+  targetId: string;
+  matchMax: number;
+  sources: Element[];
+  /** Number of slots drawn: one per unit of the target's capacity. */
+  capacity: number;
+}
+
+const getAssociableChoices = (matchSet: Element): Element[] =>
+  Array.from(matchSet.children).filter(
+    (child) => child.tagName.toLowerCase() === 'qti-simple-associable-choice'
+  );
+
+const getMatchGroups = (choice: Element): string[] =>
+  (choice.getAttribute('match-group') ?? '').split(/\s+/).filter(Boolean);
+
+/**
+ * A choice's plain-text name, used for announcements and accessible labels: its
+ * text, or the alt text of its images when it has no text of its own.
+ */
+const getChoiceText = (choice: Element): string =>
+  choice.textContent?.trim()
+  || Array.from(choice.querySelectorAll('img'), (img) => img.getAttribute('alt') ?? '')
+    .join(' ')
+    .trim();
+
+const getMatchMax = (choice: Element): number => {
+  const parsed = parseInt(choice.getAttribute('match-max') ?? '1', 10);
+  return isNaN(parsed) ? 1 : parsed;
+};
+
+/**
+ * Plan the grouped (bowtie) layout, or return null when the match isn't a
+ * well-formed bowtie and should render as a classic two-set match instead.
+ *
+ * A well-formed bowtie partitions the sources into the target columns:
+ * - every source names exactly one target identifier in its match-group
+ * - every target is named by at least one source
+ * - a target with a match-group of its own names every source in its bank
+ * - every target's slots can be filled (match-max ≤ the sources in its bank;
+ *   extra sources are distractors)
+ * - all the slots can be filled at once (total slots ≤ max-associations, when
+ *   the interaction limits associations)
+ *
+ * Anything else (a source with no or an unknown match-group, a source naming
+ * several targets, a target that excludes one of its sources, a column or set
+ * of columns that can't be filled) falls back to the classic layout, where
+ * match-group still restricts pairing.
+ */
+function planGroupedColumns(
+  sourceChoices: Element[],
+  targetChoices: Element[],
+  maxAssociations: number
+): GroupedColumn[] | null {
+  const columns = new Map<string, GroupedColumn>();
+  for (const target of targetChoices) {
+    const targetId = target.getAttribute('identifier');
+    if (!targetId) return null;
+    columns.set(targetId, { target, targetId, matchMax: getMatchMax(target), sources: [], capacity: 0 });
+  }
+
+  for (const source of sourceChoices) {
+    const groups = getMatchGroups(source);
+    const column = groups.length === 1 ? columns.get(groups[0]) : undefined;
+    if (!source.getAttribute('identifier') || !column) return null;
+    column.sources.push(source);
+  }
+
+  for (const column of columns.values()) {
+    const bankSize = column.sources.length;
+    if (bankSize === 0 || column.matchMax > bankSize) return null;
+
+    const targetGroups = getMatchGroups(column.target);
+    if (targetGroups.length
+      && column.sources.some((source) => !targetGroups.includes(source.getAttribute('identifier') ?? ''))) {
+      return null;
+    }
+
+    // Unbounded targets fall back to max-associations, capped by the bank.
+    column.capacity = column.matchMax > 0
+      ? column.matchMax
+      : maxAssociations > 0 ? Math.min(maxAssociations, bankSize) : bankSize;
+  }
+
+  const planned = Array.from(columns.values());
+  const totalSlots = planned.reduce((sum, column) => sum + column.capacity, 0);
+  if (maxAssociations > 0 && totalSlots > maxAssociations) return null;
+
+  return planned;
+}
+
 function buildMatchConstraintText(min: number, max: number): string | null {
   if (min > 0 && max > 0 && min !== max) {
     return `Make between ${min} and ${max} matches.`;
@@ -30,13 +149,6 @@ function buildMatchConstraintText(min: number, max: number): string | null {
     return `Make at least ${min} match${min === 1 ? '' : 'es'}.`;
   }
   return null;
-}
-
-interface ChoiceData {
-  identifier: string;
-  content: string;
-  matchMax: number;
-  element: Element;
 }
 
 /**
@@ -111,21 +223,6 @@ export class MatchInteractionHandler implements ElementHandler {
       container.setAttribute('aria-label', 'Match interaction');
     }
 
-    // Create layout container with orientation from QTI class attribute
-    const layoutContainer = document.createElement('div');
-    layoutContainer.className = 'cutie-match-layout';
-
-    const qtiClass = element.getAttribute('class') ?? '';
-    if (qtiClass.includes('qti-match-source-right')) {
-      layoutContainer.classList.add('cutie-match-source-right');
-    } else if (qtiClass.includes('qti-match-source-top')) {
-      layoutContainer.classList.add('cutie-match-source-top');
-    } else if (qtiClass.includes('qti-match-source-bottom')) {
-      layoutContainer.classList.add('cutie-match-source-bottom');
-    } else {
-      layoutContainer.classList.add('cutie-match-source-left');
-    }
-
     // Create the controller
     const controller = new MatchController(
       responseIdentifier,
@@ -134,18 +231,56 @@ export class MatchInteractionHandler implements ElementHandler {
       maxAssociations
     );
 
-    // Process source set (first match set)
-    // Note: choices are pre-shuffled by the server in renderTemplate
-    const sourceSetElement = layoutContainer.appendChild(
-      this.createMatchSet(matchSets[0], 'source', controller, context)
+    // Grouped (bowtie) layout: when the sources' match-groups partition them into
+    // the target columns, render one column per target choice with per-group
+    // source banks instead of two sets side by side. The interaction stays a
+    // legal two-set directedPair match — only the presentation changes, derived
+    // from the target set.
+    const groupedColumns = planGroupedColumns(
+      getAssociableChoices(matchSets[0]),
+      getAssociableChoices(matchSets[1]),
+      maxAssociations
     );
 
-    // Process target set (second match set)
-    const targetSetElement = layoutContainer.appendChild(
-      this.createMatchSet(matchSets[1], 'target', controller, context)
-    );
+    if (groupedColumns) {
+      controller.enableGroupedMode();
+      // Pass through QTI shared vocabulary (qti-choices-*) so CSS can position
+      // each column's bank; flag the interaction so grouped styles are scoped.
+      const sourceClasses = element.getAttribute('class');
+      if (sourceClasses) {
+        container.classList.add(...sourceClasses.split(/\s+/).filter(Boolean));
+      }
+      container.classList.add('cutie-match-interaction--grouped');
 
-    container.appendChild(layoutContainer);
+      container.appendChild(
+        this.createColumns(groupedColumns, controller, context, responseIdentifier)
+      );
+    } else {
+      // Classic two-set layout with orientation from the QTI class attribute.
+      // Note: choices are pre-shuffled by the server in renderTemplate.
+      const layoutContainer = document.createElement('div');
+      layoutContainer.className = 'cutie-match-layout';
+
+      const qtiClass = element.getAttribute('class') ?? '';
+      if (qtiClass.includes('qti-match-source-right')) {
+        layoutContainer.classList.add('cutie-match-source-right');
+      } else if (qtiClass.includes('qti-match-source-top')) {
+        layoutContainer.classList.add('cutie-match-source-top');
+      } else if (qtiClass.includes('qti-match-source-bottom')) {
+        layoutContainer.classList.add('cutie-match-source-bottom');
+      } else {
+        layoutContainer.classList.add('cutie-match-source-left');
+      }
+
+      layoutContainer.appendChild(
+        this.createMatchSet(matchSets[0], 'source', controller, context)
+      );
+      layoutContainer.appendChild(
+        this.createMatchSet(matchSets[1], 'target', controller, context)
+      );
+
+      container.appendChild(layoutContainer);
+    }
 
     // Evaluation of a finished attempt when the delivery options show one,
     // or the last try's verdict on a fresh try
@@ -176,7 +311,7 @@ export class MatchInteractionHandler implements ElementHandler {
     }
 
     // Initialize controller after all choices are registered
-    controller.initialize(sourceSetElement, targetSetElement);
+    controller.initialize();
 
     // Initialize with default values if present
     const defaultValue = getDefaultValue(element.ownerDocument, responseIdentifier);
@@ -185,43 +320,16 @@ export class MatchInteractionHandler implements ElementHandler {
       controller.initializeFromDefaults(defaults);
     }
 
-    // Draw the evaluation: the status rail, and under each choice (above its
-    // chips, and reciprocally, like the chips) the choices it is correctly
-    // matched with, by their displayed labels. Each choice is described by
-    // its own correct answer. The verdict is in the constraint text.
+    // Draw the evaluation: the status rail and the correct answer, placed to
+    // suit the layout. The verdict is in the constraint text.
     if (evaluation) {
-      const choices = new Map<string, HTMLElement>();
-      for (const choice of layoutContainer.querySelectorAll<HTMLElement>('.cutie-match-choice')) {
-        const id = choice.getAttribute('data-identifier');
-        if (id) choices.set(id, choice);
-      }
-
-      const partners = new Map<string, string[]>();
-      const addPartner = (id: string, partner: string) => {
-        partners.set(id, [...(partners.get(id) ?? []), partner]);
-      };
-      for (const pair of evaluation.correctResponse.map(parseDirectedPair)) {
-        if (!pair) continue;
-        addPartner(pair.source, pair.target);
-        addPartner(pair.target, pair.source);
-      }
-
-      for (const [id, partnerIds] of partners) {
-        const choice = choices.get(id);
-        const chips = choice?.parentElement?.querySelector('.cutie-match-choice-chips');
-        if (!choice || !chips) continue;
-
-        const content = document.createDocumentFragment();
-        partnerIds.forEach((partnerId, index) => {
-          if (index > 0) content.append(', ');
-          const label = choices.get(partnerId)?.querySelector('.cutie-match-choice-label');
-          content.append(label ? cloneLabel(label) : partnerId);
-        });
-
-        const answer = createCorrectAnswer(content);
-        answer.id = `evaluation-${responseIdentifier}-${id}`;
-        chips.before(answer);
-        addAriaDescribedBy(choice, answer.id);
+      const pairs = evaluation.correctResponse
+        .map(parseDirectedPair)
+        .filter((pair): pair is DirectedPair => pair !== null);
+      if (groupedColumns) {
+        this.drawGroupedKey(container, pairs, responseIdentifier);
+      } else {
+        this.drawClassicKey(container, pairs, responseIdentifier);
       }
       markEvaluated(container, evaluation.verdict);
     }
@@ -269,7 +377,128 @@ export class MatchInteractionHandler implements ElementHandler {
   }
 
   /**
-   * Create a match set container with its choices.
+   * Create a single choice: a wrapper holding the choice element and its chips
+   * container as siblings (avoids nested draggables). Registers the choice with
+   * the controller. tabindex defaults to -1; callers seed the roving tabbable.
+   */
+  private createChoiceWrapper(
+    choiceElement: Element,
+    setType: 'source' | 'target',
+    controller: MatchController,
+    context: TransformContext
+  ): { wrapper: HTMLElement; choice: HTMLElement; identifier: string } | null {
+    const identifier = choiceElement.getAttribute('identifier');
+    if (!identifier) {
+      console.warn('qti-simple-associable-choice missing identifier, skipping');
+      return null;
+    }
+
+    const matchMax = getMatchMax(choiceElement);
+    const content = getChoiceText(choiceElement);
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'cutie-match-choice-wrapper';
+
+    const choiceDiv = document.createElement('div');
+    choiceDiv.className = 'cutie-match-choice';
+    choiceDiv.setAttribute('role', 'option');
+    choiceDiv.setAttribute('aria-selected', 'false');
+    choiceDiv.setAttribute('data-identifier', identifier);
+    choiceDiv.setAttribute('data-match-max', String(matchMax));
+    choiceDiv.setAttribute('tabindex', '-1');
+    choiceDiv.setAttribute('draggable', 'true');
+
+    // Label — use transformChildren for rich content (HTML/MathML)
+    const labelSpan = document.createElement('span');
+    labelSpan.className = 'cutie-match-choice-label';
+    if (context.transformChildren) {
+      labelSpan.appendChild(context.transformChildren(choiceElement));
+    } else {
+      labelSpan.textContent = content;
+    }
+    choiceDiv.appendChild(labelSpan);
+    wrapper.appendChild(choiceDiv);
+
+    // Chips container as sibling (not inside choice)
+    const chipsContainer = document.createElement('div');
+    chipsContainer.className = 'cutie-match-choice-chips';
+    wrapper.appendChild(chipsContainer);
+
+    controller.registerChoice(
+      identifier, setType, choiceDiv, matchMax, content, getMatchGroups(choiceElement)
+    );
+
+    return { wrapper, choice: choiceDiv, identifier };
+  }
+
+  /**
+   * Classic key: under each choice (above its chips, and reciprocally, like the
+   * chips) the choices it is correctly matched with, by their displayed labels.
+   * Each choice is described by its own correct answer.
+   */
+  private drawClassicKey(
+    container: HTMLElement,
+    pairs: DirectedPair[],
+    responseIdentifier: string
+  ): void {
+    const choices = getChoicesById(container);
+
+    const partners = new Map<string, string[]>();
+    const addPartner = (id: string, partner: string) => {
+      partners.set(id, [...(partners.get(id) ?? []), partner]);
+    };
+    for (const { source, target } of pairs) {
+      addPartner(source, target);
+      addPartner(target, source);
+    }
+
+    for (const [id, partnerIds] of partners) {
+      const choice = choices.get(id);
+      const chips = choice?.parentElement?.querySelector('.cutie-match-choice-chips');
+      if (!choice || !chips) continue;
+
+      const answer = createCorrectAnswer(joinChoiceLabels(partnerIds, choices));
+      answer.id = `evaluation-${responseIdentifier}-${id}`;
+      chips.before(answer);
+      addAriaDescribedBy(choice, answer.id);
+    }
+  }
+
+  /**
+   * Grouped (bowtie) key: under each column's last slot, the sources that belong
+   * there, by their displayed labels — like the per-gap key of a gap match. A
+   * source's column is already shown by the bank it sits in, so sources carry
+   * no key of their own. Each slot of the column is described by the key.
+   */
+  private drawGroupedKey(
+    container: HTMLElement,
+    pairs: DirectedPair[],
+    responseIdentifier: string
+  ): void {
+    const choices = getChoicesById(container);
+    const correctByTarget = new Map<string, string[]>();
+    for (const { source, target } of pairs) {
+      correctByTarget.set(target, [...(correctByTarget.get(target) ?? []), source]);
+    }
+
+    for (const column of container.querySelectorAll<HTMLElement>('.cutie-match-column')) {
+      const targetId = column.getAttribute('data-match-group');
+      const sourceIds = targetId ? correctByTarget.get(targetId) : undefined;
+      const slots = column.querySelector<HTMLElement>('.cutie-match-slots');
+      if (!targetId || !sourceIds || !slots) continue;
+
+      const answer = createCorrectAnswer(joinChoiceLabels(sourceIds, choices));
+      answer.id = `evaluation-${responseIdentifier}-${targetId}`;
+      for (const slot of slots.querySelectorAll<HTMLElement>('.cutie-match-slot')) {
+        addAriaDescribedBy(slot, answer.id);
+      }
+      // Inside the slots' grid row: the column's subgrid has no row of its own for it
+      slots.append(answer);
+    }
+  }
+
+  /**
+   * Create a match set container with its choices (classic two-set layout).
    * Choices are already in the correct (potentially shuffled) order from the server.
    */
   private createMatchSet(
@@ -283,77 +512,122 @@ export class MatchInteractionHandler implements ElementHandler {
     setContainer.setAttribute('role', 'listbox');
     setContainer.setAttribute('aria-label', `${setType === 'source' ? 'Source' : 'Target'} choices`);
 
-    // Extract choices from the match set
-    const choiceElements = Array.from(matchSetElement.children).filter(
-      (child) => child.tagName.toLowerCase() === 'qti-simple-associable-choice'
-    );
-
-    // Build choice data - choices are already in the correct order from the server
-    const choices: ChoiceData[] = [];
-    for (const choiceElement of choiceElements) {
-      const identifier = choiceElement.getAttribute('identifier');
-      if (!identifier) {
-        console.warn('qti-simple-associable-choice missing identifier, skipping');
-        continue;
-      }
-
-      const matchMax = parseInt(choiceElement.getAttribute('match-max') ?? '1', 10);
-
-      choices.push({
-        identifier,
-        content: choiceElement.textContent ?? '',
-        matchMax: isNaN(matchMax) ? 1 : matchMax,
-        element: choiceElement,
-      });
-    }
-
-    // Create choice elements
+    // Seed one tabbable choice per set; the rest join its roving group.
     let isFirst = true;
-    for (const choice of choices) {
-      // Create wrapper to hold choice and chips as siblings (avoids nested draggables)
-      const wrapperDiv = document.createElement('div');
-      wrapperDiv.className = 'cutie-match-choice-wrapper';
-
-      const choiceDiv = document.createElement('div');
-      choiceDiv.className = 'cutie-match-choice';
-      choiceDiv.setAttribute('role', 'option');
-      choiceDiv.setAttribute('aria-selected', 'false');
-      choiceDiv.setAttribute('data-identifier', choice.identifier);
-      choiceDiv.setAttribute('data-match-max', String(choice.matchMax));
-      choiceDiv.setAttribute('tabindex', isFirst ? '0' : '-1');
-      choiceDiv.setAttribute('draggable', 'true');
-
-      // Label — use transformChildren for rich content (HTML/MathML)
-      const labelSpan = document.createElement('span');
-      labelSpan.className = 'cutie-match-choice-label';
-      if (context.transformChildren) {
-        labelSpan.appendChild(context.transformChildren(choice.element));
-      } else {
-        labelSpan.textContent = choice.content;
-      }
-      choiceDiv.appendChild(labelSpan);
-
-      wrapperDiv.appendChild(choiceDiv);
-
-      // Chips container as sibling (not inside choice)
-      const chipsContainer = document.createElement('div');
-      chipsContainer.className = 'cutie-match-choice-chips';
-      wrapperDiv.appendChild(chipsContainer);
-
-      setContainer.appendChild(wrapperDiv);
-
-      // Register with controller
-      controller.registerChoice(
-        choice.identifier,
-        setType,
-        choiceDiv,
-        choice.matchMax,
-        choice.content
-      );
-
+    for (const choiceElement of getAssociableChoices(matchSetElement)) {
+      const created = this.createChoiceWrapper(choiceElement, setType, controller, context);
+      if (!created) continue;
+      created.choice.setAttribute('tabindex', isFirst ? '0' : '-1');
+      setContainer.appendChild(created.wrapper);
       isFirst = false;
     }
 
     return setContainer;
+  }
+
+  /**
+   * Create the grouped (bowtie) layout from a planned set of columns (see
+   * planGroupedColumns). Each column is a per-group bank of the source choices
+   * whose match-group names that target, then a plain HEADER plus a fixed row of
+   * slot boxes (the drop targets). The bank comes first in the DOM because the
+   * QTI vocabulary asks for choices to be presented before targets to assistive
+   * technology; the interaction's qti-choices-* class only repositions each
+   * bank visually (via CSS). Columns are derived entirely from the target set —
+   * no authored layout grid needed.
+   */
+  private createColumns(
+    columns: GroupedColumn[],
+    controller: MatchController,
+    context: TransformContext,
+    responseIdentifier: string
+  ): HTMLElement {
+    const columnsRow = document.createElement('div');
+    columnsRow.className = 'cutie-match-columns';
+
+    for (const { target, targetId, matchMax, sources, capacity } of columns) {
+      const targetContent = getChoiceText(target);
+
+      const column = document.createElement('div');
+      column.className = 'cutie-match-column';
+      column.setAttribute('data-match-group', targetId);
+
+      // Header + slots share the "target" grid area so qti-choices-* positioning places
+      // them together opposite the bank.
+      const targetArea = document.createElement('div');
+      targetArea.className = 'cutie-match-choice-wrapper';
+
+      const header = document.createElement('div');
+      header.className = 'cutie-match-target-header';
+      const labelId = `cutie-match-label-${responseIdentifier}-${targetId}`;
+      header.id = labelId;
+      if (context.transformChildren) {
+        header.appendChild(context.transformChildren(target));
+      } else {
+        header.textContent = targetContent;
+      }
+      targetArea.appendChild(header);
+      controller.registerGroupedTarget(
+        targetId, header, matchMax, targetContent, getMatchGroups(target)
+      );
+
+      // Draw one slot per unit of capacity.
+      const slots = document.createElement('div');
+      slots.className = 'cutie-match-slots';
+      slots.setAttribute('role', 'group');
+      slots.setAttribute('aria-labelledby', labelId);
+      for (let i = 0; i < capacity; i++) {
+        const slot = this.createSlot();
+        controller.registerGroupedSlot(slot, targetId, i + 1, capacity);
+        slots.appendChild(slot);
+      }
+      targetArea.appendChild(slots);
+
+      // Per-group source bank, labelled by the column header.
+      const bank = document.createElement('div');
+      bank.className = 'cutie-match-bank';
+      bank.setAttribute('role', 'listbox');
+      bank.setAttribute('data-match-group', targetId);
+      bank.setAttribute('aria-labelledby', labelId);
+
+      let isFirstInBank = true;
+      for (const sourceChoice of sources) {
+        const created = this.createChoiceWrapper(sourceChoice, 'source', controller, context);
+        if (!created) continue;
+        created.choice.setAttribute('tabindex', isFirstInBank ? '0' : '-1');
+        bank.appendChild(created.wrapper);
+        isFirstInBank = false;
+      }
+
+      controller.registerGroupedBank(bank);
+      column.append(bank, targetArea);
+      columnsRow.appendChild(column);
+    }
+
+    return columnsRow;
+  }
+
+  /**
+   * Create a single empty slot: one unit of target capacity shown under a grouped column
+   * header. Holds a placeholder (shown when empty) and a content span (shown
+   * when filled). The controller labels it and wires its interactions.
+   */
+  private createSlot(): HTMLElement {
+    const slot = document.createElement('div');
+    slot.className = 'cutie-match-slot';
+    slot.setAttribute('role', 'button');
+    slot.setAttribute('tabindex', '-1');
+    slot.setAttribute('draggable', 'false');
+
+    const placeholder = document.createElement('span');
+    placeholder.className = 'cutie-match-slot-placeholder';
+    placeholder.setAttribute('aria-hidden', 'true');
+    slot.appendChild(placeholder);
+
+    const content = document.createElement('span');
+    content.className = 'cutie-match-slot-content';
+    content.style.display = 'none';
+    slot.appendChild(content);
+
+    return slot;
   }
 }
