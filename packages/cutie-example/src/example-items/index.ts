@@ -48,6 +48,8 @@ import * as adaptiveMontyHall from './spec-adaptive-monty-hall.js';
 import * as templateImage from './spec-template-image.js';
 import * as templateDigging from './template-digging.js';
 import * as templateRounding from './template-rounding.js';
+import * as templateSimpleInterest from './template-simple-interest.js';
+import * as templateMarginalRevenue from './template-marginal-revenue.js';
 import * as formulaStrict from './formula-strict.js';
 import * as formulaCanonical from './formula-canonical.js';
 import * as formulaAlgebraic from './formula-algebraic.js';
@@ -107,6 +109,8 @@ export const formulaExamples = [
 /* items using template processing to randomize values per attempt */
 export const templateExamples = [
   templateRounding,
+  templateSimpleInterest,
+  templateMarginalRevenue,
 ];
 
 /* variant testing examples for visual verification of CSS/layout features */

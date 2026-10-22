@@ -1682,6 +1682,58 @@ describe('initializeState', () => {
       expect(state.variables.RESULT).toBe('second');
     });
 
+    describe('qti-index with n as a variable identifier', () => {
+      const indexItem = (rules: string) => `<?xml version="1.0" encoding="UTF-8"?>
+        <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+          identifier="index-variable" title="Index Variable">
+          <qti-template-declaration identifier="LIST" cardinality="ordered" base-type="string"/>
+          <qti-template-declaration identifier="I" cardinality="single" base-type="integer"/>
+          <qti-template-declaration identifier="RESULT" cardinality="single" base-type="string"/>
+          <qti-template-processing>
+            <qti-set-template-value identifier="LIST">
+              <qti-ordered>
+                <qti-base-value base-type="string">first</qti-base-value>
+                <qti-base-value base-type="string">second</qti-base-value>
+                <qti-base-value base-type="string">third</qti-base-value>
+              </qti-ordered>
+            </qti-set-template-value>
+            ${rules}
+          </qti-template-processing>
+          <qti-item-body><p>Test</p></qti-item-body>
+        </qti-assessment-item>`;
+
+      const setIndex = (value: number) => `
+        <qti-set-template-value identifier="I">
+          <qti-base-value base-type="integer">${value}</qti-base-value>
+        </qti-set-template-value>`;
+
+      const indexResult = (container: string) => `
+        <qti-set-template-value identifier="RESULT">
+          <qti-index n="I">${container}</qti-index>
+        </qti-set-template-value>`;
+
+      const listResult = indexResult('<qti-variable identifier="LIST"/>');
+
+      const run = (rules: string) => initializeState(parser.parseFromString(indexItem(rules), 'text/xml'));
+
+      test('uses the value of the variable', () => {
+        expect(run(setIndex(3) + listResult).variables.RESULT).toBe('third');
+      });
+
+      test('returns NULL when the variable is out of range', () => {
+        expect(run(setIndex(4) + listResult).variables.RESULT).toBeNull();
+        expect(run(setIndex(0) + listResult).variables.RESULT).toBeNull();
+      });
+
+      test('returns NULL when the variable is NULL', () => {
+        expect(run(listResult).variables.RESULT).toBeNull();
+      });
+
+      test('returns NULL when the container is NULL', () => {
+        expect(run(setIndex(1) + indexResult('<qti-null/>')).variables.RESULT).toBeNull();
+      });
+    });
+
     test('evaluates qti-contains operator', () => {
       const xml = `<?xml version="1.0" encoding="UTF-8"?>
         <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
@@ -1821,6 +1873,36 @@ describe('initializeState', () => {
       const state = initializeState(itemDoc);
 
       expect(state.variables.RESULT).toEqual(['hello', 'hello', 'hello']);
+    });
+
+    describe('qti-repeat with number-repeats as a variable identifier', () => {
+      const repeatItem = (count: number) => `<?xml version="1.0" encoding="UTF-8"?>
+        <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+          identifier="repeat-variable" title="Repeat Variable">
+          <qti-template-declaration identifier="COUNT" cardinality="single" base-type="integer"/>
+          <qti-template-declaration identifier="RESULT" cardinality="ordered" base-type="string"/>
+          <qti-template-processing>
+            <qti-set-template-value identifier="COUNT">
+              <qti-base-value base-type="integer">${count}</qti-base-value>
+            </qti-set-template-value>
+            <qti-set-template-value identifier="RESULT">
+              <qti-repeat number-repeats="COUNT">
+                <qti-base-value base-type="string">hello</qti-base-value>
+              </qti-repeat>
+            </qti-set-template-value>
+          </qti-template-processing>
+          <qti-item-body><p>Test</p></qti-item-body>
+        </qti-assessment-item>`;
+
+      const run = (count: number) => initializeState(parser.parseFromString(repeatItem(count), 'text/xml'));
+
+      test('uses the value of the variable', () => {
+        expect(run(2).variables.RESULT).toEqual(['hello', 'hello']);
+      });
+
+      test('returns NULL when the variable is less than 1', () => {
+        expect(run(0).variables.RESULT).toBeNull();
+      });
     });
   });
 

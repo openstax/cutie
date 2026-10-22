@@ -113,6 +113,10 @@ the `tolerance`, `include-lower-bound`, and `include-upper-bound` attributes.
 
 **Suggested fix:** Implement absolute and relative tolerance.
 
+The example item `template-simple-interest` (cutie-example) already uses
+`tolerance-mode="absolute"`; it scores exact answers correctly today and will
+accept near answers once this is implemented.
+
 ## 6. `qti-printed-variable` ignores formatting attributes
 
 **File:** `packages/cutie-core/src/lib/renderTemplate.ts:84`
@@ -229,7 +233,8 @@ its hint and solution requests (`HINTREQUEST`, `SOLREQUEST`). With those, it
 belongs with the spec examples in the example app, next to `template_image.xml`.
 
 Related: attributes like `min` and `max` on `qti-random-integer` can't take
-template variable references (`{VAR}`), which the spec allows.
+variable references, which the spec allows. In QTI 3 these are bare
+identifiers, not the `{VAR}` syntax of QTI 2.x.
 
 ## 12. Correct responses set during template processing are stored in state
 
@@ -261,3 +266,14 @@ which cutie doesn't support, so no supported interaction produces one today.
 
 **Suggested fix:** Read and write `qti-field-value` entries (with each field's
 base type) for record cardinality in both places.
+
+## 14. `qti-index` and `qti-repeat` ignore a variable `n` / `number-repeats`
+
+**Status:** Fixed. Both attributes can be an integer or a variable identifier,
+resolved by `resolveIntOrIdentifier` (`lib/expressionEvaluator/base.ts`).
+`qti-index` also returns NULL for a NULL container, and `qti-repeat` returns
+NULL for fewer than 1 repeat.
+
+**Still open:** `qti-repeat` should accept several sub-expressions, add the
+values of ordered ones individually, and ignore NULL ones. It currently takes
+exactly one and adds its value as is.

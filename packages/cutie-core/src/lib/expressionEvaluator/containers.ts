@@ -4,6 +4,7 @@
 
 import { getChildElements } from '../../utils/dom.js';
 import { deepEqual } from '../../utils/equality.js';
+import { resolveIntOrIdentifier } from './base.js';
 import type { SubEvaluate } from './types.js';
 
 /**
@@ -68,14 +69,20 @@ export function evaluateRepeat(
   itemDoc: Document,
   variables: Record<string, unknown>,
   subEvaluate: SubEvaluate
-): unknown[] {
-  const numberRepeats = parseInt(element.getAttribute('number-repeats') || '1', 10);
-  const result: unknown[] = [];
+): unknown[] | null {
+  const numberRepeats = resolveIntOrIdentifier(element.getAttribute('number-repeats') || '1', variables);
 
   const children = Array.from(getChildElements(element));
   if (children.length !== 1) {
     throw new Error('<qti-repeat> requires exactly 1 child element');
   }
+
+  // Per QTI spec: fewer than 1 repeat gives NULL
+  if (numberRepeats === null || numberRepeats < 1) {
+    return null;
+  }
+
+  const result: unknown[] = [];
 
   const value = subEvaluate(children[0], itemDoc, variables);
   for (let j = 0; j < numberRepeats; j++) {
@@ -166,6 +173,9 @@ export function evaluateContains(
 
 /**
  * Evaluate qti-index element
+ *
+ * Per QTI spec: 'n' is an integer or a variable identifier, and the result is
+ * NULL when 'n' is out of range or the sub-expression is NULL.
  */
 export function evaluateIndex(
   element: Element,
@@ -173,7 +183,7 @@ export function evaluateIndex(
   variables: Record<string, unknown>,
   subEvaluate: SubEvaluate
 ): unknown {
-  const n = parseInt(element.getAttribute('n') || '1', 10);
+  const n = resolveIntOrIdentifier(element.getAttribute('n') || '1', variables);
   const children = Array.from(getChildElements(element));
 
   if (children.length !== 1) {
@@ -181,6 +191,10 @@ export function evaluateIndex(
   }
 
   const container = subEvaluate(children[0], itemDoc, variables);
+
+  if (n === null || container === null) {
+    return null;
+  }
 
   if (!Array.isArray(container)) {
     throw new Error(`Expected array value in <qti-index>, got ${typeof container}`);
