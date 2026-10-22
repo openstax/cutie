@@ -4,7 +4,9 @@
  *
  * Annotates inline interactions (textEntryInteraction, inlineChoiceInteraction)
  * with aria-labelledby referencing spans wrapped around surrounding visible text.
- * This provides accessible labels per WCAG 4.1.2 and 3.3.2.
+ * An interaction with no surrounding text is labelled by the headers of the
+ * table cell it's in, if any. This provides accessible labels per WCAG 4.1.2
+ * and 3.3.2.
  *
  * References:
  * - W3C ARIA9 technique: https://www.w3.org/WAI/WCAG21/Techniques/aria/ARIA9
@@ -13,6 +15,8 @@
  * - WCAG 4.1.2 Name, Role, Value: https://www.w3.org/WAI/WCAG21/Understanding/name-role-value.html
  * - WCAG 3.3.2 Labels or Instructions: https://www.w3.org/WAI/WCAG21/Understanding/labels-or-instructions.html
  */
+
+import { findTableHeaders } from './tableHeaderLabel.js';
 
 const INTERACTION_SELECTOR =
   'input.cutie-text-entry-interaction, select.cutie-inline-choice-interaction';
@@ -504,8 +508,19 @@ export function annotateInlineInteractions(
         annotated = true;
         for (const id of record.beforeSpanIds) referencedSpanIds.add(id);
         for (const id of record.afterSpanIds) referencedSpanIds.add(id);
+        continue;
+      }
+
+      // No surrounding text: label from the table headers of the cell it's in
+      const headers = findTableHeaders(el);
+      if (headers.length > 0) {
+        for (const header of headers) {
+          if (!header.id) header.id = generateId();
+        }
+        el.setAttribute('aria-labelledby', headers.map((header) => header.id).join(' '));
+        annotated = true;
       } else {
-        // Fallback: no surrounding text — no cutie-sr-only spans created,
+        // Fallback: no surrounding text or headers — no cutie-sr-only spans created,
         // so don't set annotated (avoids unnecessary style injection)
         if (interactions.length > 1) {
           el.setAttribute('aria-label', `blank ${i + 1} of ${interactions.length}`);

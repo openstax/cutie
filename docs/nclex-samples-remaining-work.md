@@ -28,26 +28,17 @@ and it matches the PRD's format and scoring rule. An approximation is worse than
   (1 cause, 2 effects) is worth 2 points, earns nothing unless the cause is correct, and earns
   1 point for each correct effect.
 
-## 1. Bug: drop-downs in table cells are labelled "blank"
+## 1. Fixed: drop-downs in table cells were labelled "blank"
 
-**Issue:** an inline choice (or text entry) interaction that is the only content of a table
-cell gets the accessible name "blank" instead of a name from its row and column headers.
+**Issue:** an inline choice (or text entry) interaction that was the only content of a table
+cell got the accessible name "blank", which didn't say what was being asked.
 
-**Where:** `packages/cutie-client/src/transformer/handlers/inlineInteractionAnnotator.ts`.
-`annotateInlineInteractions` treats `td` and `th` as block containers and builds labels only
-from text in the same container. A cell with no text besides the interaction falls through to
-the fallback, which sets `aria-label="blank"` (or `"blank N of M"`). An `aria-label` overrides
-the name a screen reader would otherwise build, so the table headers the item provides are lost
-for that control.
-
-**Affects:** the Drop-Down: Table sample (`nclex-drop-down-table`), which uses a `caption`,
-`th scope="col"` headers, and a `th scope="row"` per row, all valid QTI v3 / HTML.
-
-**Fix needed:** when an interaction sits in a table cell with no labelling text of its own,
-label it from the cell's row header (`th scope="row"`) and, where useful, its column header,
-instead of the "blank" fallback. Add a client spec and a test flow under `docs/test-flows/`.
-
-This fix is also a prerequisite for the Grouping sample below.
+**Fix:** an inline interaction with no text in its cell is now labelled by the cell's row
+header, then its column header (for example "Temperature Status"), or by the headers its cell
+names in a `headers` attribute. Text in the cell still takes priority. Tables with spanned
+cells keep the "blank" fallback. See
+`packages/cutie-client/src/transformer/handlers/tableHeaderLabel.ts` and the test flow
+`docs/test-flows/inline-table-labels.md`.
 
 ## 2. Samples not made
 
@@ -57,13 +48,15 @@ This fix is also a prerequisite for the Grouping sample below.
 select-all-that-apply group of 2 to 4 options. Each row is its own `qti-choice-interaction`
 with a `multiple` response. Scored +/- per group (minimum 0 per group), summed.
 
-**Why not made:** the NCLEX format is a table. A choice interaction in a table cell renders,
-but has no accessible name unless it has a `qti-prompt`, and a prompt repeats the row header.
-A version with stacked groups and prompts was written and removed, because it isn't the NCLEX
-format.
+**Why not made:** an earlier attempt deferred this sample, citing an accessibility problem
+with choice interactions in table cells that it tied to the inline-in-table labelling bug
+(section 1). That bug is resolved, but it's unclear why choice-in-table was ever related to
+it: choice interactions are labelled separately from inline interactions. There's also no clear
+problem with a choice interaction in a table cell, which QTI v3 allows. A version with stacked
+groups and prompts was also written and removed, because it isn't the NCLEX format.
 
-**Needed:** client labelling of choice interactions from their table row header (related to
-bug 1). Scoring already works (summed `qti-map-response`, classified as `sumScores`).
+**Needed:** check the table format for any real blockers, then write the sample. Scoring
+already works (summed `qti-map-response`, classified as `sumScores`).
 
 ### Bowtie
 

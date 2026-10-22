@@ -1,3 +1,4 @@
+// spell-checker: ignore colspan
 import { beforeEach, describe, expect, it } from 'vitest';
 import { annotateInlineInteractions } from './inlineInteractionAnnotator.js';
 
@@ -720,5 +721,145 @@ describe('block elements beside an interaction', () => {
 
     expect(labelText(fragment, fragment.querySelector('input')!)).toBe('Rate');
     expect(fragment.querySelector('video')!.parentElement!.tagName).toBe('DIV');
+  });
+});
+
+describe('interactions in table cells', () => {
+  beforeEach(() => {
+    resetIds();
+  });
+
+  const SELECT = '<select class="cutie-inline-choice-interaction"></select>';
+
+  /** The text each id in an interaction's aria-labelledby names */
+  function labelParts(fragment: DocumentFragment, el: Element): string[] {
+    return el.getAttribute('aria-labelledby')!.split(' ')
+      .map((id) => normalizeHtml(fragment.getElementById(id)!.textContent!));
+  }
+
+  function annotateTable(html: string): DocumentFragment {
+    const fragment = fragmentFromHtml(html);
+    annotateInlineInteractions(fragment, testIdGenerator);
+    return fragment;
+  }
+
+  it('labels an interaction by its row header then its column header', () => {
+    const fragment = annotateTable(`<table>
+      <caption>Findings</caption>
+      <thead><tr><th scope="col">Finding</th><th scope="col">Admission</th><th scope="col">Status</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Temperature</th><td>39.2 °C</td><td>${SELECT}</td></tr>
+        <tr><th scope="row">Respiratory rate</th><td>28/min</td><td>${SELECT}</td></tr>
+      </tbody>
+    </table>`);
+
+    const [first, second] = Array.from(fragment.querySelectorAll('select'));
+    expect(labelParts(fragment, first!)).toEqual(['Temperature', 'Status']);
+    expect(labelParts(fragment, second!)).toEqual(['Respiratory rate', 'Status']);
+    expect(first!.hasAttribute('aria-label')).toBe(false);
+  });
+
+  it('finds headers without scope attributes', () => {
+    const fragment = annotateTable(`<table>
+      <tr><th>Finding</th><th>Status</th></tr>
+      <tr><th>Temperature</th><td>${SELECT}</td></tr>
+    </table>`);
+
+    expect(labelParts(fragment, fragment.querySelector('select')!)).toEqual(['Temperature', 'Status']);
+  });
+
+  it('labels by the column header alone when the row has none', () => {
+    const fragment = annotateTable(`<table>
+      <thead><tr><th>Finding</th><th>Status</th></tr></thead>
+      <tbody><tr><td>Temperature</td><td>${SELECT}</td></tr></tbody>
+    </table>`);
+
+    expect(labelParts(fragment, fragment.querySelector('select')!)).toEqual(['Status']);
+  });
+
+  it('labels by the row header alone when the column has none', () => {
+    const fragment = annotateTable(`<table>
+      <tr><th scope="row">Temperature</th><td>${SELECT}</td></tr>
+    </table>`);
+
+    expect(labelParts(fragment, fragment.querySelector('select')!)).toEqual(['Temperature']);
+  });
+
+  it('skips headers with no text', () => {
+    const fragment = annotateTable(`<table>
+      <thead><tr><th>Finding</th><th></th></tr></thead>
+      <tbody><tr><th scope="row">Temperature</th><td>${SELECT}</td></tr></tbody>
+    </table>`);
+
+    expect(labelParts(fragment, fragment.querySelector('select')!)).toEqual(['Temperature']);
+  });
+
+  it('uses the headers the cell names in its headers attribute', () => {
+    const fragment = annotateTable(`<table>
+      <tr><th id="status">Status</th><th id="temp">Temperature</th></tr>
+      <tr><td headers="temp status">${SELECT}</td><td></td></tr>
+    </table>`);
+
+    const select = fragment.querySelector('select')!;
+    expect(select.getAttribute('aria-labelledby')).toBe('temp status');
+  });
+
+  it('keeps an id a header already has', () => {
+    const fragment = annotateTable(`<table>
+      <tr><th id="status-header">Status</th></tr>
+      <tr><td>${SELECT}</td></tr>
+    </table>`);
+
+    expect(fragment.querySelector('select')!.getAttribute('aria-labelledby')).toBe('status-header');
+  });
+
+  it('labels an interaction wrapped in a paragraph inside the cell', () => {
+    const fragment = annotateTable(`<table>
+      <thead><tr><th>Finding</th><th>Status</th></tr></thead>
+      <tbody><tr><th scope="row">Temperature</th><td><p>${SELECT}</p></td></tr></tbody>
+    </table>`);
+
+    expect(labelParts(fragment, fragment.querySelector('select')!)).toEqual(['Temperature', 'Status']);
+  });
+
+  it('prefers text in the cell over the headers', () => {
+    const fragment = annotateTable(`<table>
+      <thead><tr><th>Finding</th><th>Order</th></tr></thead>
+      <tbody><tr><th scope="row">Temperature</th><td>Give ${SELECT} now</td></tr></tbody>
+    </table>`);
+
+    const select = fragment.querySelector('select')!;
+    const text = labelParts(fragment, select).filter((part) => part !== '');
+    expect(text).toEqual(['Give', 'now']);
+    expect(fragment.querySelectorAll('th[id]')).toHaveLength(0);
+  });
+
+  it('gives the positions of several interactions in one cell', () => {
+    const fragment = annotateTable(`<table>
+      <tr><th scope="row">Temperature</th><td>${SELECT}${SELECT}</td></tr>
+    </table>`);
+
+    const [first, second] = Array.from(fragment.querySelectorAll('select'));
+    expect(labelParts(fragment, first!)).toEqual(['Temperature']);
+    expect(labelParts(fragment, second!)).toEqual(['Temperature']);
+    expect(fragment.getElementById(first!.getAttribute('aria-describedby')!)!.textContent).toBe('blank 1 of 2');
+    expect(fragment.getElementById(second!.getAttribute('aria-describedby')!)!.textContent).toBe('blank 2 of 2');
+  });
+
+  it('falls back to "blank" in a table with spanned cells', () => {
+    const fragment = annotateTable(`<table>
+      <tr><th colspan="2">Status</th></tr>
+      <tr><th scope="row">Temperature</th><td>${SELECT}</td></tr>
+    </table>`);
+
+    const select = fragment.querySelector('select')!;
+    expect(select.hasAttribute('aria-labelledby')).toBe(false);
+    expect(select.getAttribute('aria-label')).toBe('blank');
+  });
+
+  it('falls back to "blank" in a table with no headers', () => {
+    const fragment = annotateTable(`<table><tr><td>Temperature</td><td>${SELECT}</td></tr></table>`);
+
+    expect(fragment.querySelector('select')!.getAttribute('aria-label')).toBe('blank');
   });
 });

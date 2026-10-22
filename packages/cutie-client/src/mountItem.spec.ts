@@ -584,6 +584,28 @@ describe('mountItem inline interaction labels', () => {
     expect(document.head.textContent).not.toContain('.cutie-sr-only');
   });
 
+  it('labels drop-downs in a table by their row and column headers', () => {
+    const row = (header: string, id: string) => `<tr>
+      <th scope="row">${header}</th>
+      <td>
+        <qti-inline-choice-interaction response-identifier="${id}" required="true">
+          <qti-inline-choice identifier="improved">Improved</qti-inline-choice>
+          <qti-inline-choice identifier="declined">Declined</qti-inline-choice>
+        </qti-inline-choice-interaction>
+      </td>
+    </tr>`;
+    mountBody(`<table>
+      <caption>Findings on admission and on day 3</caption>
+      <thead><tr><th scope="col">Finding</th><th scope="col">Status</th></tr></thead>
+      <tbody>${row('Temperature', 'R1')}${row('Respiratory rate', 'R2')}</tbody>
+    </table>`);
+
+    const [first, second] = Array.from(container.querySelectorAll('select'));
+    expect(labelText(first!)).toBe('Temperature Status');
+    expect(labelText(second!)).toBe('Respiratory rate Status');
+    expect(first!.hasAttribute('aria-label')).toBe(false);
+  });
+
   describe('interactions in the item body with no block parent', () => {
     it('labels an interaction from the text around it', () => {
       mountBody('Enter the dose <qti-text-entry-interaction response-identifier="R1"/> in mg.');
