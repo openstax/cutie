@@ -1,8 +1,7 @@
 // cspell:ignore hottext
 // Variant test: NCLEX-style trend item. A tabbed record (flat
 // heading-delimited HTML in a cutie-tab-container) sits in a layout column
-// beside a hottext interaction. Other QTI systems render the record as stacked
-// headings and paragraphs.
+// beside a hottext interaction.
 
 export const name = "Trend - Tabbed Record";
 

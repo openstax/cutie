@@ -178,9 +178,7 @@ const TAB_CONTAINER_STYLES = `
 
   .cutie-tab-container .cutie-tablist {
     display: flex;
-    flex-wrap: wrap;
     gap: 0.25em;
-    padding: 0 0.5em;
     margin-bottom: -1px;
   }
 
@@ -194,6 +192,8 @@ const TAB_CONTAINER_STYLES = `
     font: inherit;
     font-weight: 600;
     cursor: pointer;
+    width: 100%;
+    overflow-wrap: anywhere;
   }
 
   .cutie-tab-container .cutie-tab[aria-selected="true"] {
@@ -228,5 +228,36 @@ const TAB_CONTAINER_STYLES = `
   .cutie-tab-container .cutie-tabpanel:focus-visible {
     outline: 2px solid var(--cutie-primary);
     outline-offset: 2px;
+  }
+
+  /*
+   * A record that is the sole content of a layout column beside other columns
+   * takes the row's height from its siblings, and the active panel scrolls.
+   * Off when the row stacks to one column (see baseStyles).
+   */
+  @media not all and (max-width: 40em) {
+    .qti-layout-row > [class*="qti-layout-col"]:not(:only-child):has(> .cutie-tab-container:only-child) {
+      position: relative;
+      align-self: stretch;
+      min-height: 20em;
+    }
+
+    .qti-layout-row > [class*="qti-layout-col"]:not(:only-child) > .cutie-tab-container:only-child {
+      position: absolute;
+      inset: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .qti-layout-row > [class*="qti-layout-col"]:not(:only-child) > .cutie-tab-container:only-child .cutie-tablist {
+      flex: none;
+    }
+
+    .qti-layout-row > [class*="qti-layout-col"]:not(:only-child) > .cutie-tab-container:only-child .cutie-tabpanel {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: auto;
+    }
   }
 `;
