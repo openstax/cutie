@@ -75,6 +75,12 @@ describe('compareMathExpressions', () => {
       expect(compareMathExpressions('(x+1)(x-1)', 'x^2-1', 'algebraic')).toBe(true);
     });
 
+    test('handles decimal coefficients', () => {
+      expect(compareMathExpressions('-0.1x+70', '70-0.1x', 'algebraic')).toBe(true);
+      expect(compareMathExpressions('x(28-0.014x)', '28x-0.014x^2', 'algebraic')).toBe(true);
+      expect(compareMathExpressions('28-0.014x', '28-0.028x', 'algebraic')).toBe(false);
+    });
+
     test('rejects non-equivalent expressions', () => {
       expect(compareMathExpressions('5x', '6x', 'algebraic')).toBe(false);
       expect(compareMathExpressions('x^2', 'x^3', 'algebraic')).toBe(false);
