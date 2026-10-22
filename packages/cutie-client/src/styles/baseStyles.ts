@@ -1,6 +1,7 @@
 // spell-checker: ignore fullwidth
 import { ERROR_DISPLAY_STYLES } from '../errors/errorDisplay.js';
 import type { StyleManager } from '../transformer/types.js';
+import { NARROW_MEDIA_QUERY } from './breakpoints.js';
 
 const BASE_STYLES_ID = 'cutie-base-styles';
 const ERROR_DISPLAY_STYLES_ID = 'cutie-error-display';
@@ -103,7 +104,7 @@ const BASE_STYLES = `
   .qti-layout-col11 { grid-column: span 11; }
   .qti-layout-col12 { grid-column: span 12; }
 
-  @media (max-width: 40em) {
+  @media ${NARROW_MEDIA_QUERY} {
     .qti-layout-row {
       grid-template-columns: 1fr;
     }
