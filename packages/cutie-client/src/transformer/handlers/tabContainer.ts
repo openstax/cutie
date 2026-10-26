@@ -1,4 +1,4 @@
-/* spell-checker: ignore tablist tabpanel viewports */
+/* spell-checker: ignore tablist tabpanel viewports iframes */
 import { NARROW_MEDIA_QUERY } from '../../styles/breakpoints.js';
 import { focusNext, focusPrev, updateRovingTabindex } from '../../utils/rovingTabindex.js';
 import { registry } from '../registry.js';
@@ -88,7 +88,8 @@ class TabContainerHandler implements ElementHandler {
     list.className = 'cutie-tablist';
     container.appendChild(list);
 
-    // The container has no role, so an authored label names the tablist instead
+    // The container has no role, so an authored label names the tablist instead.
+    // The accordion has no grouping role, so it drops the label.
     const labels: Attr[] = [];
     for (const attr of Array.from(element.attributes)) {
       if (TABLIST_LABEL_ATTRIBUTES.includes(attr.name)) labels.push(attr);
@@ -144,7 +145,10 @@ class TabContainerHandler implements ElementHandler {
     const media = typeof window.matchMedia === 'function' ? window.matchMedia(NARROW_MEDIA_QUERY) : null;
     let mode: Mode = media?.matches ? 'accordion' : 'tabs';
 
-    const render = (): void => {
+    // Sets roles and places panels for the current mode. Runs only on the first
+    // render and when the mode changes, because moving a panel reloads its
+    // iframes and drops focus.
+    const layout = (): void => {
       list.removeAttribute('role');
       for (const name of TABLIST_LABEL_ATTRIBUTES) list.removeAttribute(name);
       for (const { heading, button, panel } of sections) {
@@ -156,26 +160,36 @@ class TabContainerHandler implements ElementHandler {
       }
 
       if (mode === 'tabs') {
-        const selected = open[open.length - 1] ?? 0;
         list.setAttribute('role', 'tablist');
         for (const attr of labels) list.setAttribute(attr.name, attr.value);
 
-        sections.forEach(({ heading, button, panel, needsTabStop }, i) => {
+        for (const { heading, button, panel, needsTabStop } of sections) {
           heading.setAttribute('role', 'presentation');
           button.setAttribute('role', 'tab');
-          button.setAttribute('aria-selected', String(i === selected));
           panel.setAttribute('role', 'tabpanel');
-          panel.hidden = i !== selected;
           if (needsTabStop) panel.setAttribute('tabindex', '0');
-        });
-        updateRovingTabindex(tabs, sections[selected]!.button);
+        }
         list.after(...sections.map((s) => s.panel));
       } else {
-        sections.forEach(({ heading, button, panel }, i) => {
-          button.setAttribute('aria-expanded', String(open.includes(i)));
+        for (const { heading, panel } of sections) {
           panel.setAttribute('role', 'region');
-          panel.hidden = !open.includes(i);
           heading.after(panel);
+        }
+      }
+    };
+
+    const render = (): void => {
+      if (mode === 'tabs') {
+        const selected = open[open.length - 1] ?? 0;
+        sections.forEach(({ button, panel }, i) => {
+          button.setAttribute('aria-selected', String(i === selected));
+          panel.hidden = i !== selected;
+        });
+        updateRovingTabindex(tabs, sections[selected]!.button);
+      } else {
+        sections.forEach(({ button, panel }, i) => {
+          button.setAttribute('aria-expanded', String(open.includes(i)));
+          panel.hidden = !open.includes(i);
         });
       }
 
@@ -219,6 +233,7 @@ class TabContainerHandler implements ElementHandler {
       if (index >= 0) open = [...open.filter((o) => o !== index), index];
 
       mode = media?.matches ? 'accordion' : 'tabs';
+      layout();
       render();
 
       const section = sections[index];
@@ -228,6 +243,7 @@ class TabContainerHandler implements ElementHandler {
     media?.addEventListener('change', onMediaChange);
     context.onCleanup?.(() => media?.removeEventListener('change', onMediaChange));
 
+    layout();
     render();
     fragment.appendChild(container);
     return fragment;
@@ -271,8 +287,8 @@ const TAB_CONTAINER_STYLES = `
 
   .cutie-tab-container .cutie-tab:focus-visible,
   .cutie-tab-container .cutie-tabpanel:focus-visible {
-    outline: 2px solid var(--cutie-primary);
-    outline-offset: 2px;
+    outline: var(--cutie-focus-ring);
+    outline-offset: var(--cutie-focus-ring-offset);
   }
 
   /*

@@ -69,6 +69,16 @@ function press(target: HTMLElement, key: string): void {
   target.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
 }
 
+/** Count the elements inserted or removed anywhere in `container` during `action`. */
+function countMoves(container: HTMLElement, action: () => void): number {
+  const observer = new MutationObserver(() => undefined);
+  observer.observe(container, { childList: true, subtree: true });
+  action();
+  const records = observer.takeRecords();
+  observer.disconnect();
+  return records.reduce((count, r) => count + r.addedNodes.length + r.removedNodes.length, 0);
+}
+
 describe('tabContainer', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -170,6 +180,13 @@ describe('tabContainer', () => {
     expect(panels(container)[0]!.hidden).toBe(false);
   });
 
+  it('leaves panels in place when the selection changes', () => {
+    const container = render(RECORD);
+
+    expect(countMoves(container, () => tabs(container)[1]!.click())).toBe(0);
+    expect(countMoves(container, () => press(tabs(container)[1]!, 'ArrowRight'))).toBe(0);
+  });
+
   it('restores the selected tab on re-render', () => {
     const state = new Map<string, unknown>();
     tabs(render(RECORD, state))[2]!.click();
@@ -230,6 +247,14 @@ describe('tabContainer', () => {
       first!.click();
       expect(first!.getAttribute('aria-expanded')).toBe('false');
       expect(sectionPanels(container).map((p) => p.hidden)).toEqual([true, false, false]);
+    });
+
+    it('leaves panels in place when a section opens or closes', () => {
+      stubViewport(true);
+      const container = render(RECORD);
+
+      expect(countMoves(container, () => buttons(container)[1]!.click())).toBe(0);
+      expect(countMoves(container, () => buttons(container)[0]!.click())).toBe(0);
     });
 
     it('ignores tab keys', () => {
