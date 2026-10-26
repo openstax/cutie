@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, useRef, useEffect } from 'react';
+import { createElement, useCallback, useMemo, useState, useRef, useEffect } from 'react';
 import { Descendant, Editor, Element as SlateElementType, Transforms } from 'slate';
 import { Slate, Editable, RenderElementProps, RenderLeafProps } from 'slate-react';
 import type { Path } from 'slate';
@@ -411,6 +411,12 @@ function Element({ attributes, children, element }: RenderElementProps): React.J
           {children}
         </span>
       );
+
+    case 'xhtml-element':
+      if (el.isVoid) {
+        return <span {...attributes} contentEditable={false}>{children}</span>;
+      }
+      return createElement(el.tagName, attributes, children);
 
     case 'paragraph':
       return <p {...attributes} style={{ textAlign: el.align }}>{children}</p>;

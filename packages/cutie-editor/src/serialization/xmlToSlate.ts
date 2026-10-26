@@ -15,7 +15,7 @@ import { isElementInline } from '../plugins/withQtiInteractions.js';
 import type { DocumentMetadata, ElementAttributes, SlateElement, SlateText, TextAlign } from '../types.js';
 import { classifyResponseProcessing } from '../utils/responseProcessingClassifier.js';
 import { domToXmlNode, type XmlNode } from './xmlNode.js';
-import { isQtiElement, normalizeTagName, parseXml, serializeElement } from './xmlUtils.js';
+import { isBlockTag, isQtiElement, normalizeTagName, parseXml, serializeElement } from './xmlUtils.js';
 
 /**
  * Parser context for passing response declarations to interaction parsers
@@ -229,25 +229,6 @@ function convertNodesToSlate(nodes: Node[], isRootLevel = false, context?: Parse
 }
 
 /**
- * Block elements for fallback whitespace handling.
- * Includes XHTML block elements and qti-item-body (container without a dedicated parser).
- * Other QTI elements are NOT included - their parsers handle whitespace directly.
- */
-export const BLOCK_ELEMENTS_FOR_WHITESPACE = [
-  'p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-  'ul', 'ol', 'li', 'blockquote', 'pre',
-  'qti-item-body', // Container element without dedicated parser
-];
-
-/**
- * Check if an element is a block-level element for whitespace handling.
- * Used only for fallback whitespace handling of elements without dedicated parsers.
- */
-function isBlockElementForWhitespace(element: Element): boolean {
-  return BLOCK_ELEMENTS_FOR_WHITESPACE.includes(element.tagName.toLowerCase());
-}
-
-/**
  * Strip structural whitespace from Slate nodes.
  * Use this in element parsers whose children are structural (not flow content).
  */
@@ -270,7 +251,7 @@ function isStructuralWhitespace(node: Node): boolean {
   if (!parent) return false;
 
   // Check if parent is a block-level element
-  if (!isBlockElementForWhitespace(parent)) return false;
+  if (!isBlockTag(parent.tagName)) return false;
 
   // Check if this text node is surrounded by block-level siblings
   // (or is at the start/end of the parent with block siblings)
@@ -282,9 +263,9 @@ function isStructuralWhitespace(node: Node): boolean {
   const nextSibling = nodeIndex < siblings.length - 1 ? siblings[nodeIndex + 1] : null;
 
   const prevIsBlock = prevSibling?.nodeType === Node.ELEMENT_NODE &&
-                      isBlockElementForWhitespace(prevSibling as Element);
+                      isBlockTag((prevSibling as Element).tagName);
   const nextIsBlock = nextSibling?.nodeType === Node.ELEMENT_NODE &&
-                      isBlockElementForWhitespace(nextSibling as Element);
+                      isBlockTag((nextSibling as Element).tagName);
 
   // If between two block elements, or at boundary with a block element, it's structural
   return prevIsBlock || nextIsBlock || nodeIndex === 0 || nodeIndex === siblings.length - 1;
@@ -481,12 +462,14 @@ function convertNodeToSlate(node: Node, context?: ParserContext): Descendant | D
       };
     }
 
-    // Default: treat as div
+    // Other XHTML elements - pass through with their tag name
     const children = convertNodesToSlate(Array.from(element.childNodes), false, context);
     return {
-      type: 'div',
+      type: 'xhtml-element',
+      tagName,
       children: children.length > 0 ? children : [{ text: '' }],
       attributes,
+      isVoid: element.childNodes.length === 0,
     };
   }
 

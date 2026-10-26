@@ -28,6 +28,7 @@ import {
   simpleAssociableChoiceConfig,
 } from '../interactions/match/config.js';
 import { textEntryInteractionConfig } from '../interactions/textEntry/config.js';
+import { isBlockTag } from '../serialization/xmlUtils.js';
 import type { CustomEditor, ElementConfig, FeedbackIdentifierSource } from '../types.js';
 
 export const elementConfigs: ElementConfig[] = [
@@ -131,6 +132,9 @@ export function isElementInline(element: Element): boolean {
   if (config) return config.isInline;
 
   const type = element.type as string;
+  if (type === 'xhtml-element' && 'tagName' in element) {
+    return !isBlockTag(element.tagName);
+  }
   return FALLBACK_INLINE_TYPES.includes(type);
 }
 
@@ -178,8 +182,8 @@ export function withQtiInteractions(editor: CustomEditor): CustomEditor {
         return true;
       }
 
-      // Check if unknown QTI element is marked as void
-      if (type === 'qti-unknown' && 'isVoid' in element && element.isVoid) {
+      // Check if unknown QTI or passthrough XHTML element is marked as void
+      if ((type === 'qti-unknown' || type === 'xhtml-element') && 'isVoid' in element && element.isVoid) {
         return true;
       }
     }

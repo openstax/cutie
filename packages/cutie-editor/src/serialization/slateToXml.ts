@@ -190,6 +190,9 @@ function convertSlateNodeToXml(
     case 'qti-unknown':
       return convertUnknownQtiElement(element, context);
 
+    case 'xhtml-element':
+      return convertXhtmlElement(element, context);
+
     case 'paragraph':
       return convertParagraph(element, context);
 
@@ -297,6 +300,32 @@ function convertUnknownQtiElement(
   // Otherwise, reconstruct from stored data
   const xmlElement = createXmlElement(context.doc, element.originalTagName);
   setAttributes(xmlElement, element.attributes);
+
+  // Convert children if not void
+  if (!element.isVoid) {
+    for (const child of element.children) {
+      const childNode = convertSlateNodeToXml(child, context);
+      if (childNode) {
+        xmlElement.appendChild(childNode);
+      }
+    }
+  }
+
+  return xmlElement;
+}
+
+/**
+ * Convert XHTML element without a dedicated type
+ */
+function convertXhtmlElement(
+  element: SlateElement & { type: 'xhtml-element' },
+  context: SerializationContext
+): Element {
+  const xmlElement = createXmlElement(context.doc, element.tagName);
+
+  if (element.attributes) {
+    setAttributes(xmlElement, element.attributes);
+  }
 
   // Convert children if not void
   if (!element.isVoid) {

@@ -364,6 +364,17 @@ export interface UnknownQtiElement {
 }
 
 /**
+ * XHTML element without a dedicated type (passed through with its tag name)
+ */
+export interface XhtmlElement {
+  type: 'xhtml-element';
+  tagName: string;
+  children: Array<SlateElement | SlateText>;
+  attributes?: ElementAttributes;
+  isVoid?: boolean; // Whether this element should be void
+}
+
+/**
  * XHTML Paragraph
  */
 export interface ParagraphElement {
@@ -509,6 +520,7 @@ export type SlateElement =
   | QtiModalFeedback
   | QtiContentBody
   | UnknownQtiElement
+  | XhtmlElement
   | ParagraphElement
   | DivElement
   | SpanElement

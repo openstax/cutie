@@ -95,6 +95,37 @@ export function isQtiElement(tagName: string): boolean {
 }
 
 /**
+ * Block-level tags: QTI v3's BlockContentModel (Information Model 6.3),
+ * `details` from its FlowContentModel, the elements that only appear inside
+ * those blocks, and qti-item-body (container without a dedicated parser).
+ * Other QTI elements are NOT included - their configs and parsers handle
+ * block behavior and whitespace directly.
+ */
+export const BLOCK_TAGS = [
+  // BlockContentModel
+  'pre', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p',
+  'address', 'dl', 'ol', 'ul', 'hr', 'blockquote',
+  'table', 'div', 'article', 'aside', 'audio', 'figure',
+  'footer', 'header', 'nav', 'section', 'video',
+  // FlowContentModel, not inline
+  'details',
+  // Inside the blocks above
+  'li', 'dt', 'dd', 'figcaption', 'summary',
+  'caption', 'colgroup', 'col', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td',
+  'qti-item-body',
+];
+
+/**
+ * Check if a tag name is a block-level tag
+ *
+ * @param tagName - Tag name to check
+ * @returns True if block-level
+ */
+export function isBlockTag(tagName: string): boolean {
+  return BLOCK_TAGS.includes(tagName.toLowerCase());
+}
+
+/**
  * Normalize tag name (lowercase, handle namespace prefixes)
  *
  * @param tagName - Tag name to normalize

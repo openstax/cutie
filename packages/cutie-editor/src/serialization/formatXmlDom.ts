@@ -1,5 +1,5 @@
 import { elementConfigs } from '../plugins/withQtiInteractions.js';
-import { BLOCK_ELEMENTS_FOR_WHITESPACE } from './xmlToSlate.js';
+import { BLOCK_TAGS } from './xmlUtils.js';
 
 /**
  * QTI structural elements that appear outside qti-item-body
@@ -26,7 +26,7 @@ const QTI_STRUCTURAL_ELEMENTS = [
  *
  * Combines:
  * 1. Non-inline QTI element configs (using xmlTagName)
- * 2. XHTML block elements from BLOCK_ELEMENTS_FOR_WHITESPACE
+ * 2. XHTML block elements from BLOCK_TAGS
  * 3. QTI structural elements (declarations, response processing)
  */
 function buildBlockElementSet(): Set<string> {
@@ -41,7 +41,7 @@ function buildBlockElementSet(): Set<string> {
   }
 
   // Add XHTML block elements
-  for (const tag of BLOCK_ELEMENTS_FOR_WHITESPACE) {
+  for (const tag of BLOCK_TAGS) {
     blockSet.add(tag);
   }
 
