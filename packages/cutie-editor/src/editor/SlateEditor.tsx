@@ -1,10 +1,9 @@
 import { useCallback, useMemo, useState, useRef, useEffect } from 'react';
-import { createEditor, Descendant, Editor, Element as SlateElementType, Transforms } from 'slate';
-import { Slate, Editable, withReact, RenderElementProps, RenderLeafProps } from 'slate-react';
-import { withHistory } from 'slate-history';
+import { Descendant, Editor, Element as SlateElementType, Transforms } from 'slate';
+import { Slate, Editable, RenderElementProps, RenderLeafProps } from 'slate-react';
 import type { Path } from 'slate';
 import type { SlateEditorProps, SlateElement, ElementAttributes, XmlNode, DocumentMetadata, ResponseProcessingMode } from '../types.js';
-import { withQtiInteractions, withXhtml, withUnknownElements } from '../plugins/index.js';
+import { createQtiEditor } from './createQtiEditor.js';
 import { Toolbar } from './Toolbar.js';
 import { parseXmlToSlate } from '../serialization/xmlToSlate.js';
 import { serializeSlateToQti } from '../serialization/slateToXml.js';
@@ -40,10 +39,7 @@ export function SlateEditor({
   assetHandlers,
 }: SlateEditorProps): React.JSX.Element {
   // Create editor instance with plugins (stable across renders)
-  const editor = useMemo(() => {
-    const baseEditor = withReact(withHistory(createEditor()));
-    return withUnknownElements(withQtiInteractions(withXhtml(baseEditor)));
-  }, []);
+  const editor = useMemo(() => createQtiEditor(), []);
 
   // Track the current QTI XML to detect external changes
   const qtiXmlRef = useRef(qtiXml);

@@ -1,5 +1,8 @@
-/* spell-checker: ignore parsererror */
+/* spell-checker: ignore parsererror canonicalize */
 import { beginAttempt, submitResponse } from '@openstax/cutie-core';
+import { createQtiEditor } from '@openstax/cutie-editor/editor/createQtiEditor';
+import { serializeSlateToQti } from '@openstax/cutie-editor/serialization/slateToXml';
+import { parseXmlToSlate } from '@openstax/cutie-editor/serialization/xmlToSlate';
 import { classifyResponseProcessing } from '@openstax/cutie-editor/utils/responseProcessingClassifier';
 import { describe, expect, it } from 'vitest';
 import type { Sample } from './types.js';
@@ -51,6 +54,34 @@ const SHUFFLED_INTERACTIONS = [
 const FEEDBACK_ELEMENTS = 'qti-feedback-block, qti-feedback-inline, qti-modal-feedback';
 
 const parse = (xml: string): Document => new DOMParser().parseFromString(xml, 'application/xml');
+
+/* element structure with attribute order and insignificant whitespace ignored */
+const canonicalize = (node: Node, depth = 0): string[] => {
+  const indent = '  '.repeat(depth);
+  if (node.nodeType === Node.TEXT_NODE) {
+    const text = (node.textContent ?? '').replace(/\s+/g, ' ').trim();
+    return text ? [indent + JSON.stringify(text)] : [];
+  }
+  if (node.nodeType !== Node.ELEMENT_NODE) return [];
+  const element = node as Element;
+  const attributes = Array.from(element.attributes)
+    .filter(attribute => attribute.name !== 'xmlns')
+    .map(attribute => ` ${attribute.name}="${attribute.value}"`)
+    .sort()
+    .join('');
+  return [
+    `${indent}<${element.localName}${attributes}>`,
+    ...Array.from(element.childNodes).flatMap(child => canonicalize(child, depth + 1)),
+  ];
+};
+
+/* the editor's load path: parse, normalize, serialize */
+const roundTripThroughEditor = (xml: string): string => {
+  const editor = createQtiEditor();
+  editor.children = parseXmlToSlate(xml);
+  editor.normalize({ force: true });
+  return serializeSlateToQti(editor.children, xml).xml;
+};
 
 const isExternallyScored = (doc: Document): boolean =>
   doc.querySelector('qti-outcome-declaration[identifier="SCORE"]')?.hasAttribute('external-scored') ?? false;
@@ -113,6 +144,12 @@ describe.each(samples)('$id sample', (sample) => {
 
   it('uses response processing the editor can manage', () => {
     expect(classifyResponseProcessing(doc).mode).not.toBe('custom');
+  });
+
+  it('round-trips through the editor unchanged', () => {
+    const roundTripped = parse(roundTripThroughEditor(sample.item));
+    expect(canonicalize(roundTripped.documentElement).join('\n'))
+      .toBe(canonicalize(doc.documentElement).join('\n'));
   });
 
   it('declares a correct response for every response', () => {
