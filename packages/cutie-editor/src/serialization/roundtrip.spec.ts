@@ -1,6 +1,7 @@
+/* spell-checker: ignore hottext */
 import type { Descendant } from 'slate';
 import { describe, expect, it } from 'vitest';
-import { serializeSlateToXml } from './slateToXml.js';
+import { serializeSlateToQti, serializeSlateToXml } from './slateToXml.js';
 import { parseXmlToSlate } from './xmlToSlate.js';
 
 /**
@@ -340,6 +341,37 @@ describe('XML Round-trip Tests', () => {
       expect(output).toContain('qti-hotspot-interaction');
       expect(output).toContain('response-identifier="R1"');
       expect(output).toContain('qti-hotspot-choice');
+    });
+
+    it('should keep declarations and scoring for unknown interactions', () => {
+      const input = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test-item" title="Test Item">
+  <qti-response-declaration identifier="R1" cardinality="multiple" base-type="identifier">
+    <qti-correct-response><qti-value>h1</qti-value></qti-correct-response>
+    <qti-mapping default-value="0"><qti-map-entry map-key="h1" mapped-value="1"/></qti-mapping>
+  </qti-response-declaration>
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/>
+  <qti-item-body>
+    <qti-hottext-interaction response-identifier="R1" max-choices="0">
+      <p><qti-hottext identifier="h1">Hot 1</qti-hottext></p>
+    </qti-hottext-interaction>
+  </qti-item-body>
+  <qti-response-processing>
+    <qti-set-outcome-value identifier="SCORE">
+      <qti-sum><qti-map-response identifier="R1"/></qti-sum>
+    </qti-set-outcome-value>
+  </qti-response-processing>
+</qti-assessment-item>`;
+
+      const { xml } = serializeSlateToQti(parseXmlToSlate(input), input);
+      const item = parseXml(xml).documentElement;
+      const declarations = Array.from(item.children)
+        .map(child => child.localName)
+        .filter(name => name.endsWith('-declaration'));
+
+      expect(item.querySelector('qti-response-declaration[identifier="R1"] qti-map-entry')).not.toBeNull();
+      expect(declarations).toEqual(['qti-response-declaration', 'qti-outcome-declaration']);
+      expect(item.querySelector('qti-response-processing qti-sum > qti-map-response[identifier="R1"]')).not.toBeNull();
     });
   });
 

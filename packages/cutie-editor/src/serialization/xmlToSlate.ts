@@ -326,6 +326,7 @@ function convertNodeToSlate(node: Node, context?: ParserContext): Descendant | D
         attributes,
         rawXml,
         isVoid: element.childNodes.length === 0,
+        responseDeclarations: collectResponseDeclarations(element, context),
       };
     }
 
@@ -475,6 +476,24 @@ function convertNodeToSlate(node: Node, context?: ParserContext): Descendant | D
 
   // Other node types (comments, etc.) - skip
   return null;
+}
+
+/**
+ * Collect declarations for responses bound to an element or its descendants,
+ * so interactions the editor passes through keep their declarations
+ */
+function collectResponseDeclarations(element: Element, context?: ParserContext): Record<string, XmlNode> {
+  const declarations: Record<string, XmlNode> = {};
+
+  for (const bound of [element, ...element.querySelectorAll('[response-identifier]')]) {
+    const responseId = bound.getAttribute('response-identifier');
+    const declaration = responseId && context?.responseDeclarations.get(responseId);
+    if (declaration) {
+      declarations[responseId] = declaration;
+    }
+  }
+
+  return declarations;
 }
 
 /**

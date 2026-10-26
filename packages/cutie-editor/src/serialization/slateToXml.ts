@@ -285,6 +285,12 @@ function convertUnknownQtiElement(
   element: SlateElement & { type: 'qti-unknown' },
   context: SerializationContext
 ): Element | null {
+  // Track responses bound inside the element
+  for (const [responseId, declaration] of Object.entries(element.responseDeclarations ?? {})) {
+    context.responseIdentifiers.push(responseId);
+    context.responseDeclarations.set(responseId, declaration);
+  }
+
   // If we have raw XML, try to use that for perfect round-trip
   if (element.rawXml) {
     try {
@@ -679,6 +685,36 @@ function checkDuplicateIdentifiers(context: SerializationContext): void {
 }
 
 /**
+ * Child order of qti-assessment-item, which QTI v3 defines as a sequence
+ */
+const ASSESSMENT_ITEM_CHILD_ORDER = [
+  'qti-context-declaration',
+  'qti-response-declaration',
+  'qti-outcome-declaration',
+  'qti-template-declaration',
+  'qti-template-processing',
+  'qti-assessment-stimulus-ref',
+  'qti-companion-materials-info',
+  'qti-stylesheet',
+  'qti-item-body',
+  'qti-catalog-info',
+  'qti-response-processing',
+  'qti-modal-feedback',
+];
+
+/**
+ * Insert a child into the assessment item at its position in the sequence,
+ * after any existing children of the same type
+ */
+function insertAssessmentItemChild(assessmentItem: Element, child: Element): void {
+  const rank = ASSESSMENT_ITEM_CHILD_ORDER.indexOf(child.localName);
+  const next = Array.from(assessmentItem.children).find(
+    (sibling) => ASSESSMENT_ITEM_CHILD_ORDER.indexOf(sibling.localName) > rank
+  );
+  assessmentItem.insertBefore(child, next ?? null);
+}
+
+/**
  * Update response declarations in the assessment item
  *
  * Removes all existing response declarations and re-adds them from the collected
@@ -694,20 +730,18 @@ function updateResponseDeclarations(
   declarations: Map<string, XmlNode>,
   doc: Document
 ): void {
-  const itemBody = assessmentItem.querySelector('qti-item-body');
-
   // Remove ALL existing response declarations
-  // This is safe because all interactions are serialized and add their declarations
-  // to the map, so we have a complete picture of what should exist
+  // This is safe because all interactions, including passed-through unknown ones,
+  // are serialized and add their declarations to the map, so we have a complete
+  // picture of what should exist
   const existingDeclarations = assessmentItem.querySelectorAll('qti-response-declaration');
   for (const existing of existingDeclarations) {
     existing.remove();
   }
 
-  // Insert all response declarations (before qti-item-body)
+  // Insert all response declarations in sequence order
   for (const [, node] of declarations) {
-    const element = xmlNodeToDom(node, doc);
-    assessmentItem.insertBefore(element, itemBody);
+    insertAssessmentItemChild(assessmentItem, xmlNodeToDom(node, doc));
   }
 }
 
@@ -728,8 +762,6 @@ function updateOutcomeDeclarations(
   declarations: Map<string, XmlNode>,
   doc: Document
 ): void {
-  const itemBody = assessmentItem.querySelector('qti-item-body');
-
   // Remove only the outcome declarations we're managing (intermediate scores)
   // Keep existing SCORE declaration and other outcome declarations
   for (const [identifier] of declarations) {
@@ -741,10 +773,9 @@ function updateOutcomeDeclarations(
     }
   }
 
-  // Insert new outcome declarations before qti-item-body
+  // Insert new outcome declarations in sequence order
   for (const [, node] of declarations) {
-    const element = xmlNodeToDom(node, doc);
-    assessmentItem.insertBefore(element, itemBody);
+    insertAssessmentItemChild(assessmentItem, xmlNodeToDom(node, doc));
   }
 }
 
@@ -766,7 +797,6 @@ function updateFeedbackOutcomeDeclaration(
   feedbackIdentifiersUsed: Set<string>,
   doc: Document
 ): void {
-  const itemBody = assessmentItem.querySelector('qti-item-body');
   const existingFeedback = assessmentItem.querySelector(
     'qti-outcome-declaration[identifier="FEEDBACK"]'
   );
@@ -783,12 +813,7 @@ function updateFeedbackOutcomeDeclaration(
       feedbackDecl.setAttribute('cardinality', 'multiple');
       feedbackDecl.setAttribute('base-type', 'identifier');
 
-      // Insert before qti-item-body
-      if (itemBody) {
-        assessmentItem.insertBefore(feedbackDecl, itemBody);
-      } else {
-        assessmentItem.appendChild(feedbackDecl);
-      }
+      insertAssessmentItemChild(assessmentItem, feedbackDecl);
     } else {
       // Ensure cardinality is "multiple" for the accumulation pattern we use
       existingFeedback.setAttribute('cardinality', 'multiple');
@@ -837,15 +862,14 @@ function updateResponseProcessing(
     );
 
     if (newRP) {
-      // Response processing should be appended at the end of the assessment item
-      assessmentItem.appendChild(newRP);
+      insertAssessmentItemChild(assessmentItem, newRP);
     }
   }
 }
 
 /**
  * Update modal feedback elements in the assessment item.
- * Modal feedback lives outside qti-item-body, before qti-response-processing.
+ * Modal feedback lives outside qti-item-body, after qti-response-processing.
  *
  * @param assessmentItem - The qti-assessment-item element
  * @param modalFeedbackElements - Array of modal feedback elements to insert
@@ -862,15 +886,9 @@ function updateModalFeedback(
     el.remove();
   }
 
-  // Insert new modal feedback elements before response-processing (or at end)
-  const responseProcessing = assessmentItem.querySelector('qti-response-processing');
+  // Insert new modal feedback elements in sequence order
   for (const element of modalFeedbackElements) {
-    const imported = doc.importNode(element, true);
-    if (responseProcessing) {
-      assessmentItem.insertBefore(imported, responseProcessing);
-    } else {
-      assessmentItem.appendChild(imported);
-    }
+    insertAssessmentItemChild(assessmentItem, doc.importNode(element, true) as Element);
   }
 }
 
