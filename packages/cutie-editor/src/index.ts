@@ -5,6 +5,7 @@
 
 // Export main React component
 export { SlateEditor } from './editor/SlateEditor.js';
+export { createQtiEditor } from './editor/createQtiEditor.js';
 
 // Export serialization utilities
 export { parseXmlToSlate } from './serialization/xmlToSlate.js';

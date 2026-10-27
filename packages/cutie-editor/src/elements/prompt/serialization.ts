@@ -3,6 +3,7 @@ import type { SerializationContext } from '../../serialization/slateToXml.js';
 import type { ConvertChildrenFn, ParserContext } from '../../serialization/xmlToSlate.js';
 import { createXmlElement } from '../../serialization/xmlUtils.js';
 import type { SlateElement } from '../../types.js';
+import { isPlainParagraph } from '../../utils/paragraph.js';
 
 /**
  * Parse QTI prompt from XML
@@ -29,23 +30,42 @@ function parsePrompt(
 }
 
 /**
- * Serialize prompt to XML
+ * Check if a prompt has no content: no attributes, and only empty text, directly
+ * or in plain paragraphs. The editor gives every interaction a prompt, so an
+ * empty one means the author didn't write one.
+ */
+function isEmptyPrompt(element: SlateElement & { type: 'qti-prompt' }): boolean {
+  const hasAttributes = Object.values(element.attributes ?? {}).some((value) => value !== undefined);
+  if (hasAttributes) return false;
+
+  const isEmptyText = (node: Descendant) => 'text' in node && node.text === '';
+  return element.children.every((child) =>
+    isEmptyText(child) ||
+    ('type' in child && child.type === 'paragraph' && isPlainParagraph(child) && child.children.every(isEmptyText))
+  );
+}
+
+/**
+ * Serialize prompt to XML. An empty prompt is omitted.
  */
 function serializePrompt(
   element: SlateElement & { type: 'qti-prompt' },
   context: SerializationContext,
   convertChildren: (children: Descendant[], parent: Element | DocumentFragment) => void
-): Element {
+): Element | null {
+  if (isEmptyPrompt(element)) return null;
+
   const xmlElement = createXmlElement(context.doc, 'qti-prompt');
 
   if (element.attributes) {
     setAttributes(xmlElement, element.attributes);
   }
 
-  // If there's exactly one child and it's a paragraph, unwrap it for clean XML
+  // If there's exactly one child and it's a plain paragraph, unwrap it for clean XML.
+  // A paragraph with attributes or alignment is authored formatting, so it stays.
   if (element.children.length === 1) {
     const onlyChild = element.children[0];
-    if ('type' in onlyChild && onlyChild.type === 'paragraph') {
+    if ('type' in onlyChild && onlyChild.type === 'paragraph' && isPlainParagraph(onlyChild)) {
       // Unwrap paragraph - serialize its children directly
       convertChildren(onlyChild.children, xmlElement);
       return xmlElement;

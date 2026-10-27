@@ -1,6 +1,5 @@
-import { Element, Transforms } from 'slate';
+import { Element } from 'slate';
 import type {
-  CustomEditor,
   ElementConfig,
   FeedbackIdentifier,
   QtiChoiceInteraction,
@@ -9,6 +8,7 @@ import type {
 } from '../../types.js';
 import { parseFeedbackIdentifier } from '../../utils/feedbackIdentifiers.js';
 import { getMaxMappedValue, hasMapping } from '../../utils/mappingDeclaration.js';
+import { ensurePromptFirst } from '../../utils/normalization.js';
 import { hasCorrectResponse } from '../../utils/responseDeclaration.js';
 import {
   createMapResponseEqualElement,
@@ -29,31 +29,7 @@ export const choiceInteractionConfig: ElementConfig = {
   forbidDescendants: ['interaction'],
   matches: (element: Element) => 'type' in element && element.type === 'qti-choice-interaction',
 
-  normalize: (editor: CustomEditor, node: Element, path) => {
-    // Ensure choice interaction always has a qti-prompt as first child
-    const firstChild = node.children[0];
-    const hasPrompt =
-      firstChild &&
-      Element.isElement(firstChild) &&
-      'type' in firstChild &&
-      firstChild.type === 'qti-prompt';
-
-    if (!hasPrompt) {
-      Transforms.insertNodes(
-        editor,
-        {
-          type: 'qti-prompt',
-          children: [
-            { type: 'paragraph', children: [{ text: '' }], attributes: {} },
-          ],
-        } as Element,
-        { at: path.concat(0) }
-      );
-      return true;
-    }
-
-    return false;
-  },
+  normalize: (editor, node, path) => ensurePromptFirst(editor, node, path),
 
   getFeedbackIdentifiers: (element: Element) => {
     const el = element as QtiChoiceInteraction;

@@ -1,3 +1,4 @@
+/* spell-checker: ignore hottext */
 /**
  * QTI namespace URI
  */
@@ -92,6 +93,106 @@ export function escapeHtml(text: string): string {
  */
 export function isQtiElement(tagName: string): boolean {
   return tagName.toLowerCase().startsWith('qti-');
+}
+
+/**
+ * Block-level tags: QTI v3's BlockContentModel (Information Model 6.3),
+ * `details` from its FlowContentModel, the elements that only appear inside
+ * those blocks, the QTI elements of BlockGroup (6.4), and qti-item-body
+ * (container without a dedicated parser). BlockGroup members that are also
+ * in InlineGroup (qti-custom-interaction, math, include) are left out.
+ */
+export const BLOCK_TAGS = [
+  // BlockContentModel
+  'pre', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p',
+  'address', 'dl', 'ol', 'ul', 'hr', 'blockquote',
+  'table', 'div', 'article', 'aside', 'audio', 'figure',
+  'footer', 'header', 'nav', 'section', 'video',
+  // FlowContentModel, not inline
+  'details',
+  // Inside the blocks above
+  'li', 'dt', 'dd', 'figcaption', 'summary',
+  'caption', 'colgroup', 'col', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td',
+  // BlockGroup
+  'qti-position-object-stage', 'qti-portable-custom-interaction',
+  'qti-drawing-interaction', 'qti-gap-match-interaction', 'qti-match-interaction',
+  'qti-graphic-gap-match-interaction', 'qti-hotspot-interaction',
+  'qti-graphic-order-interaction', 'qti-select-point-interaction',
+  'qti-graphic-associate-interaction', 'qti-slider-interaction',
+  'qti-choice-interaction', 'qti-media-interaction', 'qti-hottext-interaction',
+  'qti-order-interaction', 'qti-extended-text-interaction',
+  'qti-upload-interaction', 'qti-associate-interaction',
+  'qti-feedback-block', 'qti-template-block',
+  'qti-item-body',
+];
+
+/**
+ * Inline QTI tags: the QTI elements of InlineGroup (Information Model 6.26).
+ * Every other QTI element is block-level, whether block content (BlockGroup) or
+ * a structural child such as a choice, a match set or feedback metadata.
+ */
+export const INLINE_QTI_TAGS = [
+  'qti-text-entry-interaction', 'qti-hottext', 'qti-printed-variable', 'qti-gap',
+  'qti-feedback-inline', 'qti-template-inline', 'qti-inline-choice-interaction',
+  'qti-end-attempt-interaction', 'qti-custom-interaction',
+];
+
+/**
+ * Check if a tag name is a block-level tag: one of BLOCK_TAGS, or a QTI element
+ * that isn't one of INLINE_QTI_TAGS
+ *
+ * @param tagName - Tag name to check
+ * @returns True if block-level
+ */
+export function isBlockTag(tagName: string): boolean {
+  const tag = tagName.toLowerCase();
+  return BLOCK_TAGS.includes(tag) || (isQtiElement(tag) && !INLINE_QTI_TAGS.includes(tag));
+}
+
+/**
+ * Check if a DOM node holds text: a text node or a CDATA section, whose content
+ * is text too
+ *
+ * @param node - DOM node to check
+ * @returns True if the node's content is text
+ */
+export function isTextNode(node: Node): boolean {
+  return node.nodeType === Node.TEXT_NODE || node.nodeType === Node.CDATA_SECTION_NODE;
+}
+
+/**
+ * Opaque tags: XHTML elements whose children are structural rather than flow
+ * content (media sources and tracks, picture sources, object params). The editor
+ * can't edit them, so they are passed through verbatim like unknown QTI elements.
+ */
+export const OPAQUE_TAGS = ['audio', 'video', 'picture', 'object'];
+
+/**
+ * Check if a tag name is an opaque tag
+ *
+ * @param tagName - Tag name to check
+ * @returns True if the element is passed through verbatim
+ */
+export function isOpaqueTag(tagName: string): boolean {
+  return OPAQUE_TAGS.includes(tagName.toLowerCase());
+}
+
+/**
+ * Void tags: HTML elements that never have content
+ */
+export const VOID_TAGS = [
+  'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
+  'link', 'meta', 'source', 'track', 'wbr',
+];
+
+/**
+ * Check if a tag name is a void tag
+ *
+ * @param tagName - Tag name to check
+ * @returns True if the element can never have content
+ */
+export function isVoidTag(tagName: string): boolean {
+  return VOID_TAGS.includes(tagName.toLowerCase());
 }
 
 /**

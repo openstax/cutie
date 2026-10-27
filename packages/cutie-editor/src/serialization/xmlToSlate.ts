@@ -13,15 +13,17 @@ import { matchParsers } from '../interactions/match/index.js';
 import { textEntryParsers } from '../interactions/textEntry/index.js';
 import { isElementInline } from '../plugins/withQtiInteractions.js';
 import type { DocumentMetadata, ElementAttributes, SlateElement, SlateText, TextAlign } from '../types.js';
-import { classifyResponseProcessing } from '../utils/responseProcessingClassifier.js';
+import { classifyResponseProcessing, getScoredResponseIdentifiers } from '../utils/responseProcessingClassifier.js';
 import { domToXmlNode, type XmlNode } from './xmlNode.js';
-import { isQtiElement, normalizeTagName, parseXml, serializeElement } from './xmlUtils.js';
+import { isBlockTag, isOpaqueTag, isQtiElement, isTextNode, isVoidTag, normalizeTagName, parseXml, serializeElement } from './xmlUtils.js';
 
 /**
  * Parser context for passing response declarations to interaction parsers
  */
 export interface ParserContext {
   responseDeclarations: Map<string, XmlNode>;
+  /** Responses the item's response processing scores (see getScoredResponseIdentifiers) */
+  scoredResponseIdentifiers?: Set<string>;
 }
 
 /**
@@ -66,6 +68,7 @@ function createEmptyDocument(): Descendant[] {
     type: 'document-metadata',
     children: [{ text: '' }],
     responseProcessing: { mode: 'allCorrect' },
+    outcomeDeclarations: [],
   };
   return [
     metadataNode,
@@ -106,7 +109,10 @@ export function parseXmlToSlate(xml: string): Descendant[] {
     }
   }
 
-  const context: ParserContext = { responseDeclarations };
+  const context: ParserContext = {
+    responseDeclarations,
+    scoredResponseIdentifiers: getScoredResponseIdentifiers(doc),
+  };
 
   // Classify response processing to determine mode
   const responseProcessing = classifyResponseProcessing(doc);
@@ -116,6 +122,7 @@ export function parseXmlToSlate(xml: string): Descendant[] {
     type: 'document-metadata',
     children: [{ text: '' }],
     responseProcessing,
+    outcomeDeclarations: Array.from(doc.querySelectorAll('qti-outcome-declaration')).map(domToXmlNode),
   };
 
   // Convert children of qti-item-body to Slate nodes
@@ -229,25 +236,6 @@ function convertNodesToSlate(nodes: Node[], isRootLevel = false, context?: Parse
 }
 
 /**
- * Block elements for fallback whitespace handling.
- * Includes XHTML block elements and qti-item-body (container without a dedicated parser).
- * Other QTI elements are NOT included - their parsers handle whitespace directly.
- */
-export const BLOCK_ELEMENTS_FOR_WHITESPACE = [
-  'p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-  'ul', 'ol', 'li', 'blockquote', 'pre',
-  'qti-item-body', // Container element without dedicated parser
-];
-
-/**
- * Check if an element is a block-level element for whitespace handling.
- * Used only for fallback whitespace handling of elements without dedicated parsers.
- */
-function isBlockElementForWhitespace(element: Element): boolean {
-  return BLOCK_ELEMENTS_FOR_WHITESPACE.includes(element.tagName.toLowerCase());
-}
-
-/**
  * Strip structural whitespace from Slate nodes.
  * Use this in element parsers whose children are structural (not flow content).
  */
@@ -270,7 +258,7 @@ function isStructuralWhitespace(node: Node): boolean {
   if (!parent) return false;
 
   // Check if parent is a block-level element
-  if (!isBlockElementForWhitespace(parent)) return false;
+  if (!isBlockTag(parent.tagName)) return false;
 
   // Check if this text node is surrounded by block-level siblings
   // (or is at the start/end of the parent with block siblings)
@@ -282,9 +270,9 @@ function isStructuralWhitespace(node: Node): boolean {
   const nextSibling = nodeIndex < siblings.length - 1 ? siblings[nodeIndex + 1] : null;
 
   const prevIsBlock = prevSibling?.nodeType === Node.ELEMENT_NODE &&
-                      isBlockElementForWhitespace(prevSibling as Element);
+                      isBlockTag((prevSibling as Element).tagName);
   const nextIsBlock = nextSibling?.nodeType === Node.ELEMENT_NODE &&
-                      isBlockElementForWhitespace(nextSibling as Element);
+                      isBlockTag((nextSibling as Element).tagName);
 
   // If between two block elements, or at boundary with a block element, it's structural
   return prevIsBlock || nextIsBlock || nodeIndex === 0 || nodeIndex === siblings.length - 1;
@@ -296,8 +284,8 @@ function isStructuralWhitespace(node: Node): boolean {
  * @param context - Parser context with response declarations
  */
 function convertNodeToSlate(node: Node, context?: ParserContext): Descendant | Descendant[] | null {
-  // Text node
-  if (node.nodeType === Node.TEXT_NODE) {
+  // Text node (or CDATA section)
+  if (isTextNode(node)) {
     const text = node.textContent || '';
 
     // Normalize whitespace: collapse sequences of spaces, tabs, and newlines to single space
@@ -333,10 +321,12 @@ function convertNodeToSlate(node: Node, context?: ParserContext): Descendant | D
       return parser(element, convertChildren, convertChildrenStructural, context);
     }
 
-    // Unknown QTI elements - preserve with warning
-    if (isQtiElement(tagName)) {
-      const children = convertNodesToSlate(Array.from(element.childNodes), false, context);
+    // Unknown QTI elements and opaque XHTML elements - preserve verbatim with warning
+    if (isQtiElement(tagName) || isOpaqueTag(tagName)) {
+      const opaque = isOpaqueTag(tagName);
+      const children = opaque ? [] : convertNodesToSlate(Array.from(element.childNodes), false, context);
       const rawXml = serializeElement(element);
+      const responseDeclarations = collectResponseDeclarations(element, context);
 
       return {
         type: 'qti-unknown',
@@ -344,7 +334,13 @@ function convertNodeToSlate(node: Node, context?: ParserContext): Descendant | D
         children: children.length > 0 ? children : [{ text: '' }],
         attributes,
         rawXml,
-        isVoid: element.childNodes.length === 0,
+        // Opaque children never enter the editor, where normalization would restructure them
+        isVoid: opaque || element.childNodes.length === 0,
+        responseDeclarations,
+        // The editor can't tell whether an unknown interaction is scored, so it
+        // follows the loaded response processing
+        scoredResponseIdentifiers: Object.keys(responseDeclarations)
+          .filter((responseId) => context?.scoredResponseIdentifiers?.has(responseId)),
       };
     }
 
@@ -481,17 +477,37 @@ function convertNodeToSlate(node: Node, context?: ParserContext): Descendant | D
       };
     }
 
-    // Default: treat as div
+    // Other XHTML elements - pass through with their tag name
     const children = convertNodesToSlate(Array.from(element.childNodes), false, context);
     return {
-      type: 'div',
+      type: 'xhtml-element',
+      tagName,
       children: children.length > 0 ? children : [{ text: '' }],
       attributes,
+      isVoid: isVoidTag(tagName),
     };
   }
 
   // Other node types (comments, etc.) - skip
   return null;
+}
+
+/**
+ * Collect declarations for responses bound to an element or its descendants,
+ * so interactions the editor passes through keep their declarations
+ */
+function collectResponseDeclarations(element: Element, context?: ParserContext): Record<string, XmlNode> {
+  const declarations: Record<string, XmlNode> = {};
+
+  for (const bound of [element, ...element.querySelectorAll('[response-identifier]')]) {
+    const responseId = bound.getAttribute('response-identifier');
+    const declaration = responseId && context?.responseDeclarations.get(responseId);
+    if (declaration) {
+      declarations[responseId] = declaration;
+    }
+  }
+
+  return declarations;
 }
 
 /**

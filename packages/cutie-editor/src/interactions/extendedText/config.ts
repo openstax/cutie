@@ -1,5 +1,6 @@
-import { Element, Transforms } from 'slate';
-import type { CustomEditor, ElementConfig, FeedbackIdentifier, QtiExtendedTextInteraction } from '../../types.js';
+import { Element } from 'slate';
+import type { ElementConfig, FeedbackIdentifier, QtiExtendedTextInteraction } from '../../types.js';
+import { ensurePromptFirst } from '../../utils/normalization.js';
 import { hasCorrectResponse } from '../../utils/responseDeclaration.js';
 
 export const extendedTextInteractionConfig: ElementConfig = {
@@ -12,31 +13,7 @@ export const extendedTextInteractionConfig: ElementConfig = {
   forbidDescendants: ['interaction'],
   matches: (element: Element) => 'type' in element && element.type === 'qti-extended-text-interaction',
 
-  normalize: (editor: CustomEditor, node: Element, path) => {
-    // Ensure extended text interaction always has a qti-prompt as first child
-    const firstChild = node.children[0];
-    const hasPrompt =
-      firstChild &&
-      Element.isElement(firstChild) &&
-      'type' in firstChild &&
-      firstChild.type === 'qti-prompt';
-
-    if (!hasPrompt) {
-      Transforms.insertNodes(
-        editor,
-        {
-          type: 'qti-prompt',
-          children: [
-            { type: 'paragraph', children: [{ text: '' }], attributes: {} },
-          ],
-        } as Element,
-        { at: path.concat(0) }
-      );
-      return true;
-    }
-
-    return false;
-  },
+  normalize: (editor, node, path) => ensurePromptFirst(editor, node, path),
 
   getFeedbackIdentifiers: (element: Element) => {
     const el = element as QtiExtendedTextInteraction;

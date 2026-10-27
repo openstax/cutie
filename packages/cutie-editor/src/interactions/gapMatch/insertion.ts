@@ -147,6 +147,12 @@ export function insertGapMatchInteraction(
     },
     children: [
       {
+        type: 'qti-prompt',
+        children: [
+          { type: 'paragraph', children: [{ text: '' }], attributes: {} },
+        ],
+      },
+      {
         type: 'gap-match-choices',
         children: [
           {
@@ -199,8 +205,8 @@ export function insertGapMatchInteraction(
 
   if (interactionEntry) {
     const [, interactionPath] = interactionEntry;
-    // Select the start of the content area: interaction -> content -> paragraph
-    const contentParagraphPath = [...interactionPath, 1, 0];
+    // Select the start of the content area: interaction -> content (after prompt and choices) -> paragraph
+    const contentParagraphPath = [...interactionPath, 2, 0];
     Transforms.select(editor, Editor.start(editor, contentParagraphPath));
   }
 

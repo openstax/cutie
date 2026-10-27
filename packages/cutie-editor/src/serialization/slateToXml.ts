@@ -11,10 +11,12 @@ import { gapMatchSerializers } from '../interactions/gapMatch/index.js';
 import { inlineChoiceSerializers } from '../interactions/inlineChoice/index.js';
 import { matchSerializers } from '../interactions/match/index.js';
 import { textEntrySerializers } from '../interactions/textEntry/index.js';
-import type { DocumentMetadata, ElementConfig, ResponseProcessingConfig, SerializationResult, SlateElement, SlateText, TextAlign, ValidationError } from '../types.js';
+import { elementNeedsSpacers } from '../plugins/withQtiInteractions.js';
+import type { DocumentMetadata, ElementConfig, ResponseProcessingConfig, ResponseProcessingMode, SerializationResult, SlateElement, SlateText, TextAlign, ValidationError } from '../types.js';
+import { isPlainParagraph } from '../utils/paragraph.js';
 import { generateResponseProcessingXml } from '../utils/responseProcessingGenerator.js';
 import { formatXmlDom } from './formatXmlDom.js';
-import { type XmlNode, xmlNodeToDom } from './xmlNode.js';
+import { domToXmlNode, type XmlNode, xmlNodeToDom } from './xmlNode.js';
 import { createXmlDocument, createXmlElement } from './xmlUtils.js';
 
 const QTI_NAMESPACE = 'http://www.imsglobal.org/xsd/imsqtiasi_v3p0';
@@ -26,6 +28,8 @@ interface InternalSerializationResult extends SerializationResult {
   responseDeclarations: Map<string, XmlNode>;
   outcomeDeclarations: Map<string, XmlNode>;
   responseProcessingConfig?: ResponseProcessingConfig;
+  /** The item's outcome declarations as loaded, from the document metadata */
+  loadedOutcomeDeclarations?: XmlNode[];
   feedbackIdentifiersUsed: Set<string>;
   /** Modal feedback elements to be inserted outside qti-item-body */
   modalFeedbackElements: Element[];
@@ -41,14 +45,14 @@ function isDocumentMetadata(node: Descendant): node is DocumentMetadata {
 }
 
 /**
- * Check if a node is an empty paragraph (only contains empty text)
+ * Check if a node is an empty, plain paragraph (only empty text, no attributes
+ * or alignment). An empty paragraph with attributes, such as an anchor, is kept.
  */
 function isEmptyParagraph(node: Descendant): boolean {
-  if (!('type' in node) || node.type !== 'paragraph') {
+  if (!('type' in node) || node.type !== 'paragraph' || !isPlainParagraph(node)) {
     return false;
   }
-  const element = node as SlateElement;
-  return element.children.every(
+  return node.children.every(
     (child) => 'text' in child && child.text === ''
   );
 }
@@ -60,6 +64,17 @@ function isEmptyParagraph(node: Descendant): boolean {
  */
 function stripEmptySpacerParagraphs(nodes: Descendant[]): Descendant[] {
   return nodes.filter((node) => !isEmptyParagraph(node));
+}
+
+/**
+ * Check if a child is a spacer paragraph: an empty paragraph next to an
+ * element that the editor surrounds with spacers for cursor positioning.
+ */
+function isSpacerParagraph(siblings: Descendant[], index: number): boolean {
+  if (!isEmptyParagraph(siblings[index])) return false;
+  const isSpacedElement = (node: Descendant | undefined) =>
+    node !== undefined && 'type' in node && elementNeedsSpacers(node);
+  return isSpacedElement(siblings[index - 1]) || isSpacedElement(siblings[index + 1]);
 }
 
 /**
@@ -85,8 +100,10 @@ export function serializeSlateToXml(nodes: Descendant[]): InternalSerializationR
 
   // Extract document metadata if present (always at position [0])
   let responseProcessingConfig: ResponseProcessingConfig | undefined;
+  let loadedOutcomeDeclarations: XmlNode[] | undefined;
   if (nodes.length > 0 && isDocumentMetadata(nodes[0])) {
     responseProcessingConfig = nodes[0].responseProcessing;
+    loadedOutcomeDeclarations = nodes[0].outcomeDeclarations;
   }
 
   // Filter out metadata node and empty spacer paragraphs
@@ -115,6 +132,7 @@ export function serializeSlateToXml(nodes: Descendant[]): InternalSerializationR
     responseDeclarations: context.responseDeclarations,
     outcomeDeclarations: context.outcomeDeclarations,
     responseProcessingConfig,
+    loadedOutcomeDeclarations,
     feedbackIdentifiersUsed: context.feedbackIdentifiersUsed,
     modalFeedbackElements: context.modalFeedbackElements,
     responseConfigs: context.responseConfigs,
@@ -154,6 +172,11 @@ const interactionSerializers: Record<string, (el: SlateElement, ctx: Serializati
 };
 
 /**
+ * Converts children into a parent, skipping editor spacer paragraphs
+ */
+type ConvertChildren = (children: Descendant[], parent: Element | DocumentFragment) => void;
+
+/**
  * Convert a Slate node to an XML element or text node
  */
 function convertSlateNodeToXml(
@@ -169,8 +192,9 @@ function convertSlateNodeToXml(
   const element = node as SlateElement;
 
   // Helper to convert children
-  const convertChildren = (children: Descendant[], parent: Element | DocumentFragment) => {
-    for (const child of children) {
+  const convertChildren: ConvertChildren = (children, parent) => {
+    for (const [index, child] of children.entries()) {
+      if (isSpacerParagraph(children, index)) continue;
       const childNode = convertSlateNodeToXml(child, context);
       if (childNode) {
         parent.appendChild(childNode);
@@ -188,19 +212,22 @@ function convertSlateNodeToXml(
   switch (element.type) {
 
     case 'qti-unknown':
-      return convertUnknownQtiElement(element, context);
+      return convertUnknownQtiElement(element, context, convertChildren);
+
+    case 'xhtml-element':
+      return convertXhtmlElement(element, context, convertChildren);
 
     case 'paragraph':
-      return convertParagraph(element, context);
+      return convertParagraph(element, context, convertChildren);
 
     case 'div':
-      return convertDiv(element, context);
+      return convertDiv(element, context, convertChildren);
 
     case 'span':
-      return convertSpan(element, context);
+      return convertSpan(element, context, convertChildren);
 
     case 'heading':
-      return convertHeading(element, context);
+      return convertHeading(element, context, convertChildren);
 
     case 'image':
       return convertImage(element, context);
@@ -209,26 +236,26 @@ function convertSlateNodeToXml(
       return convertLineBreak(element, context);
 
     case 'list':
-      return convertList(element, context);
+      return convertList(element, context, convertChildren);
 
     case 'list-item':
-      return convertListItem(element, context);
+      return convertListItem(element, context, convertChildren);
 
     case 'strong':
-      return convertStrong(element, context);
+      return convertStrong(element, context, convertChildren);
 
     case 'em':
-      return convertEm(element, context);
+      return convertEm(element, context, convertChildren);
 
     case 'blockquote':
-      return convertBlockquote(element, context);
+      return convertBlockquote(element, context, convertChildren);
 
     case 'horizontal-rule':
       return convertHorizontalRule(element, context);
 
     default:
       // Unknown element type - treat as div
-      return convertDiv(element as any, context);
+      return convertDiv(element as any, context, convertChildren);
   }
 }
 
@@ -280,8 +307,18 @@ function convertTextNodeToXml(
  */
 function convertUnknownQtiElement(
   element: SlateElement & { type: 'qti-unknown' },
-  context: SerializationContext
+  context: SerializationContext,
+  convertChildren: ConvertChildren
 ): Element | null {
+  // Keep the declarations of responses bound inside the element, but only score
+  // the ones the loaded response processing scored
+  for (const [responseId, declaration] of Object.entries(element.responseDeclarations ?? {})) {
+    context.responseDeclarations.set(responseId, declaration);
+    if (element.scoredResponseIdentifiers?.includes(responseId)) {
+      context.responseIdentifiers.push(responseId);
+    }
+  }
+
   // If we have raw XML, try to use that for perfect round-trip
   if (element.rawXml) {
     try {
@@ -300,12 +337,29 @@ function convertUnknownQtiElement(
 
   // Convert children if not void
   if (!element.isVoid) {
-    for (const child of element.children) {
-      const childNode = convertSlateNodeToXml(child, context);
-      if (childNode) {
-        xmlElement.appendChild(childNode);
-      }
-    }
+    convertChildren(element.children, xmlElement);
+  }
+
+  return xmlElement;
+}
+
+/**
+ * Convert XHTML element without a dedicated type
+ */
+function convertXhtmlElement(
+  element: SlateElement & { type: 'xhtml-element' },
+  context: SerializationContext,
+  convertChildren: ConvertChildren
+): Element {
+  const xmlElement = createXmlElement(context.doc, element.tagName);
+
+  if (element.attributes) {
+    setAttributes(xmlElement, element.attributes);
+  }
+
+  // Convert children if not void
+  if (!element.isVoid) {
+    convertChildren(element.children, xmlElement);
   }
 
   return xmlElement;
@@ -316,7 +370,8 @@ function convertUnknownQtiElement(
  */
 function convertParagraph(
   element: SlateElement & { type: 'paragraph'; align?: TextAlign },
-  context: SerializationContext
+  context: SerializationContext,
+  convertChildren: ConvertChildren
 ): Element {
   const xmlElement = createXmlElement(context.doc, 'p');
 
@@ -330,13 +385,7 @@ function convertParagraph(
     xmlElement.setAttribute('style', style);
   }
 
-  // Convert children
-  for (const child of element.children) {
-    const childNode = convertSlateNodeToXml(child, context);
-    if (childNode) {
-      xmlElement.appendChild(childNode);
-    }
-  }
+  convertChildren(element.children, xmlElement);
 
   return xmlElement;
 }
@@ -346,7 +395,8 @@ function convertParagraph(
  */
 function convertDiv(
   element: SlateElement & { type: 'div' },
-  context: SerializationContext
+  context: SerializationContext,
+  convertChildren: ConvertChildren
 ): Element {
   const xmlElement = createXmlElement(context.doc, 'div');
 
@@ -354,13 +404,7 @@ function convertDiv(
     setAttributes(xmlElement, element.attributes);
   }
 
-  // Convert children
-  for (const child of element.children) {
-    const childNode = convertSlateNodeToXml(child, context);
-    if (childNode) {
-      xmlElement.appendChild(childNode);
-    }
-  }
+  convertChildren(element.children, xmlElement);
 
   return xmlElement;
 }
@@ -370,7 +414,8 @@ function convertDiv(
  */
 function convertSpan(
   element: SlateElement & { type: 'span' },
-  context: SerializationContext
+  context: SerializationContext,
+  convertChildren: ConvertChildren
 ): Element {
   const xmlElement = createXmlElement(context.doc, 'span');
 
@@ -378,13 +423,7 @@ function convertSpan(
     setAttributes(xmlElement, element.attributes);
   }
 
-  // Convert children
-  for (const child of element.children) {
-    const childNode = convertSlateNodeToXml(child, context);
-    if (childNode) {
-      xmlElement.appendChild(childNode);
-    }
-  }
+  convertChildren(element.children, xmlElement);
 
   return xmlElement;
 }
@@ -394,7 +433,8 @@ function convertSpan(
  */
 function convertHeading(
   element: SlateElement & { type: 'heading'; align?: TextAlign },
-  context: SerializationContext
+  context: SerializationContext,
+  convertChildren: ConvertChildren
 ): Element {
   const xmlElement = createXmlElement(context.doc, `h${element.level}`);
 
@@ -408,13 +448,7 @@ function convertHeading(
     xmlElement.setAttribute('style', style);
   }
 
-  // Convert children
-  for (const child of element.children) {
-    const childNode = convertSlateNodeToXml(child, context);
-    if (childNode) {
-      xmlElement.appendChild(childNode);
-    }
-  }
+  convertChildren(element.children, xmlElement);
 
   return xmlElement;
 }
@@ -450,7 +484,8 @@ function convertLineBreak(
  */
 function convertList(
   element: SlateElement & { type: 'list' },
-  context: SerializationContext
+  context: SerializationContext,
+  convertChildren: ConvertChildren
 ): Element {
   const tagName = element.ordered ? 'ol' : 'ul';
   const xmlElement = createXmlElement(context.doc, tagName);
@@ -459,13 +494,7 @@ function convertList(
     setAttributes(xmlElement, element.attributes);
   }
 
-  // Convert children
-  for (const child of element.children) {
-    const childNode = convertSlateNodeToXml(child, context);
-    if (childNode) {
-      xmlElement.appendChild(childNode);
-    }
-  }
+  convertChildren(element.children, xmlElement);
 
   return xmlElement;
 }
@@ -475,7 +504,8 @@ function convertList(
  */
 function convertListItem(
   element: SlateElement & { type: 'list-item' },
-  context: SerializationContext
+  context: SerializationContext,
+  convertChildren: ConvertChildren
 ): Element {
   const xmlElement = createXmlElement(context.doc, 'li');
 
@@ -483,13 +513,7 @@ function convertListItem(
     setAttributes(xmlElement, element.attributes);
   }
 
-  // Convert children
-  for (const child of element.children) {
-    const childNode = convertSlateNodeToXml(child, context);
-    if (childNode) {
-      xmlElement.appendChild(childNode);
-    }
-  }
+  convertChildren(element.children, xmlElement);
 
   return xmlElement;
 }
@@ -499,7 +523,8 @@ function convertListItem(
  */
 function convertStrong(
   element: SlateElement & { type: 'strong' },
-  context: SerializationContext
+  context: SerializationContext,
+  convertChildren: ConvertChildren
 ): Element {
   const xmlElement = createXmlElement(context.doc, 'strong');
 
@@ -507,13 +532,7 @@ function convertStrong(
     setAttributes(xmlElement, element.attributes);
   }
 
-  // Convert children
-  for (const child of element.children) {
-    const childNode = convertSlateNodeToXml(child, context);
-    if (childNode) {
-      xmlElement.appendChild(childNode);
-    }
-  }
+  convertChildren(element.children, xmlElement);
 
   return xmlElement;
 }
@@ -523,7 +542,8 @@ function convertStrong(
  */
 function convertEm(
   element: SlateElement & { type: 'em' },
-  context: SerializationContext
+  context: SerializationContext,
+  convertChildren: ConvertChildren
 ): Element {
   const xmlElement = createXmlElement(context.doc, 'em');
 
@@ -531,13 +551,7 @@ function convertEm(
     setAttributes(xmlElement, element.attributes);
   }
 
-  // Convert children
-  for (const child of element.children) {
-    const childNode = convertSlateNodeToXml(child, context);
-    if (childNode) {
-      xmlElement.appendChild(childNode);
-    }
-  }
+  convertChildren(element.children, xmlElement);
 
   return xmlElement;
 }
@@ -547,7 +561,8 @@ function convertEm(
  */
 function convertBlockquote(
   element: SlateElement & { type: 'blockquote'; align?: TextAlign },
-  context: SerializationContext
+  context: SerializationContext,
+  convertChildren: ConvertChildren
 ): Element {
   const xmlElement = createXmlElement(context.doc, 'blockquote');
 
@@ -561,13 +576,7 @@ function convertBlockquote(
     xmlElement.setAttribute('style', style);
   }
 
-  // Convert children
-  for (const child of element.children) {
-    const childNode = convertSlateNodeToXml(child, context);
-    if (childNode) {
-      xmlElement.appendChild(childNode);
-    }
-  }
+  convertChildren(element.children, xmlElement);
 
   return xmlElement;
 }
@@ -650,6 +659,36 @@ function checkDuplicateIdentifiers(context: SerializationContext): void {
 }
 
 /**
+ * Child order of qti-assessment-item, which QTI v3 defines as a sequence
+ */
+const ASSESSMENT_ITEM_CHILD_ORDER = [
+  'qti-context-declaration',
+  'qti-response-declaration',
+  'qti-outcome-declaration',
+  'qti-template-declaration',
+  'qti-template-processing',
+  'qti-assessment-stimulus-ref',
+  'qti-companion-materials-info',
+  'qti-stylesheet',
+  'qti-item-body',
+  'qti-catalog-info',
+  'qti-response-processing',
+  'qti-modal-feedback',
+];
+
+/**
+ * Insert a child into the assessment item at its position in the sequence,
+ * after any existing children of the same type
+ */
+function insertAssessmentItemChild(assessmentItem: Element, child: Element): void {
+  const rank = ASSESSMENT_ITEM_CHILD_ORDER.indexOf(child.localName);
+  const next = Array.from(assessmentItem.children).find(
+    (sibling) => ASSESSMENT_ITEM_CHILD_ORDER.indexOf(sibling.localName) > rank
+  );
+  assessmentItem.insertBefore(child, next ?? null);
+}
+
+/**
  * Update response declarations in the assessment item
  *
  * Removes all existing response declarations and re-adds them from the collected
@@ -665,113 +704,147 @@ function updateResponseDeclarations(
   declarations: Map<string, XmlNode>,
   doc: Document
 ): void {
-  const itemBody = assessmentItem.querySelector('qti-item-body');
-
   // Remove ALL existing response declarations
-  // This is safe because all interactions are serialized and add their declarations
-  // to the map, so we have a complete picture of what should exist
+  // This is safe because all interactions, including passed-through unknown ones,
+  // are serialized and add their declarations to the map, so we have a complete
+  // picture of what should exist
   const existingDeclarations = assessmentItem.querySelectorAll('qti-response-declaration');
   for (const existing of existingDeclarations) {
     existing.remove();
   }
 
-  // Insert all response declarations (before qti-item-body)
+  // Insert all response declarations in sequence order
   for (const [, node] of declarations) {
-    const element = xmlNodeToDom(node, doc);
-    assessmentItem.insertBefore(element, itemBody);
+    insertAssessmentItemChild(assessmentItem, xmlNodeToDom(node, doc));
   }
 }
 
 /**
- * Update outcome declarations in the assessment item
+ * Rebuild the outcome declarations of the assessment item.
  *
- * Unlike response declarations which are fully managed, outcome declarations
- * are selectively managed - we only add/remove the intermediate score variables
- * (e.g., RESP1_SCORE) that are generated for sumScores mode with unmapped responses.
- * Other outcome declarations (like SCORE) are left untouched.
+ * They are rebuilt from the item as loaded (the document metadata's snapshot)
+ * and the current editor state, never from the XML being updated: that holds the
+ * previous save, and undo only restores editor state, so anything taken from a
+ * previous save couldn't be undone.
+ *
+ * - SCORE follows the scoring mode (see applyScoringMode)
+ * - FEEDBACK is declared when feedback elements are used, and dropped when they
+ *   aren't unless it has a default value (custom mode keeps it as loaded)
+ * - intermediate score variables generated for sumScores replace loaded ones
+ * - other outcome declarations are kept as loaded
  *
  * @param assessmentItem - The qti-assessment-item element
- * @param declarations - Map of outcome identifier to XmlNode (intermediate scores only)
+ * @param loaded - The outcome declarations as loaded, or undefined to use the item's own
+ * @param config - The response processing config
+ * @param feedbackIdentifiersUsed - Feedback identifiers used by feedback elements
+ * @param generated - Intermediate score variables generated for sumScores mode
  * @param doc - The XML document
  */
 function updateOutcomeDeclarations(
   assessmentItem: Element,
-  declarations: Map<string, XmlNode>,
+  loaded: XmlNode[] | undefined,
+  config: ResponseProcessingConfig | undefined,
+  feedbackIdentifiersUsed: Set<string>,
+  generated: Map<string, XmlNode>,
   doc: Document
 ): void {
-  const itemBody = assessmentItem.querySelector('qti-item-body');
+  const existing = Array.from(assessmentItem.querySelectorAll('qti-outcome-declaration'));
+  const source = loaded ?? existing.map(domToXmlNode);
+  for (const declaration of existing) {
+    declaration.remove();
+  }
 
-  // Remove only the outcome declarations we're managing (intermediate scores)
-  // Keep existing SCORE declaration and other outcome declarations
-  for (const [identifier] of declarations) {
-    const existing = assessmentItem.querySelector(
-      `qti-outcome-declaration[identifier="${identifier}"]`
-    );
-    if (existing) {
-      existing.remove();
+  const mode = config?.mode;
+  const manageFeedback = mode !== 'custom';
+  const feedbackUsed = feedbackIdentifiersUsed.size > 0;
+  const declarations: Element[] = [];
+
+  for (const node of source) {
+    const identifier = node.attributes['identifier'];
+    const declaration = xmlNodeToDom(generated.get(identifier) ?? node, doc);
+
+    if (identifier === 'SCORE') {
+      applyScoringMode(declaration, mode, doc);
+    } else if (identifier === 'FEEDBACK' && manageFeedback) {
+      if (feedbackUsed) {
+        // Cardinality "multiple" for the accumulation pattern we generate
+        declaration.setAttribute('cardinality', 'multiple');
+      } else if (!declaration.querySelector('qti-default-value')) {
+        continue;
+      }
+    }
+    declarations.push(declaration);
+  }
+
+  const declared = new Set(source.map((node) => node.attributes['identifier']));
+
+  // Every managed mode uses SCORE: generated response processing sets it, and
+  // manual grading is recorded on it
+  if (!declared.has('SCORE') && (mode === 'allCorrect' || mode === 'sumScores' || mode === 'manual')) {
+    const score = createXmlElement(doc, 'qti-outcome-declaration');
+    score.setAttribute('identifier', 'SCORE');
+    score.setAttribute('cardinality', 'single');
+    score.setAttribute('base-type', 'float');
+    const defaultValue = createXmlElement(doc, 'qti-default-value');
+    const value = createXmlElement(doc, 'qti-value');
+    value.textContent = '0';
+    defaultValue.appendChild(value);
+    score.appendChild(defaultValue);
+    applyScoringMode(score, mode, doc);
+    declarations.unshift(score);
+  }
+
+  if (!declared.has('FEEDBACK') && manageFeedback && feedbackUsed) {
+    const feedback = createXmlElement(doc, 'qti-outcome-declaration');
+    feedback.setAttribute('identifier', 'FEEDBACK');
+    feedback.setAttribute('cardinality', 'multiple');
+    feedback.setAttribute('base-type', 'identifier');
+    declarations.push(feedback);
+  }
+
+  for (const [identifier, node] of generated) {
+    if (!declared.has(identifier)) {
+      declarations.push(xmlNodeToDom(node, doc));
     }
   }
 
-  // Insert new outcome declarations before qti-item-body
-  for (const [, node] of declarations) {
-    const element = xmlNodeToDom(node, doc);
-    assessmentItem.insertBefore(element, itemBody);
+  // Inserted in order, after the response declarations
+  for (const declaration of declarations) {
+    insertAssessmentItemChild(assessmentItem, declaration);
   }
 }
 
 /**
- * Update the FEEDBACK outcome declaration based on feedback element usage.
+ * Set a SCORE declaration (as loaded) up for the scoring mode.
  *
- * If feedback elements are used and we're managing response processing:
- * - Add/update FEEDBACK outcome declaration with cardinality="multiple" and base-type="identifier"
- *
- * If no feedback elements are used and we're managing response processing:
- * - Remove FEEDBACK outcome declaration (if it exists and was auto-generated)
- *
- * @param assessmentItem - The qti-assessment-item element
- * @param feedbackIdentifiersUsed - Set of feedback identifiers used by feedback elements
- * @param doc - The XML document
+ * - manual: external-scored="human", with a normal-maximum (1.0 if none) so
+ *   delivery knows the points available, and no default value so it has no
+ *   score until graded
+ * - allCorrect/sumScores: generated response processing sets SCORE, so a SCORE
+ *   loaded as externally scored loses external-scored and the normal-maximum
+ *   that described the external points, and gets a default value of 0
+ * - custom: as loaded
  */
-function updateFeedbackOutcomeDeclaration(
-  assessmentItem: Element,
-  feedbackIdentifiersUsed: Set<string>,
+function applyScoringMode(
+  score: Element,
+  mode: ResponseProcessingMode | undefined,
   doc: Document
 ): void {
-  const itemBody = assessmentItem.querySelector('qti-item-body');
-  const existingFeedback = assessmentItem.querySelector(
-    'qti-outcome-declaration[identifier="FEEDBACK"]'
-  );
-
-  if (feedbackIdentifiersUsed.size > 0) {
-    // Need FEEDBACK outcome declaration
-    if (!existingFeedback) {
-      // Create new FEEDBACK outcome declaration
-      const feedbackDecl = doc.createElementNS(
-        'http://www.imsglobal.org/xsd/imsqtiasi_v3p0',
-        'qti-outcome-declaration'
-      );
-      feedbackDecl.setAttribute('identifier', 'FEEDBACK');
-      feedbackDecl.setAttribute('cardinality', 'multiple');
-      feedbackDecl.setAttribute('base-type', 'identifier');
-
-      // Insert before qti-item-body
-      if (itemBody) {
-        assessmentItem.insertBefore(feedbackDecl, itemBody);
-      } else {
-        assessmentItem.appendChild(feedbackDecl);
-      }
-    } else {
-      // Ensure cardinality is "multiple" for the accumulation pattern we use
-      existingFeedback.setAttribute('cardinality', 'multiple');
+  if (mode === 'manual') {
+    score.setAttribute('external-scored', 'human');
+    if (!score.hasAttribute('normal-maximum')) {
+      score.setAttribute('normal-maximum', '1.0');
     }
-  } else {
-    // No feedback elements - remove FEEDBACK declaration if it exists
-    // We only remove it if it has no default value (indicating it was auto-generated)
-    if (existingFeedback) {
-      const hasDefaultValue = existingFeedback.querySelector('qti-default-value');
-      if (!hasDefaultValue) {
-        existingFeedback.remove();
-      }
+    score.querySelector('qti-default-value')?.remove();
+  } else if ((mode === 'allCorrect' || mode === 'sumScores') && score.hasAttribute('external-scored')) {
+    score.removeAttribute('external-scored');
+    score.removeAttribute('normal-maximum');
+    if (!score.querySelector('qti-default-value')) {
+      const defaultValue = createXmlElement(doc, 'qti-default-value');
+      const value = createXmlElement(doc, 'qti-value');
+      value.textContent = '0';
+      defaultValue.appendChild(value);
+      score.appendChild(defaultValue);
     }
   }
 }
@@ -808,15 +881,14 @@ function updateResponseProcessing(
     );
 
     if (newRP) {
-      // Response processing should be appended at the end of the assessment item
-      assessmentItem.appendChild(newRP);
+      insertAssessmentItemChild(assessmentItem, newRP);
     }
   }
 }
 
 /**
  * Update modal feedback elements in the assessment item.
- * Modal feedback lives outside qti-item-body, before qti-response-processing.
+ * Modal feedback lives outside qti-item-body, after qti-response-processing.
  *
  * @param assessmentItem - The qti-assessment-item element
  * @param modalFeedbackElements - Array of modal feedback elements to insert
@@ -833,15 +905,9 @@ function updateModalFeedback(
     el.remove();
   }
 
-  // Insert new modal feedback elements before response-processing (or at end)
-  const responseProcessing = assessmentItem.querySelector('qti-response-processing');
+  // Insert new modal feedback elements in sequence order
   for (const element of modalFeedbackElements) {
-    const imported = doc.importNode(element, true);
-    if (responseProcessing) {
-      assessmentItem.insertBefore(imported, responseProcessing);
-    } else {
-      assessmentItem.appendChild(imported);
-    }
+    insertAssessmentItemChild(assessmentItem, doc.importNode(element, true) as Element);
   }
 }
 
@@ -866,11 +932,6 @@ function createNewQtiDocument(): Document {
                      title="New Item"
                      adaptive="false"
                      time-dependent="false">
-  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
-    <qti-default-value>
-      <qti-value>0</qti-value>
-    </qti-default-value>
-  </qti-outcome-declaration>
   <qti-item-body></qti-item-body>
 </qti-assessment-item>`;
   return new DOMParser().parseFromString(xmlString, 'application/xml');
@@ -941,18 +1002,15 @@ export function serializeSlateToQti(
     doc
   );
 
-  // Manage FEEDBACK outcome declaration based on whether feedback elements are used
-  // Only in non-custom mode - custom mode preserves everything
-  if (itemBodyResult.responseProcessingConfig?.mode !== 'custom') {
-    updateFeedbackOutcomeDeclaration(
-      assessmentItem,
-      itemBodyResult.feedbackIdentifiersUsed,
-      doc
-    );
-  }
-
-  // Update outcome declarations (for intermediate score variables generated by sumScores mode)
-  updateOutcomeDeclarations(assessmentItem, itemBodyResult.outcomeDeclarations, doc);
+  // Rebuild outcome declarations from the item as loaded and the editor state
+  updateOutcomeDeclarations(
+    assessmentItem,
+    itemBodyResult.loadedOutcomeDeclarations,
+    itemBodyResult.responseProcessingConfig,
+    itemBodyResult.feedbackIdentifiersUsed,
+    itemBodyResult.outcomeDeclarations,
+    doc
+  );
 
   // Update modal feedback elements (inserted outside qti-item-body, before response-processing)
   updateModalFeedback(assessmentItem, itemBodyResult.modalFeedbackElements, doc);

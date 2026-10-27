@@ -1,4 +1,4 @@
-import { Editor, Element, Path, Text, Transforms } from 'slate';
+import { Editor, Element, type Node, Path, Text, Transforms } from 'slate';
 import type { CustomEditor } from '../types.js';
 
 /**
@@ -65,4 +65,110 @@ export function wrapInlineContentInParagraphs(
   }
 
   return false;
+}
+
+/**
+ * Normalize a block element whose children mix inline content with blocks by
+ * wrapping each inline run in a paragraph. QTI flow content allows the mix, but
+ * Slate requires an element's children to be all blocks or all inline, and its
+ * own normalization would unwrap the blocks or delete the inline content.
+ *
+ * @returns true if a change was made, false otherwise
+ */
+export function wrapMixedContentInParagraphs(
+  editor: CustomEditor,
+  node: Element,
+  path: Path
+): boolean {
+  const hasBlock = node.children.some((child) => Element.isElement(child) && Editor.isBlock(editor, child));
+  const hasInlineContent = node.children.some((child) =>
+    Element.isElement(child) ? !Editor.isBlock(editor, child) : child.text !== ''
+  );
+  if (!hasBlock || !hasInlineContent) return false;
+
+  return wrapInlineContentInParagraphs(editor, node, path);
+}
+
+/**
+ * Children of a feedback element that sit beside qti-content-body rather than in it.
+ * The editor doesn't model them, so they arrive as qti-unknown elements.
+ */
+const FEEDBACK_NON_CONTENT_TAGS = ['qti-stylesheet', 'qti-catalog-info'];
+
+function isFeedbackContent(child: Node): boolean {
+  if (!Element.isElement(child) || !('type' in child)) return true;
+  if (child.type === 'qti-content-body') return false;
+  return !(
+    child.type === 'qti-unknown' &&
+    'originalTagName' in child &&
+    FEEDBACK_NON_CONTENT_TAGS.includes(child.originalTagName)
+  );
+}
+
+/**
+ * Normalize a feedback element (qti-feedback-block, qti-modal-feedback) so its
+ * content is inside a qti-content-body, as QTI 3.0 requires. Loose content is
+ * moved into a new qti-content-body; an element with no content gets an empty one.
+ *
+ * @returns true if a change was made, false otherwise
+ */
+export function wrapFeedbackContentInContentBody(
+  editor: CustomEditor,
+  node: Element,
+  path: Path
+): boolean {
+  const hasContentBody = node.children.some(
+    (child) => Element.isElement(child) && 'type' in child && child.type === 'qti-content-body'
+  );
+  if (hasContentBody) return false;
+
+  const hasContent = node.children.some(isFeedbackContent);
+  if (hasContent) {
+    Transforms.wrapNodes(
+      editor,
+      { type: 'qti-content-body', children: [], attributes: {} } as Element,
+      {
+        at: path,
+        match: (n, p) => p.length === path.length + 1 && isFeedbackContent(n),
+      }
+    );
+    return true;
+  }
+
+  Transforms.insertNodes(
+    editor,
+    {
+      type: 'qti-content-body',
+      children: [{ type: 'paragraph', children: [{ text: '' }], attributes: {} }],
+    } as Element,
+    { at: path.concat(node.children.length) }
+  );
+  return true;
+}
+
+/**
+ * Normalize an interaction so its first child is a qti-prompt, giving authors a
+ * place to write one. An empty prompt is not serialized.
+ *
+ * @returns true if a change was made, false otherwise
+ */
+export function ensurePromptFirst(
+  editor: CustomEditor,
+  node: Element,
+  path: Path
+): boolean {
+  const firstChild = node.children[0];
+  if (Element.isElement(firstChild) && 'type' in firstChild && firstChild.type === 'qti-prompt') {
+    return false;
+  }
+
+  Transforms.insertNodes(
+    editor,
+    {
+      type: 'qti-prompt',
+      children: [{ type: 'paragraph', children: [{ text: '' }], attributes: {} }],
+    } as Element,
+    { at: path.concat(0) }
+  );
+  return true;
 }

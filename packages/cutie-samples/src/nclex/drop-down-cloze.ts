@@ -102,7 +102,9 @@ adaptive="false" time-dependent="false" xml:lang="en">
       </qti-inline-choice-interaction>.
     </p>
     <qti-feedback-block outcome-identifier="FEEDBACK" identifier="ITEM_completed" show-hide="show">
-      <p>Shakiness, sweating, and slowed thinking a few hours after rapid-acting insulin are classic signs of hypoglycemia. The nurse first confirms the problem by checking the blood glucose; giving more insulin would lower it further, and resting does nothing to treat it. A reading below 70 mg/dL in a client who can swallow safely calls for the rule of 15: give 15 g of fast-acting carbohydrate, such as 4 oz of juice or glucose tablets, then recheck the blood glucose in 15 minutes and repeat if it is still low. Protein and fat slow absorption, so a high-protein snack doesn't raise glucose quickly enough. So the nurse should first check the blood glucose, give 15 g of fast-acting carbohydrate, and recheck in 15 minutes.</p>
+      <qti-content-body>
+        <p>Shakiness, sweating, and slowed thinking a few hours after rapid-acting insulin are classic signs of hypoglycemia. The nurse first confirms the problem by checking the blood glucose; giving more insulin would lower it further, and resting does nothing to treat it. A reading below 70 mg/dL in a client who can swallow safely calls for the rule of 15: give 15 g of fast-acting carbohydrate, such as 4 oz of juice or glucose tablets, then recheck the blood glucose in 15 minutes and repeat if it is still low. Protein and fat slow absorption, so a high-protein snack doesn't raise glucose quickly enough. So the nurse should first check the blood glucose, give 15 g of fast-acting carbohydrate, and recheck in 15 minutes.</p>
+      </qti-content-body>
     </qti-feedback-block>
   </qti-item-body>
 

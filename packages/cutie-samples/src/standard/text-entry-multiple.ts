@@ -72,7 +72,9 @@ adaptive="false" time-dependent="false" xml:lang="en">
     <p>Complete the sentence about the chemical formula of water, H₂O.</p>
     <p>Each water molecule contains two atoms of <qti-text-entry-interaction response-identifier="RESPONSE" expected-length="10" pattern-mask=".+" data-patternmask-message="Response required"/> bonded to one atom of <qti-text-entry-interaction response-identifier="RESPONSE_2" expected-length="10" pattern-mask=".+" data-patternmask-message="Response required"/>.</p>
     <qti-feedback-block outcome-identifier="FEEDBACK" identifier="ITEM_completed" show-hide="show">
-      <p>Read the chemical formula one symbol at a time. H is the symbol for hydrogen, and the subscript 2 means there are two hydrogen atoms. O is the symbol for oxygen, and with no subscript there is one oxygen atom. So each water molecule has two atoms of hydrogen bonded to one atom of oxygen.</p>
+      <qti-content-body>
+        <p>Read the chemical formula one symbol at a time. H is the symbol for hydrogen, and the subscript 2 means there are two hydrogen atoms. O is the symbol for oxygen, and with no subscript there is one oxygen atom. So each water molecule has two atoms of hydrogen bonded to one atom of oxygen.</p>
+      </qti-content-body>
     </qti-feedback-block>
   </qti-item-body>
 

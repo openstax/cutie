@@ -58,7 +58,9 @@ adaptive="false" time-dependent="false" xml:lang="en">
     </p>
 
     <qti-feedback-block outcome-identifier="FEEDBACK" identifier="ITEM_completed" show-hide="show">
-      <p>The law of demand describes an inverse relationship between price and quantity demanded: as one goes up, the other goes down. When a good's price rises, some buyers switch to cheaper substitutes and others can afford less of it. The phrase "all other factors stay the same" tells you the demand curve itself doesn't shift, so the higher price moves you up and to the left along the curve. The quantity demanded decreases.</p>
+      <qti-content-body>
+        <p>The law of demand describes an inverse relationship between price and quantity demanded: as one goes up, the other goes down. When a good's price rises, some buyers switch to cheaper substitutes and others can afford less of it. The phrase "all other factors stay the same" tells you the demand curve itself doesn't shift, so the higher price moves you up and to the left along the curve. The quantity demanded decreases.</p>
+      </qti-content-body>
     </qti-feedback-block>
   </qti-item-body>
 

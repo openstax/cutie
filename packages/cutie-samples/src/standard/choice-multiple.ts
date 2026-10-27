@@ -1,6 +1,7 @@
 import type { Sample } from '../types.js';
 import {
   allOrNothingMatch,
+  choiceText,
   correctResponse,
   outcomes,
   responseProcessingOrder,
@@ -19,6 +20,7 @@ of selections. Setting it to the number of correct answers makes the delivery \
 system show a validation hint that reveals how many answers to pick, which is \
 sometimes desirable.
 - ${shuffle}
+- ${choiceText}
 - Every choice ends with its own \`qti-feedback-block\` with identifier \
 \`RESPONSE_choice_<choiceId>\`, shown when that choice is selected, so several can \
 show at once. The text explains why that specific choice is right \
@@ -69,39 +71,51 @@ adaptive="false" time-dependent="false" xml:lang="en">
     <qti-choice-interaction response-identifier="RESPONSE" shuffle="true" min-choices="1" max-choices="0">
       <qti-prompt>Which of the following are physical changes? Select all that apply.</qti-prompt>
       <qti-simple-choice identifier="choiceA">
-        Ice melting into liquid water
+        <p>Ice melting into liquid water</p>
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceA" show-hide="show">
-          <p>Melting changes water from a solid to a liquid, but the molecules are still H₂O. A change of state is a physical change.</p>
+          <qti-content-body>
+            <p>Melting changes water from a solid to a liquid, but the molecules are still H₂O. A change of state is a physical change.</p>
+          </qti-content-body>
         </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceB">
-        Sugar dissolving in water
+        <p>Sugar dissolving in water</p>
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceB" show-hide="show">
-          <p>Dissolved sugar molecules spread out among the water molecules but stay sugar. Evaporating the water gets the sugar back, so this is a physical change.</p>
+          <qti-content-body>
+            <p>Dissolved sugar molecules spread out among the water molecules but stay sugar. Evaporating the water gets the sugar back, so this is a physical change.</p>
+          </qti-content-body>
         </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceC">
-        Iron rusting
+        <p>Iron rusting</p>
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceC" show-hide="show">
-          <p>Rusting is a chemical change. Iron reacts with oxygen and water to form iron oxide, a new substance with different properties.</p>
+          <qti-content-body>
+            <p>Rusting is a chemical change. Iron reacts with oxygen and water to form iron oxide, a new substance with different properties.</p>
+          </qti-content-body>
         </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceD">
-        Wood burning
+        <p>Wood burning</p>
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceD" show-hide="show">
-          <p>Burning is a chemical change. Combustion turns the wood into carbon dioxide, water vapor, and ash, which can't be turned back into wood.</p>
+          <qti-content-body>
+            <p>Burning is a chemical change. Combustion turns the wood into carbon dioxide, water vapor, and ash, which can't be turned back into wood.</p>
+          </qti-content-body>
         </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceE">
-        Cutting paper into pieces
+        <p>Cutting paper into pieces</p>
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceE" show-hide="show">
-          <p>Cutting changes the size and shape of the paper, but each piece is still paper. Changes to size or shape are physical changes.</p>
+          <qti-content-body>
+            <p>Cutting changes the size and shape of the paper, but each piece is still paper. Changes to size or shape are physical changes.</p>
+          </qti-content-body>
         </qti-feedback-block>
       </qti-simple-choice>
     </qti-choice-interaction>
 
     <qti-feedback-block outcome-identifier="FEEDBACK" identifier="ITEM_completed" show-hide="show">
-      <p>For each change, ask whether a new substance forms. If the substance keeps its chemical identity and only its state, size, or shape changes, it is a physical change. Melting ice, dissolving sugar, and cutting paper fit that description. If atoms rearrange into new substances with different properties, it is a chemical change. Rusting iron forms iron oxide, and burning wood forms carbon dioxide, water, and ash. The physical changes are melting ice, dissolving sugar, and cutting paper.</p>
+      <qti-content-body>
+        <p>For each change, ask whether a new substance forms. If the substance keeps its chemical identity and only its state, size, or shape changes, it is a physical change. Melting ice, dissolving sugar, and cutting paper fit that description. If atoms rearrange into new substances with different properties, it is a chemical change. Rusting iron forms iron oxide, and burning wood forms carbon dioxide, water, and ash. The physical changes are melting ice, dissolving sugar, and cutting paper.</p>
+      </qti-content-body>
     </qti-feedback-block>
   </qti-item-body>
 

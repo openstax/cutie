@@ -71,7 +71,9 @@ adaptive="false" time-dependent="false" xml:lang="en">
       </qti-inline-choice-interaction>.
     </p>
     <qti-feedback-block outcome-identifier="FEEDBACK" identifier="ITEM_completed" show-hide="show">
-      <p>Newton's first law, sometimes called the law of inertia, says an object's velocity changes only when a net external force acts on it. An object at rest stays at rest, and an object in motion keeps moving at the same speed in the same direction. A change in mass doesn't change velocity, and a gravitational field matters only when it produces a net force. So the sentence describes Newton's first law, and the condition is a net external force.</p>
+      <qti-content-body>
+        <p>Newton's first law, sometimes called the law of inertia, says an object's velocity changes only when a net external force acts on it. An object at rest stays at rest, and an object in motion keeps moving at the same speed in the same direction. A change in mass doesn't change velocity, and a gravitational field matters only when it produces a net force. So the sentence describes Newton's first law, and the condition is a net external force.</p>
+      </qti-content-body>
     </qti-feedback-block>
   </qti-item-body>
 

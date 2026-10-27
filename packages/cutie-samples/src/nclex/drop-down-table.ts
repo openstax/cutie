@@ -157,7 +157,9 @@ adaptive="false" time-dependent="false" xml:lang="en">
       </tbody>
     </table>
     <qti-feedback-block outcome-identifier="FEEDBACK" identifier="ITEM_completed" show-hide="show">
-      <p>Compare each day 3 value with the admission value and with the normal range. The temperature fell from 39.2 °C to 37.1 °C, which is within normal limits, so it has improved. The respiratory rate dropped from 28 to 18 breaths/min, back in the normal range of 12 to 20, so it has also improved. The oxygen saturation is still 91% on the same 2 L/min of oxygen, so it hasn't changed. The white blood cell count rose from 16,500 to 19,800/mm³, moving further above the normal range of about 5,000 to 10,000/mm³, which suggests the infection may not be responding to the antibiotic, so it has declined. The temperature and respiratory rate improved, the oxygen saturation didn't change, and the white blood cell count declined.</p>
+      <qti-content-body>
+        <p>Compare each day 3 value with the admission value and with the normal range. The temperature fell from 39.2 °C to 37.1 °C, which is within normal limits, so it has improved. The respiratory rate dropped from 28 to 18 breaths/min, back in the normal range of 12 to 20, so it has also improved. The oxygen saturation is still 91% on the same 2 L/min of oxygen, so it hasn't changed. The white blood cell count rose from 16,500 to 19,800/mm³, moving further above the normal range of about 5,000 to 10,000/mm³, which suggests the infection may not be responding to the antibiotic, so it has declined. The temperature and respiratory rate improved, the oxygen saturation didn't change, and the white blood cell count declined.</p>
+      </qti-content-body>
     </qti-feedback-block>
   </qti-item-body>
 
