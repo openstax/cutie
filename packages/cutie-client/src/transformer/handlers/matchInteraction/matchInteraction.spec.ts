@@ -417,6 +417,36 @@ describe('matchInteraction', () => {
       expect(response()).toEqual(['C R']);
     });
 
+    it('reports no edit when a source moves to another slot in its column', () => {
+      const container = render(SHARED_BANK_QTI);
+      place(container, 'D', 'M');
+      place(container, 'L', 'M');
+      const notify = vi.spyOn(itemState, 'notifyResponseChange');
+
+      const [first, , spare] = slotsFor(container, 'M');
+      first.click(); // pick D back up
+      spare.click(); // and move it to the column's empty slot
+
+      expect(spare.getAttribute('data-source-id')).toBe('D');
+      expect(response()).toEqual(['D M', 'L M']);
+      expect(notify).not.toHaveBeenCalled();
+    });
+
+    it('reports the displaced pair when a source moves onto a filled slot in its column', () => {
+      const container = render(SHARED_BANK_QTI);
+      place(container, 'D', 'M');
+      place(container, 'L', 'M');
+      const notify = vi.spyOn(itemState, 'notifyResponseChange');
+
+      const [first, second] = slotsFor(container, 'M');
+      first.click(); // pick D back up
+      second.click(); // and drop it on L, displacing L
+
+      expect(second.getAttribute('data-source-id')).toBe('D');
+      expect(response()).toEqual(['D M']);
+      expect(notify).toHaveBeenCalledTimes(1);
+    });
+
     it('moves a placed source to another column', () => {
       const container = render(SHARED_BANK_QTI);
       place(container, 'C', 'R');

@@ -647,17 +647,24 @@ export class MatchController {
     if (!targetId || !this.canPlaceInSlot(slot, sourceId, fromSlot)) return false;
 
     // Free the source's previous slot (move) and the slot's occupant (replace)
-    // before creating the new association. The columns are resized once at the
-    // end, so neither slot is dropped while it is still in use.
+    // before creating the new association. A move within the same column keeps
+    // its pair as it is: only the slot changes, so the response doesn't. The
+    // columns are resized once at the end, so neither slot is dropped while it
+    // is still in use.
     const fromTargetId = fromSlot?.getAttribute('data-target-id') ?? null;
-    if (fromSlot && this.slotOccupant.get(fromSlot) === sourceId) {
+    const moving = !!fromSlot && this.slotOccupant.get(fromSlot) === sourceId;
+    const keepsPair = moving && fromTargetId === targetId;
+    if (fromSlot && keepsPair) {
+      this.slotOccupant.delete(fromSlot);
+      this.emptySlotVisual(fromSlot);
+    } else if (fromSlot && moving) {
       this.vacate(fromSlot);
     }
     if (this.slotOccupant.has(slot)) {
       this.vacate(slot);
     }
 
-    if (!this.createAssociation(sourceId, targetId)) return false;
+    if (!keepsPair && !this.createAssociation(sourceId, targetId)) return false;
 
     this.slotOccupant.set(slot, sourceId);
     this.fillSlotVisual(slot, sourceId);
