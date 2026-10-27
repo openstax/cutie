@@ -15,7 +15,7 @@ import { isElementInline } from '../plugins/withQtiInteractions.js';
 import type { DocumentMetadata, ElementAttributes, SlateElement, SlateText, TextAlign } from '../types.js';
 import { classifyResponseProcessing } from '../utils/responseProcessingClassifier.js';
 import { domToXmlNode, type XmlNode } from './xmlNode.js';
-import { isBlockTag, isQtiElement, isVoidTag, normalizeTagName, parseXml, serializeElement } from './xmlUtils.js';
+import { isBlockTag, isQtiElement, isTextNode, isVoidTag, normalizeTagName, parseXml, serializeElement } from './xmlUtils.js';
 
 /**
  * Parser context for passing response declarations to interaction parsers
@@ -288,8 +288,8 @@ function isStructuralWhitespace(node: Node): boolean {
  * @param context - Parser context with response declarations
  */
 function convertNodeToSlate(node: Node, context?: ParserContext): Descendant | Descendant[] | null {
-  // Text node
-  if (node.nodeType === Node.TEXT_NODE) {
+  // Text node (or CDATA section)
+  if (isTextNode(node)) {
     const text = node.textContent || '';
 
     // Normalize whitespace: collapse sequences of spaces, tabs, and newlines to single space

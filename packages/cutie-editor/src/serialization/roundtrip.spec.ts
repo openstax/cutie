@@ -623,6 +623,24 @@ describe('XML Round-trip Tests', () => {
     });
   });
 
+  describe('CDATA sections', () => {
+    it('should keep CDATA content in outcome declarations and body text', () => {
+      const input = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test-item" title="Test Item">
+  <qti-outcome-declaration identifier="MAXSCORE" cardinality="single" base-type="float">
+    <qti-default-value><qti-value><![CDATA[5]]></qti-value></qti-default-value>
+  </qti-outcome-declaration>
+  <qti-item-body>
+    <p><![CDATA[Is a < b?]]></p>
+  </qti-item-body>
+</qti-assessment-item>`;
+      const item = parseXml(serializeSlateToQti(parseXmlToSlate(input), input).xml);
+
+      expect(item.querySelector('qti-outcome-declaration[identifier="MAXSCORE"] qti-value')?.textContent).toBe('5');
+      expect(item.querySelector('qti-item-body p')?.textContent).toBe('Is a < b?');
+    });
+  });
+
   describe('prompts', () => {
     it('should keep a formatted paragraph in a match prompt', () => {
       const content = `

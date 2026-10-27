@@ -1,3 +1,5 @@
+import { isTextNode } from './xmlUtils.js';
+
 /**
  * QTI namespace URI
  */
@@ -27,7 +29,7 @@ export function domToXmlNode(element: Element): XmlNode {
   for (const child of element.childNodes) {
     if (child.nodeType === Node.ELEMENT_NODE) {
       children.push(domToXmlNode(child as Element));
-    } else if (child.nodeType === Node.TEXT_NODE) {
+    } else if (isTextNode(child)) {
       const text = child.textContent || '';
       if (text.trim()) {
         children.push(text);

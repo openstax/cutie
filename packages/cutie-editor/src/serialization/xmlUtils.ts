@@ -137,6 +137,17 @@ export function isBlockTag(tagName: string): boolean {
 }
 
 /**
+ * Check if a DOM node holds text: a text node or a CDATA section, whose content
+ * is text too
+ *
+ * @param node - DOM node to check
+ * @returns True if the node's content is text
+ */
+export function isTextNode(node: Node): boolean {
+  return node.nodeType === Node.TEXT_NODE || node.nodeType === Node.CDATA_SECTION_NODE;
+}
+
+/**
  * Void tags: HTML elements that never have content
  */
 export const VOID_TAGS = [

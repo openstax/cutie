@@ -1,7 +1,7 @@
 import type { Descendant } from 'slate';
 import type { SerializationContext } from '../../serialization/slateToXml.js';
 import type { ConvertChildrenFn, ParserContext } from '../../serialization/xmlToSlate.js';
-import { createXmlElement } from '../../serialization/xmlUtils.js';
+import { createXmlElement, isTextNode } from '../../serialization/xmlUtils.js';
 import type { QtiGapText, SlateElement, XmlNode } from '../../types.js';
 import { gapMatchInteractionConfig } from './config.js';
 
@@ -60,7 +60,7 @@ function parseGapMatchInteraction(
       } else {
         contentElements.push(child);
       }
-    } else if (child.nodeType === Node.TEXT_NODE) {
+    } else if (isTextNode(child)) {
       // Include text nodes in content if they have meaningful content
       const text = child.textContent?.trim();
       if (text) {
