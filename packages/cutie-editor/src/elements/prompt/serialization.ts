@@ -2,7 +2,7 @@ import type { Descendant } from 'slate';
 import type { SerializationContext } from '../../serialization/slateToXml.js';
 import type { ConvertChildrenFn, ParserContext } from '../../serialization/xmlToSlate.js';
 import { createXmlElement } from '../../serialization/xmlUtils.js';
-import type { SlateElement } from '../../types.js';
+import type { ParagraphElement, SlateElement } from '../../types.js';
 
 /**
  * Parse QTI prompt from XML
@@ -42,6 +42,14 @@ function isEmptyPrompt(element: SlateElement & { type: 'qti-prompt' }): boolean 
 }
 
 /**
+ * Check if a paragraph has no attributes or alignment to lose when unwrapped
+ */
+function isPlainParagraph(paragraph: ParagraphElement): boolean {
+  return !paragraph.align &&
+    Object.values(paragraph.attributes ?? {}).every((value) => value === undefined);
+}
+
+/**
  * Serialize prompt to XML. An empty prompt is omitted.
  */
 function serializePrompt(
@@ -57,10 +65,11 @@ function serializePrompt(
     setAttributes(xmlElement, element.attributes);
   }
 
-  // If there's exactly one child and it's a paragraph, unwrap it for clean XML
+  // If there's exactly one child and it's a plain paragraph, unwrap it for clean XML.
+  // A paragraph with attributes or alignment is authored formatting, so it stays.
   if (element.children.length === 1) {
     const onlyChild = element.children[0];
-    if ('type' in onlyChild && onlyChild.type === 'paragraph') {
+    if ('type' in onlyChild && onlyChild.type === 'paragraph' && isPlainParagraph(onlyChild)) {
       // Unwrap paragraph - serialize its children directly
       convertChildren(onlyChild.children, xmlElement);
       return xmlElement;

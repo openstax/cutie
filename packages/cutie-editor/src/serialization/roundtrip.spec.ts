@@ -623,6 +623,24 @@ describe('XML Round-trip Tests', () => {
     });
   });
 
+  describe('prompts', () => {
+    it('should keep a formatted paragraph in a match prompt', () => {
+      const content = `
+        <qti-match-interaction response-identifier="RESPONSE" max-associations="1">
+          <qti-prompt><p class="note" style="text-align: right">Match the pairs.</p></qti-prompt>
+          <qti-simple-match-set><qti-simple-associable-choice identifier="S" match-max="1">S</qti-simple-associable-choice></qti-simple-match-set>
+          <qti-simple-match-set><qti-simple-associable-choice identifier="T" match-max="1">T</qti-simple-associable-choice></qti-simple-match-set>
+        </qti-match-interaction>`;
+      const input = wrapInQtiItem(content);
+      const item = parseXml(serializeSlateToQti(parseXmlToSlate(input), input).xml);
+      const paragraph = item.querySelector('qti-prompt > p');
+
+      expect(paragraph?.getAttribute('class')).toBe('note');
+      expect(paragraph?.getAttribute('style')).toContain('text-align: right');
+      expect(paragraph?.textContent).toBe('Match the pairs.');
+    });
+  });
+
   describe('manually graded items', () => {
     const extendedTextItem = (scoreDeclaration: string, responseProcessing = '') => `<?xml version="1.0" encoding="UTF-8"?>
 <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test-item" title="Test Item">
