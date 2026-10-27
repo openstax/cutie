@@ -780,4 +780,23 @@ describe('responseProcessingClassifier', () => {
       expect(result.mode).toBe('sumScores');
     });
   });
+
+  describe('external scoring', () => {
+    const withScore = (scoreAttributes: string, responseProcessing: string) => createQtiDoc(responseProcessing)
+      .documentElement.outerHTML.replace(
+        '<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/>',
+        `<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float" ${scoreAttributes}/>`
+      );
+    const parse = (xml: string) => new DOMParser().parseFromString(xml, 'application/xml');
+
+    it('should classify a human-scored SCORE without response processing as manual', () => {
+      const doc = parse(withScore('external-scored="human" normal-maximum="1"', ''));
+      expect(classifyResponseProcessing(doc).mode).toBe('manual');
+    });
+
+    it('should preserve externalMachine scoring as custom', () => {
+      const doc = parse(withScore('external-scored="externalMachine"', ''));
+      expect(classifyResponseProcessing(doc)).toEqual({ mode: 'custom' });
+    });
+  });
 });

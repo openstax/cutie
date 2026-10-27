@@ -1,6 +1,7 @@
 /* spell-checker: ignore hottext */
 import type { Descendant } from 'slate';
 import { describe, expect, it } from 'vitest';
+import type { DocumentMetadata, ResponseProcessingMode } from '../types.js';
 import { serializeSlateToQti, serializeSlateToXml } from './slateToXml.js';
 import { parseXmlToSlate } from './xmlToSlate.js';
 
@@ -619,6 +620,65 @@ describe('XML Round-trip Tests', () => {
 
       expect(paragraphs[0].children[0].text).toBe(' Paragraph with multiple lines ');
       expect(paragraphs[1].children[0].text).toBe(' Another paragraph ');
+    });
+  });
+
+  describe('manually graded items', () => {
+    const extendedTextItem = (scoreDeclaration: string, responseProcessing = '') => `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test-item" title="Test Item">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="string"/>
+  ${scoreDeclaration}
+  <qti-item-body>
+    <qti-extended-text-interaction response-identifier="RESPONSE">
+      <qti-prompt>Explain your answer.</qti-prompt>
+    </qti-extended-text-interaction>
+  </qti-item-body>
+  ${responseProcessing}
+</qti-assessment-item>`;
+
+    /** Serialize an item, optionally switching its scoring mode first */
+    const roundTrip = (input: string, mode?: ResponseProcessingMode) => {
+      const nodes = parseXmlToSlate(input);
+      if (mode) {
+        (nodes[0] as DocumentMetadata).responseProcessing = { mode };
+      }
+      return parseXml(serializeSlateToQti(nodes, input).xml).documentElement;
+    };
+
+    it('should not add response processing to a human-scored item', () => {
+      const item = roundTrip(extendedTextItem(
+        '<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float" external-scored="human" normal-maximum="2"/>'
+      ));
+      const score = item.querySelector('qti-outcome-declaration[identifier="SCORE"]')!;
+
+      expect(item.querySelector('qti-response-processing')).toBeNull();
+      expect(score.getAttribute('external-scored')).toBe('human');
+      expect(score.getAttribute('normal-maximum')).toBe('2');
+    });
+
+    it('should mark SCORE as human-scored when switching to manual', () => {
+      const item = roundTrip(extendedTextItem(
+        '<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"><qti-default-value><qti-value>0</qti-value></qti-default-value></qti-outcome-declaration>',
+        '<qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>'
+      ), 'manual');
+      const score = item.querySelector('qti-outcome-declaration[identifier="SCORE"]')!;
+
+      expect(item.querySelector('qti-response-processing')).toBeNull();
+      expect(score.getAttribute('external-scored')).toBe('human');
+      expect(score.getAttribute('normal-maximum')).toBe('1.0');
+      expect(score.querySelector('qti-default-value')).toBeNull();
+    });
+
+    it('should clear human scoring when switching away from manual', () => {
+      const item = roundTrip(extendedTextItem(
+        '<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float" external-scored="human" normal-maximum="1.0"/>'
+      ), 'allCorrect');
+      const score = item.querySelector('qti-outcome-declaration[identifier="SCORE"]')!;
+
+      expect(item.querySelector('qti-response-processing')).not.toBeNull();
+      expect(score.hasAttribute('external-scored')).toBe(false);
+      expect(score.hasAttribute('normal-maximum')).toBe(false);
+      expect(score.querySelector('qti-default-value qti-value')?.textContent).toBe('0');
     });
   });
 });

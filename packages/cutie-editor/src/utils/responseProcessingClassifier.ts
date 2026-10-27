@@ -28,11 +28,27 @@ const TEMPLATE_PATTERNS = {
  *    - No response processing element -> default to allCorrect
  *    - Empty response processing -> default to allCorrect
  *
+ * Checked first: SCORE declared external-scored="human" -> manual, and
+ * external-scored="externalMachine" -> custom (not managed by the editor).
+ *
  * @param doc - The QTI XML document
  * @returns ResponseProcessingConfig with the detected mode
  */
 export function classifyResponseProcessing(doc: Document): ResponseProcessingConfig {
   const responseProcessing = doc.querySelector('qti-response-processing');
+
+  // SCORE set outside response processing
+  const externalScored = doc
+    .querySelector('qti-outcome-declaration[identifier="SCORE"]')
+    ?.getAttribute('external-scored');
+  if (externalScored === 'human') {
+    return { mode: 'manual' };
+  }
+  if (externalScored === 'externalMachine') {
+    return responseProcessing
+      ? { mode: 'custom', customXml: domToXmlNode(responseProcessing) }
+      : { mode: 'custom' };
+  }
 
   // No response processing element -> default to allCorrect
   if (!responseProcessing) {

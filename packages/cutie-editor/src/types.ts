@@ -29,8 +29,9 @@ declare module 'slate' {
  * - 'custom': Complex logic that cannot be classified; read-only, preserved as-is
  * - 'sumScores': Partial credit; each interaction produces a score, totaled together
  * - 'allCorrect': Binary 0/1; all responses must be correct for score of 1
+ * - 'manual': Graded by a person; SCORE is external-scored="human" and no response processing is generated
  */
-export type ResponseProcessingMode = 'custom' | 'sumScores' | 'allCorrect';
+export type ResponseProcessingMode = 'custom' | 'sumScores' | 'allCorrect' | 'manual';
 
 /**
  * Configuration for response processing
