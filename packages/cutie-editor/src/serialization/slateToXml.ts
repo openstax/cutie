@@ -310,10 +310,13 @@ function convertUnknownQtiElement(
   context: SerializationContext,
   convertChildren: ConvertChildren
 ): Element | null {
-  // Track responses bound inside the element
+  // Keep the declarations of responses bound inside the element, but only score
+  // the ones the loaded response processing scored
   for (const [responseId, declaration] of Object.entries(element.responseDeclarations ?? {})) {
-    context.responseIdentifiers.push(responseId);
     context.responseDeclarations.set(responseId, declaration);
+    if (element.scoredResponseIdentifiers?.includes(responseId)) {
+      context.responseIdentifiers.push(responseId);
+    }
   }
 
   // If we have raw XML, try to use that for perfect round-trip

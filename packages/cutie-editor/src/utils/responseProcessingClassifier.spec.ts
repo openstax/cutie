@@ -7,7 +7,7 @@ import { item as choicePartialItem } from '../../../cutie-example/src/example-it
 import { item as multiInteractionItem } from '../../../cutie-example/src/example-items/standard-multi-interaction.js';
 import { item as textEntryPartialItem } from '../../../cutie-example/src/example-items/standard-text-entry-partial.js';
 import { item as textEntryMultiItem } from '../../../cutie-example/src/example-items/text-entry-multi.js';
-import { classifyResponseProcessing } from './responseProcessingClassifier.js';
+import { classifyResponseProcessing, getScoredResponseIdentifiers } from './responseProcessingClassifier.js';
 
 /**
  * Helper to create a minimal QTI document for testing
@@ -797,6 +797,28 @@ describe('responseProcessingClassifier', () => {
     it('should preserve externalMachine scoring as custom', () => {
       const doc = parse(withScore('external-scored="externalMachine"', ''));
       expect(classifyResponseProcessing(doc)).toEqual({ mode: 'custom' });
+    });
+  });
+
+  describe('getScoredResponseIdentifiers', () => {
+    const doc = (responseProcessing: string) => new DOMParser().parseFromString(`<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test-item">
+  <qti-response-declaration identifier="R1" cardinality="single" base-type="identifier"/>
+  <qti-response-declaration identifier="R2" cardinality="single" base-type="identifier"/>
+  <qti-item-body><p>Test</p></qti-item-body>
+  ${responseProcessing}
+</qti-assessment-item>`, 'application/xml');
+
+    it('should report responses in scoring rules but not in feedback-only conditions', () => {
+      const scored = getScoredResponseIdentifiers(doc(`<qti-response-processing>
+        <qti-set-outcome-value identifier="SCORE"><qti-sum><qti-map-response identifier="R1"/></qti-sum></qti-set-outcome-value>
+        <qti-response-condition><qti-response-if>
+          <qti-match><qti-variable identifier="R2"/><qti-base-value base-type="identifier">A</qti-base-value></qti-match>
+          <qti-set-outcome-value identifier="FEEDBACK"><qti-multiple><qti-variable identifier="FEEDBACK"/><qti-base-value base-type="identifier">R2_A</qti-base-value></qti-multiple></qti-set-outcome-value>
+        </qti-response-if></qti-response-condition>
+      </qti-response-processing>`));
+
+      expect([...scored]).toEqual(['R1']);
     });
   });
 });

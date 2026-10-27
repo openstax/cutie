@@ -344,6 +344,31 @@ describe('XML Round-trip Tests', () => {
       expect(output).toContain('qti-hotspot-choice');
     });
 
+    it('should not score an unknown interaction the loaded rules did not score', () => {
+      const input = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test-item" title="Test Item">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier">
+    <qti-correct-response><qti-value>A</qti-value></qti-correct-response>
+  </qti-response-declaration>
+  <qti-response-declaration identifier="END_ATTEMPT" cardinality="single" base-type="boolean"/>
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/>
+  <qti-item-body>
+    <qti-choice-interaction response-identifier="RESPONSE" max-choices="1">
+      <qti-prompt>Pick one</qti-prompt>
+      <qti-simple-choice identifier="A">A</qti-simple-choice>
+    </qti-choice-interaction>
+    <p><qti-end-attempt-interaction response-identifier="END_ATTEMPT" title="Done"/></p>
+  </qti-item-body>
+  <qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>
+</qti-assessment-item>`;
+
+      const item = parseXml(serializeSlateToQti(parseXmlToSlate(input), input).xml).documentElement;
+
+      expect(item.querySelector('qti-response-declaration[identifier="END_ATTEMPT"]')).not.toBeNull();
+      expect(item.querySelector('qti-response-processing')?.getAttribute('template')).toContain('match_correct');
+      expect(item.querySelector('qti-response-processing [identifier="END_ATTEMPT"]')).toBeNull();
+    });
+
     it('should keep declarations and scoring for unknown interactions', () => {
       const input = `<?xml version="1.0" encoding="UTF-8"?>
 <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test-item" title="Test Item">

@@ -369,6 +369,7 @@ export interface UnknownQtiElement {
   rawXml?: string; // Store original XML for perfect round-trip
   isVoid?: boolean; // Whether this element should be void
   responseDeclarations?: Record<string, XmlNode>; // Declarations for responses bound inside this element
+  scoredResponseIdentifiers?: string[]; // Those of the responses that generated scoring includes
 }
 
 /**

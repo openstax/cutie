@@ -13,7 +13,7 @@ import { matchParsers } from '../interactions/match/index.js';
 import { textEntryParsers } from '../interactions/textEntry/index.js';
 import { isElementInline } from '../plugins/withQtiInteractions.js';
 import type { DocumentMetadata, ElementAttributes, SlateElement, SlateText, TextAlign } from '../types.js';
-import { classifyResponseProcessing } from '../utils/responseProcessingClassifier.js';
+import { classifyResponseProcessing, getScoredResponseIdentifiers } from '../utils/responseProcessingClassifier.js';
 import { domToXmlNode, type XmlNode } from './xmlNode.js';
 import { isBlockTag, isOpaqueTag, isQtiElement, isTextNode, isVoidTag, normalizeTagName, parseXml, serializeElement } from './xmlUtils.js';
 
@@ -22,6 +22,8 @@ import { isBlockTag, isOpaqueTag, isQtiElement, isTextNode, isVoidTag, normalize
  */
 export interface ParserContext {
   responseDeclarations: Map<string, XmlNode>;
+  /** Responses the item's response processing scores (see getScoredResponseIdentifiers) */
+  scoredResponseIdentifiers?: Set<string>;
 }
 
 /**
@@ -107,7 +109,10 @@ export function parseXmlToSlate(xml: string): Descendant[] {
     }
   }
 
-  const context: ParserContext = { responseDeclarations };
+  const context: ParserContext = {
+    responseDeclarations,
+    scoredResponseIdentifiers: getScoredResponseIdentifiers(doc),
+  };
 
   // Classify response processing to determine mode
   const responseProcessing = classifyResponseProcessing(doc);
@@ -321,6 +326,7 @@ function convertNodeToSlate(node: Node, context?: ParserContext): Descendant | D
       const opaque = isOpaqueTag(tagName);
       const children = opaque ? [] : convertNodesToSlate(Array.from(element.childNodes), false, context);
       const rawXml = serializeElement(element);
+      const responseDeclarations = collectResponseDeclarations(element, context);
 
       return {
         type: 'qti-unknown',
@@ -330,7 +336,11 @@ function convertNodeToSlate(node: Node, context?: ParserContext): Descendant | D
         rawXml,
         // Opaque children never enter the editor, where normalization would restructure them
         isVoid: opaque || element.childNodes.length === 0,
-        responseDeclarations: collectResponseDeclarations(element, context),
+        responseDeclarations,
+        // The editor can't tell whether an unknown interaction is scored, so it
+        // follows the loaded response processing
+        scoredResponseIdentifiers: Object.keys(responseDeclarations)
+          .filter((responseId) => context?.scoredResponseIdentifiers?.has(responseId)),
       };
     }
 
