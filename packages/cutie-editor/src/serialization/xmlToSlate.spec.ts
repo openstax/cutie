@@ -278,11 +278,8 @@ describe('parseXmlToSlate', () => {
       const xml = wrapInQtiItem('<qti-hotspot-interaction response-identifier="RESPONSE_1">Content</qti-hotspot-interaction>');
       const result = getContentNodes(parseXmlToSlate(xml));
 
-      // qti-unknown elements are inline, so they get wrapped in a paragraph
-      const para = result[0] as SlateElement;
-      expect(para.type).toBe('paragraph');
-
-      const unknown = para.children[0] as SlateElement;
+      // BlockGroup interactions stay block-level, not wrapped in a paragraph
+      const unknown = result[0] as SlateElement;
       expect(unknown).toMatchObject({
         type: 'qti-unknown',
         originalTagName: 'qti-hotspot-interaction',

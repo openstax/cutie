@@ -4,6 +4,7 @@ import { Slate, Editable, RenderElementProps, RenderLeafProps } from 'slate-reac
 import type { Path } from 'slate';
 import type { SlateEditorProps, SlateElement, ElementAttributes, XmlNode, DocumentMetadata, ResponseProcessingMode } from '../types.js';
 import { createQtiEditor } from './createQtiEditor.js';
+import { isElementInline } from '../plugins/withQtiInteractions.js';
 import { Toolbar } from './Toolbar.js';
 import { parseXmlToSlate } from '../serialization/xmlToSlate.js';
 import { serializeSlateToQti } from '../serialization/slateToXml.js';
@@ -376,12 +377,13 @@ function Element({ attributes, children, element }: RenderElementProps): React.J
         </span>
       );
 
-    case 'qti-unknown':
+    case 'qti-unknown': {
+      const Tag = isElementInline(element) ? 'span' : 'div';
       return (
-        <span
+        <Tag
           {...attributes}
           style={{
-            display: 'inline-block',
+            display: Tag === 'span' ? 'inline-block' : 'block',
             padding: '12px',
             margin: '8px 0',
             backgroundColor: '#fff3e0',
@@ -409,8 +411,9 @@ function Element({ attributes, children, element }: RenderElementProps): React.J
             </span>
           </span>
           {children}
-        </span>
+        </Tag>
       );
+    }
 
     case 'xhtml-element':
       if (el.isVoid) {

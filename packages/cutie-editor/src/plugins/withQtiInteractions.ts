@@ -118,7 +118,7 @@ export function getElementFeedbackIdentifiers(element: Element): FeedbackIdentif
  * Inline element types that don't have configs but are known to be inline.
  * Used as a fallback when no config is found.
  */
-const FALLBACK_INLINE_TYPES = ['span', 'strong', 'em', 'line-break', 'qti-unknown'];
+const FALLBACK_INLINE_TYPES = ['span', 'strong', 'em', 'line-break'];
 
 /**
  * Check if an element is inline based on its config or known inline types.
@@ -134,6 +134,9 @@ export function isElementInline(element: Element): boolean {
   const type = element.type as string;
   if (type === 'xhtml-element' && 'tagName' in element) {
     return !isBlockTag(element.tagName);
+  }
+  if (type === 'qti-unknown' && 'originalTagName' in element) {
+    return !isBlockTag(element.originalTagName);
   }
   return FALLBACK_INLINE_TYPES.includes(type);
 }

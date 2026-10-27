@@ -1,3 +1,4 @@
+/* spell-checker: ignore hottext */
 /**
  * QTI namespace URI
  */
@@ -97,9 +98,9 @@ export function isQtiElement(tagName: string): boolean {
 /**
  * Block-level tags: QTI v3's BlockContentModel (Information Model 6.3),
  * `details` from its FlowContentModel, the elements that only appear inside
- * those blocks, and qti-item-body (container without a dedicated parser).
- * Other QTI elements are NOT included - their configs and parsers handle
- * block behavior and whitespace directly.
+ * those blocks, the QTI elements of BlockGroup (6.4), and qti-item-body
+ * (container without a dedicated parser). BlockGroup members that are also
+ * in InlineGroup (qti-custom-interaction, math, include) are left out.
  */
 export const BLOCK_TAGS = [
   // BlockContentModel
@@ -112,6 +113,16 @@ export const BLOCK_TAGS = [
   // Inside the blocks above
   'li', 'dt', 'dd', 'figcaption', 'summary',
   'caption', 'colgroup', 'col', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td',
+  // BlockGroup
+  'qti-position-object-stage', 'qti-portable-custom-interaction',
+  'qti-drawing-interaction', 'qti-gap-match-interaction', 'qti-match-interaction',
+  'qti-graphic-gap-match-interaction', 'qti-hotspot-interaction',
+  'qti-graphic-order-interaction', 'qti-select-point-interaction',
+  'qti-graphic-associate-interaction', 'qti-slider-interaction',
+  'qti-choice-interaction', 'qti-media-interaction', 'qti-hottext-interaction',
+  'qti-order-interaction', 'qti-extended-text-interaction',
+  'qti-upload-interaction', 'qti-associate-interaction',
+  'qti-feedback-block', 'qti-template-block',
   'qti-item-body',
 ];
 
