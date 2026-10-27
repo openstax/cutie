@@ -128,3 +128,23 @@ describe('spacer paragraphs', () => {
     expect(Array.from(cell.children).map(child => child.localName)).toEqual(['qti-choice-interaction']);
   });
 });
+
+describe('wrapMixedContentInParagraphs', () => {
+  it.each([
+    ['a link before a paragraph', '<div><a href="intro">Intro</a><p>Question</p></div>', 'div', ['Intro', 'Question']],
+    ['text before a paragraph', '<blockquote>Intro<p>Question</p></blockquote>', 'blockquote', ['Intro', 'Question']],
+    ['text after a paragraph', '<div><p>Question</p>Trailing text</div>', 'div', ['Question', 'Trailing text']],
+    ['text in a list item', '<ul><li>Item<p>Detail</p></li></ul>', 'li', ['Item', 'Detail']],
+    ['text in a table cell', '<table><tbody><tr><td>Cell<p>Para</p></td></tr></tbody></table>', 'td', ['Cell', 'Para']],
+  ])('keeps all content when a block mixes %s', (_label, content, container, paragraphs) => {
+    const element = normalizeItemBody(content).querySelector(container)!;
+
+    expect(Array.from(element.children).map(child => [child.localName, child.textContent]))
+      .toEqual(paragraphs.map(text => ['p', text]));
+  });
+
+  it('leaves all-inline content unwrapped', () => {
+    const doc = normalizeItemBody('<table><tbody><tr><td>Cell <em>text</em></td></tr></tbody></table>');
+    expect(doc.querySelector('td')?.children[0]?.localName).toBe('em');
+  });
+});

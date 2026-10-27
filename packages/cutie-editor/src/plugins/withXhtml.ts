@@ -1,5 +1,6 @@
 import { Editor, Element, Node, Path, Transforms } from 'slate';
 import type { CustomEditor } from '../types.js';
+import { wrapMixedContentInParagraphs } from '../utils/normalization.js';
 import {
   elementNeedsSpacers,
   getElementCategories,
@@ -54,6 +55,14 @@ export function withXhtml(editor: CustomEditor): CustomEditor {
     // Run element-specific normalization hooks
     if (Element.isElement(node)) {
       if (normalizeElement(editor, node, path)) {
+        return; // Normalization was performed, will re-run
+      }
+    }
+
+    // Wrap inline runs in paragraphs when a block mixes inline content with blocks,
+    // before Slate's own normalization drops either
+    if (Element.isElement(node) && Editor.isBlock(editor, node) && !editor.isVoid(node)) {
+      if (wrapMixedContentInParagraphs(editor, node, path)) {
         return; // Normalization was performed, will re-run
       }
     }

@@ -68,6 +68,28 @@ export function wrapInlineContentInParagraphs(
 }
 
 /**
+ * Normalize a block element whose children mix inline content with blocks by
+ * wrapping each inline run in a paragraph. QTI flow content allows the mix, but
+ * Slate requires an element's children to be all blocks or all inline, and its
+ * own normalization would unwrap the blocks or delete the inline content.
+ *
+ * @returns true if a change was made, false otherwise
+ */
+export function wrapMixedContentInParagraphs(
+  editor: CustomEditor,
+  node: Element,
+  path: Path
+): boolean {
+  const hasBlock = node.children.some((child) => Element.isElement(child) && Editor.isBlock(editor, child));
+  const hasInlineContent = node.children.some((child) =>
+    Element.isElement(child) ? !Editor.isBlock(editor, child) : child.text !== ''
+  );
+  if (!hasBlock || !hasInlineContent) return false;
+
+  return wrapInlineContentInParagraphs(editor, node, path);
+}
+
+/**
  * Children of a feedback element that sit beside qti-content-body rather than in it.
  * The editor doesn't model them, so they arrive as qti-unknown elements.
  */
