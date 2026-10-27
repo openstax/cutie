@@ -55,12 +55,17 @@ const FEEDBACK_ELEMENTS = 'qti-feedback-block, qti-feedback-inline, qti-modal-fe
 
 const parse = (xml: string): Document => new DOMParser().parseFromString(xml, 'application/xml');
 
-/* element structure with attribute order and insignificant whitespace ignored */
+/* element structure with attribute order and formatting whitespace ignored:
+ * whitespace-only text is dropped and text is trimmed only at its parent's
+ * edges, so separators between words and inline elements still count */
 const canonicalize = (node: Node, depth = 0): string[] => {
   const indent = '  '.repeat(depth);
   if (node.nodeType === Node.TEXT_NODE) {
-    const text = (node.textContent ?? '').replace(/\s+/g, ' ').trim();
-    return text ? [indent + JSON.stringify(text)] : [];
+    let text = (node.textContent ?? '').replace(/\s+/g, ' ');
+    if (text.trim() === '') return [];
+    if (!node.previousSibling) text = text.trimStart();
+    if (!node.nextSibling) text = text.trimEnd();
+    return [indent + JSON.stringify(text)];
   }
   if (node.nodeType !== Node.ELEMENT_NODE) return [];
   const element = node as Element;
