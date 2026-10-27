@@ -1,4 +1,4 @@
-import { Editor, Element, Path, Text, Transforms } from 'slate';
+import { Editor, Element, type Node, Path, Text, Transforms } from 'slate';
 import type { CustomEditor } from '../types.js';
 
 /**
@@ -65,4 +65,61 @@ export function wrapInlineContentInParagraphs(
   }
 
   return false;
+}
+
+/**
+ * Children of a feedback element that sit beside qti-content-body rather than in it.
+ * The editor doesn't model them, so they arrive as qti-unknown elements.
+ */
+const FEEDBACK_NON_CONTENT_TAGS = ['qti-stylesheet', 'qti-catalog-info'];
+
+function isFeedbackContent(child: Node): boolean {
+  if (!Element.isElement(child) || !('type' in child)) return true;
+  if (child.type === 'qti-content-body') return false;
+  return !(
+    child.type === 'qti-unknown' &&
+    'originalTagName' in child &&
+    FEEDBACK_NON_CONTENT_TAGS.includes(child.originalTagName)
+  );
+}
+
+/**
+ * Normalize a feedback element (qti-feedback-block, qti-modal-feedback) so its
+ * content is inside a qti-content-body, as QTI 3.0 requires. Loose content is
+ * moved into a new qti-content-body; an element with no content gets an empty one.
+ *
+ * @returns true if a change was made, false otherwise
+ */
+export function wrapFeedbackContentInContentBody(
+  editor: CustomEditor,
+  node: Element,
+  path: Path
+): boolean {
+  const hasContentBody = node.children.some(
+    (child) => Element.isElement(child) && 'type' in child && child.type === 'qti-content-body'
+  );
+  if (hasContentBody) return false;
+
+  const hasContent = node.children.some(isFeedbackContent);
+  if (hasContent) {
+    Transforms.wrapNodes(
+      editor,
+      { type: 'qti-content-body', children: [], attributes: {} } as Element,
+      {
+        at: path,
+        match: (n, p) => p.length === path.length + 1 && isFeedbackContent(n),
+      }
+    );
+    return true;
+  }
+
+  Transforms.insertNodes(
+    editor,
+    {
+      type: 'qti-content-body',
+      children: [{ type: 'paragraph', children: [{ text: '' }], attributes: {} }],
+    } as Element,
+    { at: path.concat(node.children.length) }
+  );
+  return true;
 }
