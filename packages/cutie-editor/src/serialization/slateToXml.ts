@@ -775,12 +775,18 @@ function updateOutcomeDeclarations(
 
   const declared = new Set(source.map((node) => node.attributes['identifier']));
 
-  // Manual grading is recorded on SCORE, so an item without one needs it declared
-  if (!declared.has('SCORE') && mode === 'manual') {
+  // Every managed mode uses SCORE: generated response processing sets it, and
+  // manual grading is recorded on it
+  if (!declared.has('SCORE') && (mode === 'allCorrect' || mode === 'sumScores' || mode === 'manual')) {
     const score = createXmlElement(doc, 'qti-outcome-declaration');
     score.setAttribute('identifier', 'SCORE');
     score.setAttribute('cardinality', 'single');
     score.setAttribute('base-type', 'float');
+    const defaultValue = createXmlElement(doc, 'qti-default-value');
+    const value = createXmlElement(doc, 'qti-value');
+    value.textContent = '0';
+    defaultValue.appendChild(value);
+    score.appendChild(defaultValue);
     applyScoringMode(score, mode, doc);
     declarations.unshift(score);
   }
@@ -923,11 +929,6 @@ function createNewQtiDocument(): Document {
                      title="New Item"
                      adaptive="false"
                      time-dependent="false">
-  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
-    <qti-default-value>
-      <qti-value>0</qti-value>
-    </qti-default-value>
-  </qti-outcome-declaration>
   <qti-item-body></qti-item-body>
 </qti-assessment-item>`;
   return new DOMParser().parseFromString(xmlString, 'application/xml');

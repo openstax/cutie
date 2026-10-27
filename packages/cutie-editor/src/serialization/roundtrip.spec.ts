@@ -783,6 +783,14 @@ describe('XML Round-trip Tests', () => {
       expect(score.hasAttribute('normal-maximum')).toBe(false);
     });
 
+    it('should keep SCORE declared when switching an item without one from manual to automatic scoring', () => {
+      const score = switchAndBack(extendedTextItem(''), 'manual', 'allCorrect');
+
+      expect(score).not.toBeNull();
+      expect(score?.hasAttribute('external-scored')).toBe(false);
+      expect(score?.querySelector('qti-default-value qti-value')?.textContent).toBe('0');
+    });
+
     it('should clear human scoring when switching away from manual', () => {
       const item = roundTrip(extendedTextItem(
         '<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float" external-scored="human" normal-maximum="1.0"/>'
