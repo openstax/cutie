@@ -63,6 +63,19 @@ describe('ensurePromptFirst', () => {
   });
 
   it.each([
+    ['an id on the prompt', '<qti-prompt id="question"/>', 'qti-prompt#question'],
+    ['an id on its paragraph', '<qti-prompt><p id="question"/></qti-prompt>', 'qti-prompt > p#question'],
+  ])('keeps an empty prompt with %s', (_label, prompt, selector) => {
+    const doc = normalizeItemBody(`
+      <qti-choice-interaction response-identifier="RESPONSE" max-choices="1">
+        ${prompt}
+        <qti-simple-choice identifier="A">A</qti-simple-choice>
+      </qti-choice-interaction>`);
+
+    expect(doc.querySelector(selector)).not.toBeNull();
+  });
+
+  it.each([
     ['qti-choice-interaction', '<qti-choice-interaction response-identifier="RESPONSE" max-choices="1"><qti-simple-choice identifier="A">A</qti-simple-choice></qti-choice-interaction>'],
     ['qti-extended-text-interaction', '<qti-extended-text-interaction response-identifier="RESPONSE"/>'],
     ['qti-match-interaction', '<qti-match-interaction response-identifier="RESPONSE" max-associations="1"><qti-simple-match-set><qti-simple-associable-choice identifier="S" match-max="1">S</qti-simple-associable-choice></qti-simple-match-set><qti-simple-match-set><qti-simple-associable-choice identifier="T" match-max="1">T</qti-simple-associable-choice></qti-simple-match-set></qti-match-interaction>'],

@@ -30,15 +30,18 @@ function parsePrompt(
 }
 
 /**
- * Check if a prompt has no content: only empty text, directly or in paragraphs.
- * The editor gives every interaction a prompt, so an empty one means the author
- * didn't write one.
+ * Check if a prompt has no content: no attributes, and only empty text, directly
+ * or in plain paragraphs. The editor gives every interaction a prompt, so an
+ * empty one means the author didn't write one.
  */
 function isEmptyPrompt(element: SlateElement & { type: 'qti-prompt' }): boolean {
+  const hasAttributes = Object.values(element.attributes ?? {}).some((value) => value !== undefined);
+  if (hasAttributes) return false;
+
   const isEmptyText = (node: Descendant) => 'text' in node && node.text === '';
   return element.children.every((child) =>
     isEmptyText(child) ||
-    ('type' in child && child.type === 'paragraph' && child.children.every(isEmptyText))
+    ('type' in child && child.type === 'paragraph' && isPlainParagraph(child) && child.children.every(isEmptyText))
   );
 }
 
