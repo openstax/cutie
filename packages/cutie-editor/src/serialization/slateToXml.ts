@@ -795,6 +795,8 @@ function updateOutcomeDeclarations(
  *   already set) so delivery knows the points available, and no default value so
  *   it has no score until graded
  * - other modes: undo the above when switching away from manual
+ * - allCorrect/sumScores: clear external-scored="externalMachine", since the
+ *   generated response processing now sets SCORE
  *
  * @param assessmentItem - The qti-assessment-item element
  * @param mode - The response processing mode
@@ -831,6 +833,12 @@ function updateScoreOutcomeDeclaration(
       defaultValue.appendChild(value);
       score.appendChild(defaultValue);
     }
+  } else if (
+    score?.getAttribute('external-scored') === 'externalMachine' &&
+    (mode === 'allCorrect' || mode === 'sumScores')
+  ) {
+    // Generated response processing now sets SCORE; custom mode keeps the marker
+    score.removeAttribute('external-scored');
   }
 }
 
