@@ -8,6 +8,7 @@ import type {
   QtiGapMatchInteraction,
   SlateElement,
 } from '../../types.js';
+import { ensurePromptFirst } from '../../utils/normalization.js';
 import { hasCorrectResponse } from '../../utils/responseDeclaration.js';
 
 /**
@@ -40,13 +41,15 @@ export const gapMatchInteractionConfig: ElementConfig = {
   matches: (element: Element) => 'type' in element && element.type === 'qti-gap-match-interaction',
 
   normalize: (editor: CustomEditor, node: Element, path) => {
-    // Ensure gap-match interaction always has gap-match-choices as first child
-    const firstChild = node.children[0];
+    if (ensurePromptFirst(editor, node, path)) return true;
+
+    // Ensure gap-match-choices follows the qti-prompt
+    const choicesChild = node.children[1];
     const hasChoices =
-      firstChild &&
-      Element.isElement(firstChild) &&
-      'type' in firstChild &&
-      firstChild.type === 'gap-match-choices';
+      choicesChild &&
+      Element.isElement(choicesChild) &&
+      'type' in choicesChild &&
+      choicesChild.type === 'gap-match-choices';
 
     if (!hasChoices) {
       Transforms.insertNodes(
@@ -61,7 +64,7 @@ export const gapMatchInteractionConfig: ElementConfig = {
             },
           ],
         } as Element,
-        { at: path.concat(0) }
+        { at: path.concat(1) }
       );
       return true;
     }

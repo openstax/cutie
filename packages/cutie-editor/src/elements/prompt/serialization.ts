@@ -29,13 +29,28 @@ function parsePrompt(
 }
 
 /**
- * Serialize prompt to XML
+ * Check if a prompt has no content: only empty text, directly or in paragraphs.
+ * The editor gives every interaction a prompt, so an empty one means the author
+ * didn't write one.
+ */
+function isEmptyPrompt(element: SlateElement & { type: 'qti-prompt' }): boolean {
+  const isEmptyText = (node: Descendant) => 'text' in node && node.text === '';
+  return element.children.every((child) =>
+    isEmptyText(child) ||
+    ('type' in child && child.type === 'paragraph' && child.children.every(isEmptyText))
+  );
+}
+
+/**
+ * Serialize prompt to XML. An empty prompt is omitted.
  */
 function serializePrompt(
   element: SlateElement & { type: 'qti-prompt' },
   context: SerializationContext,
   convertChildren: (children: Descendant[], parent: Element | DocumentFragment) => void
-): Element {
+): Element | null {
+  if (isEmptyPrompt(element)) return null;
+
   const xmlElement = createXmlElement(context.doc, 'qti-prompt');
 
   if (element.attributes) {

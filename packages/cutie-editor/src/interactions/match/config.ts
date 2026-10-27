@@ -8,6 +8,7 @@ import type {
   QtiMatchInteraction,
   QtiSimpleAssociableChoice,
 } from '../../types.js';
+import { ensurePromptFirst } from '../../utils/normalization.js';
 import { hasCorrectResponse } from '../../utils/responseDeclaration.js';
 
 /**
@@ -34,6 +35,8 @@ export const matchInteractionConfig: ElementConfig = {
     'type' in element && element.type === 'qti-match-interaction',
 
   normalize: (editor: CustomEditor, node: Element, path) => {
+    if (ensurePromptFirst(editor, node, path)) return true;
+
     const children = node.children;
 
     // Find existing source and target sets
@@ -51,18 +54,7 @@ export const matchInteractionConfig: ElementConfig = {
         child.type === 'match-target-set'
     );
 
-    // Determine insertion index (after qti-prompt if present)
-    let insertIndex = 0;
-    if (
-      children.length > 0 &&
-      Element.isElement(children[0]) &&
-      'type' in children[0] &&
-      children[0].type === 'qti-prompt'
-    ) {
-      insertIndex = 1;
-    }
-
-    // Ensure source set exists
+    // Ensure source set exists (after the qti-prompt)
     if (!hasSourceSet) {
       Transforms.insertNodes(
         editor,
@@ -81,7 +73,7 @@ export const matchInteractionConfig: ElementConfig = {
             },
           ],
         } as Element,
-        { at: path.concat(insertIndex) }
+        { at: path.concat(1) }
       );
       return true;
     }

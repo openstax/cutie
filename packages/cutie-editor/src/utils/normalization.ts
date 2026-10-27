@@ -123,3 +123,30 @@ export function wrapFeedbackContentInContentBody(
   );
   return true;
 }
+
+/**
+ * Normalize an interaction so its first child is a qti-prompt, giving authors a
+ * place to write one. An empty prompt is not serialized.
+ *
+ * @returns true if a change was made, false otherwise
+ */
+export function ensurePromptFirst(
+  editor: CustomEditor,
+  node: Element,
+  path: Path
+): boolean {
+  const firstChild = node.children[0];
+  if (Element.isElement(firstChild) && 'type' in firstChild && firstChild.type === 'qti-prompt') {
+    return false;
+  }
+
+  Transforms.insertNodes(
+    editor,
+    {
+      type: 'qti-prompt',
+      children: [{ type: 'paragraph', children: [{ text: '' }], attributes: {} }],
+    } as Element,
+    { at: path.concat(0) }
+  );
+  return true;
+}

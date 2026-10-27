@@ -47,3 +47,30 @@ describe('wrapFeedbackContentInContentBody', () => {
     expect(feedback.querySelector('qti-content-body > p')?.textContent).toBe('Explanation');
   });
 });
+
+describe('ensurePromptFirst', () => {
+  it('keeps a gap-match prompt and writes it before the choices', () => {
+    const doc = normalizeItemBody(`
+      <qti-gap-match-interaction response-identifier="RESPONSE">
+        <qti-prompt>Drag a word into the blank.</qti-prompt>
+        <qti-gap-text identifier="W" match-max="1">winter</qti-gap-text>
+        <p>Now is the <qti-gap identifier="G1"/> of our discontent</p>
+      </qti-gap-match-interaction>`);
+
+    const interaction = doc.querySelector('qti-gap-match-interaction')!;
+    expect(Array.from(interaction.children).map(child => child.localName)).toEqual(['qti-prompt', 'qti-gap-text', 'p']);
+    expect(interaction.querySelector('qti-prompt')?.textContent).toBe('Drag a word into the blank.');
+  });
+
+  it.each([
+    ['qti-choice-interaction', '<qti-choice-interaction response-identifier="RESPONSE" max-choices="1"><qti-simple-choice identifier="A">A</qti-simple-choice></qti-choice-interaction>'],
+    ['qti-extended-text-interaction', '<qti-extended-text-interaction response-identifier="RESPONSE"/>'],
+    ['qti-match-interaction', '<qti-match-interaction response-identifier="RESPONSE" max-associations="1"><qti-simple-match-set><qti-simple-associable-choice identifier="S" match-max="1">S</qti-simple-associable-choice></qti-simple-match-set><qti-simple-match-set><qti-simple-associable-choice identifier="T" match-max="1">T</qti-simple-associable-choice></qti-simple-match-set></qti-match-interaction>'],
+    ['qti-gap-match-interaction', '<qti-gap-match-interaction response-identifier="RESPONSE"><qti-gap-text identifier="W" match-max="1">winter</qti-gap-text><p>Now is the <qti-gap identifier="G1"/></p></qti-gap-match-interaction>'],
+  ])('does not add an empty prompt to a %s without one', (tagName, content) => {
+    const doc = normalizeItemBody(content);
+
+    expect(doc.querySelector(tagName)).not.toBeNull();
+    expect(doc.querySelector('qti-prompt')).toBeNull();
+  });
+});

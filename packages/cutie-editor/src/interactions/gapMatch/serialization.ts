@@ -26,7 +26,7 @@ function createDefaultResponseDeclaration(responseIdentifier: string): XmlNode {
 function parseGapMatchInteraction(
   element: Element,
   convertChildren: ConvertChildrenFn,
-  _convertChildrenStructural: ConvertChildrenFn,
+  convertChildrenStructural: ConvertChildrenFn,
   context?: ParserContext
 ): SlateElement {
   const attributes: Record<string, string | undefined> = {};
@@ -46,6 +46,7 @@ function parseGapMatchInteraction(
   const children = Array.from(element.childNodes);
   const choiceElements: Node[] = [];
   const contentElements: Node[] = [];
+  let promptElement: SlateElement | null = null;
 
   for (const child of children) {
     if (child.nodeType === Node.ELEMENT_NODE) {
@@ -54,8 +55,8 @@ function parseGapMatchInteraction(
       if (tagName === 'qti-gap-text' || tagName === 'qti-gap-img') {
         choiceElements.push(child);
       } else if (tagName === 'qti-prompt') {
-        // Skip prompt - gap-match doesn't support prompt per plan
-        // (instructional text should be in content or before interaction)
+        // Parse the prompt with the shared qti-prompt parser
+        promptElement = convertChildrenStructural([el])[0] as SlateElement;
       } else {
         contentElements.push(child);
       }
@@ -77,6 +78,7 @@ function parseGapMatchInteraction(
   return {
     type: 'qti-gap-match-interaction',
     children: [
+      ...(promptElement ? [promptElement] : []),
       {
         type: 'gap-match-choices',
         children: choices.length > 0 ? choices : [createDefaultGapText('A')],
@@ -258,7 +260,7 @@ function serializeGapMatchInteraction(
         // Unwrap: serialize content children directly to interaction
         convertChildren(child.children, xmlElement);
       } else {
-        // Other children (shouldn't happen but handle gracefully)
+        // qti-prompt (first child), or anything else, through its own serializer
         convertChildren([child], xmlElement);
       }
     }
