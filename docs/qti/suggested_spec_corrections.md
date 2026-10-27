@@ -3,8 +3,9 @@
 
 - spec: https://www.imsglobal.org/spec/qti/v3p0/impl
 
-Places where cutie-core's template/response processing diverges from the
-QTI 3.0 spec. Items keep their numbers when they're fixed or new ones are
+Places where cutie diverges from the QTI 3.0 spec: mostly cutie-core's
+template/response processing, plus a few interaction behaviors in
+cutie-client. Items keep their numbers when they're fixed or new ones are
 added, so the numbering isn't an order of importance. Line references are as
 of cutie-core 2.2.1.
 
@@ -299,3 +300,33 @@ which `initializeState.ts:217` catches.
 
 **Suggested fix:** Catch `ExitResponseError` where response processing runs
 its rules, the same way template processing catches `ExitTemplateError`.
+
+## 16. Gap match treats `match-group` as shared group names
+
+**Files:** `packages/cutie-client/src/transformer/handlers/gapMatchInteraction/controller.ts`
+(`matchGroupsAllow`), `gapHandler.ts` (reads a gap's `match-group`)
+
+**Spec:** QTI 3 Information Model, GapText §5.58.4 and Gap §5.55.4:
+`match-group` is an `IdentifierList`, "a list of the identifiers for the
+objects that can be matched with" this gap text or gap. A gap text lists the
+gaps it may fill, and a gap lists the gap texts it accepts. Either side can
+restrict the pairing on its own; a side with no `match-group` adds no
+restriction.
+
+**Cutie:** `matchGroupsAllow` treats each `match-group` as a set of shared
+group names. A gap text and a gap may pair only if their lists have a name in
+common, and a pairing is refused when only one of them has a `match-group`.
+So spec-conforming content breaks. Per the spec, a gap text with
+`match-group="G1"` may go only in gap `G1`; cutie refuses it there unless gap
+`G1` happens to have a `match-group` of its own that contains the word `G1`.
+And content written for cutie, such as `match-group="actions"` on both the gap
+texts and the gaps (as in the old gap-match bowtie example), isn't conforming
+QTI.
+
+`qti-match-interaction` already reads `match-group` as identifiers (see
+`MatchController.groupsAllow` in `matchInteraction/controller.ts`, from PR #25).
+
+**Suggested fix:** Check each side separately, as match does: when the gap
+text has a `match-group`, it must include the gap's identifier; when the gap
+has one, it must include the gap text's identifier. Anything authored with
+shared group names needs converting to identifier lists.
