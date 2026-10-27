@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react';
 import type { Path } from 'slate';
-import { PropertyField } from '../../components/properties/PropertyField';
-import type { ImageElement, ElementAttributes } from '../../types';
-import { useAssetHandlers } from '../../contexts/AssetContext';
+import { PropertyField } from '../../components/properties/PropertyField.js';
+import type { ImageElement, ElementAttributes } from '../../types.js';
+import { useAssetHandlers } from '../../contexts/AssetContext.js';
 
 interface ImagePropertiesPanelProps {
   element: ImageElement;

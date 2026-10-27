@@ -1,15 +1,15 @@
 // Re-export individual components for direct use if needed
-export { ChoiceElement } from './Element';
-export { ChoicePropertiesPanel } from './PropertiesPanel';
+export { ChoiceElement } from './Element.js';
+export { ChoicePropertiesPanel } from './PropertiesPanel.js';
 
 // Re-export from other modules
-export { choiceInteractionConfig } from './config';
-export { choiceParsers, choiceSerializers } from './serialization';
-export { insertChoiceInteraction } from './insertion';
+export { choiceInteractionConfig } from './config.js';
+export { choiceParsers, choiceSerializers } from './serialization.js';
+export { insertChoiceInteraction } from './insertion.js';
 
 // Import components for creating maps
-import { ChoiceElement } from './Element';
-import { ChoicePropertiesPanel } from './PropertiesPanel';
+import { ChoiceElement } from './Element.js';
+import { ChoicePropertiesPanel } from './PropertiesPanel.js';
 
 // Export objects that can be spread (one per concern)
 export const choiceRenderers = {

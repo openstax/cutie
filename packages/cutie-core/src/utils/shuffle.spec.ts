@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { generateShuffleOrder, ShuffleItem } from './shuffle';
+import { generateShuffleOrder, ShuffleItem } from './shuffle.js';
 
 describe('generateShuffleOrder', () => {
   test('returns all identifiers when no items are fixed', () => {

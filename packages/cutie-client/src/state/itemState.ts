@@ -1,18 +1,34 @@
-import type { CollectResult, ItemState, ResponseAccessor, ResponseData, StateObserver } from '../transformer/types';
+import type {
+  CollectResult,
+  InteractionState,
+  ItemState,
+  ResponseAccessor,
+  ResponseChangeListener,
+  ResponseData,
+  StateObserver,
+} from '../transformer/types.js';
+
+export interface ItemStateOptions {
+  /** Called with the current raw responses whenever a handler reports a learner edit */
+  onResponseChange?: ResponseChangeListener;
+  /** The interaction state to start in, when there is no previous state to carry over (default `'enabled'`) */
+  interactionState?: InteractionState;
+}
 
 /**
  * Implementation of ItemState interface.
- * Manages response collection and interaction enabled state with observer pattern.
+ * Manages response collection and interaction state with observer pattern.
  */
 export class ItemStateImpl implements ItemState {
   private responseAccessors: Map<string, ResponseAccessor> = new Map();
   private observers: Set<StateObserver> = new Set();
-  private _interactionsEnabled = true;
+  private _interactionState: InteractionState;
+  private readonly onResponseChange?: ResponseChangeListener;
+  private readonly editListeners: Map<string, Array<() => void>> = new Map();
 
-  constructor(previousState?: ItemState) {
-    if (previousState) {
-      this._interactionsEnabled = previousState.interactionsEnabled;
-    }
+  constructor(previousState?: ItemState, options?: ItemStateOptions) {
+    this._interactionState = previousState?.interactionState ?? options?.interactionState ?? 'enabled';
+    this.onResponseChange = options?.onResponseChange;
   }
 
   /**
@@ -58,6 +74,36 @@ export class ItemStateImpl implements ItemState {
   }
 
   /**
+   * Read the current value of every registered response without validating:
+   * no validation UI is rendered and nothing is announced.
+   */
+  peekAll(): ResponseData {
+    const responses: ResponseData = {};
+    for (const [identifier, accessor] of this.responseAccessors) {
+      responses[identifier] = accessor({ silent: true }).value;
+    }
+    return responses;
+  }
+
+  /**
+   * Report a learner edit to the response's edit listeners, then to the
+   * response change listener, if any.
+   */
+  notifyResponseChange(responseIdentifier: string): void {
+    for (const listener of this.editListeners.get(responseIdentifier) ?? []) {
+      listener();
+    }
+    this.onResponseChange?.(this.peekAll());
+  }
+
+  /**
+   * Call `listener` on each learner edit to the given response
+   */
+  onResponseEdit(responseIdentifier: string, listener: () => void): void {
+    this.editListeners.set(responseIdentifier, [...(this.editListeners.get(responseIdentifier) ?? []), listener]);
+  }
+
+  /**
    * Get all registered response identifiers
    */
   getResponseIdentifiers(): string[] {
@@ -72,20 +118,20 @@ export class ItemStateImpl implements ItemState {
   }
 
   /**
-   * Get the current interactions enabled state (readonly)
+   * Get the current interaction state (readonly)
    */
-  get interactionsEnabled(): boolean {
-    return this._interactionsEnabled;
+  get interactionState(): InteractionState {
+    return this._interactionState;
   }
 
   /**
-   * Set the interactions enabled state and notify all observers
+   * Set the interaction state and notify all observers
    */
-  setInteractionsEnabled(enabled: boolean): void {
-    if (this._interactionsEnabled === enabled) {
+  setInteractionState(interactionState: InteractionState): void {
+    if (this._interactionState === interactionState) {
       return; // No change, skip notification
     }
-    this._interactionsEnabled = enabled;
+    this._interactionState = interactionState;
     this.notifyObservers();
   }
 
@@ -107,7 +153,7 @@ export class ItemStateImpl implements ItemState {
    * Notify all observers of state change
    */
   private notifyObservers(): void {
-    const state = { interactionsEnabled: this._interactionsEnabled };
+    const state = { interactionState: this._interactionState };
     for (const observer of this.observers) {
       observer(state);
     }
@@ -119,5 +165,6 @@ export class ItemStateImpl implements ItemState {
   clear(): void {
     this.responseAccessors.clear();
     this.observers.clear();
+    this.editListeners.clear();
   }
 }

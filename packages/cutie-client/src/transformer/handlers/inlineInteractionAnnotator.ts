@@ -4,7 +4,9 @@
  *
  * Annotates inline interactions (textEntryInteraction, inlineChoiceInteraction)
  * with aria-labelledby referencing spans wrapped around surrounding visible text.
- * This provides accessible labels per WCAG 4.1.2 and 3.3.2.
+ * An interaction with no surrounding text is labelled by the headers of the
+ * table cell it's in, if any. This provides accessible labels per WCAG 4.1.2
+ * and 3.3.2.
  *
  * References:
  * - W3C ARIA9 technique: https://www.w3.org/WAI/WCAG21/Techniques/aria/ARIA9
@@ -14,15 +16,28 @@
  * - WCAG 3.3.2 Labels or Instructions: https://www.w3.org/WAI/WCAG21/Understanding/labels-or-instructions.html
  */
 
+import { findTableHeaders } from './tableHeaderLabel.js';
+
 const INTERACTION_SELECTOR =
   'input.cutie-text-entry-interaction, select.cutie-inline-choice-interaction';
 
 const SENTENCE_BOUNDARY = /[.!?]\s+/;
 
-export const BLOCK_TAGS = new Set([
-  'p', 'div', 'blockquote', 'li', 'td', 'th',
-  'dt', 'dd', 'section', 'article', 'header',
-  'footer', 'figcaption',
+/**
+ * Elements that bound an interaction's label: QTI v3's BlockContentModel
+ * (Information Model 6.3), `details` from its FlowContentModel, and the
+ * blocks that only appear inside those (list items, cells, captions)
+ */
+const BLOCK_TAGS = new Set([
+  // BlockContentModel
+  'pre', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p',
+  'address', 'dl', 'ol', 'ul', 'hr', 'blockquote',
+  'table', 'div', 'article', 'aside', 'audio', 'figure',
+  'footer', 'header', 'nav', 'section', 'video',
+  // FlowContentModel, not inline
+  'details',
+  // Inside the blocks above
+  'li', 'dt', 'dd', 'caption', 'td', 'th', 'figcaption', 'summary',
 ]);
 
 const INLINE_TAGS = new Set([
@@ -33,7 +48,7 @@ const INLINE_TAGS = new Set([
   'bdi', 'bdo', 'wbr', 'del', 'ins', 'label',
 ]);
 
-const ATOMIC_TAGS = new Set(['math', 'img', 'svg', 'picture', 'video', 'audio', 'canvas', 'iframe']);
+const ATOMIC_TAGS = new Set(['math', 'img', 'svg', 'picture', 'canvas', 'iframe']);
 
 /** Module-level counter for default ID generation */
 let idCounter = 0;
@@ -50,6 +65,14 @@ function isInteraction(node: Node): node is HTMLElement {
     (el.tagName === 'INPUT' && el.classList.contains('cutie-text-entry-interaction')) ||
     (el.tagName === 'SELECT' && el.classList.contains('cutie-inline-choice-interaction'))
   );
+}
+
+/**
+ * Content hidden from assistive technology: never label text, however it sits
+ * beside an interaction
+ */
+function isAriaHidden(node: Node): boolean {
+  return node.nodeType === Node.ELEMENT_NODE && (node as Element).getAttribute('aria-hidden') === 'true';
 }
 
 function isInlineElement(node: Node): boolean {
@@ -294,6 +317,13 @@ function processContainer(
       continue;
     }
 
+    if (isAriaHidden(node)) {
+      // Not label text: close the current group (keeping DOM order) and skip it
+      flushAndTrack(currentGroup, generateId, tracker, allSpanIds);
+      currentGroup = [];
+      continue;
+    }
+
     if (isBr(node)) {
       // BR acts as a span/region boundary
       flushAndTrack(currentGroup, generateId, tracker, allSpanIds);
@@ -326,9 +356,10 @@ function processContainer(
     }
 
     if (isBlockElement(node)) {
-      // Block element — flush and stop (defensive)
+      // Block element — flush and skip it; like BR, it is a region boundary
       flushAndTrack(currentGroup, generateId, tracker, allSpanIds);
       currentGroup = [];
+      startNewRegion(tracker);
       continue;
     }
 
@@ -477,8 +508,19 @@ export function annotateInlineInteractions(
         annotated = true;
         for (const id of record.beforeSpanIds) referencedSpanIds.add(id);
         for (const id of record.afterSpanIds) referencedSpanIds.add(id);
+        continue;
+      }
+
+      // No surrounding text: label from the table headers of the cell it's in
+      const headers = findTableHeaders(el);
+      if (headers.length > 0) {
+        for (const header of headers) {
+          if (!header.id) header.id = generateId();
+        }
+        el.setAttribute('aria-labelledby', headers.map((header) => header.id).join(' '));
+        annotated = true;
       } else {
-        // Fallback: no surrounding text — no cutie-sr-only spans created,
+        // Fallback: no surrounding text or headers — no cutie-sr-only spans created,
         // so don't set annotated (avoids unnecessary style injection)
         if (interactions.length > 1) {
           el.setAttribute('aria-label', `blank ${i + 1} of ${interactions.length}`);

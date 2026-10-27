@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ItemStateImpl } from '../../../state/itemState';
-import { registry } from '../../registry';
-import type { TransformContext } from '../../types';
+import { ItemStateImpl } from '../../../state/itemState.js';
+import { registry } from '../../registry.js';
+import type { StyleManager, TransformContext } from '../../types.js';
 
 // Mock Quill with a minimal functional mock
 interface MockQuillInstance {
@@ -44,19 +44,20 @@ function createMockQuillInstance(container: HTMLElement): MockQuillInstance {
   return instance;
 }
 
-vi.mock('./quillLoader', () => ({
+vi.mock('./quillLoader.js', () => ({
   loadQuill: () => Promise.resolve({
-    default: class MockQuill {
+    Quill: class MockQuill {
       constructor(container: HTMLElement) {
         mockQuillInstance = createMockQuillInstance(container);
         return mockQuillInstance;
       }
     },
+    snowCss: '.ql-snow {}',
   }),
 }));
 
 // Side-effect import to register the handler
-import './richText';
+import './richText.js';
 
 function createQtiDocument(interactionHtml: string): Document {
   const html = `
@@ -73,11 +74,13 @@ function createQtiDocument(interactionHtml: string): Document {
 function transformInteraction(
   doc: Document,
   itemState: ItemStateImpl,
+  styleManager?: StyleManager,
 ): DocumentFragment {
   const interaction = doc.querySelector('qti-extended-text-interaction')!;
 
   const context: TransformContext = {
     itemState,
+    styleManager,
     transformChildren: (el: Element) => {
       const frag = document.createDocumentFragment();
       for (const child of Array.from(el.childNodes)) {
@@ -109,8 +112,6 @@ describe('richTextInteraction', () => {
 
   beforeEach(() => {
     itemState = new ItemStateImpl();
-    // Clean up any injected link tags
-    document.getElementById('cutie-quill-snow-css')?.remove();
   });
 
   describe('canHandle', () => {
@@ -331,13 +332,13 @@ describe('richTextInteraction', () => {
   });
 
   describe('disabled state', () => {
-    it('disables Quill when interactionsEnabled is false', async () => {
+    it('disables Quill when interactions are disabled', async () => {
       const doc = createQtiDocument(`
         <qti-extended-text-interaction response-identifier="R1" format="xhtml">
         </qti-extended-text-interaction>
       `);
 
-      itemState.setInteractionsEnabled(false);
+      itemState.setInteractionState('disabled');
       const fragment = transformInteraction(doc, itemState);
       const container = document.createElement('div');
       container.appendChild(fragment);
@@ -362,14 +363,85 @@ describe('richTextInteraction', () => {
       expect(mockQuillInstance.enable).toHaveBeenCalledWith(true);
 
       // Disable
-      itemState.setInteractionsEnabled(false);
+      itemState.setInteractionState('disabled');
       expect(mockQuillInstance.enable).toHaveBeenCalledWith(false);
       expect(container.querySelector('.cutie-rich-text-disabled')).not.toBeNull();
 
       // Re-enable
-      itemState.setInteractionsEnabled(true);
+      itemState.setInteractionState('enabled');
       expect(mockQuillInstance.enable).toHaveBeenCalledWith(true);
       expect(container.querySelector('.cutie-rich-text-disabled')).toBeNull();
+    });
+  });
+
+  describe('read-only response', () => {
+    it('shows the sanitized response without waiting for Quill', () => {
+      const doc = createQtiDocument(`
+        <qti-response-declaration identifier="R1" cardinality="single" base-type="string">
+          <qti-default-value>
+            <qti-value>&lt;p&gt;An &lt;strong&gt;answer&lt;/strong&gt;&lt;img src=x onerror="alert(1)"&gt;&lt;/p&gt;&lt;script&gt;alert(1)&lt;/script&gt;</qti-value>
+          </qti-default-value>
+        </qti-response-declaration>
+        <qti-extended-text-interaction response-identifier="R1" format="xhtml">
+        </qti-extended-text-interaction>
+      `);
+
+      itemState.setInteractionState('readonly');
+      const container = document.createElement('div');
+      container.appendChild(transformInteraction(doc, itemState));
+
+      const view = container.querySelector('.cutie-read-only-response')!;
+      expect(view.querySelector('strong')!.textContent).toBe('answer');
+      expect(view.querySelector('script')).toBeNull();
+      expect(view.querySelector('img')!.hasAttribute('onerror')).toBe(false);
+    });
+
+    it('shows the response as edited before interactions are read-only', async () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" format="xhtml">
+        </qti-extended-text-interaction>
+      `);
+
+      const container = document.createElement('div');
+      container.appendChild(transformInteraction(doc, itemState));
+      await waitForQuill();
+
+      mockQuillInstance.root.innerHTML = '<p>Edited</p>';
+      mockQuillInstance.textChangeCallbacks.forEach((callback) => callback());
+      itemState.setInteractionState('readonly');
+
+      expect(container.querySelector('.cutie-read-only-response')!.innerHTML).toBe('<p>Edited</p>');
+    });
+
+    it('keeps the limit in a preview once Quill loads', async () => {
+      const doc = createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" format="xhtml" data-max-characters="2000" class="qti-counter-up">
+        </qti-extended-text-interaction>
+      `);
+      doc.querySelector('qti-item-body')!.setAttribute('data-cutie-preview', 'true');
+
+      itemState.setInteractionState('readonly');
+      const container = document.createElement('div');
+      container.appendChild(transformInteraction(doc, itemState));
+      await waitForQuill();
+
+      expect(container.querySelector('.cutie-character-counter')!.textContent).toBe('2000 character limit');
+    });
+
+    it('notes that there is no response for markup with no text', () => {
+      const doc = createQtiDocument(`
+        <qti-response-declaration identifier="R1" cardinality="single" base-type="string">
+          <qti-default-value><qti-value>&lt;p&gt;&lt;br&gt;&lt;/p&gt;</qti-value></qti-default-value>
+        </qti-response-declaration>
+        <qti-extended-text-interaction response-identifier="R1" format="xhtml">
+        </qti-extended-text-interaction>
+      `);
+
+      itemState.setInteractionState('readonly');
+      const container = document.createElement('div');
+      container.appendChild(transformInteraction(doc, itemState));
+
+      expect(container.querySelector('.cutie-read-only-response')!.textContent).toBe('No response.');
     });
   });
 
@@ -857,20 +929,92 @@ describe('richTextInteraction', () => {
   });
 
   describe('Quill CSS injection', () => {
-    it('injects Quill snow CSS link tag', async () => {
+    it('registers the Quill snow CSS with the style manager', async () => {
       const doc = createQtiDocument(`
         <qti-extended-text-interaction response-identifier="R1" format="xhtml">
         </qti-extended-text-interaction>
       `);
+      const styleManager: StyleManager = { addStyle: vi.fn(), hasStyle: () => false };
 
-      const fragment = transformInteraction(doc, itemState);
+      const fragment = transformInteraction(doc, itemState, styleManager);
       const container = document.createElement('div');
       container.appendChild(fragment);
       await waitForQuill();
 
-      const link = document.getElementById('cutie-quill-snow-css') as HTMLLinkElement;
-      expect(link).not.toBeNull();
-      expect(link.rel).toBe('stylesheet');
+      expect(styleManager.addStyle).toHaveBeenCalledWith('cutie-quill-snow', '.ql-snow {}');
+      expect(document.querySelector('link[rel="stylesheet"]')).toBeNull();
     });
+  });
+
+  describe('response change reporting', () => {
+    it('reports every text-change with the raw value and no validation UI', async () => {
+      const onResponseChange = vi.fn();
+      const state = new ItemStateImpl(undefined, { onResponseChange });
+      const doc = createQtiDocument(`
+        <qti-response-declaration identifier="R1" cardinality="single" base-type="string">
+          <qti-default-value><qti-value>&lt;p&gt;start&lt;/p&gt;</qti-value></qti-default-value>
+        </qti-response-declaration>
+        <qti-extended-text-interaction response-identifier="R1" format="xhtml" min-strings="1" data-min-characters="20">
+        </qti-extended-text-interaction>
+      `);
+
+      const container = document.createElement('div');
+      container.appendChild(transformInteraction(doc, state));
+      await waitForQuill();
+
+      // Restoring the default value is not a learner edit
+      expect(onResponseChange).not.toHaveBeenCalled();
+
+      mockQuillInstance.root.innerHTML = '<p>s</p>';
+      simulateTextChange();
+      mockQuillInstance.root.innerHTML = '<p>so</p>';
+      simulateTextChange();
+
+      expect(onResponseChange).toHaveBeenCalledTimes(2);
+      expect(onResponseChange).toHaveBeenLastCalledWith({ R1: '<p>so</p>' });
+      expect(mockQuillInstance.root.hasAttribute('aria-invalid')).toBe(false);
+      expect(container.querySelector('.cutie-constraint-error')).toBeNull();
+    });
+  });
+});
+
+describe('richTextInteraction evaluation', () => {
+  let itemState: ItemStateImpl;
+
+  beforeEach(() => {
+    itemState = new ItemStateImpl();
+  });
+
+  function render(interactionAttrs: string, declaration: string): HTMLElement {
+    const doc = createQtiDocument(`
+      <qti-response-declaration identifier="R1" cardinality="single" base-type="string">
+        ${declaration}
+      </qti-response-declaration>
+      <qti-extended-text-interaction response-identifier="R1" format="xhtml" ${interactionAttrs}></qti-extended-text-interaction>
+    `);
+    const container = document.createElement('div');
+    container.appendChild(transformInteraction(doc, itemState));
+    return container;
+  }
+
+  it('renders nothing when there is no verdict or correct response', async () => {
+    const container = render('', '');
+    await waitForQuill();
+    expect(container.querySelector('.cutie-evaluation')).toBeNull();
+  });
+
+  it('describes the verdict in the constraint text and shows the sanitized HTML correct answer, linked to the editor once loaded', async () => {
+    const container = render(
+      'data-cutie-evaluation="partial"',
+      '<qti-correct-response><qti-value>&lt;p&gt;&lt;strong&gt;world&lt;/strong&gt;&lt;img src=x onerror="alert(1)"&gt;&lt;/p&gt;</qti-value></qti-correct-response>',
+    );
+    await waitForQuill();
+    expect(container.querySelector('.cutie-verdict')).toBeNull();
+    expect(container.querySelector('#constraint-R1')!.textContent).toBe('Partially correct response');
+    const summary = container.querySelector('.cutie-evaluation')!;
+    const value = summary.querySelector('.cutie-correct-answer__value')!;
+    expect(value.querySelector('strong')!.textContent).toBe('world');
+    expect(value.querySelector('img')!.hasAttribute('onerror')).toBe(false);
+    expect(container.querySelector('.ql-editor')!.getAttribute('aria-describedby')).toContain(summary.id);
   });
 });

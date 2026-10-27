@@ -3,8 +3,8 @@ name: Inline Choice Interaction
 route: /
 tags: [inline-choice, interaction, dropdown, input-width, data-prompt, validation, rationale, partial-credit]
 examples:
-  - Inline Choice
-  - Inline Choice - Multiple
+  - Inline Choice (Drop-down)
+  - Inline Choice - Per-Drop-down Feedback
   - Inline Choice - Rationale (Dyad)
   - Inline Choice - Rationale (Triad)
 ---
@@ -16,7 +16,7 @@ scoring, feedback, input-width sizing, and custom prompt text.
 
 ## Basic Display, Validation & Submission
 
-**Setup:** Load "Inline Choice" from the Supported Examples group.
+**Setup:** Load "Inline Choice (Drop-down)" from the Standard Samples group.
 
 1. Observe the rendered item.
    - [ ] A sentence is displayed with a dropdown (`<select>`) inline in the text
@@ -41,7 +41,7 @@ scoring, feedback, input-width sizing, and custom prompt text.
 
 ## Keyboard Navigation
 
-**Setup:** Load "Inline Choice" (or reset state if already loaded).
+**Setup:** Load "Inline Choice (Drop-down)" (or reset state if already loaded).
 
 1. Press Tab to move focus to the dropdown.
    - [ ] A visible focus indicator appears on the select
@@ -60,7 +60,7 @@ scoring, feedback, input-width sizing, and custom prompt text.
 
 ## Input Width, Custom Prompt & Constraints (Multiple Dropdowns)
 
-**Setup:** Load "Inline Choice - Multiple" from the Supported Examples group.
+**Setup:** Load "Inline Choice - Per-Drop-down Feedback" from the Supported Examples group.
 
 1. Observe the three dropdowns in the paragraph.
    - [ ] **First dropdown** (RESPONSE): shows custom placeholder "Choose process\u2026" (not "Select\u2026")

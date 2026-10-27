@@ -1,10 +1,11 @@
 import type { Path } from 'slate';
-import { PropertyField } from '../../components/properties/PropertyField';
-import { ToggleableFormSection } from '../../components/properties/ToggleableFormSection';
-import { MappingMetadataFields } from '../../components/properties/MappingMetadataFields';
-import { MapEntryList } from '../../components/properties/MapEntryList';
-import { DeleteIcon } from '../../components/icons';
-import type { QtiInlineChoiceInteraction, ElementAttributes, XmlNode, InlineChoiceOption } from '../../types';
+import { PropertyField } from '../../components/properties/PropertyField.js';
+import { ShuffleRadioGroup } from '../../components/properties/ShuffleRadioGroup.js';
+import { ToggleableFormSection } from '../../components/properties/ToggleableFormSection.js';
+import { MappingMetadataFields } from '../../components/properties/MappingMetadataFields.js';
+import { MapEntryList } from '../../components/properties/MapEntryList.js';
+import { DeleteIcon } from '../../components/icons.js';
+import type { QtiInlineChoiceInteraction, ElementAttributes, XmlNode, InlineChoiceOption } from '../../types.js';
 import {
   getCorrectValue,
   hasCorrectResponse,
@@ -12,7 +13,7 @@ import {
   addEmptyCorrectResponse,
   updateIdentifier,
   updateCorrectValue,
-} from '../../utils/responseDeclaration';
+} from '../../utils/responseDeclaration.js';
 import {
   hasMapping,
   getMapping,
@@ -21,7 +22,7 @@ import {
   updateMapping,
   type MappingMetadata,
   type MapEntry,
-} from '../../utils/mappingDeclaration';
+} from '../../utils/mappingDeclaration.js';
 
 interface InlineChoicePropertiesPanelProps {
   element: QtiInlineChoiceInteraction;
@@ -76,16 +77,6 @@ export function InlineChoicePropertiesPanel({
     }
 
     onUpdate(path, newAttrs, updatedDecl);
-  };
-
-  const handleShuffleChange = (checked: boolean) => {
-    const newAttrs = { ...attrs };
-    if (checked) {
-      newAttrs.shuffle = 'true';
-    } else {
-      delete newAttrs.shuffle;
-    }
-    onUpdate(path, newAttrs, responseDecl);
   };
 
   const handleToggleCorrectAnswer = (enabled: boolean) => {
@@ -190,17 +181,10 @@ export function InlineChoicePropertiesPanel({
         required
       />
 
-      <div className="property-field">
-        <label className="property-label">
-          <input
-            type="checkbox"
-            checked={attrs.shuffle === 'true'}
-            onChange={(e) => handleShuffleChange(e.target.checked)}
-            style={{ marginRight: '8px' }}
-          />
-          Shuffle choices
-        </label>
-      </div>
+      <ShuffleRadioGroup
+        attributes={attrs}
+        onChange={(newAttrs) => onUpdate(path, newAttrs, responseDecl)}
+      />
 
       {/* Choices list */}
       <div style={{ marginTop: '16px', marginBottom: '16px' }}>

@@ -1,4 +1,4 @@
-import { PropertyCheckbox } from './PropertyCheckbox';
+import { PropertyCheckbox } from './PropertyCheckbox.js';
 
 interface ToggleableFormSectionProps {
   /** Label for the toggle checkbox */

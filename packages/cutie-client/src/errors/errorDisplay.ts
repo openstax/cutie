@@ -10,7 +10,6 @@ export const ERROR_DISPLAY_STYLES = `
     border-radius: 4px;
     padding: 12px 16px;
     margin: 8px 0;
-    font-family: system-ui, -apple-system, sans-serif;
   }
 
   .cutie-error-display__title {
@@ -21,7 +20,7 @@ export const ERROR_DISPLAY_STYLES = `
 
   .cutie-error-display__message {
     color: var(--cutie-feedback-incorrect);
-    font-size: 14px;
+    font-size: var(--cutie-supporting-text-size);
   }
 `;
 

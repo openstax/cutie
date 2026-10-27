@@ -1,53 +1,30 @@
-import { parseQtiXml } from './parser/xmlParser';
-import { renderToContainer } from './renderer/domRenderer';
-import { ItemStateImpl } from './state/itemState';
-import { registerBaseStyles } from './styles';
-import { createTransformContext, transformChildren, transformNode } from './transformer/elementTransformer';
-import { DefaultStyleManager } from './transformer/styleManager';
-import type { ResponseData, TransformContext } from './transformer/types';
-import { announce, initLiveRegions } from './utils/liveRegion';
+import { parseQtiXml } from './parser/xmlParser.js';
+import { renderToContainer } from './renderer/domRenderer.js';
+import { ItemStateImpl } from './state/itemState.js';
+import { registerBaseStyles } from './styles/index.js';
+import { applyThemeVars, removeThemeVars, type ThemeOptions } from './theme.js';
+import { createTransformContext, transformChildren, transformNode } from './transformer/elementTransformer.js';
+import { announceItemVerdict } from './transformer/handlers/evaluation/index.js';
+import { beginFeedbackRender, endFeedbackRender } from './transformer/handlers/feedback/feedbackAnnouncer.js';
+import { annotateInlineInteractions, SR_ONLY_STYLES } from './transformer/handlers/inlineInteractionAnnotator.js';
+import { DefaultStyleManager } from './transformer/styleManager.js';
+import type { InteractionState, ResponseData, TransformContext } from './transformer/types.js';
+import { acquireLiveRegions, announce } from './utils/liveRegion.js';
 
 /**
- * Theming options for a mounted QTI item.
- *
- * All colors are exposed as CSS custom properties on `.cutie-item-container`
- * so consumers can override them for branding or dark mode.
- *
- * **Consumer contrast contract (WCAG 2.1 AA):**
- *
- * | Variable | Used as | Min contrast | Against |
- * |---|---|---|---|
- * | `textColor` | Body text | 4.5:1 (AA) | `bgColor`, `bgAltColor` |
- * | `textMutedColor` | Secondary text | 4.5:1 (AA) | `bgColor` |
- * | `borderColor` | Non-text UI | 3:1 (1.4.11) | `bgColor`, `bgAltColor` |
- * | `primaryColor` | Non-text UI + accent text | 3:1 (1.4.11) | `bgColor` |
- * | `feedbackCorrectColor` | Icons, borders | 3:1 (1.4.11) | `bgColor` |
- * | `feedbackIncorrectColor` | Icons, borders, error text | 4.5:1 (AA) | `bgColor`, `bgAltColor` |
- * | `feedbackInfoColor` | Icons, borders | 3:1 (1.4.11) | `bgColor` |
+ * Options for a mounted QTI item: its theme (see ThemeOptions) and behavior.
  */
-export interface MountItemOptions {
-  /** Primary content text (default `#333`). Must meet 4.5:1 against `bgColor` and `bgAltColor`. */
-  textColor?: string;
-  /** Secondary/hint text, labels (default `#666`). Must meet 4.5:1 against `bgColor`. */
-  textMutedColor?: string;
-  /** Default surface color (default `#fff`). */
-  bgColor?: string;
-  /** Secondary surfaces, hover, disabled, containers (default `#f5f5f5`). */
-  bgAltColor?: string;
-  /** Form control border color (default `#767676`). Must meet 3:1 against `bgColor` and `bgAltColor`. */
-  borderColor?: string;
-  /** Brand accent color (default `#1976d2`). Must meet 3:1 against `bgColor`. */
-  primaryColor?: string;
-  /** Text on primary backgrounds (default `#fff`). */
-  primaryFgColor?: string;
-  /** Hover shade of primary (default `#1e88e5`). */
-  primaryHoverColor?: string;
-  /** Correct feedback icon and border color (default `#22c55e`). Must meet 3:1 against `bgColor`. */
-  feedbackCorrectColor?: string;
-  /** Incorrect/error icon, border, and text color (default `#d32f2f`). Must meet 4.5:1 against `bgColor` and `bgAltColor`. */
-  feedbackIncorrectColor?: string;
-  /** Info feedback icon and border color (default `#4a90e2`). Must meet 3:1 against `bgColor`. */
-  feedbackInfoColor?: string;
+export interface MountItemOptions extends ThemeOptions {
+  /**
+   * Called after every learner edit, with the current value of every interaction —
+   * whether or not the response is valid to submit.
+   */
+  onResponseChange?: (responses: ResponseData) => void;
+  /**
+   * The interaction state to start in (default `'enabled'`). Change it later
+   * with `setInteractionState`; `update()` keeps the current state.
+   */
+  interactionState?: InteractionState;
 }
 
 /**
@@ -71,9 +48,10 @@ export interface MountedItem {
   collectResponses: () => ResponseData | undefined;
 
   /**
-   * Enable or disable all interactions
+   * Set the state of all interactions: enabled, disabled for now (as while a
+   * submission is pending), or read-only once the response is final
    */
-  setInteractionsEnabled: (enabled: boolean) => void;
+  setInteractionState: (interactionState: InteractionState) => void;
 
   /**
    * Get all registered response identifiers
@@ -96,8 +74,11 @@ export function mountItem(
   // Persistent state bag — survives across update() calls, cleared on unmount()
   const state = new Map<string, unknown>();
 
-  // Cleanup callbacks — accumulated across renders, all called on unmount()
-  const cleanupCallbacks: Array<() => void> = [];
+  // Unmount callbacks — for resources that persist across renders, called on unmount()
+  const unmountCallbacks: Array<() => void> = [];
+
+  // The shared live regions, held for as long as this item is mounted
+  unmountCallbacks.push(acquireLiveRegions(state));
 
   // Mutable reference to current render's itemState and context
   let currentItemState: ItemStateImpl | null = null;
@@ -106,45 +87,30 @@ export function mountItem(
   // Current render's teardown — called on update() and unmount()
   let teardownCurrentRender: (() => void) | null = null;
 
-  const CSS_VAR_MAP: Array<[keyof MountItemOptions, string]> = [
-    ['textColor', '--cutie-text'],
-    ['textMutedColor', '--cutie-text-muted'],
-    ['bgColor', '--cutie-bg'],
-    ['bgAltColor', '--cutie-bg-alt'],
-    ['borderColor', '--cutie-border'],
-    ['primaryColor', '--cutie-primary'],
-    ['primaryFgColor', '--cutie-primary-fg'],
-    ['primaryHoverColor', '--cutie-primary-hover'],
-    ['feedbackCorrectColor', '--cutie-feedback-correct'],
-    ['feedbackIncorrectColor', '--cutie-feedback-incorrect'],
-    ['feedbackInfoColor', '--cutie-feedback-info'],
-  ];
-
-  function applyThemeVars(): void {
-    for (const [key, prop] of CSS_VAR_MAP) {
-      const value = options?.[key];
-      if (value) {
-        container.style.setProperty(prop, value);
-      }
-    }
-  }
-
-  function removeThemeVars(): void {
-    for (const [, prop] of CSS_VAR_MAP) {
-      container.style.removeProperty(prop);
-    }
-  }
-
   function doRender(xml: string): void {
-    const itemState = new ItemStateImpl(currentItemState ?? undefined);
+    const itemState = new ItemStateImpl(currentItemState ?? undefined, {
+      onResponseChange: options?.onResponseChange,
+      interactionState: options?.interactionState,
+    });
     currentItemState = itemState;
 
     const styleManager = new DefaultStyleManager();
     registerBaseStyles(styleManager);
 
-    applyThemeVars();
+    applyThemeVars(container, options);
 
     const mountCallbacks: Array<() => void> = [];
+    // This render's cleanup callbacks — called when it is torn down (update() or unmount())
+    const cleanupCallbacks: Array<() => void> = [];
+    let unmountDom: (() => void) | null = null;
+
+    // Set before anything can throw, so a render that fails part way is still torn down
+    teardownCurrentRender = () => {
+      for (const cb of cleanupCallbacks) cb();
+      itemState.clear();
+      styleManager.cleanup();
+      unmountDom?.();
+    };
 
     const parsed = parseQtiXml(xml);
 
@@ -153,31 +119,46 @@ export function mountItem(
       styleManager,
       onMount: (cb) => mountCallbacks.push(cb),
       onCleanup: (cb) => cleanupCallbacks.push(cb),
+      onUnmount: (cb) => unmountCallbacks.push(cb),
       containerElement: container,
       state,
     });
     currentContext = context;
-    initLiveRegions(context);
+
+    // Announced before the feedback the render announces
+    announceItemVerdict(parsed.itemBody, context);
+    beginFeedbackRender(state);
 
     const fragment = transformChildren(parsed.itemBody, context);
 
     for (const modalFeedback of parsed.modalFeedbacks) {
       fragment.appendChild(transformNode(modalFeedback, context));
     }
+    endFeedbackRender(state);
 
-    const unmountDom = renderToContainer(container, fragment);
+    // Label inline interactions once the whole body is built, so each one is
+    // labelled with all of its surrounding content in place
+    if (annotateInlineInteractions(fragment) && !styleManager.hasStyle('cutie-sr-only')) {
+      styleManager.addStyle('cutie-sr-only', SR_ONLY_STYLES);
+    }
+
+    unmountDom = renderToContainer(container, fragment);
 
     for (const cb of mountCallbacks) cb();
-
-    teardownCurrentRender = () => {
-      itemState.clear();
-      styleManager.cleanup();
-      unmountDom();
-    };
   }
 
-  // Initial render
-  doRender(itemTemplateXml);
+  // Initial render. If it throws there is no handle to unmount with, so undo
+  // everything the mount took (including its hold on the live regions) first
+  try {
+    doRender(itemTemplateXml);
+  } catch (error) {
+    // (doRender sets it; TypeScript can't see that from here)
+    (teardownCurrentRender as (() => void) | null)?.();
+    for (const cb of unmountCallbacks) cb();
+    state.clear();
+    removeThemeVars(container);
+    throw error;
+  }
   state.set('isUpdate', true);
 
   return {
@@ -186,10 +167,10 @@ export function mountItem(
       teardownCurrentRender = null;
       currentItemState = null;
       currentContext = null;
-      for (const cb of cleanupCallbacks) cb();
-      cleanupCallbacks.length = 0;
+      for (const cb of unmountCallbacks) cb();
+      unmountCallbacks.length = 0;
       state.clear();
-      removeThemeVars();
+      removeThemeVars(container);
     },
     update: (xml: string) => {
       teardownCurrentRender?.();
@@ -206,8 +187,8 @@ export function mountItem(
       }
       return result.valid ? result.responses : undefined;
     },
-    setInteractionsEnabled: (enabled: boolean) => {
-      currentItemState?.setInteractionsEnabled(enabled);
+    setInteractionState: (interactionState: InteractionState) => {
+      currentItemState?.setInteractionState(interactionState);
     },
     getResponseIdentifiers: () => currentItemState?.getResponseIdentifiers() ?? [],
   };

@@ -1,4 +1,4 @@
-import type { StyleManager } from '../transformer/types';
+import type { StyleManager } from '../transformer/types.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -20,6 +20,25 @@ const INLINE_REQUIRED_INDICATOR_STYLES = `
     cursor: default;
   }
 
+  /*
+   * A control with its required indicator, kept on one line. The wrapper is a
+   * single inline box whose right padding reserves the indicator's space, so a
+   * line can't break between them and the indicator can't fall outside it.
+   */
+  .cutie-inline-required {
+    position: relative;
+    display: inline-block;
+    padding-right: 0.65em;
+  }
+
+  /* Top aligned with the control, below the overline slot its top margin reserves */
+  .cutie-inline-required > .cutie-required-indicator {
+    position: absolute;
+    top: var(--cutie-overline-slot);
+    right: 0;
+    line-height: 1;
+  }
+
   .cutie-required-indicator.${CONSTRAINT_ERROR_CLASS} {
     color: var(--cutie-feedback-incorrect);
   }
@@ -32,7 +51,7 @@ const VALIDATION_DISPLAY_STYLES = `
     display: flex;
     align-items: center;
     gap: 0.3em;
-    font-size: 1em;
+    font-size: var(--cutie-supporting-text-size);
     color: var(--cutie-text-muted);
     margin-top: 0.5em;
   }
@@ -162,4 +181,23 @@ export function createInlineRequiredIndicator(
   };
 
   return { element: span, setError, setText };
+}
+
+/**
+ * Keep an inline control and its required indicator together on one line.
+ * Returns the control unchanged when there is no indicator.
+ *
+ * @param control - The control, or the wrapper that places it
+ * @param indicator - The control's indicator from createInlineRequiredIndicator
+ */
+export function wrapInlineRequired(
+  control: HTMLElement,
+  indicator: ConstraintMessage | undefined
+): HTMLElement {
+  if (!indicator) return control;
+
+  const wrapper = document.createElement('span');
+  wrapper.className = 'cutie-inline-required';
+  wrapper.append(control, indicator.element);
+  return wrapper;
 }

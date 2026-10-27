@@ -1,8 +1,12 @@
 /* spell-checker: ignore hotspot hottext */
+import { sampleGroups, samples } from '@openstax/cutie-samples';
+
 export interface ExampleItem {
   name: string;
   item: string;
   interactionTypes: string[];
+  /** Markdown authoring guidance, provided by canonical samples */
+  description?: string;
 }
 
 export interface ExampleGroup {
@@ -10,53 +14,55 @@ export interface ExampleGroup {
   items: ExampleItem[];
 }
 
-import * as choice from './choice';
-import * as choiceMultiple from './choice-multiple';
-import * as textEntry from './text-entry';
-import * as textEntryMulti from './text-entry-multi';
-import * as inlineChoice from './inline-choice';
-import * as inlineChoiceMulti from './inline-choice-multi';
-import * as match from './match';
-import * as gapMatch from './gap-match';
-import * as order from './order';
-import * as slider from './slider';
-import * as hotspot from './hotspot';
-import * as extendedText from './extended-text';
-import * as associate from './associate';
-import * as hottext from './hottext';
-import * as math from './math';
-import * as selectPoint from './select-point';
-import * as multiInput from './multi-input';
-import * as modalFeedback from './modal-feedback';
-import * as inlineFeedback from './inline-feedback';
-import * as blockFeedback from './block-feedback';
-import * as choiceStandard from './standard-choice';
-import * as choiceMultipleStandard from './standard-choice-multiple';
-import * as textEntryStandard from './standard-text-entry';
-import * as inlineChoiceStandard from './standard-inline-choice';
-import * as inlineChoiceRationaleDyad from './standard-inline-choice-rationale-dyad';
-import * as inlineChoiceRationaleTriad from './standard-inline-choice-rationale-triad';
-import * as matchStandard from './standard-match';
-import * as gapMatchStandard from './standard-gap-match';
-import * as gapMatchRationaleDyad from './standard-gap-match-rationale-dyad';
-import * as gapMatchRationaleTriad from './standard-gap-match-rationale-triad';
-import * as textEntryPartialStandard from './standard-text-entry-partial';
-import * as choiceHorizontalStandard from './standard-choice-horizontal';
-import * as choicePartialStandard from './standard-choice-partial';
-import * as multiInteractionStandard from './standard-multi-interaction';
-import * as adaptiveMontyHall from './spec-adaptive-monty-hall';
-import * as templateDigging from './template-digging';
-import * as formulaStrict from './formula-strict';
-import * as formulaCanonical from './formula-canonical';
-import * as formulaAlgebraic from './formula-algebraic';
-import * as extendedTextScored from './extended-text-scored';
-import * as extendedTextScoredRich from './extended-text-scored-rich';
-import * as variantChoiceLabels from './variant-choice-labels';
-import * as variantChoiceLayout from './variant-choice-layout';
-import * as variantExtendedTextLayouts from './variant-extended-text-layouts';
-import * as variantExtendedTextPattern from './variant-extended-text-pattern';
-import * as variantGapMatchLayout from './variant-gap-match-layout';
-import * as variantBowtieLayout from './variant-bowtie-layout';
+import * as choice from './choice.js';
+import * as choiceMultiple from './choice-multiple.js';
+import * as textEntry from './text-entry.js';
+import * as textEntryMulti from './text-entry-multi.js';
+import * as inlineChoice from './inline-choice.js';
+import * as inlineChoiceMulti from './inline-choice-multi.js';
+import * as match from './match.js';
+import * as gapMatch from './gap-match.js';
+import * as order from './order.js';
+import * as slider from './slider.js';
+import * as hotspot from './hotspot.js';
+import * as extendedText from './extended-text.js';
+import * as associate from './associate.js';
+import * as hottext from './hottext.js';
+import * as hottextMultiple from './hottext-multiple.js';
+import * as hottextHighlightFindings from './hottext-highlight-findings.js';
+import * as hottextHighlightTable from './hottext-highlight-table.js';
+import * as math from './math.js';
+import * as selectPoint from './select-point.js';
+import * as multiInput from './multi-input.js';
+import * as modalFeedback from './modal-feedback.js';
+import * as inlineFeedback from './inline-feedback.js';
+import * as blockFeedback from './block-feedback.js';
+import * as choiceMultipleStandard from './standard-choice-multiple-wrong-choice-feedback.js';
+import * as inlineChoiceRationaleDyad from './standard-inline-choice-rationale-dyad.js';
+import * as inlineChoiceRationaleTriad from './standard-inline-choice-rationale-triad.js';
+import * as gapMatchRationaleDyad from './standard-gap-match-rationale-dyad.js';
+import * as gapMatchRationaleTriad from './standard-gap-match-rationale-triad.js';
+import * as textEntryPartialStandard from './standard-text-entry-partial.js';
+import * as choiceHorizontalStandard from './standard-choice-horizontal.js';
+import * as choicePartialStandard from './standard-choice-partial.js';
+import * as multiInteractionStandard from './standard-multi-interaction.js';
+import * as adaptiveMontyHall from './spec-adaptive-monty-hall.js';
+import * as templateImage from './spec-template-image.js';
+import * as templateDigging from './template-digging.js';
+import * as templateRounding from './template-rounding.js';
+import * as templateSimpleInterest from './template-simple-interest.js';
+import * as templateMarginalRevenue from './template-marginal-revenue.js';
+import * as formulaStrict from './formula-strict.js';
+import * as formulaCanonical from './formula-canonical.js';
+import * as formulaAlgebraic from './formula-algebraic.js';
+import * as extendedTextScored from './extended-text-scored.js';
+import * as extendedTextScoredRich from './extended-text-scored-rich.js';
+import * as variantChoiceLabels from './variant-choice-labels.js';
+import * as variantChoiceLayout from './variant-choice-layout.js';
+import * as variantExtendedTextLayouts from './variant-extended-text-layouts.js';
+import * as variantExtendedTextPattern from './variant-extended-text-pattern.js';
+import * as variantGapMatchLayout from './variant-gap-match-layout.js';
+import * as variantBowtieLayout from './variant-bowtie-layout.js';
 
 /* these examples are copied exactly from examples in the spec
  * documents, they are used for verification that cutie works
@@ -79,6 +85,7 @@ export const specExamples = [
   multiInput,
   adaptiveMontyHall,
   templateDigging,
+  templateImage,
 ];
 
 /* these were made just to show different types of feedback */
@@ -101,6 +108,13 @@ export const formulaExamples = [
   formulaAlgebraic,
 ];
 
+/* items using template processing to randomize values per attempt */
+export const templateExamples = [
+  templateRounding,
+  templateSimpleInterest,
+  templateMarginalRevenue,
+];
+
 /* variant testing examples for visual verification of CSS/layout features */
 export const variantExamples = [
   variantChoiceLabels,
@@ -109,31 +123,40 @@ export const variantExamples = [
   variantExtendedTextPattern,
   variantGapMatchLayout,
   variantBowtieLayout,
+  hottextHighlightFindings,
+  hottextHighlightTable,
 ];
 
 /* these examples were made for each interaction type to show editor-supported
  * response processing and feedback patterns, and show extensive feedback as
  * we would expect to see in real assessment items */
 export const standardExamples = [
-  choiceStandard,
   choiceMultipleStandard,
   choiceHorizontalStandard,
-  textEntryStandard,
   textEntryMulti,
-  inlineChoiceStandard,
   inlineChoiceMulti,
   inlineChoiceRationaleDyad,
   inlineChoiceRationaleTriad,
-  matchStandard,
-  gapMatchStandard,
   gapMatchRationaleDyad,
   gapMatchRationaleTriad,
   textEntryPartialStandard,
   choicePartialStandard,
   multiInteractionStandard,
+  hottextMultiple,
+];
+
+/* references for AI item generation: the canonical samples, with their
+ * authoring guidance, plus the supported feature examples */
+export const generationExamples: ExampleItem[] = [
+  ...samples,
+  ...standardExamples,
 ];
 
 export const exampleGroups: ExampleGroup[] = [
+  ...sampleGroups.filter(group => group.samples.length > 0).map(group => ({
+    label: `${group.label} Samples`,
+    items: group.samples,
+  })),
   {
     label: 'Supported Examples',
     items: standardExamples,
@@ -145,6 +168,10 @@ export const exampleGroups: ExampleGroup[] = [
   {
     label: 'Math Formula Entry',
     items: formulaExamples,
+  },
+  {
+    label: 'Templated Items',
+    items: templateExamples,
   },
   {
     label: 'Variant Testing',

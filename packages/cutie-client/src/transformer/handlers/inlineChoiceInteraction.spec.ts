@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { ItemStateImpl } from '../../state/itemState';
-import { registry } from '../registry';
-import type { TransformContext } from '../types';
+import { ItemStateImpl } from '../../state/itemState.js';
+import { registry } from '../registry.js';
+import type { TransformContext } from '../types.js';
 
 // Side-effect import to register the handler
-import './inlineChoiceInteraction';
+import './inlineChoiceInteraction.js';
 
 function createQtiDocument(interactionHtml: string): Document {
   const html = `
@@ -182,6 +182,36 @@ describe('inlineChoiceInteraction', () => {
       expect(indicator).not.toBeNull();
       expect(indicator!.textContent).toBe('*');
       expect(indicator!.getAttribute('title')).toBe('Selection required');
+    });
+
+    it('keeps the select and indicator together in one wrapper', () => {
+      const doc = createQtiDocument(`
+        <qti-inline-choice-interaction response-identifier="R1" required="true">
+          <qti-inline-choice identifier="A">Alpha</qti-inline-choice>
+        </qti-inline-choice-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const wrapper = container.querySelector('.cutie-inline-required')!;
+      expect(wrapper.querySelector('select')).not.toBeNull();
+      expect(wrapper.lastElementChild!.classList.contains('cutie-required-indicator')).toBe(true);
+    });
+
+    it('does not wrap the select when unconstrained', () => {
+      const doc = createQtiDocument(`
+        <qti-inline-choice-interaction response-identifier="R1">
+          <qti-inline-choice identifier="A">Alpha</qti-inline-choice>
+        </qti-inline-choice-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      expect(container.querySelector('.cutie-inline-required')).toBeNull();
     });
 
     it('uses data-min-selections-message as indicator title', () => {
@@ -489,7 +519,7 @@ describe('inlineChoiceInteraction', () => {
       const select = container.querySelector('select')!;
       expect(select.disabled).toBe(false);
 
-      itemState.setInteractionsEnabled(false);
+      itemState.setInteractionState('disabled');
       expect(select.disabled).toBe(true);
     });
 
@@ -500,7 +530,7 @@ describe('inlineChoiceInteraction', () => {
         </qti-inline-choice-interaction>
       `);
 
-      itemState.setInteractionsEnabled(false);
+      itemState.setInteractionState('disabled');
       const fragment = transformInteraction(doc, itemState);
       const container = document.createElement('div');
       container.appendChild(fragment);
@@ -508,8 +538,66 @@ describe('inlineChoiceInteraction', () => {
       const select = container.querySelector('select')!;
       expect(select.disabled).toBe(true);
 
-      itemState.setInteractionsEnabled(true);
+      itemState.setInteractionState('enabled');
       expect(select.disabled).toBe(false);
     });
+  });
+});
+
+describe('inlineChoiceInteraction evaluation', () => {
+  let itemState: ItemStateImpl;
+
+  beforeEach(() => {
+    itemState = new ItemStateImpl();
+  });
+
+  function render(interactionAttrs: string, declaration: string): HTMLElement {
+    const doc = createQtiDocument(`
+      <qti-response-declaration identifier="R1" cardinality="single" base-type="identifier">
+        ${declaration}
+      </qti-response-declaration>
+      <p>The capital of France is
+        <qti-inline-choice-interaction response-identifier="R1" ${interactionAttrs}>
+          <qti-inline-choice identifier="LYON">Lyon</qti-inline-choice>
+          <qti-inline-choice identifier="PARIS">Paris</qti-inline-choice>
+        </qti-inline-choice-interaction>.
+      </p>
+    `);
+    const container = document.createElement('div');
+    container.appendChild(transformInteraction(doc, itemState));
+    return container;
+  }
+
+  it('renders nothing when there is no verdict or correct response', () => {
+    const container = render('', '<qti-default-value><qti-value>LYON</qti-value></qti-default-value>');
+    expect(container.querySelector('.cutie-correct-answer-overline')).toBeNull();
+    expect(container.querySelector('select')!.classList.contains('cutie-evaluated')).toBe(false);
+  });
+
+  it('shows the verdict icon above the select, describing it', () => {
+    const container = render(
+      'data-cutie-evaluation="correct"',
+      '<qti-default-value><qti-value>PARIS</qti-value></qti-default-value>',
+    );
+    const select = container.querySelector('select')!;
+    expect(select.parentElement!.classList.contains('cutie-inline-evaluation')).toBe(true);
+    const overline = container.querySelector('.cutie-correct-answer-overline')!;
+    expect(overline.querySelector('.cutie-feedback-icon--correct')).not.toBeNull();
+    expect(overline.getAttribute('aria-hidden')).toBe('true');
+    expect(select.getAttribute('aria-describedby')).toContain(overline.id);
+    expect(select.classList.contains('cutie-evaluated--correct')).toBe(true);
+    expect(select.value).toBe('PARIS');
+  });
+
+  it('shows the correct choice by its displayed text, not its identifier', () => {
+    const container = render(
+      'data-cutie-evaluation="incorrect"',
+      `<qti-default-value><qti-value>LYON</qti-value></qti-default-value>
+       <qti-correct-response><qti-value>PARIS</qti-value></qti-correct-response>`,
+    );
+    const overline = container.querySelector('.cutie-correct-answer-overline')!;
+    expect(overline.querySelector('.cutie-feedback-icon--incorrect')).not.toBeNull();
+    expect(overline.textContent).toBe('Incorrect. Correct answer: Paris');
+    expect(container.querySelector('select')!.value).toBe('LYON');
   });
 });

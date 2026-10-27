@@ -1,6 +1,6 @@
 import type { Element } from 'slate';
-import type { ElementConfig, FeedbackIdentifier, QtiInlineChoiceInteraction } from '../../types';
-import { hasCorrectResponse } from '../../utils/responseDeclaration';
+import type { ElementConfig, FeedbackIdentifier, QtiInlineChoiceInteraction } from '../../types.js';
+import { hasCorrectResponse } from '../../utils/responseDeclaration.js';
 
 export const inlineChoiceInteractionConfig: ElementConfig = {
   type: 'qti-inline-choice-interaction',

@@ -1,15 +1,15 @@
 // Re-export individual components for direct use if needed
-export { InlineChoiceElement } from './Element';
-export { InlineChoicePropertiesPanel } from './PropertiesPanel';
+export { InlineChoiceElement } from './Element.js';
+export { InlineChoicePropertiesPanel } from './PropertiesPanel.js';
 
 // Re-export from other modules
-export { inlineChoiceInteractionConfig } from './config';
-export { inlineChoiceParsers, inlineChoiceSerializers } from './serialization';
-export { insertInlineChoiceInteraction } from './insertion';
+export { inlineChoiceInteractionConfig } from './config.js';
+export { inlineChoiceParsers, inlineChoiceSerializers } from './serialization.js';
+export { insertInlineChoiceInteraction } from './insertion.js';
 
 // Import components for creating maps
-import { InlineChoiceElement } from './Element';
-import { InlineChoicePropertiesPanel } from './PropertiesPanel';
+import { InlineChoiceElement } from './Element.js';
+import { InlineChoicePropertiesPanel } from './PropertiesPanel.js';
 
 // Export objects that can be spread (one per concern)
 export const inlineChoiceRenderers = {

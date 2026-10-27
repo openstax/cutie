@@ -1,5 +1,5 @@
-import { useStyle } from '../../hooks/useStyle';
-import type { MappingMetadata } from '../../utils/mappingDeclaration';
+import { useStyle } from '../../hooks/useStyle.js';
+import type { MappingMetadata } from '../../utils/mappingDeclaration.js';
 
 interface MappingMetadataFieldsProps {
   metadata: MappingMetadata;

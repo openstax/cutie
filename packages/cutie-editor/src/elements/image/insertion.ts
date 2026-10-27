@@ -1,5 +1,5 @@
 import { type Editor, Transforms } from 'slate';
-import type { ImageElement } from '../../types';
+import type { ImageElement } from '../../types.js';
 
 /**
  * Insert an image at the current cursor position.

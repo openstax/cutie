@@ -1,1 +1,1 @@
-export { registerBaseStyles } from './baseStyles';
+export { registerBaseStyles } from './baseStyles.js';

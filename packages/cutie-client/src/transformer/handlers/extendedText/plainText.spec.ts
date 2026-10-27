@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { ItemStateImpl } from '../../../state/itemState';
-import { registry } from '../../registry';
-import type { TransformContext } from '../../types';
+import { ItemStateImpl } from '../../../state/itemState.js';
+import { registry } from '../../registry.js';
+import type { TransformContext } from '../../types.js';
 
 // Side-effect import to register the handler
-import './plainText';
+import './plainText.js';
 
 function createQtiDocument(interactionHtml: string): Document {
   const html = `
@@ -234,11 +234,145 @@ describe('extendedTextInteraction', () => {
       const textarea = container.querySelector('textarea')!;
       expect(textarea.disabled).toBe(false);
 
-      itemState.setInteractionsEnabled(false);
+      itemState.setInteractionState('disabled');
       expect(textarea.disabled).toBe(true);
 
-      itemState.setInteractionsEnabled(true);
+      itemState.setInteractionState('enabled');
       expect(textarea.disabled).toBe(false);
+    });
+  });
+
+  describe('read-only response', () => {
+    const withResponse = (attributes = '') => `
+      <qti-response-declaration identifier="R1" cardinality="single" base-type="string">
+        <qti-default-value>
+          <qti-value>First line
+second line</qti-value>
+        </qti-default-value>
+      </qti-response-declaration>
+      <qti-extended-text-interaction response-identifier="R1" ${attributes}>
+        <qti-prompt>Explain.</qti-prompt>
+      </qti-extended-text-interaction>
+    `;
+
+    function render(doc: Document): HTMLDivElement {
+      const container = document.createElement('div');
+      container.appendChild(transformInteraction(doc, itemState));
+      return container;
+    }
+
+    function asPreview(doc: Document): Document {
+      doc.querySelector('qti-item-body')!.setAttribute('data-cutie-preview', 'true');
+      return doc;
+    }
+
+    it('is hidden while interactions are enabled', () => {
+      const container = render(createQtiDocument(withResponse()));
+
+      expect(container.querySelector('textarea')!.hidden).toBe(false);
+      expect(container.querySelector<HTMLElement>('.cutie-read-only-response')!.hidden).toBe(true);
+    });
+
+    it('shows the response in place of the textarea, labelled by the prompt', () => {
+      itemState.setInteractionState('readonly');
+      const container = render(createQtiDocument(withResponse()));
+
+      const view = container.querySelector<HTMLElement>('.cutie-read-only-response')!;
+      expect(container.querySelector('textarea')!.hidden).toBe(true);
+      expect(view.hidden).toBe(false);
+      expect(view.textContent).toBe('First line\nsecond line');
+      expect(view.classList.contains('cutie-read-only-plain')).toBe(true);
+      expect(view.classList.contains('cutie-read-only-empty')).toBe(false);
+      expect(view.getAttribute('role')).toBe('group');
+      expect(view.getAttribute('aria-labelledby')).toBe('prompt-R1');
+    });
+
+    it('is hidden while interactions are disabled, which keep the textarea', () => {
+      const container = render(createQtiDocument(withResponse()));
+      itemState.setInteractionState('disabled');
+
+      const textarea = container.querySelector('textarea')!;
+      expect(textarea.hidden).toBe(false);
+      expect(textarea.disabled).toBe(true);
+      expect(container.querySelector<HTMLElement>('.cutie-read-only-response')!.hidden).toBe(true);
+
+      // A pending submission settles into a final response
+      itemState.setInteractionState('readonly');
+      expect(textarea.hidden).toBe(true);
+      expect(container.querySelector<HTMLElement>('.cutie-read-only-response')!.hidden).toBe(false);
+    });
+
+    it('shows the response as edited before interactions are read-only', () => {
+      const container = render(createQtiDocument(withResponse()));
+      const textarea = container.querySelector('textarea')!;
+      textarea.value = 'Edited';
+
+      itemState.setInteractionState('readonly');
+      expect(container.querySelector('.cutie-read-only-response')!.textContent).toBe('Edited');
+
+      itemState.setInteractionState('enabled');
+      expect(textarea.hidden).toBe(false);
+      expect(container.querySelector<HTMLElement>('.cutie-read-only-response')!.hidden).toBe(true);
+    });
+
+    it('notes that there is no response', () => {
+      itemState.setInteractionState('readonly');
+      const container = render(createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" placeholder-text="Type here">
+        </qti-extended-text-interaction>
+      `));
+
+      const view = container.querySelector('.cutie-read-only-response')!;
+      expect(view.textContent).toBe('No response.');
+      expect(view.classList.contains('cutie-read-only-empty')).toBe(true);
+    });
+
+    it('notes where students will write in a preview', () => {
+      itemState.setInteractionState('readonly');
+      const container = render(asPreview(createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1">
+        </qti-extended-text-interaction>
+      `)));
+
+      expect(container.querySelector('.cutie-read-only-response')!.textContent)
+        .toBe('Students will write their response here.');
+    });
+
+    it('keeps the counter with a response', () => {
+      itemState.setInteractionState('readonly');
+      const container = render(createQtiDocument(withResponse('data-max-characters="500" class="qti-counter-up"')));
+
+      expect(container.querySelector('.cutie-character-counter')!.textContent).toBe('22 / 500 characters');
+    });
+
+    it('keeps the counter with no response', () => {
+      itemState.setInteractionState('readonly');
+      const container = render(createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" data-max-characters="500">
+        </qti-extended-text-interaction>
+      `));
+
+      expect(container.querySelector('.cutie-character-counter')!.textContent).toBe('500 characters remaining');
+    });
+
+    it('shows only the limit in a preview', () => {
+      itemState.setInteractionState('readonly');
+      const container = render(asPreview(createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" data-max-characters="500">
+        </qti-extended-text-interaction>
+      `)));
+
+      expect(container.querySelector('.cutie-character-counter')!.textContent).toBe('500 character limit');
+    });
+
+    it('shows the suggested length in a preview', () => {
+      itemState.setInteractionState('readonly');
+      const container = render(asPreview(createQtiDocument(`
+        <qti-extended-text-interaction response-identifier="R1" expected-length="200" class="qti-counter-up">
+        </qti-extended-text-interaction>
+      `)));
+
+      expect(container.querySelector('.cutie-character-counter')!.textContent).toBe('200 suggested characters');
     });
   });
 
@@ -1403,5 +1537,63 @@ describe('extendedTextInteraction', () => {
       expect(result.valid).toBe(true);
       expect(constraintEl.classList.contains('cutie-constraint-error')).toBe(false);
     });
+  });
+});
+
+describe('extendedTextInteraction evaluation', () => {
+  let itemState: ItemStateImpl;
+
+  beforeEach(() => {
+    itemState = new ItemStateImpl();
+  });
+
+  function render(interactionAttrs: string, declaration: string): HTMLElement {
+    const doc = createQtiDocument(`
+      <qti-response-declaration identifier="R1" cardinality="single" base-type="string">
+        ${declaration}
+      </qti-response-declaration>
+      <qti-extended-text-interaction response-identifier="R1" ${interactionAttrs}></qti-extended-text-interaction>
+    `);
+    const container = document.createElement('div');
+    container.appendChild(transformInteraction(doc, itemState));
+    return container;
+  }
+
+  it('renders nothing when there is no verdict or correct response', () => {
+    const container = render('', '<qti-default-value><qti-value>hello</qti-value></qti-default-value>');
+    expect(container.querySelector('.cutie-evaluation')).toBeNull();
+  });
+
+  it('describes the response in the constraint text and shows the correct answer below the textarea', () => {
+    const container = render(
+      'data-cutie-evaluation="incorrect"',
+      `<qti-default-value><qti-value>hello</qti-value></qti-default-value>
+       <qti-correct-response><qti-value>world</qti-value></qti-correct-response>`,
+    );
+    const textarea = container.querySelector('textarea')!;
+    const interaction = container.querySelector('.cutie-extended-text-interaction')!;
+
+    // No verdict pill: the rail is the visual verdict, the constraint text announces it
+    expect(container.querySelector('.cutie-verdict')).toBeNull();
+    expect(interaction.classList.contains('cutie-evaluated--incorrect')).toBe(true);
+    const constraint = container.querySelector('#constraint-R1')!;
+    expect(constraint.textContent).toBe('Incorrect response');
+    expect(textarea.getAttribute('aria-describedby')).toContain('constraint-R1');
+
+    const summary = container.querySelector('.cutie-evaluation')!;
+    expect(summary.querySelector('.cutie-correct-answer')!.textContent).toBe('Correct answer: world');
+    expect(textarea.getAttribute('aria-describedby')).toContain(summary.id);
+    expect(textarea.value).toBe('hello');
+  });
+
+  it('shows only the verdict text under correctness', () => {
+    const container = render('data-cutie-evaluation="correct"', '');
+    expect(container.querySelector('#constraint-R1')!.textContent).toBe('Correct response');
+    expect(container.querySelector('.cutie-correct-answer')).toBeNull();
+  });
+
+  it('reserves the status rail in every state', () => {
+    const container = render('', '');
+    expect(container.querySelector('.cutie-extended-text-interaction')!.classList.contains('cutie-status-rail')).toBe(true);
   });
 });

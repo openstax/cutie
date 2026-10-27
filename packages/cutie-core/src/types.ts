@@ -48,8 +48,11 @@ export interface AttemptState {
    *
    * Values:
    * - "not_attempted": No response has been submitted yet
-   * - "incomplete": Responses submitted but item allows further attempts
-   * - "completed": Item attempt is finished, no further submissions allowed
+   * - "incomplete": Responses submitted but item allows further attempts (an
+   *   adaptive item that isn't complete, or a fresh try)
+   * - "completed": Item attempt is finished, no further submissions allowed,
+   *   except resubmitting a response that awaits manual scoring
+   *   (`pendingManualScoring`)
    * - "unknown": Completion status cannot be determined
    *
    * This is the primary field the host application uses to determine if
@@ -64,7 +67,7 @@ export interface AttemptState {
   score: Score | null;
 
   /**
-   * Shuffle orders for interactions with shuffle="true".
+   * Shuffle orders for interactions that are shuffled (see `DeliveryOptions.shuffleOverride`).
    * Maps response identifiers to ordered arrays of choice identifiers.
    * Generated during initializeState and applied during renderTemplate.
    *
@@ -72,6 +75,21 @@ export interface AttemptState {
    * to store each set's shuffle order separately.
    */
   shuffleOrders?: Record<string, string[]>;
+
+  /**
+   * Correct responses set by template processing (qti-set-correct-response),
+   * by response identifier. They take the place of the declared
+   * qti-correct-response, making this attempt a clone of the item template.
+   */
+  correctResponses?: Record<string, unknown>;
+
+  /**
+   * Default values set by template processing (qti-set-default-value), by
+   * variable identifier. They take the place of the declared
+   * qti-default-value, including when a fresh try resets outcomes.
+   * Kept with their types (records included).
+   */
+  defaultValues?: Record<string, unknown>;
 
   /**
    * Comments from external scoring (e.g., AI-generated feedback for human-scored items).
@@ -84,6 +102,133 @@ export interface AttemptState {
    * Contains metadata for the scorer to use. Cleared by `setScore()`.
    */
   pendingManualScoring?: { maxScore: number };
+
+  /**
+   * The delivery options this attempt began under, defaults filled in.
+   * Fixed for the life of the attempt; every later operation follows them.
+   */
+  options: Required<DeliveryOptions>;
+
+  /**
+   * Feedback withheld from the learner under `showFeedback: false`.
+   * Decided on the turn the attempt becomes terminal and applied as-is on every
+   * later render, so resuming the attempt reproduces the same template.
+   */
+  withheldFeedback?: FeedbackIdentity[];
+
+  /**
+   * Tries the learner gets in all: `DeliveryOptions.maxTries` resolved at
+   * `beginAttempt`, with `'smart'` replaced by the number it derives.
+   * Fixed for the life of the attempt.
+   */
+  triesAllowed: number;
+
+  /**
+   * Tries the learner has ended, counted on every submission that reports
+   * `tryConsumed`. The try in progress is `triesUsed + 1`; once the attempt is
+   * terminal, `triesUsed` is the try it ended on.
+   */
+  triesUsed: number;
+
+  /**
+   * Tries the learner has left under `DeliveryOptions.maxTries`, counting the
+   * one in progress. A try ends when response processing completes the item.
+   * When a try ends short of fully correct with tries left, the attempt
+   * continues with a fresh try (see `retryVerdict`); otherwise it is terminal,
+   * and no tries remain.
+   */
+  triesRemaining: number;
+
+  /**
+   * How the learner's last try was judged, when it fell short and the attempt
+   * continued with a fresh try. Present from the submission that ended that try
+   * until the fresh try ends, and drawn on the template until the fresh try's
+   * first submission. Meanwhile `score` stays the last try's.
+   */
+  retryVerdict?: 'incorrect' | 'partial';
+}
+
+/**
+ * Identifies a feedback element by its tag, outcome-identifier and identifier.
+ */
+export interface FeedbackIdentity {
+  tagName: string;
+  outcomeIdentifier: string;
+  identifier: string;
+}
+
+/**
+ * Options that govern how an attempt is delivered to the learner.
+ *
+ * Chosen when an attempt begins and fixed for its life. The defaults follow QTI:
+ * feedback as the item's rules decide, no evaluation of the response beyond what
+ * the item renders, and choices shuffled only where the item says `shuffle="true"`.
+ * None of the options changes scoring.
+ */
+export interface DeliveryOptions {
+  /**
+   * Show feedback that appears when the attempt becomes terminal.
+   * Feedback shown on earlier turns is unaffected. Defaults to `true`.
+   */
+  showFeedback?: boolean;
+
+  /**
+   * What the learner is told about how their response was judged, once the
+   * attempt is terminal. Each level includes the one before it:
+   * - `'none'`: nothing beyond what the item renders
+   * - `'correctness'`: each interaction is marked correct, incorrect or partial
+   * - `'correctResponse'`: the verdict, plus each interaction's correct response
+   *
+   * Defaults to `'none'`.
+   */
+  showEvaluation?: 'none' | 'correctness' | 'correctResponse';
+
+  /**
+   * Overrides the item's `shuffle` attributes:
+   * - `'none'`: follow them, as QTI does
+   * - `'shuffle'`: shuffle every interaction that supports shuffling unless it says `shuffle="false"`
+   * - `'never'`: never shuffle
+   *
+   * Choices marked `fixed` keep their position under every value. Defaults to `'none'`.
+   */
+  shuffleOverride?: 'none' | 'shuffle' | 'never';
+
+  /**
+   * How many tries the learner gets. A try ends when response processing
+   * completes the item: every submission for a non-adaptive item, or the
+   * submission an adaptive item completes itself on.
+   *
+   * A try that ends short of fully correct, with tries left, starts a fresh try:
+   * the item's outcomes are reset, and its feedback waits for the attempt to be
+   * terminal. A non-adaptive item keeps the learner's responses, each
+   * interaction marked with its verdict; an adaptive item starts over, with the
+   * `adaptiveRetryMessage` at the top.
+   *
+   * The attempt is terminal once a try is fully correct, the tries run out, or
+   * a try awaits manual scoring. `'smart'` derives the number from the item's
+   * interactions. Defaults to `1`.
+   */
+  maxTries?: number | 'smart';
+
+  /**
+   * Shown at the top of an adaptive item when it starts a fresh try, with `{n}`
+   * replaced by the tries remaining. Defaults to
+   * `"That wasn't quite right. Tries remaining: {n}"`.
+   */
+  adaptiveRetryMessage?: string;
+}
+
+/**
+ * Options for previewing an item (see `renderPreview`).
+ */
+export interface PreviewOptions {
+  /**
+   * Show only the feedback the item shows as an attempt begins, rather than
+   * all of it; correct responses are shown either way. An adaptive item is
+   * always previewed compact: its feedback belongs to the stages of an
+   * attempt, which a preview has not run. Defaults to `false`.
+   */
+  compact?: boolean;
 }
 
 /**
@@ -93,10 +238,74 @@ export interface AttemptState {
 export type ResponseData = Record<string, unknown>;
 
 /**
- * Async callback to resolve asset URLs.
- * Receives an array of source URLs and returns resolved URLs in the same order.
+ * An asset URL to resolve, as authored, with the document it appears in.
  */
-export type AssetResolver = (urls: string[]) => Promise<string[]>;
+export interface AssetRequest {
+  /** The URL, unresolved, as authored: relative URLs are relative to its document */
+  url: string;
+  /**
+   * The href of the document the URL appears in, as the rendered document
+   * references it (e.g. a docked stimulus's `href`). Missing when the URL
+   * appears in the rendered document itself.
+   */
+  base?: string;
+}
+
+/**
+ * Async callback to resolve asset URLs.
+ * Receives an array of asset requests and returns resolved URLs in the same order.
+ */
+export type AssetResolver = (assets: AssetRequest[]) => Promise<string[]>;
+
+/**
+ * An item's reference to a shared stimulus (`qti-assessment-stimulus-ref`).
+ */
+export interface StimulusReference {
+  /** The identifier the item knows the stimulus by */
+  identifier: string;
+  /** The URI of the stimulus, relative to the item, as authored */
+  href: string;
+  /** The stimulus title, when the reference has one */
+  title?: string;
+}
+
+/**
+ * A stimulus an item depends on (see `listItemDependencies`).
+ */
+export interface StimulusDependency extends StimulusReference {
+  /**
+   * Whether the item body places the stimulus itself, with an element whose
+   * `data-stimulus-idref` names it. A docked stimulus is inlined into the item's
+   * templates (see `ProcessingOptions.resolveStimuli`); the delivery system
+   * places one that is not.
+   */
+  docked: boolean;
+}
+
+/**
+ * Everything external an item definition references, for a host to resolve.
+ */
+export interface ItemDependencies {
+  /** Unique asset URLs, unresolved, in document order */
+  assets: string[];
+  /** The stimuli the item references, in document order */
+  stimuli: StimulusDependency[];
+}
+
+/**
+ * Everything external a stimulus definition references, for a host to resolve.
+ */
+export interface StimulusDependencies {
+  /** Unique asset URLs, unresolved, relative to the stimulus, in document order */
+  assets: string[];
+}
+
+/**
+ * Async callback to resolve shared stimuli.
+ * Receives stimulus references and returns the `qti-assessment-stimulus` XML of each,
+ * in the same order.
+ */
+export type StimulusResolver = (refs: StimulusReference[]) => Promise<string[]>;
 
 /**
  * Options for template processing operations.
@@ -105,7 +314,20 @@ export interface ProcessingOptions {
   /**
    * Optional async callback to resolve asset URLs before returning sanitized XML.
    * When provided, all `src` and `data` attributes are collected and passed to this
-   * resolver in batch. The resolved URLs replace the original attribute values.
+   * resolver in batch, including those of docked stimuli, each with the document
+   * it appears in (see `AssetRequest`). The resolved URLs replace the original
+   * attribute values.
    */
   resolveAssets?: AssetResolver;
+
+  /**
+   * Async callback to resolve the stimuli an item docks in its body (see
+   * `StimulusDependency.docked`). Required to render an item that docks one.
+   * The docked stimuli are passed to this resolver in batch, and the body of
+   * each is inlined into its dock, before assets are resolved (its assets
+   * with the stimulus's `href` as their `base`). Stimuli the item
+   * references without docking are left to the delivery system, and never
+   * passed here.
+   */
+  resolveStimuli?: StimulusResolver;
 }

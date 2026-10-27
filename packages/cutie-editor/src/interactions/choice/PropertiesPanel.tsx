@@ -1,10 +1,11 @@
 import type { Path } from 'slate';
-import { PropertyField } from '../../components/properties/PropertyField';
-import { PropertyCheckbox } from '../../components/properties/PropertyCheckbox';
-import { ToggleableFormSection } from '../../components/properties/ToggleableFormSection';
-import { MappingMetadataFields } from '../../components/properties/MappingMetadataFields';
-import { MapEntryList } from '../../components/properties/MapEntryList';
-import type { QtiChoiceInteraction, QtiSimpleChoice, ChoiceIdLabel, ElementAttributes, XmlNode } from '../../types';
+import { PropertyField } from '../../components/properties/PropertyField.js';
+import { ShuffleRadioGroup } from '../../components/properties/ShuffleRadioGroup.js';
+import { PropertyCheckbox } from '../../components/properties/PropertyCheckbox.js';
+import { ToggleableFormSection } from '../../components/properties/ToggleableFormSection.js';
+import { MappingMetadataFields } from '../../components/properties/MappingMetadataFields.js';
+import { MapEntryList } from '../../components/properties/MapEntryList.js';
+import type { QtiChoiceInteraction, QtiSimpleChoice, ChoiceIdLabel, ElementAttributes, XmlNode } from '../../types.js';
 import {
   getCorrectValues,
   setCorrectValues,
@@ -13,7 +14,7 @@ import {
   addEmptyCorrectResponse,
   updateIdentifier,
   updateCardinality,
-} from '../../utils/responseDeclaration';
+} from '../../utils/responseDeclaration.js';
 import {
   hasMapping,
   getMapping,
@@ -22,7 +23,7 @@ import {
   updateMapping,
   type MappingMetadata,
   type MapEntry,
-} from '../../utils/mappingDeclaration';
+} from '../../utils/mappingDeclaration.js';
 
 interface ChoicePropertiesPanelProps {
   element: QtiChoiceInteraction;
@@ -106,16 +107,6 @@ export function ChoicePropertiesPanel({
       const updatedDecl = removeCorrectResponse(responseDecl);
       onUpdate(path, attrs, updatedDecl);
     }
-  };
-
-  const handleShuffleChange = (checked: boolean) => {
-    const newAttrs = { ...attrs };
-    if (checked) {
-      newAttrs.shuffle = 'true';
-    } else {
-      delete newAttrs.shuffle;
-    }
-    onUpdate(path, newAttrs, responseDecl);
   };
 
   const handleCorrectValueToggle = (choiceId: string, isCorrect: boolean) => {
@@ -206,10 +197,9 @@ export function ChoicePropertiesPanel({
         min="0"
       />
 
-      <PropertyCheckbox
-        label="Shuffle choices"
-        checked={attrs.shuffle === 'true'}
-        onChange={handleShuffleChange}
+      <ShuffleRadioGroup
+        attributes={attrs}
+        onChange={(newAttrs) => onUpdate(path, newAttrs, responseDecl)}
       />
 
       <ToggleableFormSection

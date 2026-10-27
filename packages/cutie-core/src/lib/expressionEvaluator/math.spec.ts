@@ -1,6 +1,6 @@
 import { DOMParser } from '@xmldom/xmldom';
 import { describe, expect, test } from 'vitest';
-import { compareMathExpressions, getFormulaComparisonMode } from './math';
+import { compareMathExpressions, getFormulaComparisonMode } from './math.js';
 
 const parser = new DOMParser();
 
@@ -73,6 +73,12 @@ describe('compareMathExpressions', () => {
 
     test('handles polynomial equivalence', () => {
       expect(compareMathExpressions('(x+1)(x-1)', 'x^2-1', 'algebraic')).toBe(true);
+    });
+
+    test('handles decimal coefficients', () => {
+      expect(compareMathExpressions('-0.1x+70', '70-0.1x', 'algebraic')).toBe(true);
+      expect(compareMathExpressions('x(28-0.014x)', '28x-0.014x^2', 'algebraic')).toBe(true);
+      expect(compareMathExpressions('28-0.014x', '28-0.028x', 'algebraic')).toBe(false);
     });
 
     test('rejects non-equivalent expressions', () => {

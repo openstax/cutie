@@ -17,6 +17,7 @@ packages=( \
   "cutie-core" \
   "cutie-client" \
   "cutie-editor" \
+  "cutie-samples" \
 )
 
 for package in "${packages[@]}"; do

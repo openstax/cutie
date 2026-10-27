@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ItemStateImpl } from '../../../state/itemState';
-import { registry } from '../../registry';
-import type { TransformContext } from '../../types';
+import { ItemStateImpl } from '../../../state/itemState.js';
+import { registry } from '../../registry.js';
+import type { TransformContext } from '../../types.js';
 
 // Side-effect import to register the handler
-import './index';
+import './index.js';
 
 function createQtiDocument(interactionHtml: string): Document {
   const html = `
@@ -294,7 +294,7 @@ describe('matchInteraction validation', () => {
       const container = document.createElement('div');
       container.appendChild(fragment);
 
-      itemState.setInteractionsEnabled(false);
+      itemState.setInteractionState('disabled');
 
       const matchContainer = container.querySelector('.cutie-match-interaction')!;
       expect(matchContainer.classList.contains('cutie-match-interaction--disabled')).toBe(true);
@@ -307,8 +307,8 @@ describe('matchInteraction validation', () => {
       const container = document.createElement('div');
       container.appendChild(fragment);
 
-      itemState.setInteractionsEnabled(false);
-      itemState.setInteractionsEnabled(true);
+      itemState.setInteractionState('disabled');
+      itemState.setInteractionState('enabled');
 
       const matchContainer = container.querySelector('.cutie-match-interaction')!;
       expect(matchContainer.classList.contains('cutie-match-interaction--disabled')).toBe(false);
@@ -373,5 +373,73 @@ describe('matchInteraction validation', () => {
       const constraintEl = container.querySelector('.cutie-constraint-text')!;
       expect(constraintEl.classList.contains('cutie-constraint-error')).toBe(true);
     });
+  });
+});
+
+describe('matchInteraction evaluation', () => {
+  let itemState: ItemStateImpl;
+
+  beforeEach(() => {
+    itemState = new ItemStateImpl();
+  });
+
+  function render(interactionAttrs: string, declaration: string): HTMLElement {
+    const doc = createQtiDocument(`
+      <qti-response-declaration identifier="R1" cardinality="multiple" base-type="directedPair">
+        ${declaration}
+      </qti-response-declaration>
+      ${BASIC_MATCH_QTI.replace('response-identifier="R1"', `response-identifier="R1" ${interactionAttrs}`)}
+    `);
+    const container = document.createElement('div');
+    container.appendChild(transformInteraction(doc, itemState));
+    return container;
+  }
+
+  const choice = (container: HTMLElement, id: string) =>
+    container.querySelector<HTMLElement>(`.cutie-match-choice[data-identifier="${id}"]`)!;
+  const keyOf = (container: HTMLElement, id: string) =>
+    choice(container, id).parentElement!.querySelector('.cutie-correct-answer');
+
+  it('renders nothing when there is no verdict or correct response', () => {
+    const container = render('', '<qti-default-value><qti-value>S1 T1</qti-value></qti-default-value>');
+    expect(container.querySelector('.cutie-correct-answer')).toBeNull();
+    expect(container.querySelector('.cutie-evaluated')).toBeNull();
+    // The rail is reserved regardless, so evaluation shifts nothing
+    expect(container.querySelector('.cutie-match-interaction')!.classList.contains('cutie-status-rail')).toBe(true);
+  });
+
+  it('describes the response in the constraint text, announced with the group', () => {
+    const container = render('data-cutie-evaluation="correct"', '');
+    const group = container.querySelector('.cutie-match-interaction')!;
+    expect(container.querySelector('.cutie-verdict')).toBeNull();
+    expect(container.querySelector('#constraint-R1')!.textContent).toBe('Correct response');
+    expect(group.getAttribute('aria-describedby')).toContain('constraint-R1');
+    expect(group.classList.contains('cutie-evaluated--correct')).toBe(true);
+  });
+
+  it('shows each choice its correct partners, reciprocally, by displayed labels', () => {
+    const container = render(
+      'data-cutie-evaluation="partial"',
+      `<qti-default-value><qti-value>S1 T2</qti-value></qti-default-value>
+       <qti-correct-response><qti-value>S1 T1</qti-value><qti-value>S2 T1</qti-value></qti-correct-response>`,
+    );
+    expect(keyOf(container, 'S1')!.textContent).toBe('Correct answer: Target 1');
+    expect(keyOf(container, 'S2')!.textContent).toBe('Correct answer: Target 1');
+    // A choice matched with several shows them all
+    expect(keyOf(container, 'T1')!.textContent).toBe('Correct answer: Source 1, Source 2');
+    // No correct partner, no key
+    expect(keyOf(container, 'T2')).toBeNull();
+  });
+
+  it('places the key between the choice and its chips, describing the choice', () => {
+    const container = render(
+      'data-cutie-evaluation="incorrect"',
+      '<qti-correct-response><qti-value>S1 T1</qti-value></qti-correct-response>',
+    );
+    const source = choice(container, 'S1');
+    const key = source.nextElementSibling!;
+    expect(key.classList.contains('cutie-correct-answer')).toBe(true);
+    expect(key.nextElementSibling!.classList.contains('cutie-match-choice-chips')).toBe(true);
+    expect(source.getAttribute('aria-describedby')).toContain(key.id);
   });
 });

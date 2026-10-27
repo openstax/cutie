@@ -1,5 +1,5 @@
 import { Editor, Element, Transforms } from 'slate';
-import { generateUniqueResponseId } from '../../utils/idGenerator';
+import { generateUniqueResponseId } from '../../utils/idGenerator.js';
 
 /**
  * Generate a unique source identifier within the interaction
@@ -98,7 +98,6 @@ export function insertMatchInteraction(
   editor: Editor,
   config: {
     responseIdentifier?: string;
-    shuffle?: boolean;
     maxAssociations?: number;
   } = {}
 ): void {
@@ -108,7 +107,6 @@ export function insertMatchInteraction(
     type: 'qti-match-interaction',
     attributes: {
       'response-identifier': responseId,
-      shuffle: config.shuffle ? 'true' : undefined,
       'max-associations': config.maxAssociations?.toString(),
     },
     children: [

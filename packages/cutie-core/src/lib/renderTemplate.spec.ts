@@ -1,7 +1,8 @@
 /* spell-checker: ignore mrow COEFF */
 import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
 import { describe, expect, test } from 'vitest';
-import { renderTemplate } from './renderTemplate';
+import { resolveDeliveryOptions } from './deliveryOptions.js';
+import { renderTemplate } from './renderTemplate.js';
 
 /**
  * Normalizes XML string by parsing and re-serializing it.
@@ -124,6 +125,10 @@ describe('renderTemplate', () => {
           MIN: 40,
         },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -168,6 +173,10 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -189,6 +198,10 @@ describe('renderTemplate', () => {
           TEXT: 'hello',
         },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -197,15 +210,15 @@ describe('renderTemplate', () => {
   });
 
   describe('2. qti-template-block conditional visibility', () => {
-    test('shows template-block when template-identifier matches variable value', async () => {
+    test('shows a template-block when its template variable matches its identifier', async () => {
       const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
 <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
   <qti-template-declaration identifier="SHOW_SECTION" cardinality="single" base-type="identifier"/>
   <qti-item-body>
-    <qti-template-block template-identifier="section1" identifier="block1" show-hide="show">
+    <qti-template-block template-identifier="SHOW_SECTION" identifier="section1" show-hide="show">
       <p>This is section 1</p>
     </qti-template-block>
-    <qti-template-block template-identifier="section2" identifier="block2" show-hide="show">
+    <qti-template-block template-identifier="SHOW_SECTION" identifier="section2" show-hide="show">
       <p>This is section 2</p>
     </qti-template-block>
   </qti-item-body>
@@ -217,6 +230,10 @@ describe('renderTemplate', () => {
           SHOW_SECTION: 'section1',
         },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -224,12 +241,12 @@ describe('renderTemplate', () => {
       expect(template).not.toContain('This is section 2');
     });
 
-    test('hides template-block when show-hide is "hide" and template-identifier matches', async () => {
+    test('hides a template-block when show-hide is "hide" and its template variable matches', async () => {
       const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
 <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
   <qti-template-declaration identifier="HIDE_SECTION" cardinality="single" base-type="identifier"/>
   <qti-item-body>
-    <qti-template-block template-identifier="secret" identifier="block1" show-hide="hide">
+    <qti-template-block template-identifier="HIDE_SECTION" identifier="secret" show-hide="hide">
       <p>This should be hidden</p>
     </qti-template-block>
     <p>This should be visible</p>
@@ -242,6 +259,10 @@ describe('renderTemplate', () => {
           HIDE_SECTION: 'secret',
         },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -249,18 +270,18 @@ describe('renderTemplate', () => {
       expect(template).toContain('This should be visible');
     });
 
-    test('handles multiple template-identifiers in a multiple cardinality variable', async () => {
+    test('shows the template-blocks whose identifiers a multiple cardinality variable contains', async () => {
       const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
 <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
   <qti-template-declaration identifier="VISIBLE_SECTIONS" cardinality="multiple" base-type="identifier"/>
   <qti-item-body>
-    <qti-template-block template-identifier="intro" identifier="block1" show-hide="show">
+    <qti-template-block template-identifier="VISIBLE_SECTIONS" identifier="intro" show-hide="show">
       <p>Introduction</p>
     </qti-template-block>
-    <qti-template-block template-identifier="details" identifier="block2" show-hide="show">
+    <qti-template-block template-identifier="VISIBLE_SECTIONS" identifier="details" show-hide="show">
       <p>Details</p>
     </qti-template-block>
-    <qti-template-block template-identifier="conclusion" identifier="block3" show-hide="show">
+    <qti-template-block template-identifier="VISIBLE_SECTIONS" identifier="conclusion" show-hide="show">
       <p>Conclusion</p>
     </qti-template-block>
   </qti-item-body>
@@ -272,6 +293,10 @@ describe('renderTemplate', () => {
           VISIBLE_SECTIONS: ['intro', 'conclusion'],
         },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -281,13 +306,44 @@ describe('renderTemplate', () => {
     });
   });
 
+  describe('2b. shown template content is unwrapped', () => {
+    test('replaces a template-block with its qti-content-body content, and a template-inline with its children', async () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
+  <qti-template-declaration identifier="V" cardinality="single" base-type="identifier"/>
+  <qti-item-body>
+    <qti-template-block template-identifier="V" identifier="shown">
+      <qti-content-body><p>Block content</p></qti-content-body>
+    </qti-template-block>
+    <p>Before <qti-template-inline template-identifier="V" identifier="shown"><b>inline</b></qti-template-inline> after</p>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = await renderTemplate(itemDoc, {
+        variables: { V: 'shown' },
+        completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
+        score: null,
+      });
+
+      expect(template).not.toContain('qti-template-');
+      expect(template).not.toContain('qti-content-body');
+      expect(template).toContain('<p>Block content</p>');
+      expect(template).toContain('Before <b>inline</b> after');
+    });
+  });
+
   describe('3. qti-template-inline conditional visibility', () => {
-    test('shows template-inline when template-identifier matches variable value', async () => {
+    test('shows a template-inline when its template variable matches its identifier', async () => {
       const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
 <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
   <qti-template-declaration identifier="WORD_CHOICE" cardinality="single" base-type="identifier"/>
   <qti-item-body>
-    <p>The answer is <qti-template-inline template-identifier="correct" identifier="inline1" show-hide="show">definitely correct</qti-template-inline><qti-template-inline template-identifier="incorrect" identifier="inline2" show-hide="show">unfortunately incorrect</qti-template-inline>.</p>
+    <p>The answer is <qti-template-inline template-identifier="WORD_CHOICE" identifier="correct" show-hide="show">definitely correct</qti-template-inline><qti-template-inline template-identifier="WORD_CHOICE" identifier="incorrect" show-hide="show">unfortunately incorrect</qti-template-inline>.</p>
   </qti-item-body>
 </qti-assessment-item>`;
 
@@ -297,6 +353,10 @@ describe('renderTemplate', () => {
           WORD_CHOICE: 'correct',
         },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -304,12 +364,12 @@ describe('renderTemplate', () => {
       expect(template).not.toContain('unfortunately incorrect');
     });
 
-    test('hides template-inline when show-hide is "hide" and template-identifier matches', async () => {
+    test('hides a template-inline when show-hide is "hide" and its template variable matches', async () => {
       const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
 <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
   <qti-template-declaration identifier="HIDE_WORD" cardinality="single" base-type="identifier"/>
   <qti-item-body>
-    <p>The <qti-template-inline template-identifier="secret" identifier="inline1" show-hide="hide">SECRET</qti-template-inline> word is hidden.</p>
+    <p>The <qti-template-inline template-identifier="HIDE_WORD" identifier="secret" show-hide="hide">SECRET</qti-template-inline> word is hidden.</p>
   </qti-item-body>
 </qti-assessment-item>`;
 
@@ -319,6 +379,10 @@ describe('renderTemplate', () => {
           HIDE_WORD: 'secret',
         },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -328,14 +392,43 @@ describe('renderTemplate', () => {
   });
 
   describe('3b. Show-hide / template-identifier on choice elements', () => {
+    test('show-hide defaults to "show"', async () => {
+      const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier"/>
+  <qti-template-declaration identifier="VARIANT" cardinality="single" base-type="identifier"/>
+  <qti-item-body>
+    <qti-choice-interaction response-identifier="RESPONSE" max-choices="1">
+      <qti-simple-choice identifier="A" template-identifier="VARIANT">Choice A</qti-simple-choice>
+      <qti-simple-choice identifier="B" template-identifier="VARIANT">Choice B</qti-simple-choice>
+    </qti-choice-interaction>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+      const itemDoc = parser.parseFromString(itemXml, 'text/xml');
+      const template = await renderTemplate(itemDoc, {
+        variables: { VARIANT: 'B' },
+        completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
+        score: null,
+      });
+
+      expect(template).not.toContain('Choice A');
+      expect(template).toContain('Choice B');
+    });
+
     test('qti-simple-choice with show-hide="show" hides non-matching choice', async () => {
       const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
 <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
   <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier"/>
+  <qti-template-declaration identifier="VARIANT" cardinality="single" base-type="identifier"/>
   <qti-item-body>
     <qti-choice-interaction response-identifier="RESPONSE" max-choices="1">
-      <qti-simple-choice identifier="A" template-identifier="choiceA" show-hide="show">Choice A</qti-simple-choice>
-      <qti-simple-choice identifier="B" template-identifier="choiceB" show-hide="show">Choice B</qti-simple-choice>
+      <qti-simple-choice identifier="A" template-identifier="VARIANT" show-hide="show">Choice A</qti-simple-choice>
+      <qti-simple-choice identifier="B" template-identifier="VARIANT" show-hide="show">Choice B</qti-simple-choice>
       <qti-simple-choice identifier="C">Choice C</qti-simple-choice>
     </qti-choice-interaction>
   </qti-item-body>
@@ -343,8 +436,13 @@ describe('renderTemplate', () => {
 
       const itemDoc = parser.parseFromString(itemXml, 'text/xml');
       const template = await renderTemplate(itemDoc, {
-        variables: { VARIANT: 'choiceA' },
+        // A value in another variable is not the template variable's
+        variables: { VARIANT: 'A', FEEDBACK: 'B' },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -360,7 +458,7 @@ describe('renderTemplate', () => {
   <qti-item-body>
     <p>Select:
       <qti-inline-choice-interaction response-identifier="RESPONSE">
-        <qti-inline-choice identifier="X" template-identifier="optX" show-hide="hide">Option X</qti-inline-choice>
+        <qti-inline-choice identifier="X" template-identifier="HIDE_OPT" show-hide="hide">Option X</qti-inline-choice>
         <qti-inline-choice identifier="Y">Option Y</qti-inline-choice>
       </qti-inline-choice-interaction>
     </p>
@@ -369,8 +467,12 @@ describe('renderTemplate', () => {
 
       const itemDoc = parser.parseFromString(itemXml, 'text/xml');
       const template = await renderTemplate(itemDoc, {
-        variables: { HIDE_OPT: 'optX' },
+        variables: { HIDE_OPT: 'X' },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -385,8 +487,8 @@ describe('renderTemplate', () => {
   <qti-item-body>
     <qti-match-interaction response-identifier="RESPONSE">
       <qti-simple-match-set>
-        <qti-simple-associable-choice identifier="S1" match-max="1" template-identifier="src1" show-hide="show">Source 1</qti-simple-associable-choice>
-        <qti-simple-associable-choice identifier="S2" match-max="1" template-identifier="src2" show-hide="show">Source 2</qti-simple-associable-choice>
+        <qti-simple-associable-choice identifier="S1" match-max="1" template-identifier="VARIANT" show-hide="show">Source 1</qti-simple-associable-choice>
+        <qti-simple-associable-choice identifier="S2" match-max="1" template-identifier="VARIANT" show-hide="show">Source 2</qti-simple-associable-choice>
       </qti-simple-match-set>
       <qti-simple-match-set>
         <qti-simple-associable-choice identifier="T1" match-max="1">Target 1</qti-simple-associable-choice>
@@ -397,8 +499,12 @@ describe('renderTemplate', () => {
 
       const itemDoc = parser.parseFromString(itemXml, 'text/xml');
       const template = await renderTemplate(itemDoc, {
-        variables: { VARIANT: 'src1' },
+        variables: { VARIANT: 'S1' },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -413,8 +519,8 @@ describe('renderTemplate', () => {
   <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="directedPair"/>
   <qti-item-body>
     <qti-gap-match-interaction response-identifier="RESPONSE">
-      <qti-gap-text identifier="W1" match-max="1" template-identifier="word1" show-hide="show">Word1</qti-gap-text>
-      <qti-gap-text identifier="W2" match-max="1" template-identifier="word2" show-hide="show">Word2</qti-gap-text>
+      <qti-gap-text identifier="W1" match-max="1" template-identifier="VARIANT" show-hide="show">Word1</qti-gap-text>
+      <qti-gap-text identifier="W2" match-max="1" template-identifier="VARIANT" show-hide="show">Word2</qti-gap-text>
       <p>Fill the <qti-gap identifier="G1"/></p>
     </qti-gap-match-interaction>
   </qti-item-body>
@@ -422,8 +528,12 @@ describe('renderTemplate', () => {
 
       const itemDoc = parser.parseFromString(itemXml, 'text/xml');
       const template = await renderTemplate(itemDoc, {
-        variables: { VARIANT: 'word1' },
+        variables: { VARIANT: 'W1' },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -437,8 +547,8 @@ describe('renderTemplate', () => {
   <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="directedPair"/>
   <qti-item-body>
     <qti-gap-match-interaction response-identifier="RESPONSE">
-      <qti-gap-img identifier="I1" match-max="1" template-identifier="img1" show-hide="show"><img src="a.png" alt="A"/></qti-gap-img>
-      <qti-gap-img identifier="I2" match-max="1" template-identifier="img2" show-hide="show"><img src="b.png" alt="B"/></qti-gap-img>
+      <qti-gap-img identifier="I1" match-max="1" template-identifier="VARIANT" show-hide="show"><img src="a.png" alt="A"/></qti-gap-img>
+      <qti-gap-img identifier="I2" match-max="1" template-identifier="VARIANT" show-hide="show"><img src="b.png" alt="B"/></qti-gap-img>
       <p>Fill the <qti-gap identifier="G1"/></p>
     </qti-gap-match-interaction>
   </qti-item-body>
@@ -446,8 +556,12 @@ describe('renderTemplate', () => {
 
       const itemDoc = parser.parseFromString(itemXml, 'text/xml');
       const template = await renderTemplate(itemDoc, {
-        variables: { VARIANT: ['img1', 'img2'] },
+        variables: { VARIANT: ['I1', 'I2'] },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -462,15 +576,19 @@ describe('renderTemplate', () => {
   <qti-item-body>
     <qti-gap-match-interaction response-identifier="RESPONSE">
       <qti-gap-text identifier="W1" match-max="1">Word1</qti-gap-text>
-      <p>Fill <qti-gap identifier="G1" template-identifier="gap1" show-hide="hide"/> and <qti-gap identifier="G2"/></p>
+      <p>Fill <qti-gap identifier="G1" template-identifier="VARIANT" show-hide="hide"/> and <qti-gap identifier="G2"/></p>
     </qti-gap-match-interaction>
   </qti-item-body>
 </qti-assessment-item>`;
 
       const itemDoc = parser.parseFromString(itemXml, 'text/xml');
       const template = await renderTemplate(itemDoc, {
-        variables: { VARIANT: 'gap1' },
+        variables: { VARIANT: 'G1' },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -501,6 +619,10 @@ describe('renderTemplate', () => {
           FEEDBACK: ['correct'],
         },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -529,6 +651,10 @@ describe('renderTemplate', () => {
           HINTS: ['hint1', 'hint2'],
         },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -551,6 +677,10 @@ describe('renderTemplate', () => {
           INLINE_FEEDBACK: 'right',
         },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -578,6 +708,10 @@ describe('renderTemplate', () => {
           STATUS: 'complete',
         },
         completionStatus: 'completed',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -606,6 +740,10 @@ describe('renderTemplate', () => {
           FEEDBACK: 'correct',
         },
         completionStatus: 'completed',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -634,6 +772,10 @@ describe('renderTemplate', () => {
           FEEDBACK: ['hint1', 'hint2'],
         },
         completionStatus: 'completed',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -648,6 +790,10 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -661,6 +807,10 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -672,6 +822,10 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -683,6 +837,10 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -694,6 +852,10 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -722,6 +884,10 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -752,6 +918,10 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -780,6 +950,10 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -788,29 +962,36 @@ describe('renderTemplate', () => {
       expect(template).not.toContain('identifier="UNUSED"');
     });
 
-    test('removes declarations for interactions hidden by template conditionals', async () => {
+    test('removes declarations for interactions inside hidden feedback', async () => {
       const itemXml = `<?xml version="1.0" encoding="UTF-8"?>
 <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test">
   <qti-response-declaration identifier="VISIBLE_RESPONSE" cardinality="single" base-type="identifier"/>
   <qti-response-declaration identifier="HIDDEN_RESPONSE" cardinality="single" base-type="identifier"/>
+  <qti-outcome-declaration identifier="STEP" cardinality="single" base-type="identifier"/>
   <qti-item-body>
     <qti-choice-interaction response-identifier="VISIBLE_RESPONSE">
       <qti-simple-choice identifier="A">A</qti-simple-choice>
     </qti-choice-interaction>
-    <qti-template-block template-identifier="showExtra" identifier="block1" show-hide="show">
+    <!-- An adaptive item's next step: interactions may sit in feedback (as in
+         the spec's Monty Hall example), never in a qti-template-block -->
+    <qti-feedback-block outcome-identifier="STEP" identifier="second" show-hide="show">
       <qti-choice-interaction response-identifier="HIDDEN_RESPONSE">
         <qti-simple-choice identifier="B">B</qti-simple-choice>
       </qti-choice-interaction>
-    </qti-template-block>
+    </qti-feedback-block>
   </qti-item-body>
 </qti-assessment-item>`;
 
       const itemDoc = parser.parseFromString(itemXml, 'text/xml');
       const template = await renderTemplate(itemDoc, {
         variables: {
-          // showExtra is not set, so template-block will be hidden
+          // STEP is not set, so the feedback block is hidden
         },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -836,6 +1017,10 @@ describe('renderTemplate', () => {
           RESPONSE: 'ChoiceB',
         },
         completionStatus: 'incomplete',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -862,6 +1047,10 @@ describe('renderTemplate', () => {
           RESPONSE: ['A', 'C'],
         },
         completionStatus: 'incomplete',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -886,6 +1075,10 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -915,6 +1108,10 @@ describe('renderTemplate', () => {
           RESPONSE: 'ChoiceA',
         },
         completionStatus: 'incomplete',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -954,6 +1151,10 @@ describe('renderTemplate', () => {
           B: 12,
         },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -983,6 +1184,10 @@ describe('renderTemplate', () => {
           COEFF: 3.14,
         },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -1013,6 +1218,10 @@ describe('renderTemplate', () => {
           VAR: 7,
         },
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -1037,10 +1246,14 @@ describe('renderTemplate', () => {
         {
           variables: {},
           completionStatus: 'not_attempted',
+          options: resolveDeliveryOptions(),
+          triesAllowed: 1,
+          triesUsed: 0,
+          triesRemaining: 1,
           score: null,
         },
         {
-          resolveAssets: async (urls) => urls.map((url) => `/resolved/${url}`),
+          resolveAssets: async (assets) => assets.map(({ url }) => `/resolved/${url}`),
         }
       );
 
@@ -1062,10 +1275,14 @@ describe('renderTemplate', () => {
         {
           variables: {},
           completionStatus: 'not_attempted',
+          options: resolveDeliveryOptions(),
+          triesAllowed: 1,
+          triesUsed: 0,
+          triesRemaining: 1,
           score: null,
         },
         {
-          resolveAssets: async (urls) => urls.map((url) => `/cdn/${url}`),
+          resolveAssets: async (assets) => assets.map(({ url }) => `/cdn/${url}`),
         }
       );
 
@@ -1090,12 +1307,16 @@ describe('renderTemplate', () => {
         {
           variables: {},
           completionStatus: 'not_attempted',
+          options: resolveDeliveryOptions(),
+          triesAllowed: 1,
+          triesUsed: 0,
+          triesRemaining: 1,
           score: null,
         },
         {
-          resolveAssets: async (urls) => {
-            receivedUrls.push(...urls);
-            return urls.map((url) => `/resolved/${url}`);
+          resolveAssets: async (assets) => {
+            receivedUrls.push(...assets.map(({ url }) => url));
+            return assets.map(({ url }) => `/resolved/${url}`);
           },
         }
       );
@@ -1127,12 +1348,16 @@ describe('renderTemplate', () => {
         {
           variables: {},
           completionStatus: 'not_attempted',
+          options: resolveDeliveryOptions(),
+          triesAllowed: 1,
+          triesUsed: 0,
+          triesRemaining: 1,
           score: null,
         },
         {
-          resolveAssets: async (urls) => {
-            receivedUrls.push(...urls);
-            return urls.map((url) => `/resolved/${url}`);
+          resolveAssets: async (assets) => {
+            receivedUrls.push(...assets.map(({ url }) => url));
+            return assets.map(({ url }) => `/resolved/${url}`);
           },
         }
       );
@@ -1155,6 +1380,10 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -1176,12 +1405,16 @@ describe('renderTemplate', () => {
         {
           variables: {},
           completionStatus: 'not_attempted',
+          options: resolveDeliveryOptions(),
+          triesAllowed: 1,
+          triesUsed: 0,
+          triesRemaining: 1,
           score: null,
         },
         {
-          resolveAssets: async (urls) => {
+          resolveAssets: async (assets) => {
             resolverCalled = true;
-            return urls;
+            return assets.map(({ url }) => url);
           },
         }
       );
@@ -1207,6 +1440,10 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -1230,6 +1467,10 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -1251,6 +1492,10 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -1278,6 +1523,10 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -1300,6 +1549,10 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
       });
 
@@ -1325,6 +1578,10 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
         shuffleOrders: {
           RESPONSE: ['C', 'A', 'B'],
@@ -1356,6 +1613,10 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
         shuffleOrders: {
           RESPONSE: ['B', 'A'],
@@ -1388,6 +1649,10 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
         // No shuffleOrders provided
       });
@@ -1417,6 +1682,10 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
         shuffleOrders: {
           RESPONSE: ['Z', 'X', 'Y'],
@@ -1453,6 +1722,10 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
         shuffleOrders: {
           RESPONSE_0: ['S2', 'S1'],
@@ -1489,6 +1762,10 @@ describe('renderTemplate', () => {
       const template = await renderTemplate(itemDoc, {
         variables: {},
         completionStatus: 'not_attempted',
+        options: resolveDeliveryOptions(),
+        triesAllowed: 1,
+        triesUsed: 0,
+        triesRemaining: 1,
         score: null,
         shuffleOrders: {
           RESPONSE: ['W3', 'W1', 'W2'],

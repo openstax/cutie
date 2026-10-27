@@ -1,10 +1,10 @@
 import type { Path } from 'slate';
 import { Editor, Node, Transforms } from 'slate';
 import { useSlate } from 'slate-react';
-import { PropertyField } from '../../components/properties/PropertyField';
-import { ArrowUpIcon, ArrowDownIcon, DeleteIcon, AddIcon } from '../../components/icons';
-import { useStyle } from '../../hooks/useStyle';
-import type { QtiSimpleChoice, QtiChoiceInteraction, ChoiceIdLabel, ElementAttributes } from '../../types';
+import { PropertyField } from '../../components/properties/PropertyField.js';
+import { ArrowUpIcon, ArrowDownIcon, DeleteIcon, AddIcon } from '../../components/icons.js';
+import { useStyle } from '../../hooks/useStyle.js';
+import type { QtiSimpleChoice, QtiChoiceInteraction, ChoiceIdLabel, ElementAttributes } from '../../types.js';
 
 interface SimpleChoicePropertiesPanelProps {
   element: QtiSimpleChoice;

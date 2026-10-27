@@ -1,8 +1,8 @@
 import type { Descendant } from 'slate';
-import type { SerializationContext } from '../../../serialization/slateToXml';
-import type { ConvertChildrenFn, ParserContext } from '../../../serialization/xmlToSlate';
-import { createXmlElement } from '../../../serialization/xmlUtils';
-import type { QtiFeedbackBlock, SlateElement } from '../../../types';
+import type { SerializationContext } from '../../../serialization/slateToXml.js';
+import type { ConvertChildrenFn, ParserContext } from '../../../serialization/xmlToSlate.js';
+import { createXmlElement } from '../../../serialization/xmlUtils.js';
+import type { QtiFeedbackBlock, SlateElement } from '../../../types.js';
 
 /**
  * Parse QTI feedback block from XML

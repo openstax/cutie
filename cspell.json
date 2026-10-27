@@ -6,10 +6,12 @@
     "alignable",
     "blockquote",
     "bowtie",
+    "cloze",
     "NCLEX",
     "canonicalization",
     "contenteditable",
     "Jwks",
+    "nodenext",
     "listbox",
     "MAXSCORE",
     "Xapi",
@@ -20,6 +22,7 @@
     "gradebook",
     "hashable",
     "hotspot",
+    "idref",
     "jwks",
     "labelledby",
     "macroecon",
@@ -54,7 +57,9 @@
     "toggleable",
     "unsimplified",
     "unversioned",
-    "WCAG"
+    "WCAG",
+    "distractor",
+    "distractors"
   ],
   "flagWords": [],
   "ignorePaths": [

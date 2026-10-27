@@ -1,7 +1,6 @@
 export const MATCH_INTERACTION_STYLES = `
   .cutie-match-interaction {
     margin: 1em 0;
-    font-family: system-ui, -apple-system, sans-serif;
   }
 
   .cutie-match-interaction .cutie-prompt {
@@ -102,8 +101,8 @@ export const MATCH_INTERACTION_STYLES = `
   }
 
   .cutie-match-choice:focus {
-    outline: 3px solid var(--cutie-primary);
-    outline-offset: 2px;
+    outline: var(--cutie-focus-ring);
+    outline-offset: var(--cutie-focus-ring-offset);
   }
 
   .cutie-match-choice--selected {
@@ -182,8 +181,8 @@ export const MATCH_INTERACTION_STYLES = `
   }
 
   .cutie-match-chip:focus {
-    outline: 2px solid var(--cutie-primary);
-    outline-offset: 1px;
+    outline: var(--cutie-focus-ring);
+    outline-offset: var(--cutie-focus-ring-offset);
   }
 
   .cutie-match-chip--selected {
@@ -225,4 +224,19 @@ export const MATCH_INTERACTION_STYLES = `
     box-shadow: none;
   }
 
+  /*
+   * The choice's correct answer (shown once an attempt is evaluated), between
+   * the choice and its chips: the label and the matched choices on one line
+   */
+  .cutie-match-choice-wrapper > .cutie-correct-answer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.35em;
+    margin-top: 0.35em;
+  }
+
+  .cutie-match-choice-wrapper > .cutie-correct-answer > .cutie-correct-answer__value {
+    margin-top: 0;
+  }
 `;

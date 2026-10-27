@@ -1,5 +1,5 @@
-import { ERROR_DISPLAY_STYLES } from '../errors/errorDisplay';
-import type { StyleManager } from '../transformer/types';
+import { ERROR_DISPLAY_STYLES } from '../errors/errorDisplay.js';
+import type { StyleManager } from '../transformer/types.js';
 
 const BASE_STYLES_ID = 'cutie-base-styles';
 const ERROR_DISPLAY_STYLES_ID = 'cutie-error-display';
@@ -14,10 +14,27 @@ const BASE_STYLES = `
     --cutie-primary: #1976d2;
     --cutie-primary-fg: #fff;
     --cutie-primary-hover: #1e88e5;
-    --cutie-feedback-correct: #22c55e;
+    --cutie-feedback-correct: #0d7741;
     --cutie-feedback-incorrect: #d32f2f;
     --cutie-feedback-info: #4a90e2;
     --cutie-line-height: 1.5;
+    /* Size of supporting text around interactions: errors, validation messages, counters */
+    --cutie-supporting-text-size: 0.85em;
+    /* Width of the colored leading border that marks feedback and evaluated interactions */
+    --cutie-status-rail-width: 0.5em;
+    /* Space between an interaction's status rail and its content */
+    --cutie-status-rail-gap: 0.75em;
+    /*
+     * Room reserved above an answer option (a choice's text, a gap) for its
+     * correct-answer overline, so showing the overline shifts nothing.
+     * Clearance from the line above, the overline's line box (see
+     * .cutie-correct-answer-overline--value), and a gap above the option.
+     */
+    --cutie-overline-clearance: 0.5em;
+    --cutie-overline-slot: calc(var(--cutie-overline-clearance) + 0.875em * 1.5 + 0.25em);
+    /* Keyboard focus indicator, shared by every focusable control */
+    --cutie-focus-ring: 3px solid var(--cutie-primary);
+    --cutie-focus-ring-offset: 2px;
     color: var(--cutie-text);
     background-color: var(--cutie-bg);
     line-height: var(--cutie-line-height);
@@ -26,6 +43,39 @@ const BASE_STYLES = `
   .cutie-item-container img {
     max-width: 100%;
     height: auto;
+  }
+
+  .cutie-item-container table {
+    border-collapse: collapse;
+    margin: 0.75rem 0;
+  }
+
+  .cutie-item-container caption {
+    text-align: left;
+    font-weight: 600;
+    padding: 0.5rem 0;
+  }
+
+  .cutie-item-container th,
+  .cutie-item-container td {
+    border: 1px solid var(--cutie-border);
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .cutie-item-container thead th {
+    background-color: var(--cutie-bg-alt);
+  }
+  
+  /*
+   * Reserves an interaction's status rail in every state (transparent until
+   * the interaction is evaluated, see .cutie-evaluated), so coloring it once
+   * an attempt is finished shifts nothing.
+   */
+  .cutie-status-rail {
+    border-inline-start: var(--cutie-status-rail-width) solid transparent;
+    padding-inline-start: var(--cutie-status-rail-gap);
   }
 
   /*

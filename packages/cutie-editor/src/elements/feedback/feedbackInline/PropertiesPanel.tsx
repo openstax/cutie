@@ -1,8 +1,8 @@
 import type { Path } from 'slate';
 import { useSlate } from 'slate-react';
-import type { QtiFeedbackInline, ElementAttributes, ResponseProcessingConfig } from '../../../types';
-import { getAllFeedbackIdentifierOptions } from '../../../utils/feedbackIdentifiers';
-import { useStyle } from '../../../hooks/useStyle';
+import type { QtiFeedbackInline, ElementAttributes, ResponseProcessingConfig } from '../../../types.js';
+import { getAllFeedbackIdentifierOptions } from '../../../utils/feedbackIdentifiers.js';
+import { useStyle } from '../../../hooks/useStyle.js';
 import {
   FEEDBACK_PROPERTIES_STYLES,
   CustomModeWarning,
@@ -11,8 +11,8 @@ import {
   ReadonlyAttributeInfo,
   IdentifierTip,
   FeedbackTypeSelector,
-} from '..';
-import type { FeedbackType } from '..';
+} from '../index.js';
+import type { FeedbackType } from '../index.js';
 
 interface FeedbackInlinePropertiesPanelProps {
   element: QtiFeedbackInline;

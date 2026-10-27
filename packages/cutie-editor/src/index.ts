@@ -4,32 +4,32 @@
  */
 
 // Export main React component
-export { SlateEditor } from './editor/SlateEditor';
+export { SlateEditor } from './editor/SlateEditor.js';
 
 // Export serialization utilities
-export { parseXmlToSlate } from './serialization/xmlToSlate';
-export { serializeSlateToXml, serializeSlateToQti } from './serialization/slateToXml';
+export { parseXmlToSlate } from './serialization/xmlToSlate.js';
+export { serializeSlateToXml, serializeSlateToQti } from './serialization/slateToXml.js';
 export {
   domToXmlNode,
   xmlNodeToDom,
   findChild,
   findChildren,
-} from './serialization/xmlNode';
+} from './serialization/xmlNode.js';
 
 // Export plugins
 export {
   withQtiInteractions,
   withXhtml,
   withUnknownElements,
-} from './plugins';
+} from './plugins/index.js';
 
 // Export asset context hook
-export { useAssetHandlers } from './contexts/AssetContext';
+export { useAssetHandlers } from './contexts/AssetContext.js';
 
 // Export interaction insertion functions
-export { insertChoiceInteraction } from './interactions/choice';
-export { insertTextEntryInteraction } from './interactions/textEntry';
-export { insertExtendedTextInteraction } from './interactions/extendedText';
+export { insertChoiceInteraction } from './interactions/choice/index.js';
+export { insertTextEntryInteraction } from './interactions/textEntry/index.js';
+export { insertExtendedTextInteraction } from './interactions/extendedText/index.js';
 
 // Export types
 export type {
@@ -73,7 +73,7 @@ export type {
   // Feedback identifier types
   FeedbackIdentifier,
   FeedbackIdentifierSource,
-} from './types';
+} from './types.js';
 
 // Re-export Slate types for convenience
 export type { Descendant } from 'slate';

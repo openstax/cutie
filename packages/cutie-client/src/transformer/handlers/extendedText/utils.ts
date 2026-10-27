@@ -1,9 +1,11 @@
 import {
   type ConstraintMessage,
   createConstraintMessage,
-} from '../../../errors/validationDisplay';
-import { announce } from '../../../utils/liveRegion';
-import type { StyleManager, TransformContext } from '../../types';
+} from '../../../errors/validationDisplay.js';
+import { addAriaDescribedBy } from '../../../utils/aria.js';
+import { announce } from '../../../utils/liveRegion.js';
+import type { StyleManager, TransformContext } from '../../types.js';
+import { clearConstraintVerdict } from '../evaluation/index.js';
 
 /**
  * Create the outer container div for an extended-text interaction variant.
@@ -17,8 +19,8 @@ export function createInteractionContainer(
   const container = document.createElement('div');
   const sourceClasses = element.getAttribute('class');
   container.className = sourceClasses
-    ? `${className} ${sourceClasses}`
-    : className;
+    ? `${className} cutie-status-rail ${sourceClasses}`
+    : `${className} cutie-status-rail`;
   container.setAttribute('data-response-identifier', responseIdentifier);
   return container;
 }
@@ -102,7 +104,10 @@ export function getPatternText(
 
 export interface ConstraintResult {
   constraint: ConstraintMessage;
+  /** The text the message shows at rest: the verdict, if any, else the hint */
   initialText: string;
+  /** The constraint hint, shown in place of a verdict once it is cleared */
+  hintText: string | null;
   minStringsText: string | null;
   minCharactersText: string | null;
   patternText: string | null;
@@ -112,11 +117,16 @@ export interface ConstraintResult {
 /**
  * Create constraint message element if min-strings > 0 or pattern-mask is present.
  * Returns the constraint message and derived text, or null if no constraints apply.
+ *
+ * A finished attempt with a verdict passes its text as verdictText: the message
+ * then shows it in place of the constraint hint (whether or not there are
+ * constraints), so it is announced with the input.
  */
 export function createConstraintElements(
   constraints: ParsedConstraints,
   responseIdentifier: string,
   styleManager?: StyleManager,
+  verdictText: string | null = null,
 ): ConstraintResult | null {
   const { minStrings, patternMask, patternMessage, minCharacters, maxCharacters } = constraints;
   const minStringsText = getMinStringsText(minStrings);
@@ -124,9 +134,13 @@ export function createConstraintElements(
   const patternText = getPatternText(patternMask, patternMessage);
   const maxCharactersText = getMaxCharactersText(maxCharacters);
 
-  if (minStrings <= 0 && !patternMask && minCharacters === null && maxCharacters === null) return null;
+  const hasConstraints = minStrings > 0 || !!patternMask || minCharacters !== null || maxCharacters !== null;
+  if (!hasConstraints && !verdictText) return null;
 
-  const initialText = minCharactersText ?? minStringsText ?? patternText ?? maxCharactersText!;
+  const hintText = hasConstraints
+    ? minCharactersText ?? minStringsText ?? patternText ?? maxCharactersText
+    : null;
+  const initialText = verdictText ?? hintText!;
 
   const constraint = createConstraintMessage(
     `constraint-${responseIdentifier}`,
@@ -134,7 +148,17 @@ export function createConstraintElements(
     styleManager,
   );
 
-  return { constraint, initialText, minStringsText, minCharactersText, patternText, maxCharactersText };
+  return { constraint, initialText, hintText, minStringsText, minCharactersText, patternText, maxCharactersText };
+}
+
+/**
+ * Put the constraint hint back in place of a verdict the message showed (see
+ * clearConstraintVerdict), once the learner edits the response.
+ */
+export function clearConstraintResultVerdict(result: ConstraintResult | null, described: Element | null): void {
+  if (!result) return;
+  clearConstraintVerdict(result.constraint, described, result.hintText);
+  if (result.hintText) result.initialText = result.hintText;
 }
 
 /**
@@ -161,13 +185,7 @@ export function wireConstraintDescribedBy(
   inputElement: HTMLElement,
   constraintElement: HTMLElement,
 ): void {
-  const existing = inputElement.getAttribute('aria-describedby');
-  inputElement.setAttribute(
-    'aria-describedby',
-    existing
-      ? `${existing} ${constraintElement.id}`
-      : constraintElement.id,
-  );
+  addAriaDescribedBy(inputElement, constraintElement.id);
 }
 
 // ---------------------------------------------------------------------------
@@ -226,7 +244,7 @@ const CHARACTER_COUNTER_STYLES = `
 .cutie-character-counter {
   text-align: right;
   color: var(--cutie-text-muted);
-  font-size: 0.85em;
+  font-size: var(--cutie-supporting-text-size);
   margin-left: auto;
 }
 
@@ -247,6 +265,9 @@ const CHARACTER_COUNTER_STYLES = `
  * When `isHardLimit` is true the counter uses hard-limit wording
  * ("characters" / "characters remaining" / "over limit") instead of the
  * soft "suggested characters" language used for expected-length.
+ *
+ * In a preview (see isPreview) there is no response to count, so the counter
+ * shows only the target length.
  */
 export function createCharacterCounter(
   targetLength: number,
@@ -254,6 +275,7 @@ export function createCharacterCounter(
   responseIdentifier: string,
   styleManager?: StyleManager,
   isHardLimit = false,
+  preview = false,
 ): CharacterCounter {
   if (styleManager && !styleManager.hasStyle('cutie-character-counter')) {
     styleManager.addStyle('cutie-character-counter', CHARACTER_COUNTER_STYLES);
@@ -269,7 +291,11 @@ export function createCharacterCounter(
   wrapper.appendChild(span);
 
   function update(charCount: number): void {
-    if (direction === 'up') {
+    if (preview) {
+      span.textContent = isHardLimit
+        ? `${targetLength} character limit`
+        : `${targetLength} suggested characters`;
+    } else if (direction === 'up') {
       span.textContent = isHardLimit
         ? `${charCount} / ${targetLength} characters`
         : `${charCount} / ${targetLength} suggested characters`;
@@ -333,4 +359,105 @@ export function createInteractionFooter(
   if (counter) footer.appendChild(counter);
 
   return footer;
+}
+
+// ---------------------------------------------------------------------------
+// Read-only response
+// ---------------------------------------------------------------------------
+
+const READ_ONLY_RESPONSE_STYLES = `
+.cutie-read-only-response {
+  padding: 8px 12px;
+  font-size: 1.6rem;
+  line-height: 1.4;
+  border-inline-start: 3px solid var(--cutie-border);
+  background-color: var(--cutie-bg-alt);
+  overflow-wrap: anywhere;
+}
+
+.cutie-read-only-response.cutie-read-only-plain {
+  white-space: pre-wrap;
+}
+
+.cutie-read-only-response > :first-child {
+  margin-top: 0;
+}
+
+.cutie-read-only-response > :last-child {
+  margin-bottom: 0;
+}
+
+.cutie-read-only-response.cutie-read-only-empty {
+  color: var(--cutie-text-muted);
+  font-style: italic;
+}
+`.trim();
+
+const PREVIEW_EMPTY_TEXT = 'Students will write their response here.';
+const NO_RESPONSE_TEXT = 'No response.';
+
+/**
+ * Whether the item is rendered as a preview for an instructor, which
+ * cutie-core's renderPreview marks with data-cutie-preview on the item body.
+ */
+export function isPreview(element: Element): boolean {
+  return element.closest('qti-item-body')?.hasAttribute('data-cutie-preview') ?? false;
+}
+
+export interface ReadOnlyResponseOptions {
+  /** The source interaction element */
+  element: Element;
+  /** The prompt's id, which labels the response, if there is a prompt */
+  promptId: string | null;
+  /** The input the read-only response takes the place of while interactions are read-only */
+  input: HTMLElement;
+  /** The response's content, or null when there is none */
+  render: () => Node | null;
+  /** Whether the content is plain text, whose line breaks and spacing are kept */
+  plainText?: boolean;
+  context: TransformContext;
+}
+
+/**
+ * Create the read-only view of an extended-text response, shown in place of
+ * its input while the interaction state is `'readonly'`: the response once
+ * submitted or under review, or a muted note when there is none.
+ *
+ * Returns the view for the caller to place after the input.
+ */
+export function createReadOnlyResponse(options: ReadOnlyResponseOptions): HTMLDivElement {
+  const { element, promptId, input, render, plainText, context } = options;
+
+  if (context.styleManager && !context.styleManager.hasStyle('cutie-read-only-response')) {
+    context.styleManager.addStyle('cutie-read-only-response', READ_ONLY_RESPONSE_STYLES);
+  }
+
+  const view = document.createElement('div');
+  view.className = plainText ? 'cutie-read-only-response cutie-read-only-plain' : 'cutie-read-only-response';
+  view.setAttribute('role', 'group');
+  if (promptId) {
+    view.setAttribute('aria-labelledby', promptId);
+  } else {
+    view.setAttribute('aria-label', 'Response');
+  }
+  view.hidden = true;
+
+  const preview = isPreview(element);
+
+  const setReadOnly = (readOnly: boolean): void => {
+    input.hidden = readOnly;
+    view.hidden = !readOnly;
+    if (!readOnly) return;
+
+    const content = render();
+    view.replaceChildren(content ?? (preview ? PREVIEW_EMPTY_TEXT : NO_RESPONSE_TEXT));
+    view.classList.toggle('cutie-read-only-empty', content === null);
+  };
+
+  if (context.itemState) {
+    context.itemState.addObserver((state) => setReadOnly(state.interactionState === 'readonly'));
+    setReadOnly(context.itemState.interactionState === 'readonly');
+  }
+
+  return view;
 }

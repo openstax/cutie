@@ -1,5 +1,5 @@
-import { useStyle } from '../hooks/useStyle';
-import type { ResponseProcessingConfig, ResponseProcessingMode } from '../types';
+import { useStyle } from '../hooks/useStyle.js';
+import type { ResponseProcessingConfig, ResponseProcessingMode } from '../types.js';
 
 interface ResponseProcessingPanelProps {
   config: ResponseProcessingConfig;

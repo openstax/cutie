@@ -9,3 +9,13 @@ export interface ParsedQtiItem {
   /** The raw parsed XML Document */
   rawDocument: Document;
 }
+
+/**
+ * Parsed QTI stimulus structure
+ */
+export interface ParsedQtiStimulus {
+  /** The qti-stimulus-body element extracted from the QTI XML */
+  stimulusBody: Element;
+  /** The raw parsed XML Document */
+  rawDocument: Document;
+}

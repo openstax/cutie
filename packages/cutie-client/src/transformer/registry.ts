@@ -1,4 +1,4 @@
-import type { ElementHandler, HandlerRegistration } from './types';
+import type { ElementHandler, HandlerRegistration } from './types.js';
 
 /**
  * Registry for element handlers

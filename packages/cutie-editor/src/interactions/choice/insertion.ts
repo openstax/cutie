@@ -1,5 +1,5 @@
 import { Editor, Element, Transforms } from 'slate';
-import { generateUniqueResponseId } from '../../utils/idGenerator';
+import { generateUniqueResponseId } from '../../utils/idGenerator.js';
 
 /**
  * Insert a choice interaction at the current selection
@@ -10,7 +10,6 @@ export function insertChoiceInteraction(
     responseIdentifier?: string;
     maxChoices?: string;
     minChoices?: string;
-    shuffle?: boolean;
     choices?: Array<{ identifier: string; text?: string }>;
   } = {}
 ): void {
@@ -28,7 +27,6 @@ export function insertChoiceInteraction(
       'response-identifier': responseId,
       'max-choices': maxChoices,
       'min-choices': config.minChoices,
-      shuffle: config.shuffle ? 'true' : undefined,
     },
     children: [
       {
