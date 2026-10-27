@@ -2,7 +2,8 @@ import type { Descendant } from 'slate';
 import type { SerializationContext } from '../../serialization/slateToXml.js';
 import type { ConvertChildrenFn, ParserContext } from '../../serialization/xmlToSlate.js';
 import { createXmlElement } from '../../serialization/xmlUtils.js';
-import type { ParagraphElement, SlateElement } from '../../types.js';
+import type { SlateElement } from '../../types.js';
+import { isPlainParagraph } from '../../utils/paragraph.js';
 
 /**
  * Parse QTI prompt from XML
@@ -39,14 +40,6 @@ function isEmptyPrompt(element: SlateElement & { type: 'qti-prompt' }): boolean 
     isEmptyText(child) ||
     ('type' in child && child.type === 'paragraph' && child.children.every(isEmptyText))
   );
-}
-
-/**
- * Check if a paragraph has no attributes or alignment to lose when unwrapped
- */
-function isPlainParagraph(paragraph: ParagraphElement): boolean {
-  return !paragraph.align &&
-    Object.values(paragraph.attributes ?? {}).every((value) => value === undefined);
 }
 
 /**

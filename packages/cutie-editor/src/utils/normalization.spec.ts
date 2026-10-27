@@ -76,6 +76,19 @@ describe('ensurePromptFirst', () => {
 });
 
 describe('spacer paragraphs', () => {
+  it('keep empty paragraphs that have attributes', () => {
+    const doc = normalizeItemBody(`
+      <section>
+        <p id="answer-anchor"/>
+        <qti-choice-interaction response-identifier="RESPONSE" max-choices="1">
+          <qti-prompt>Pick one</qti-prompt>
+          <qti-simple-choice identifier="A">A</qti-simple-choice>
+        </qti-choice-interaction>
+      </section>`);
+
+    expect(doc.querySelector('section > p#answer-anchor')).not.toBeNull();
+  });
+
   it('are not saved inside xhtml containers', () => {
     const doc = normalizeItemBody(`
       <table><tbody><tr><td>

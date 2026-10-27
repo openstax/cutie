@@ -13,6 +13,7 @@ import { matchSerializers } from '../interactions/match/index.js';
 import { textEntrySerializers } from '../interactions/textEntry/index.js';
 import { elementNeedsSpacers } from '../plugins/withQtiInteractions.js';
 import type { DocumentMetadata, ElementConfig, ResponseProcessingConfig, ResponseProcessingMode, SerializationResult, SlateElement, SlateText, TextAlign, ValidationError } from '../types.js';
+import { isPlainParagraph } from '../utils/paragraph.js';
 import { generateResponseProcessingXml } from '../utils/responseProcessingGenerator.js';
 import { formatXmlDom } from './formatXmlDom.js';
 import { type XmlNode, xmlNodeToDom } from './xmlNode.js';
@@ -42,14 +43,14 @@ function isDocumentMetadata(node: Descendant): node is DocumentMetadata {
 }
 
 /**
- * Check if a node is an empty paragraph (only contains empty text)
+ * Check if a node is an empty, plain paragraph (only empty text, no attributes
+ * or alignment). An empty paragraph with attributes, such as an anchor, is kept.
  */
 function isEmptyParagraph(node: Descendant): boolean {
-  if (!('type' in node) || node.type !== 'paragraph') {
+  if (!('type' in node) || node.type !== 'paragraph' || !isPlainParagraph(node)) {
     return false;
   }
-  const element = node as SlateElement;
-  return element.children.every(
+  return node.children.every(
     (child) => 'text' in child && child.text === ''
   );
 }
