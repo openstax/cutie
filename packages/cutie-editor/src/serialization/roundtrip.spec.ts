@@ -721,6 +721,22 @@ describe('XML Round-trip Tests', () => {
       expect(undone.querySelector('qti-outcome-declaration[identifier="SCORE"]')?.getAttribute('normal-maximum')).toBe('2');
     });
 
+    it.each(['allCorrect', 'manual'] as const)('should restore externalMachine scoring when undoing a switch to %s', (mode) => {
+      const input = extendedTextItem(
+        '<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float" external-scored="externalMachine" normal-maximum="5"/>'
+      );
+      const customConfig = (parseXmlToSlate(input)[0] as DocumentMetadata).responseProcessing;
+      const switched = roundTrip(input, mode).outerHTML;
+
+      const nodes = parseXmlToSlate(switched);
+      (nodes[0] as DocumentMetadata).responseProcessing = customConfig;
+      const score = parseXml(serializeSlateToQti(nodes, switched).xml)
+        .querySelector('qti-outcome-declaration[identifier="SCORE"]');
+
+      expect(score?.getAttribute('external-scored')).toBe('externalMachine');
+      expect(score?.getAttribute('normal-maximum')).toBe('5');
+    });
+
     it('should clear human scoring when switching away from manual', () => {
       const item = roundTrip(extendedTextItem(
         '<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float" external-scored="human" normal-maximum="1.0"/>'

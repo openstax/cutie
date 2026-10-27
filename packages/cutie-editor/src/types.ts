@@ -40,7 +40,12 @@ export interface ResponseProcessingConfig {
   mode: ResponseProcessingMode;
   /** For 'custom' mode: preserve original XML for round-trip */
   customXml?: XmlNode;
-  /** For 'manual' mode: SCORE's normal-maximum, kept here so undo restores it */
+  /**
+   * SCORE's external-scored and normal-maximum as loaded. Kept here, in editor
+   * state that undo restores, because saving updates SCORE in the XML: undoing a
+   * mode switch restores them from the config.
+   */
+  externalScored?: string;
   normalMaximum?: string;
 }
 

@@ -746,15 +746,18 @@ function updateOutcomeDeclarations(
 }
 
 /**
- * Keep the SCORE outcome declaration in step with the manual scoring mode.
+ * Keep the SCORE outcome declaration in step with the scoring mode.
  *
- * - manual: SCORE is external-scored="human", with a normal-maximum from the
- *   config (1.0 if none) so delivery knows the points available, and no default
- *   value so it has no score until graded. The maximum comes from the config, not
- *   the XML being updated, so undoing a mode switch restores it
- * - other modes: undo the above when switching away from manual
- * - allCorrect/sumScores: clear external-scored="externalMachine", since the
- *   generated response processing now sets SCORE
+ * The external-scored and normal-maximum written here come from the config, not
+ * the XML being updated, so undoing a mode switch restores them.
+ *
+ * - manual: SCORE is external-scored="human", with a normal-maximum (1.0 if none)
+ *   so delivery knows the points available, and no default value so it has no
+ *   score until graded
+ * - custom: SCORE's attributes as loaded
+ * - allCorrect/sumScores: generated response processing sets SCORE, so it isn't
+ *   externally scored; switching from manual also drops its maximum and restores
+ *   a default value of 0
  *
  * @param assessmentItem - The qti-assessment-item element
  * @param config - The response processing config
@@ -765,10 +768,16 @@ function updateScoreOutcomeDeclaration(
   config: ResponseProcessingConfig | undefined,
   doc: Document
 ): void {
-  const mode = config?.mode;
   let score = assessmentItem.querySelector('qti-outcome-declaration[identifier="SCORE"]');
+  const setOrRemove = (element: Element, name: string, value: string | undefined) => {
+    if (value === undefined) {
+      element.removeAttribute(name);
+    } else {
+      element.setAttribute(name, value);
+    }
+  };
 
-  if (mode === 'manual') {
+  if (config?.mode === 'manual') {
     // The mode is recorded on SCORE, so an item without one needs it declared
     if (!score) {
       score = createXmlElement(doc, 'qti-outcome-declaration');
@@ -778,23 +787,24 @@ function updateScoreOutcomeDeclaration(
       insertAssessmentItemChild(assessmentItem, score);
     }
     score.setAttribute('external-scored', 'human');
-    score.setAttribute('normal-maximum', config?.normalMaximum ?? '1.0');
+    score.setAttribute('normal-maximum', config.normalMaximum ?? '1.0');
     score.querySelector('qti-default-value')?.remove();
-  } else if (score?.getAttribute('external-scored') === 'human') {
-    score.removeAttribute('external-scored');
-    score.removeAttribute('normal-maximum');
-    if (!score.querySelector('qti-default-value')) {
-      const defaultValue = createXmlElement(doc, 'qti-default-value');
-      const value = createXmlElement(doc, 'qti-value');
-      value.textContent = '0';
-      defaultValue.appendChild(value);
-      score.appendChild(defaultValue);
+  } else if (!score) {
+    return;
+  } else if (config?.mode === 'custom') {
+    setOrRemove(score, 'external-scored', config.externalScored);
+    setOrRemove(score, 'normal-maximum', config.normalMaximum);
+  } else if (score.hasAttribute('external-scored')) {
+    if (score.getAttribute('external-scored') === 'human') {
+      score.removeAttribute('normal-maximum');
+      if (!score.querySelector('qti-default-value')) {
+        const defaultValue = createXmlElement(doc, 'qti-default-value');
+        const value = createXmlElement(doc, 'qti-value');
+        value.textContent = '0';
+        defaultValue.appendChild(value);
+        score.appendChild(defaultValue);
+      }
     }
-  } else if (
-    score?.getAttribute('external-scored') === 'externalMachine' &&
-    (mode === 'allCorrect' || mode === 'sumScores')
-  ) {
-    // Generated response processing now sets SCORE; custom mode keeps the marker
     score.removeAttribute('external-scored');
   }
 }
