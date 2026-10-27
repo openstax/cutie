@@ -17,6 +17,10 @@ Set \`shuffle="true"\` unless the order of the options matters. If only some \
 options depend on their position (such as "All of the above"), mark those options \
 \`fixed="true"\` instead of turning shuffle off.`;
 
+export const choiceText = `\
+Put each choice's text in a \`<p>\`, followed by the choice's feedback: \
+\`<qti-simple-choice><p>Choice text</p><qti-feedback-block>…</qti-feedback-block></qti-simple-choice>\`.`;
+
 export const workedSolution = `\
 After the interactions, include one \`qti-feedback-block\` with identifier \
 \`ITEM_completed\`, shown once the item is completed whether the response is \

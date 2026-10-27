@@ -1,5 +1,6 @@
 /* spell-checker: ignore hypovolemia hypoactive */
 import {
+  choiceText,
   correctResponse,
   outcomes,
   responseProcessingOrder,
@@ -19,6 +20,7 @@ options.
 - Set \`min-choices="1"\` and \`max-choices\` to the number named in the prompt, so \
 the learner can't select more than that.
 - ${shuffle}
+- ${choiceText}
 - Every choice ends with its own \`qti-feedback-block\` with identifier \
 \`RESPONSE_choice_<choiceId>\`, shown when that choice is selected, explaining why \
 that finding or action is right or wrong. It has no \`data-feedback-type\` and no \
@@ -71,43 +73,43 @@ adaptive="false" time-dependent="false" xml:lang="en">
     <qti-choice-interaction response-identifier="RESPONSE" shuffle="true" min-choices="1" max-choices="3">
       <qti-prompt>Select the 3 findings that require immediate follow-up.</qti-prompt>
       <qti-simple-choice identifier="choiceA">
-        Heart rate 122 beats/min
+        <p>Heart rate 122 beats/min</p>
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceA" show-hide="show">
           <p>Tachycardia is often the earliest sign of hypovolemia. The heart beats faster to maintain cardiac output as circulating volume drops.</p>
         </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceB">
-        Blood pressure 88/50 mm Hg
+        <p>Blood pressure 88/50 mm Hg</p>
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceB" show-hide="show">
           <p>Hypotension means compensation is failing. Together with a fast heart rate, it suggests hemorrhage and possible shock.</p>
         </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceC">
-        Skin cool and clammy
+        <p>Skin cool and clammy</p>
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceC" show-hide="show">
           <p>Cool, clammy skin shows the body is shunting blood away from the skin to the vital organs, a sign of shock.</p>
         </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceD">
-        Incision pain rated 4 on a 0 to 10 scale
+        <p>Incision pain rated 4 on a 0 to 10 scale</p>
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceD" show-hide="show">
           <p>Moderate incision pain is expected 2 hours after abdominal surgery. The nurse manages it with the prescribed analgesics, but it doesn't need immediate follow-up.</p>
         </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceE">
-        Temperature 37.4 °C (99.3 °F)
+        <p>Temperature 37.4 °C (99.3 °F)</p>
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceE" show-hide="show">
           <p>A slight temperature rise is common in the first day after surgery as part of the inflammatory response.</p>
         </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceF">
-        Hypoactive bowel sounds
+        <p>Hypoactive bowel sounds</p>
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceF" show-hide="show">
           <p>Anesthesia and handling of the bowel slow peristalsis, so hypoactive bowel sounds are expected soon after bowel surgery.</p>
         </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceG">
-        Oxygen saturation 95% on 2 L/min by nasal cannula
+        <p>Oxygen saturation 95% on 2 L/min by nasal cannula</p>
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceG" show-hide="show">
           <p>An oxygen saturation of 95% with supplemental oxygen is within the expected range after surgery.</p>
         </qti-feedback-block>

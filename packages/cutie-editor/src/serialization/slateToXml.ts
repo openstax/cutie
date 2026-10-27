@@ -11,6 +11,7 @@ import { gapMatchSerializers } from '../interactions/gapMatch/index.js';
 import { inlineChoiceSerializers } from '../interactions/inlineChoice/index.js';
 import { matchSerializers } from '../interactions/match/index.js';
 import { textEntrySerializers } from '../interactions/textEntry/index.js';
+import { elementNeedsSpacers } from '../plugins/withQtiInteractions.js';
 import type { DocumentMetadata, ElementConfig, ResponseProcessingConfig, SerializationResult, SlateElement, SlateText, TextAlign, ValidationError } from '../types.js';
 import { generateResponseProcessingXml } from '../utils/responseProcessingGenerator.js';
 import { formatXmlDom } from './formatXmlDom.js';
@@ -60,6 +61,17 @@ function isEmptyParagraph(node: Descendant): boolean {
  */
 function stripEmptySpacerParagraphs(nodes: Descendant[]): Descendant[] {
   return nodes.filter((node) => !isEmptyParagraph(node));
+}
+
+/**
+ * Check if a child is a spacer paragraph: an empty paragraph next to an
+ * element that the editor surrounds with spacers for cursor positioning.
+ */
+function isSpacerParagraph(siblings: Descendant[], index: number): boolean {
+  if (!isEmptyParagraph(siblings[index])) return false;
+  const isSpacedElement = (node: Descendant | undefined) =>
+    node !== undefined && 'type' in node && elementNeedsSpacers(node);
+  return isSpacedElement(siblings[index - 1]) || isSpacedElement(siblings[index + 1]);
 }
 
 /**
@@ -170,7 +182,8 @@ function convertSlateNodeToXml(
 
   // Helper to convert children
   const convertChildren = (children: Descendant[], parent: Element | DocumentFragment) => {
-    for (const child of children) {
+    for (const [index, child] of children.entries()) {
+      if (isSpacerParagraph(children, index)) continue;
       const childNode = convertSlateNodeToXml(child, context);
       if (childNode) {
         parent.appendChild(childNode);

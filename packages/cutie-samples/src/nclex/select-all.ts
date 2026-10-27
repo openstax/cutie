@@ -1,5 +1,6 @@
 /* spell-checker: ignore furosemide Henle hypokalemia */
 import {
+  choiceText,
   correctResponse,
   outcomes,
   responseProcessingOrder,
@@ -17,6 +18,7 @@ one correct.
 
 - ${clinicalScenario}
 - ${shuffle}
+- ${choiceText}
 - Every choice ends with its own \`qti-feedback-block\` with identifier \
 \`RESPONSE_choice_<choiceId>\`, shown when that choice is selected, explaining why \
 that finding or action is right or wrong. It has no \`data-feedback-type\` and no \
@@ -69,37 +71,37 @@ adaptive="false" time-dependent="false" xml:lang="en">
     <qti-choice-interaction response-identifier="RESPONSE" shuffle="true" min-choices="1" max-choices="0">
       <qti-prompt>Which findings indicate that the medication is having the desired effect? Select all that apply.</qti-prompt>
       <qti-simple-choice identifier="choiceA">
-        Fewer crackles heard in the lung bases
+        <p>Fewer crackles heard in the lung bases</p>
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceA" show-hide="show">
           <p>Crackles in the lung bases come from fluid in the alveoli. Fewer crackles means pulmonary congestion is easing as the diuretic removes excess fluid.</p>
         </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceB">
-        Weight down 1.2 kg (2.6 lb) since yesterday
+        <p>Weight down 1.2 kg (2.6 lb) since yesterday</p>
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceB" show-hide="show">
           <p>Daily weight is the most reliable measure of fluid balance. A loss of about 1 kg reflects about 1 L of fluid removed, which is the goal of diuresis.</p>
         </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceC">
-        Urine output increased after the dose
+        <p>Urine output increased after the dose</p>
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceC" show-hide="show">
           <p>Furosemide blocks sodium and water reabsorption in the loop of Henle, so increased urine output shows the drug is working.</p>
         </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceD">
-        Serum potassium 3.1 mEq/L
+        <p>Serum potassium 3.1 mEq/L</p>
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceD" show-hide="show">
           <p>A potassium level below 3.5 mEq/L is hypokalemia, a common adverse effect of loop diuretics. It needs follow-up, but it isn't a sign of the desired effect.</p>
         </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceE">
-        New 2+ pitting edema in both ankles
+        <p>New 2+ pitting edema in both ankles</p>
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceE" show-hide="show">
           <p>New or worsening edema means fluid is still building up, so the diuretic isn't yet having the desired effect.</p>
         </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceF">
-        Respiratory rate 28 breaths/min
+        <p>Respiratory rate 28 breaths/min</p>
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceF" show-hide="show">
           <p>A respiratory rate of 28 breaths/min is above the normal range and suggests the client is still working hard to breathe. It doesn't show improvement.</p>
         </qti-feedback-block>

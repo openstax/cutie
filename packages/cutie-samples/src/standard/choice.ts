@@ -2,6 +2,7 @@
 import type { Sample } from '../types.js';
 import {
   allOrNothingMatch,
+  choiceText,
   correctResponse,
   outcomes,
   responseProcessingOrder,
@@ -15,6 +16,7 @@ A single-select multiple choice question: \`qti-choice-interaction\` with \
 
 - Set \`min-choices="1"\` so a choice must be selected before submitting.
 - ${shuffle}
+- ${choiceText}
 - Every choice ends with its own \`qti-feedback-block\` with identifier \
 \`RESPONSE_choice_<choiceId>\`, shown when that choice is selected. The text \
 explains why that specific choice is right or wrong (for example, the \
@@ -58,25 +60,25 @@ adaptive="false" time-dependent="false" xml:lang="en">
     <qti-choice-interaction response-identifier="RESPONSE" shuffle="true" min-choices="1" max-choices="1">
       <qti-prompt>In a eukaryotic cell, which organelle produces most of the cell's ATP through cellular respiration?</qti-prompt>
       <qti-simple-choice identifier="choiceA">
-        Mitochondrion
+        <p>Mitochondrion</p>
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceA" show-hide="show">
           <p>The citric acid cycle and the electron transport chain both take place in the mitochondrion, and together they produce most of the ATP made during cellular respiration.</p>
         </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceB">
-        Ribosome
+        <p>Ribosome</p>
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceB" show-hide="show">
           <p>Ribosomes use ATP to build proteins, but they don't produce it. Their job is translating mRNA into chains of amino acids.</p>
         </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceC">
-        Golgi apparatus
+        <p>Golgi apparatus</p>
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceC" show-hide="show">
           <p>The Golgi apparatus modifies, sorts, and packages proteins and lipids for transport. It isn't involved in producing energy.</p>
         </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceD">
-        Lysosome
+        <p>Lysosome</p>
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceD" show-hide="show">
           <p>Lysosomes break down waste and worn-out cell parts with digestive enzymes. Breaking molecules down there doesn't capture energy as ATP.</p>
         </qti-feedback-block>
