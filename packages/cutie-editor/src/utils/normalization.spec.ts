@@ -102,6 +102,19 @@ describe('spacer paragraphs', () => {
     expect(doc.querySelector('section > p#answer-anchor')).not.toBeNull();
   });
 
+  it.each(['div', 'blockquote'])('are not saved inside a %s', (tagName) => {
+    const doc = normalizeItemBody(`
+      <${tagName}>
+        <qti-choice-interaction response-identifier="RESPONSE" max-choices="1">
+          <qti-prompt>Pick one</qti-prompt>
+          <qti-simple-choice identifier="A">A</qti-simple-choice>
+        </qti-choice-interaction>
+      </${tagName}>`);
+
+    const container = doc.querySelector(tagName)!;
+    expect(Array.from(container.children).map(child => child.localName)).toEqual(['qti-choice-interaction']);
+  });
+
   it('are not saved inside xhtml containers', () => {
     const doc = normalizeItemBody(`
       <table><tbody><tr><td>

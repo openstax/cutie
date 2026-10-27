@@ -167,6 +167,11 @@ const interactionSerializers: Record<string, (el: SlateElement, ctx: Serializati
 };
 
 /**
+ * Converts children into a parent, skipping editor spacer paragraphs
+ */
+type ConvertChildren = (children: Descendant[], parent: Element | DocumentFragment) => void;
+
+/**
  * Convert a Slate node to an XML element or text node
  */
 function convertSlateNodeToXml(
@@ -182,7 +187,7 @@ function convertSlateNodeToXml(
   const element = node as SlateElement;
 
   // Helper to convert children
-  const convertChildren = (children: Descendant[], parent: Element | DocumentFragment) => {
+  const convertChildren: ConvertChildren = (children, parent) => {
     for (const [index, child] of children.entries()) {
       if (isSpacerParagraph(children, index)) continue;
       const childNode = convertSlateNodeToXml(child, context);
@@ -202,22 +207,22 @@ function convertSlateNodeToXml(
   switch (element.type) {
 
     case 'qti-unknown':
-      return convertUnknownQtiElement(element, context);
+      return convertUnknownQtiElement(element, context, convertChildren);
 
     case 'xhtml-element':
       return convertXhtmlElement(element, context, convertChildren);
 
     case 'paragraph':
-      return convertParagraph(element, context);
+      return convertParagraph(element, context, convertChildren);
 
     case 'div':
-      return convertDiv(element, context);
+      return convertDiv(element, context, convertChildren);
 
     case 'span':
-      return convertSpan(element, context);
+      return convertSpan(element, context, convertChildren);
 
     case 'heading':
-      return convertHeading(element, context);
+      return convertHeading(element, context, convertChildren);
 
     case 'image':
       return convertImage(element, context);
@@ -226,26 +231,26 @@ function convertSlateNodeToXml(
       return convertLineBreak(element, context);
 
     case 'list':
-      return convertList(element, context);
+      return convertList(element, context, convertChildren);
 
     case 'list-item':
-      return convertListItem(element, context);
+      return convertListItem(element, context, convertChildren);
 
     case 'strong':
-      return convertStrong(element, context);
+      return convertStrong(element, context, convertChildren);
 
     case 'em':
-      return convertEm(element, context);
+      return convertEm(element, context, convertChildren);
 
     case 'blockquote':
-      return convertBlockquote(element, context);
+      return convertBlockquote(element, context, convertChildren);
 
     case 'horizontal-rule':
       return convertHorizontalRule(element, context);
 
     default:
       // Unknown element type - treat as div
-      return convertDiv(element as any, context);
+      return convertDiv(element as any, context, convertChildren);
   }
 }
 
@@ -297,7 +302,8 @@ function convertTextNodeToXml(
  */
 function convertUnknownQtiElement(
   element: SlateElement & { type: 'qti-unknown' },
-  context: SerializationContext
+  context: SerializationContext,
+  convertChildren: ConvertChildren
 ): Element | null {
   // Track responses bound inside the element
   for (const [responseId, declaration] of Object.entries(element.responseDeclarations ?? {})) {
@@ -323,12 +329,7 @@ function convertUnknownQtiElement(
 
   // Convert children if not void
   if (!element.isVoid) {
-    for (const child of element.children) {
-      const childNode = convertSlateNodeToXml(child, context);
-      if (childNode) {
-        xmlElement.appendChild(childNode);
-      }
-    }
+    convertChildren(element.children, xmlElement);
   }
 
   return xmlElement;
@@ -340,7 +341,7 @@ function convertUnknownQtiElement(
 function convertXhtmlElement(
   element: SlateElement & { type: 'xhtml-element' },
   context: SerializationContext,
-  convertChildren: (children: Descendant[], parent: Element | DocumentFragment) => void
+  convertChildren: ConvertChildren
 ): Element {
   const xmlElement = createXmlElement(context.doc, element.tagName);
 
@@ -361,7 +362,8 @@ function convertXhtmlElement(
  */
 function convertParagraph(
   element: SlateElement & { type: 'paragraph'; align?: TextAlign },
-  context: SerializationContext
+  context: SerializationContext,
+  convertChildren: ConvertChildren
 ): Element {
   const xmlElement = createXmlElement(context.doc, 'p');
 
@@ -375,13 +377,7 @@ function convertParagraph(
     xmlElement.setAttribute('style', style);
   }
 
-  // Convert children
-  for (const child of element.children) {
-    const childNode = convertSlateNodeToXml(child, context);
-    if (childNode) {
-      xmlElement.appendChild(childNode);
-    }
-  }
+  convertChildren(element.children, xmlElement);
 
   return xmlElement;
 }
@@ -391,7 +387,8 @@ function convertParagraph(
  */
 function convertDiv(
   element: SlateElement & { type: 'div' },
-  context: SerializationContext
+  context: SerializationContext,
+  convertChildren: ConvertChildren
 ): Element {
   const xmlElement = createXmlElement(context.doc, 'div');
 
@@ -399,13 +396,7 @@ function convertDiv(
     setAttributes(xmlElement, element.attributes);
   }
 
-  // Convert children
-  for (const child of element.children) {
-    const childNode = convertSlateNodeToXml(child, context);
-    if (childNode) {
-      xmlElement.appendChild(childNode);
-    }
-  }
+  convertChildren(element.children, xmlElement);
 
   return xmlElement;
 }
@@ -415,7 +406,8 @@ function convertDiv(
  */
 function convertSpan(
   element: SlateElement & { type: 'span' },
-  context: SerializationContext
+  context: SerializationContext,
+  convertChildren: ConvertChildren
 ): Element {
   const xmlElement = createXmlElement(context.doc, 'span');
 
@@ -423,13 +415,7 @@ function convertSpan(
     setAttributes(xmlElement, element.attributes);
   }
 
-  // Convert children
-  for (const child of element.children) {
-    const childNode = convertSlateNodeToXml(child, context);
-    if (childNode) {
-      xmlElement.appendChild(childNode);
-    }
-  }
+  convertChildren(element.children, xmlElement);
 
   return xmlElement;
 }
@@ -439,7 +425,8 @@ function convertSpan(
  */
 function convertHeading(
   element: SlateElement & { type: 'heading'; align?: TextAlign },
-  context: SerializationContext
+  context: SerializationContext,
+  convertChildren: ConvertChildren
 ): Element {
   const xmlElement = createXmlElement(context.doc, `h${element.level}`);
 
@@ -453,13 +440,7 @@ function convertHeading(
     xmlElement.setAttribute('style', style);
   }
 
-  // Convert children
-  for (const child of element.children) {
-    const childNode = convertSlateNodeToXml(child, context);
-    if (childNode) {
-      xmlElement.appendChild(childNode);
-    }
-  }
+  convertChildren(element.children, xmlElement);
 
   return xmlElement;
 }
@@ -495,7 +476,8 @@ function convertLineBreak(
  */
 function convertList(
   element: SlateElement & { type: 'list' },
-  context: SerializationContext
+  context: SerializationContext,
+  convertChildren: ConvertChildren
 ): Element {
   const tagName = element.ordered ? 'ol' : 'ul';
   const xmlElement = createXmlElement(context.doc, tagName);
@@ -504,13 +486,7 @@ function convertList(
     setAttributes(xmlElement, element.attributes);
   }
 
-  // Convert children
-  for (const child of element.children) {
-    const childNode = convertSlateNodeToXml(child, context);
-    if (childNode) {
-      xmlElement.appendChild(childNode);
-    }
-  }
+  convertChildren(element.children, xmlElement);
 
   return xmlElement;
 }
@@ -520,7 +496,8 @@ function convertList(
  */
 function convertListItem(
   element: SlateElement & { type: 'list-item' },
-  context: SerializationContext
+  context: SerializationContext,
+  convertChildren: ConvertChildren
 ): Element {
   const xmlElement = createXmlElement(context.doc, 'li');
 
@@ -528,13 +505,7 @@ function convertListItem(
     setAttributes(xmlElement, element.attributes);
   }
 
-  // Convert children
-  for (const child of element.children) {
-    const childNode = convertSlateNodeToXml(child, context);
-    if (childNode) {
-      xmlElement.appendChild(childNode);
-    }
-  }
+  convertChildren(element.children, xmlElement);
 
   return xmlElement;
 }
@@ -544,7 +515,8 @@ function convertListItem(
  */
 function convertStrong(
   element: SlateElement & { type: 'strong' },
-  context: SerializationContext
+  context: SerializationContext,
+  convertChildren: ConvertChildren
 ): Element {
   const xmlElement = createXmlElement(context.doc, 'strong');
 
@@ -552,13 +524,7 @@ function convertStrong(
     setAttributes(xmlElement, element.attributes);
   }
 
-  // Convert children
-  for (const child of element.children) {
-    const childNode = convertSlateNodeToXml(child, context);
-    if (childNode) {
-      xmlElement.appendChild(childNode);
-    }
-  }
+  convertChildren(element.children, xmlElement);
 
   return xmlElement;
 }
@@ -568,7 +534,8 @@ function convertStrong(
  */
 function convertEm(
   element: SlateElement & { type: 'em' },
-  context: SerializationContext
+  context: SerializationContext,
+  convertChildren: ConvertChildren
 ): Element {
   const xmlElement = createXmlElement(context.doc, 'em');
 
@@ -576,13 +543,7 @@ function convertEm(
     setAttributes(xmlElement, element.attributes);
   }
 
-  // Convert children
-  for (const child of element.children) {
-    const childNode = convertSlateNodeToXml(child, context);
-    if (childNode) {
-      xmlElement.appendChild(childNode);
-    }
-  }
+  convertChildren(element.children, xmlElement);
 
   return xmlElement;
 }
@@ -592,7 +553,8 @@ function convertEm(
  */
 function convertBlockquote(
   element: SlateElement & { type: 'blockquote'; align?: TextAlign },
-  context: SerializationContext
+  context: SerializationContext,
+  convertChildren: ConvertChildren
 ): Element {
   const xmlElement = createXmlElement(context.doc, 'blockquote');
 
@@ -606,13 +568,7 @@ function convertBlockquote(
     xmlElement.setAttribute('style', style);
   }
 
-  // Convert children
-  for (const child of element.children) {
-    const childNode = convertSlateNodeToXml(child, context);
-    if (childNode) {
-      xmlElement.appendChild(childNode);
-    }
-  }
+  convertChildren(element.children, xmlElement);
 
   return xmlElement;
 }
