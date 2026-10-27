@@ -355,6 +355,19 @@ const interactionRenderers: Record<string, React.ComponentType<RenderElementProp
 };
 
 /**
+ * React props for the authored attributes of a passthrough xhtml element that
+ * change its layout or visibility. Other attributes are saved but not rendered.
+ */
+function xhtmlDisplayProps(el: SlateElement & { type: 'xhtml-element' }): Record<string, unknown> {
+  const props: Record<string, unknown> = {};
+  if (el.attributes?.['colspan']) props['colSpan'] = el.attributes['colspan'];
+  if (el.attributes?.['rowspan']) props['rowSpan'] = el.attributes['rowspan'];
+  // Always open, so its content can be edited
+  if (el.tagName === 'details') props['open'] = true;
+  return props;
+}
+
+/**
  * Element renderer component
  */
 function Element({ attributes, children, element }: RenderElementProps): React.JSX.Element {
@@ -419,7 +432,7 @@ function Element({ attributes, children, element }: RenderElementProps): React.J
       if (el.isVoid) {
         return <span {...attributes} contentEditable={false}>{children}</span>;
       }
-      return createElement(el.tagName, attributes, children);
+      return createElement(el.tagName, { ...xhtmlDisplayProps(el), ...attributes }, children);
 
     case 'paragraph':
       return <p {...attributes} style={{ textAlign: el.align }}>{children}</p>;
