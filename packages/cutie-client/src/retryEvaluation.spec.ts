@@ -212,7 +212,7 @@ describe('verdicts on a fresh try', () => {
       q(container, '.cutie-match-choice[data-identifier="S2"]').click();
       expect(container.querySelector('.cutie-evaluated--incorrect')).not.toBeNull();
 
-      q(container, '.cutie-match-choice[data-identifier="T1"]').click();
+      q(container, '.cutie-match-slot[data-target-id="T1"]').click();
       expect(container.querySelector('.cutie-evaluated')).toBeNull();
       expect(container.querySelector('#constraint-R1')).toBeNull();
     });

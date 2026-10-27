@@ -23,7 +23,7 @@ export class GapMatchController {
   choiceContents = new Map<string, string>();
   choiceElements = new Map<string, HTMLElement>();
   gapElements = new Map<string, HTMLElement>();
-  choiceBanks: HTMLElement[];
+  choicesContainer: HTMLElement;
   private context: TransformContext;
   container: HTMLElement;
   private enabled = true;
@@ -34,19 +34,19 @@ export class GapMatchController {
 
   constructor(
     responseIdentifier: string,
-    choiceBanks: HTMLElement[],
+    choicesContainer: HTMLElement,
     context: TransformContext,
     container: HTMLElement,
     maxAssociations: number = 0
   ) {
     this.responseIdentifier = responseIdentifier;
-    this.choiceBanks = choiceBanks;
+    this.choicesContainer = choicesContainer;
     this.context = context;
     this.container = container;
     this.maxAssociations = maxAssociations;
 
-    // Wire up the choice banks as drop targets for returning choices
-    this.wireChoiceBankEvents();
+    // Wire up the choices container as a drop target for returning choices
+    this.wireChoicesContainerEvents();
 
     // Wire up document click to deselect when clicking outside valid targets
     this.documentClickHandler = (e: MouseEvent) => {
@@ -54,13 +54,13 @@ export class GapMatchController {
 
       const target = e.target as HTMLElement;
 
-      // Check if click is on a valid target (choice, gap, or a choice bank)
+      // Check if click is on a valid target (choice, gap, or choices container)
       const isChoice = target.closest('.cutie-gap-text');
       const isGap = target.closest('.cutie-gap');
-      const isChoiceBank = this.choiceBanks.some((bank) => bank.contains(target));
+      const isChoicesContainer = this.choicesContainer.contains(target);
 
       // If click is outside all valid targets, deselect
-      if (!isChoice && !isGap && !isChoiceBank) {
+      if (!isChoice && !isGap && !isChoicesContainer) {
         this.clearSelection();
       }
     };
@@ -71,87 +71,60 @@ export class GapMatchController {
   }
 
   /**
-   * The bank hosting a choice's button (its home word bank)
-   */
-  private bankFor(choiceId: string): HTMLElement | null {
-    const element = this.choiceElements.get(choiceId);
-    if (!element) return null;
-    return this.choiceBanks.find((bank) => bank.contains(element)) ?? null;
-  }
-
-  /**
-   * The ordered choices that share a bank with choiceId — the roving group for
-   * arrow-key navigation. Each per-column bank is its own listbox, so arrow
-   * keys stay within one bank while Tab moves between banks.
-   */
-  private bankChoices(choiceId: string): Map<string, HTMLElement> {
-    const bank = this.bankFor(choiceId);
-    if (!bank) return this.choiceElements;
-    const scoped = new Map<string, HTMLElement>();
-    for (const [id, element] of this.choiceElements) {
-      if (bank.contains(element)) scoped.set(id, element);
-    }
-    return scoped;
-  }
-
-  /**
-   * Seed roving tabindex so the first choice in each bank is tabbable
-   * (tabindex="0") and the rest are not. Tab then moves between the banks while
-   * arrow keys move within a bank.
+   * Seed roving tabindex so the first choice is tabbable (tabindex="0") and
+   * the rest are not; arrow keys move between choices.
    */
   initRovingTabindex(): void {
-    const seenBanks = new Set<HTMLElement | null>();
+    let isFirst = true;
     for (const element of this.choiceElements.values()) {
-      const bank = this.choiceBanks.find((b) => b.contains(element)) ?? null;
-      const isFirstInBank = !seenBanks.has(bank);
-      seenBanks.add(bank);
-      element.setAttribute('tabindex', isFirstInBank ? '0' : '-1');
+      element.setAttribute('tabindex', isFirst ? '0' : '-1');
+      isFirst = false;
     }
   }
 
   /**
-   * Wire up each choice bank to accept drops (return to word bank)
+   * Wire up the choices container to accept drops (return to word bank)
    */
-  private wireChoiceBankEvents(): void {
-    for (const bank of this.choiceBanks) {
-      bank.addEventListener('dragover', (e) => {
-        if (!this.enabled) return;
-        // Only accept drops from filled gaps
-        e.preventDefault();
-        bank.classList.add('cutie-gap-match-choices--drag-over');
-      });
+  private wireChoicesContainerEvents(): void {
+    const bank = this.choicesContainer;
 
-      bank.addEventListener('dragleave', (e) => {
-        // Only remove class if we're actually leaving the bank
-        if (!bank.contains(e.relatedTarget as Node)) {
-          bank.classList.remove('cutie-gap-match-choices--drag-over');
-        }
-      });
+    bank.addEventListener('dragover', (e) => {
+      if (!this.enabled) return;
+      // Only accept drops from filled gaps
+      e.preventDefault();
+      bank.classList.add('cutie-gap-match-choices--drag-over');
+    });
 
-      bank.addEventListener('drop', this.reportingEdits((e: DragEvent) => {
-        if (!this.enabled) return;
-        e.preventDefault();
+    bank.addEventListener('dragleave', (e) => {
+      // Only remove class if we're actually leaving the container
+      if (!bank.contains(e.relatedTarget as Node)) {
         bank.classList.remove('cutie-gap-match-choices--drag-over');
+      }
+    });
 
-        const data = e.dataTransfer?.getData('text/plain');
-        if (data?.startsWith('gap:')) {
-          // Dropping from a gap back to the word bank
-          const gapId = data.slice(4);
-          this.removeChoiceFromGap(gapId);
-        }
-      }));
+    bank.addEventListener('drop', this.reportingEdits((e: DragEvent) => {
+      if (!this.enabled) return;
+      e.preventDefault();
+      bank.classList.remove('cutie-gap-match-choices--drag-over');
 
-      // Click on word bank area (not on a choice) to return a selected choice
-      bank.addEventListener('click', this.reportingEdits((e: MouseEvent) => {
-        if (!this.enabled) return;
-        // Only handle clicks on bank background (including group sections), not on choices
-        const target = e.target as HTMLElement;
-        if (!target.closest('.cutie-gap-text') && this.selectedChoice && this.selectedFromGap) {
-          this.removeChoiceFromGap(this.selectedFromGap);
-          this.clearSelection();
-        }
-      }));
-    }
+      const data = e.dataTransfer?.getData('text/plain');
+      if (data?.startsWith('gap:')) {
+        // Dropping from a gap back to the word bank
+        const gapId = data.slice(4);
+        this.removeChoiceFromGap(gapId);
+      }
+    }));
+
+    // Click on word bank area (not on a choice) to return a selected choice
+    bank.addEventListener('click', this.reportingEdits((e: MouseEvent) => {
+      if (!this.enabled) return;
+      // Only handle clicks on the bank background, not on choices
+      const target = e.target as HTMLElement;
+      if (!target.closest('.cutie-gap-text') && this.selectedChoice && this.selectedFromGap) {
+        this.removeChoiceFromGap(this.selectedFromGap);
+        this.clearSelection();
+      }
+    }));
   }
 
   /**
@@ -222,10 +195,10 @@ export class GapMatchController {
         this.clearSelection();
       } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
         e.preventDefault();
-        focusNext(this.bankChoices(choiceId), choiceId);
+        focusNext(this.choiceElements, choiceId);
       } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
         e.preventDefault();
-        focusPrev(this.bankChoices(choiceId), choiceId);
+        focusPrev(this.choiceElements, choiceId);
       }
     });
 
@@ -347,17 +320,15 @@ export class GapMatchController {
           return gapIdFromEl ? this.canPlaceInGap(gapIdFromEl, currentChoiceInGap) : false;
         }
       );
-      this.bankFor(currentChoiceInGap)?.classList.add('cutie-gap-match-choices--drop-target');
+      this.choicesContainer.classList.add('cutie-gap-match-choices--drop-target');
     });
 
     element.addEventListener('dragend', () => {
       this.draggedChoiceId = null;
       element.classList.remove('cutie-gap--dragging');
       clearDropTargetHighlights(this.gapElements.values(), 'cutie-gap--drop-target');
-      for (const bank of this.choiceBanks) {
-        bank.classList.remove('cutie-gap-match-choices--drop-target');
-        bank.classList.remove('cutie-gap-match-choices--drag-over');
-      }
+      this.choicesContainer.classList.remove('cutie-gap-match-choices--drop-target');
+      this.choicesContainer.classList.remove('cutie-gap-match-choices--drag-over');
     });
 
     // Drag over - accept drops. Only signal droppable (preventDefault) and
@@ -520,9 +491,9 @@ export class GapMatchController {
         }
       );
 
-    // Show the choice's home bank as a drop target when moving from a gap
+    // Show word bank as drop target when moving from a gap
     if (fromGapId) {
-      this.bankFor(choiceId)?.classList.add('cutie-gap-match-choices--drop-target');
+      this.choicesContainer.classList.add('cutie-gap-match-choices--drop-target');
     }
 
     // Make only the gaps that can accept this choice focusable, so keyboard and
@@ -569,9 +540,7 @@ export class GapMatchController {
 
       // Clear drop target highlights
       clearDropTargetHighlights(this.gapElements.values(), 'cutie-gap--drop-target');
-      for (const bank of this.choiceBanks) {
-        bank.classList.remove('cutie-gap-match-choices--drop-target');
-      }
+      this.choicesContainer.classList.remove('cutie-gap-match-choices--drop-target');
 
       // Remove tabindex from gaps when no selection
       for (const gapElement of this.gapElements.values()) {
