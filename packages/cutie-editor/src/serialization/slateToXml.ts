@@ -12,7 +12,7 @@ import { inlineChoiceSerializers } from '../interactions/inlineChoice/index.js';
 import { matchSerializers } from '../interactions/match/index.js';
 import { textEntrySerializers } from '../interactions/textEntry/index.js';
 import { elementNeedsSpacers } from '../plugins/withQtiInteractions.js';
-import type { DocumentMetadata, ElementConfig, ResponseProcessingConfig, ResponseProcessingMode, SerializationResult, SlateElement, SlateText, TextAlign, ValidationError } from '../types.js';
+import type { DocumentMetadata, ElementConfig, ResponseProcessingConfig, SerializationResult, SlateElement, SlateText, TextAlign, ValidationError } from '../types.js';
 import { isPlainParagraph } from '../utils/paragraph.js';
 import { generateResponseProcessingXml } from '../utils/responseProcessingGenerator.js';
 import { formatXmlDom } from './formatXmlDom.js';
@@ -748,22 +748,24 @@ function updateOutcomeDeclarations(
 /**
  * Keep the SCORE outcome declaration in step with the manual scoring mode.
  *
- * - manual: SCORE is external-scored="human", with a normal-maximum (1.0 unless
- *   already set) so delivery knows the points available, and no default value so
- *   it has no score until graded
+ * - manual: SCORE is external-scored="human", with a normal-maximum from the
+ *   config (1.0 if none) so delivery knows the points available, and no default
+ *   value so it has no score until graded. The maximum comes from the config, not
+ *   the XML being updated, so undoing a mode switch restores it
  * - other modes: undo the above when switching away from manual
  * - allCorrect/sumScores: clear external-scored="externalMachine", since the
  *   generated response processing now sets SCORE
  *
  * @param assessmentItem - The qti-assessment-item element
- * @param mode - The response processing mode
+ * @param config - The response processing config
  * @param doc - The XML document
  */
 function updateScoreOutcomeDeclaration(
   assessmentItem: Element,
-  mode: ResponseProcessingMode | undefined,
+  config: ResponseProcessingConfig | undefined,
   doc: Document
 ): void {
+  const mode = config?.mode;
   let score = assessmentItem.querySelector('qti-outcome-declaration[identifier="SCORE"]');
 
   if (mode === 'manual') {
@@ -776,9 +778,7 @@ function updateScoreOutcomeDeclaration(
       insertAssessmentItemChild(assessmentItem, score);
     }
     score.setAttribute('external-scored', 'human');
-    if (!score.hasAttribute('normal-maximum')) {
-      score.setAttribute('normal-maximum', '1.0');
-    }
+    score.setAttribute('normal-maximum', config?.normalMaximum ?? '1.0');
     score.querySelector('qti-default-value')?.remove();
   } else if (score?.getAttribute('external-scored') === 'human') {
     score.removeAttribute('external-scored');
@@ -1022,7 +1022,7 @@ export function serializeSlateToQti(
   updateOutcomeDeclarations(assessmentItem, itemBodyResult.outcomeDeclarations, doc);
 
   // Mark SCORE as manually graded, or not, to match the scoring mode
-  updateScoreOutcomeDeclaration(assessmentItem, itemBodyResult.responseProcessingConfig?.mode, doc);
+  updateScoreOutcomeDeclaration(assessmentItem, itemBodyResult.responseProcessingConfig, doc);
 
   // Update modal feedback elements (inserted outside qti-item-body, before response-processing)
   updateModalFeedback(assessmentItem, itemBodyResult.modalFeedbackElements, doc);

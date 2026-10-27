@@ -790,8 +790,8 @@ describe('responseProcessingClassifier', () => {
     const parse = (xml: string) => new DOMParser().parseFromString(xml, 'application/xml');
 
     it('should classify a human-scored SCORE without response processing as manual', () => {
-      const doc = parse(withScore('external-scored="human" normal-maximum="1"', ''));
-      expect(classifyResponseProcessing(doc).mode).toBe('manual');
+      const doc = parse(withScore('external-scored="human" normal-maximum="2"', ''));
+      expect(classifyResponseProcessing(doc)).toEqual({ mode: 'manual', normalMaximum: '2' });
     });
 
     it('should preserve externalMachine scoring as custom', () => {

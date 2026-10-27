@@ -38,11 +38,11 @@ export function classifyResponseProcessing(doc: Document): ResponseProcessingCon
   const responseProcessing = doc.querySelector('qti-response-processing');
 
   // SCORE set outside response processing
-  const externalScored = doc
-    .querySelector('qti-outcome-declaration[identifier="SCORE"]')
-    ?.getAttribute('external-scored');
+  const score = doc.querySelector('qti-outcome-declaration[identifier="SCORE"]');
+  const externalScored = score?.getAttribute('external-scored');
   if (externalScored === 'human') {
-    return { mode: 'manual' };
+    const normalMaximum = score?.getAttribute('normal-maximum');
+    return normalMaximum ? { mode: 'manual', normalMaximum } : { mode: 'manual' };
   }
   if (externalScored === 'externalMachine') {
     return responseProcessing

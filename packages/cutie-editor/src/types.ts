@@ -40,6 +40,8 @@ export interface ResponseProcessingConfig {
   mode: ResponseProcessingMode;
   /** For 'custom' mode: preserve original XML for round-trip */
   customXml?: XmlNode;
+  /** For 'manual' mode: SCORE's normal-maximum, kept here so undo restores it */
+  normalMaximum?: string;
 }
 
 /**
