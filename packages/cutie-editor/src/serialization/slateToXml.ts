@@ -805,16 +805,23 @@ function updateScoreOutcomeDeclaration(
   mode: ResponseProcessingMode | undefined,
   doc: Document
 ): void {
-  const score = assessmentItem.querySelector('qti-outcome-declaration[identifier="SCORE"]');
-  if (!score) return;
+  let score = assessmentItem.querySelector('qti-outcome-declaration[identifier="SCORE"]');
 
   if (mode === 'manual') {
+    // The mode is recorded on SCORE, so an item without one needs it declared
+    if (!score) {
+      score = createXmlElement(doc, 'qti-outcome-declaration');
+      score.setAttribute('identifier', 'SCORE');
+      score.setAttribute('cardinality', 'single');
+      score.setAttribute('base-type', 'float');
+      insertAssessmentItemChild(assessmentItem, score);
+    }
     score.setAttribute('external-scored', 'human');
     if (!score.hasAttribute('normal-maximum')) {
       score.setAttribute('normal-maximum', '1.0');
     }
     score.querySelector('qti-default-value')?.remove();
-  } else if (score.getAttribute('external-scored') === 'human') {
+  } else if (score?.getAttribute('external-scored') === 'human') {
     score.removeAttribute('external-scored');
     score.removeAttribute('normal-maximum');
     if (!score.querySelector('qti-default-value')) {
