@@ -35,24 +35,12 @@ const TEMPLATE_PATTERNS = {
  * @returns ResponseProcessingConfig with the detected mode
  */
 export function classifyResponseProcessing(doc: Document): ResponseProcessingConfig {
-  // Record SCORE's scoring attributes alongside the mode (see ResponseProcessingConfig)
-  const score = doc.querySelector('qti-outcome-declaration[identifier="SCORE"]');
-  const externalScored = score?.getAttribute('external-scored');
-  const normalMaximum = score?.getAttribute('normal-maximum');
-  return {
-    ...classifyMode(doc, externalScored),
-    ...(externalScored && { externalScored }),
-    ...(normalMaximum && { normalMaximum }),
-  };
-}
-
-/**
- * Classify the response processing mode (see classifyResponseProcessing)
- */
-function classifyMode(doc: Document, externalScored: string | null | undefined): ResponseProcessingConfig {
   const responseProcessing = doc.querySelector('qti-response-processing');
 
   // SCORE set outside response processing
+  const externalScored = doc
+    .querySelector('qti-outcome-declaration[identifier="SCORE"]')
+    ?.getAttribute('external-scored');
   if (externalScored === 'human') {
     return { mode: 'manual' };
   }

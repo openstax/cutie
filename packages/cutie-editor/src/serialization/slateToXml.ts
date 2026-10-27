@@ -12,11 +12,11 @@ import { inlineChoiceSerializers } from '../interactions/inlineChoice/index.js';
 import { matchSerializers } from '../interactions/match/index.js';
 import { textEntrySerializers } from '../interactions/textEntry/index.js';
 import { elementNeedsSpacers } from '../plugins/withQtiInteractions.js';
-import type { DocumentMetadata, ElementConfig, ResponseProcessingConfig, SerializationResult, SlateElement, SlateText, TextAlign, ValidationError } from '../types.js';
+import type { DocumentMetadata, ElementConfig, ResponseProcessingConfig, ResponseProcessingMode, SerializationResult, SlateElement, SlateText, TextAlign, ValidationError } from '../types.js';
 import { isPlainParagraph } from '../utils/paragraph.js';
 import { generateResponseProcessingXml } from '../utils/responseProcessingGenerator.js';
 import { formatXmlDom } from './formatXmlDom.js';
-import { type XmlNode, xmlNodeToDom } from './xmlNode.js';
+import { domToXmlNode, type XmlNode, xmlNodeToDom } from './xmlNode.js';
 import { createXmlDocument, createXmlElement } from './xmlUtils.js';
 
 const QTI_NAMESPACE = 'http://www.imsglobal.org/xsd/imsqtiasi_v3p0';
@@ -28,6 +28,8 @@ interface InternalSerializationResult extends SerializationResult {
   responseDeclarations: Map<string, XmlNode>;
   outcomeDeclarations: Map<string, XmlNode>;
   responseProcessingConfig?: ResponseProcessingConfig;
+  /** The item's outcome declarations as loaded, from the document metadata */
+  loadedOutcomeDeclarations?: XmlNode[];
   feedbackIdentifiersUsed: Set<string>;
   /** Modal feedback elements to be inserted outside qti-item-body */
   modalFeedbackElements: Element[];
@@ -98,8 +100,10 @@ export function serializeSlateToXml(nodes: Descendant[]): InternalSerializationR
 
   // Extract document metadata if present (always at position [0])
   let responseProcessingConfig: ResponseProcessingConfig | undefined;
+  let loadedOutcomeDeclarations: XmlNode[] | undefined;
   if (nodes.length > 0 && isDocumentMetadata(nodes[0])) {
     responseProcessingConfig = nodes[0].responseProcessing;
+    loadedOutcomeDeclarations = nodes[0].outcomeDeclarations;
   }
 
   // Filter out metadata node and empty spacer paragraphs
@@ -128,6 +132,7 @@ export function serializeSlateToXml(nodes: Descendant[]): InternalSerializationR
     responseDeclarations: context.responseDeclarations,
     outcomeDeclarations: context.outcomeDeclarations,
     responseProcessingConfig,
+    loadedOutcomeDeclarations,
     feedbackIdentifiersUsed: context.feedbackIdentifiersUsed,
     modalFeedbackElements: context.modalFeedbackElements,
     responseConfigs: context.responseConfigs,
@@ -712,150 +717,125 @@ function updateResponseDeclarations(
 }
 
 /**
- * Update outcome declarations in the assessment item
+ * Rebuild the outcome declarations of the assessment item.
  *
- * Unlike response declarations which are fully managed, outcome declarations
- * are selectively managed - we only add/remove the intermediate score variables
- * (e.g., RESP1_SCORE) that are generated for sumScores mode with unmapped responses.
- * Other outcome declarations (like SCORE) are left untouched.
+ * They are rebuilt from the item as loaded (the document metadata's snapshot)
+ * and the current editor state, never from the XML being updated: that holds the
+ * previous save, and undo only restores editor state, so anything taken from a
+ * previous save couldn't be undone.
+ *
+ * - SCORE follows the scoring mode (see applyScoringMode)
+ * - FEEDBACK is declared when feedback elements are used, and dropped when they
+ *   aren't unless it has a default value (custom mode keeps it as loaded)
+ * - intermediate score variables generated for sumScores replace loaded ones
+ * - other outcome declarations are kept as loaded
  *
  * @param assessmentItem - The qti-assessment-item element
- * @param declarations - Map of outcome identifier to XmlNode (intermediate scores only)
+ * @param loaded - The outcome declarations as loaded, or undefined to use the item's own
+ * @param config - The response processing config
+ * @param feedbackIdentifiersUsed - Feedback identifiers used by feedback elements
+ * @param generated - Intermediate score variables generated for sumScores mode
  * @param doc - The XML document
  */
 function updateOutcomeDeclarations(
   assessmentItem: Element,
-  declarations: Map<string, XmlNode>,
-  doc: Document
-): void {
-  // Remove only the outcome declarations we're managing (intermediate scores)
-  // Keep existing SCORE declaration and other outcome declarations
-  for (const [identifier] of declarations) {
-    const existing = assessmentItem.querySelector(
-      `qti-outcome-declaration[identifier="${identifier}"]`
-    );
-    if (existing) {
-      existing.remove();
-    }
-  }
-
-  // Insert new outcome declarations in sequence order
-  for (const [, node] of declarations) {
-    insertAssessmentItemChild(assessmentItem, xmlNodeToDom(node, doc));
-  }
-}
-
-/**
- * Keep the SCORE outcome declaration in step with the scoring mode.
- *
- * The external-scored and normal-maximum written here come from the config, not
- * the XML being updated, so undoing a mode switch restores them.
- *
- * - manual: SCORE is external-scored="human", with a normal-maximum (1.0 if none)
- *   so delivery knows the points available, and no default value so it has no
- *   score until graded
- * - custom: SCORE's attributes as loaded
- * - allCorrect/sumScores: generated response processing sets SCORE, so it isn't
- *   externally scored; switching from manual also drops its maximum and restores
- *   a default value of 0
- *
- * @param assessmentItem - The qti-assessment-item element
- * @param config - The response processing config
- * @param doc - The XML document
- */
-function updateScoreOutcomeDeclaration(
-  assessmentItem: Element,
+  loaded: XmlNode[] | undefined,
   config: ResponseProcessingConfig | undefined,
+  feedbackIdentifiersUsed: Set<string>,
+  generated: Map<string, XmlNode>,
   doc: Document
 ): void {
-  let score = assessmentItem.querySelector('qti-outcome-declaration[identifier="SCORE"]');
-  const setOrRemove = (element: Element, name: string, value: string | undefined) => {
-    if (value === undefined) {
-      element.removeAttribute(name);
-    } else {
-      element.setAttribute(name, value);
-    }
-  };
+  const existing = Array.from(assessmentItem.querySelectorAll('qti-outcome-declaration'));
+  const source = loaded ?? existing.map(domToXmlNode);
+  for (const declaration of existing) {
+    declaration.remove();
+  }
 
-  if (config?.mode === 'manual') {
-    // The mode is recorded on SCORE, so an item without one needs it declared
-    if (!score) {
-      score = createXmlElement(doc, 'qti-outcome-declaration');
-      score.setAttribute('identifier', 'SCORE');
-      score.setAttribute('cardinality', 'single');
-      score.setAttribute('base-type', 'float');
-      insertAssessmentItemChild(assessmentItem, score);
-    }
-    score.setAttribute('external-scored', 'human');
-    score.setAttribute('normal-maximum', config.normalMaximum ?? '1.0');
-    score.querySelector('qti-default-value')?.remove();
-  } else if (!score) {
-    return;
-  } else if (config?.mode === 'custom') {
-    setOrRemove(score, 'external-scored', config.externalScored);
-    setOrRemove(score, 'normal-maximum', config.normalMaximum);
-  } else if (score.hasAttribute('external-scored')) {
-    if (score.getAttribute('external-scored') === 'human') {
-      score.removeAttribute('normal-maximum');
-      if (!score.querySelector('qti-default-value')) {
-        const defaultValue = createXmlElement(doc, 'qti-default-value');
-        const value = createXmlElement(doc, 'qti-value');
-        value.textContent = '0';
-        defaultValue.appendChild(value);
-        score.appendChild(defaultValue);
+  const mode = config?.mode;
+  const manageFeedback = mode !== 'custom';
+  const feedbackUsed = feedbackIdentifiersUsed.size > 0;
+  const declarations: Element[] = [];
+
+  for (const node of source) {
+    const identifier = node.attributes['identifier'];
+    const declaration = xmlNodeToDom(generated.get(identifier) ?? node, doc);
+
+    if (identifier === 'SCORE') {
+      applyScoringMode(declaration, mode, doc);
+    } else if (identifier === 'FEEDBACK' && manageFeedback) {
+      if (feedbackUsed) {
+        // Cardinality "multiple" for the accumulation pattern we generate
+        declaration.setAttribute('cardinality', 'multiple');
+      } else if (!declaration.querySelector('qti-default-value')) {
+        continue;
       }
     }
-    score.removeAttribute('external-scored');
+    declarations.push(declaration);
+  }
+
+  const declared = new Set(source.map((node) => node.attributes['identifier']));
+
+  // Manual grading is recorded on SCORE, so an item without one needs it declared
+  if (!declared.has('SCORE') && mode === 'manual') {
+    const score = createXmlElement(doc, 'qti-outcome-declaration');
+    score.setAttribute('identifier', 'SCORE');
+    score.setAttribute('cardinality', 'single');
+    score.setAttribute('base-type', 'float');
+    applyScoringMode(score, mode, doc);
+    declarations.unshift(score);
+  }
+
+  if (!declared.has('FEEDBACK') && manageFeedback && feedbackUsed) {
+    const feedback = createXmlElement(doc, 'qti-outcome-declaration');
+    feedback.setAttribute('identifier', 'FEEDBACK');
+    feedback.setAttribute('cardinality', 'multiple');
+    feedback.setAttribute('base-type', 'identifier');
+    declarations.push(feedback);
+  }
+
+  for (const [identifier, node] of generated) {
+    if (!declared.has(identifier)) {
+      declarations.push(xmlNodeToDom(node, doc));
+    }
+  }
+
+  // Inserted in order, after the response declarations
+  for (const declaration of declarations) {
+    insertAssessmentItemChild(assessmentItem, declaration);
   }
 }
 
 /**
- * Update the FEEDBACK outcome declaration based on feedback element usage.
+ * Set a SCORE declaration (as loaded) up for the scoring mode.
  *
- * If feedback elements are used and we're managing response processing:
- * - Add/update FEEDBACK outcome declaration with cardinality="multiple" and base-type="identifier"
- *
- * If no feedback elements are used and we're managing response processing:
- * - Remove FEEDBACK outcome declaration (if it exists and was auto-generated)
- *
- * @param assessmentItem - The qti-assessment-item element
- * @param feedbackIdentifiersUsed - Set of feedback identifiers used by feedback elements
- * @param doc - The XML document
+ * - manual: external-scored="human", with a normal-maximum (1.0 if none) so
+ *   delivery knows the points available, and no default value so it has no
+ *   score until graded
+ * - allCorrect/sumScores: generated response processing sets SCORE, so a SCORE
+ *   loaded as externally scored loses external-scored and the normal-maximum
+ *   that described the external points, and gets a default value of 0
+ * - custom: as loaded
  */
-function updateFeedbackOutcomeDeclaration(
-  assessmentItem: Element,
-  feedbackIdentifiersUsed: Set<string>,
+function applyScoringMode(
+  score: Element,
+  mode: ResponseProcessingMode | undefined,
   doc: Document
 ): void {
-  const existingFeedback = assessmentItem.querySelector(
-    'qti-outcome-declaration[identifier="FEEDBACK"]'
-  );
-
-  if (feedbackIdentifiersUsed.size > 0) {
-    // Need FEEDBACK outcome declaration
-    if (!existingFeedback) {
-      // Create new FEEDBACK outcome declaration
-      const feedbackDecl = doc.createElementNS(
-        'http://www.imsglobal.org/xsd/imsqtiasi_v3p0',
-        'qti-outcome-declaration'
-      );
-      feedbackDecl.setAttribute('identifier', 'FEEDBACK');
-      feedbackDecl.setAttribute('cardinality', 'multiple');
-      feedbackDecl.setAttribute('base-type', 'identifier');
-
-      insertAssessmentItemChild(assessmentItem, feedbackDecl);
-    } else {
-      // Ensure cardinality is "multiple" for the accumulation pattern we use
-      existingFeedback.setAttribute('cardinality', 'multiple');
+  if (mode === 'manual') {
+    score.setAttribute('external-scored', 'human');
+    if (!score.hasAttribute('normal-maximum')) {
+      score.setAttribute('normal-maximum', '1.0');
     }
-  } else {
-    // No feedback elements - remove FEEDBACK declaration if it exists
-    // We only remove it if it has no default value (indicating it was auto-generated)
-    if (existingFeedback) {
-      const hasDefaultValue = existingFeedback.querySelector('qti-default-value');
-      if (!hasDefaultValue) {
-        existingFeedback.remove();
-      }
+    score.querySelector('qti-default-value')?.remove();
+  } else if ((mode === 'allCorrect' || mode === 'sumScores') && score.hasAttribute('external-scored')) {
+    score.removeAttribute('external-scored');
+    score.removeAttribute('normal-maximum');
+    if (!score.querySelector('qti-default-value')) {
+      const defaultValue = createXmlElement(doc, 'qti-default-value');
+      const value = createXmlElement(doc, 'qti-value');
+      value.textContent = '0';
+      defaultValue.appendChild(value);
+      score.appendChild(defaultValue);
     }
   }
 }
@@ -1018,21 +998,15 @@ export function serializeSlateToQti(
     doc
   );
 
-  // Manage FEEDBACK outcome declaration based on whether feedback elements are used
-  // Only in non-custom mode - custom mode preserves everything
-  if (itemBodyResult.responseProcessingConfig?.mode !== 'custom') {
-    updateFeedbackOutcomeDeclaration(
-      assessmentItem,
-      itemBodyResult.feedbackIdentifiersUsed,
-      doc
-    );
-  }
-
-  // Update outcome declarations (for intermediate score variables generated by sumScores mode)
-  updateOutcomeDeclarations(assessmentItem, itemBodyResult.outcomeDeclarations, doc);
-
-  // Mark SCORE as manually graded, or not, to match the scoring mode
-  updateScoreOutcomeDeclaration(assessmentItem, itemBodyResult.responseProcessingConfig, doc);
+  // Rebuild outcome declarations from the item as loaded and the editor state
+  updateOutcomeDeclarations(
+    assessmentItem,
+    itemBodyResult.loadedOutcomeDeclarations,
+    itemBodyResult.responseProcessingConfig,
+    itemBodyResult.feedbackIdentifiersUsed,
+    itemBodyResult.outcomeDeclarations,
+    doc
+  );
 
   // Update modal feedback elements (inserted outside qti-item-body, before response-processing)
   updateModalFeedback(assessmentItem, itemBodyResult.modalFeedbackElements, doc);

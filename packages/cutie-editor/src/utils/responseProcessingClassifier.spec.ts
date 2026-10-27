@@ -791,12 +791,12 @@ describe('responseProcessingClassifier', () => {
 
     it('should classify a human-scored SCORE without response processing as manual', () => {
       const doc = parse(withScore('external-scored="human" normal-maximum="2"', ''));
-      expect(classifyResponseProcessing(doc)).toEqual({ mode: 'manual', externalScored: 'human', normalMaximum: '2' });
+      expect(classifyResponseProcessing(doc)).toEqual({ mode: 'manual' });
     });
 
     it('should preserve externalMachine scoring as custom', () => {
       const doc = parse(withScore('external-scored="externalMachine"', ''));
-      expect(classifyResponseProcessing(doc)).toEqual({ mode: 'custom', externalScored: 'externalMachine' });
+      expect(classifyResponseProcessing(doc)).toEqual({ mode: 'custom' });
     });
   });
 });

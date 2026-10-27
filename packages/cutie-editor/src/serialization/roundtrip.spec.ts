@@ -705,36 +705,64 @@ describe('XML Round-trip Tests', () => {
       expect(scoreOf(roundTrip(input, 'allCorrect')).hasAttribute('external-scored')).toBe(false);
     });
 
+    /**
+     * Switch an item's scoring mode, then switch back the way the editor does:
+     * each save is serialized against the previous save, and undo restores the
+     * editor state, including the loaded config, but not the XML.
+     */
+    const switchAndBack = (input: string, mode: ResponseProcessingMode, back?: ResponseProcessingMode) => {
+      const nodes = parseXmlToSlate(input);
+      const metadata = nodes[0] as DocumentMetadata;
+      const loadedConfig = metadata.responseProcessing;
+      metadata.responseProcessing = { mode };
+      const switched = serializeSlateToQti(nodes, input).xml;
+      metadata.responseProcessing = back ? { mode: back } : loadedConfig;
+      return parseXml(serializeSlateToQti(nodes, switched).xml)
+        .querySelector('qti-outcome-declaration[identifier="SCORE"]');
+    };
+
     it('should restore the points when undoing a switch away from manual', () => {
-      // The editor serializes against the last saved XML, so undo replays the
-      // earlier config against XML that no longer has the maximum
-      const input = extendedTextItem(
+      const score = switchAndBack(extendedTextItem(
         '<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float" external-scored="human" normal-maximum="2"/>'
-      );
-      const manualConfig = (parseXmlToSlate(input)[0] as DocumentMetadata).responseProcessing;
-      const switched = roundTrip(input, 'allCorrect').outerHTML;
+      ), 'allCorrect');
 
-      const nodes = parseXmlToSlate(switched);
-      (nodes[0] as DocumentMetadata).responseProcessing = manualConfig;
-      const undone = parseXml(serializeSlateToQti(nodes, switched).xml);
+      expect(score?.getAttribute('normal-maximum')).toBe('2');
+    });
 
-      expect(undone.querySelector('qti-outcome-declaration[identifier="SCORE"]')?.getAttribute('normal-maximum')).toBe('2');
+    it('should restore the points when switching away from manual and back', () => {
+      const score = switchAndBack(extendedTextItem(
+        '<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float" external-scored="human" normal-maximum="2"/>'
+      ), 'allCorrect', 'manual');
+
+      expect(score?.getAttribute('normal-maximum')).toBe('2');
     });
 
     it.each(['allCorrect', 'manual'] as const)('should restore externalMachine scoring when undoing a switch to %s', (mode) => {
-      const input = extendedTextItem(
+      const score = switchAndBack(extendedTextItem(
         '<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float" external-scored="externalMachine" normal-maximum="5"/>'
-      );
-      const customConfig = (parseXmlToSlate(input)[0] as DocumentMetadata).responseProcessing;
-      const switched = roundTrip(input, mode).outerHTML;
-
-      const nodes = parseXmlToSlate(switched);
-      (nodes[0] as DocumentMetadata).responseProcessing = customConfig;
-      const score = parseXml(serializeSlateToQti(nodes, switched).xml)
-        .querySelector('qti-outcome-declaration[identifier="SCORE"]');
+      ), mode);
 
       expect(score?.getAttribute('external-scored')).toBe('externalMachine');
       expect(score?.getAttribute('normal-maximum')).toBe('5');
+    });
+
+    it('should restore SCORE\'s default value when undoing a switch to manual', () => {
+      const score = switchAndBack(extendedTextItem(
+        '<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"><qti-default-value><qti-value>0.5</qti-value></qti-default-value></qti-outcome-declaration>',
+        '<qti-response-processing><qti-set-outcome-value identifier="SCORE"><qti-base-value base-type="float">1</qti-base-value></qti-set-outcome-value></qti-response-processing>'
+      ), 'manual');
+
+      expect(score?.querySelector('qti-default-value qti-value')?.textContent).toBe('0.5');
+    });
+
+    it('should drop an externally scored maximum when switching to automatic scoring', () => {
+      const item = roundTrip(extendedTextItem(
+        '<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float" external-scored="externalMachine" normal-maximum="5"/>'
+      ), 'allCorrect');
+      const score = item.querySelector('qti-outcome-declaration[identifier="SCORE"]')!;
+
+      expect(score.hasAttribute('external-scored')).toBe(false);
+      expect(score.hasAttribute('normal-maximum')).toBe(false);
     });
 
     it('should clear human scoring when switching away from manual', () => {

@@ -40,13 +40,6 @@ export interface ResponseProcessingConfig {
   mode: ResponseProcessingMode;
   /** For 'custom' mode: preserve original XML for round-trip */
   customXml?: XmlNode;
-  /**
-   * SCORE's external-scored and normal-maximum as loaded. Kept here, in editor
-   * state that undo restores, because saving updates SCORE in the XML: undoing a
-   * mode switch restores them from the config.
-   */
-  externalScored?: string;
-  normalMaximum?: string;
 }
 
 /**
@@ -57,6 +50,12 @@ export interface DocumentMetadata {
   type: 'document-metadata';
   children: [{ text: '' }]; // Void element requires children
   responseProcessing: ResponseProcessingConfig;
+  /**
+   * The item's outcome declarations as loaded. Saving rebuilds the outcome
+   * declarations from these and the current editor state, never from a previous
+   * save, so undo (which only restores editor state) restores them too.
+   */
+  outcomeDeclarations?: XmlNode[];
 }
 
 // ============================================================================

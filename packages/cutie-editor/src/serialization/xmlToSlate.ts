@@ -59,6 +59,15 @@ const interactionParsers: Record<string, ParserFn> = {
 };
 
 /**
+ * SCORE declaration of a new item
+ */
+const DEFAULT_SCORE_DECLARATION: XmlNode = {
+  tagName: 'qti-outcome-declaration',
+  attributes: { identifier: 'SCORE', cardinality: 'single', 'base-type': 'float' },
+  children: [{ tagName: 'qti-default-value', attributes: {}, children: [{ tagName: 'qti-value', attributes: {}, children: ['0'] }] }],
+};
+
+/**
  * Create a default empty document structure for new items
  */
 function createEmptyDocument(): Descendant[] {
@@ -66,6 +75,7 @@ function createEmptyDocument(): Descendant[] {
     type: 'document-metadata',
     children: [{ text: '' }],
     responseProcessing: { mode: 'allCorrect' },
+    outcomeDeclarations: [DEFAULT_SCORE_DECLARATION],
   };
   return [
     metadataNode,
@@ -116,6 +126,7 @@ export function parseXmlToSlate(xml: string): Descendant[] {
     type: 'document-metadata',
     children: [{ text: '' }],
     responseProcessing,
+    outcomeDeclarations: Array.from(doc.querySelectorAll('qti-outcome-declaration')).map(domToXmlNode),
   };
 
   // Convert children of qti-item-body to Slate nodes
