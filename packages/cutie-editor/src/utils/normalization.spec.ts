@@ -74,3 +74,18 @@ describe('ensurePromptFirst', () => {
     expect(doc.querySelector('qti-prompt')).toBeNull();
   });
 });
+
+describe('spacer paragraphs', () => {
+  it('are not saved inside xhtml containers', () => {
+    const doc = normalizeItemBody(`
+      <table><tbody><tr><td>
+        <qti-choice-interaction response-identifier="RESPONSE" max-choices="1">
+          <qti-prompt>Pick one</qti-prompt>
+          <qti-simple-choice identifier="A">A</qti-simple-choice>
+        </qti-choice-interaction>
+      </td></tr></tbody></table>`);
+
+    const cell = doc.querySelector('td')!;
+    expect(Array.from(cell.children).map(child => child.localName)).toEqual(['qti-choice-interaction']);
+  });
+});

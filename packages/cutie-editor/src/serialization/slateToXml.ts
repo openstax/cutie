@@ -204,7 +204,7 @@ function convertSlateNodeToXml(
       return convertUnknownQtiElement(element, context);
 
     case 'xhtml-element':
-      return convertXhtmlElement(element, context);
+      return convertXhtmlElement(element, context, convertChildren);
 
     case 'paragraph':
       return convertParagraph(element, context);
@@ -338,7 +338,8 @@ function convertUnknownQtiElement(
  */
 function convertXhtmlElement(
   element: SlateElement & { type: 'xhtml-element' },
-  context: SerializationContext
+  context: SerializationContext,
+  convertChildren: (children: Descendant[], parent: Element | DocumentFragment) => void
 ): Element {
   const xmlElement = createXmlElement(context.doc, element.tagName);
 
@@ -348,12 +349,7 @@ function convertXhtmlElement(
 
   // Convert children if not void
   if (!element.isVoid) {
-    for (const child of element.children) {
-      const childNode = convertSlateNodeToXml(child, context);
-      if (childNode) {
-        xmlElement.appendChild(childNode);
-      }
-    }
+    convertChildren(element.children, xmlElement);
   }
 
   return xmlElement;
