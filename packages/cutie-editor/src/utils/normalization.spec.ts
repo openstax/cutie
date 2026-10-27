@@ -148,3 +148,17 @@ describe('wrapMixedContentInParagraphs', () => {
     expect(doc.querySelector('td')?.children[0]?.localName).toBe('em');
   });
 });
+
+describe('opaque xhtml elements', () => {
+  it.each([
+    ['audio', '<div><audio controls="controls"><source src="clip.ogg" type="audio/ogg"/><p>Fallback</p></audio></div>'],
+    ['picture', '<p>See <picture><source srcset="a.webp" type="image/webp"/><img src="a.png" alt="A"/></picture> here</p>'],
+  ])('passes %s through verbatim', (tagName, content) => {
+    const expected = new DOMParser().parseFromString(content, 'application/xml').querySelector(tagName)!;
+    const element = normalizeItemBody(content).querySelector(tagName)!;
+
+    expect(Array.from(element.children).map(child => child.localName))
+      .toEqual(Array.from(expected.children).map(child => child.localName));
+    expect(element.textContent).toBe(expected.textContent);
+  });
+});

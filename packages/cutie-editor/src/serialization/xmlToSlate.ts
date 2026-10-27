@@ -15,7 +15,7 @@ import { isElementInline } from '../plugins/withQtiInteractions.js';
 import type { DocumentMetadata, ElementAttributes, SlateElement, SlateText, TextAlign } from '../types.js';
 import { classifyResponseProcessing } from '../utils/responseProcessingClassifier.js';
 import { domToXmlNode, type XmlNode } from './xmlNode.js';
-import { isBlockTag, isQtiElement, isTextNode, isVoidTag, normalizeTagName, parseXml, serializeElement } from './xmlUtils.js';
+import { isBlockTag, isOpaqueTag, isQtiElement, isTextNode, isVoidTag, normalizeTagName, parseXml, serializeElement } from './xmlUtils.js';
 
 /**
  * Parser context for passing response declarations to interaction parsers
@@ -316,9 +316,10 @@ function convertNodeToSlate(node: Node, context?: ParserContext): Descendant | D
       return parser(element, convertChildren, convertChildrenStructural, context);
     }
 
-    // Unknown QTI elements - preserve with warning
-    if (isQtiElement(tagName)) {
-      const children = convertNodesToSlate(Array.from(element.childNodes), false, context);
+    // Unknown QTI elements and opaque XHTML elements - preserve verbatim with warning
+    if (isQtiElement(tagName) || isOpaqueTag(tagName)) {
+      const opaque = isOpaqueTag(tagName);
+      const children = opaque ? [] : convertNodesToSlate(Array.from(element.childNodes), false, context);
       const rawXml = serializeElement(element);
 
       return {
@@ -327,7 +328,8 @@ function convertNodeToSlate(node: Node, context?: ParserContext): Descendant | D
         children: children.length > 0 ? children : [{ text: '' }],
         attributes,
         rawXml,
-        isVoid: element.childNodes.length === 0,
+        // Opaque children never enter the editor, where normalization would restructure them
+        isVoid: opaque || element.childNodes.length === 0,
         responseDeclarations: collectResponseDeclarations(element, context),
       };
     }

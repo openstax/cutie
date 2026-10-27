@@ -419,7 +419,7 @@ function Element({ attributes, children, element }: RenderElementProps): React.J
           >
             ⚠️ Unsupported element: <code>{el.originalTagName}</code>
             <span style={{ display: 'block', fontSize: '0.85em', marginTop: '4px' }}>
-              This QTI element is not yet supported by the editor. Content will be preserved when
+              This element is not yet supported by the editor. Content will be preserved when
               you save.
             </span>
           </span>

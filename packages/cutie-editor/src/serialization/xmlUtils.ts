@@ -148,6 +148,23 @@ export function isTextNode(node: Node): boolean {
 }
 
 /**
+ * Opaque tags: XHTML elements whose children are structural rather than flow
+ * content (media sources and tracks, picture sources, object params). The editor
+ * can't edit them, so they are passed through verbatim like unknown QTI elements.
+ */
+export const OPAQUE_TAGS = ['audio', 'video', 'picture', 'object'];
+
+/**
+ * Check if a tag name is an opaque tag
+ *
+ * @param tagName - Tag name to check
+ * @returns True if the element is passed through verbatim
+ */
+export function isOpaqueTag(tagName: string): boolean {
+  return OPAQUE_TAGS.includes(tagName.toLowerCase());
+}
+
+/**
  * Void tags: HTML elements that never have content
  */
 export const VOID_TAGS = [
