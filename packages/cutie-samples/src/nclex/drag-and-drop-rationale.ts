@@ -73,7 +73,9 @@ adaptive="false" time-dependent="false" xml:lang="en">
       </p>
     </qti-gap-match-interaction>
     <qti-feedback-block outcome-identifier="FEEDBACK" identifier="ITEM_completed" show-hide="show">
-      <p>Chemotherapy suppresses the bone marrow, so check each result against its normal range to find which cell line is low. Platelets normally range from about 150,000 to 400,000/mm³, so 38,000/mm³ is thrombocytopenia, and the risk of bleeding rises sharply below 50,000/mm³. The white blood cell count of 6,200/mm³ is within the normal range of about 5,000 to 10,000/mm³, so infection risk isn't the main concern today. A hemoglobin of 12.8 g/dL is within normal limits, so anemia doesn't explain fatigue here. The client is at highest risk for bleeding as evidenced by the platelet count.</p>
+      <qti-content-body>
+        <p>Chemotherapy suppresses the bone marrow, so check each result against its normal range to find which cell line is low. Platelets normally range from about 150,000 to 400,000/mm³, so 38,000/mm³ is thrombocytopenia, and the risk of bleeding rises sharply below 50,000/mm³. The white blood cell count of 6,200/mm³ is within the normal range of about 5,000 to 10,000/mm³, so infection risk isn't the main concern today. A hemoglobin of 12.8 g/dL is within normal limits, so anemia doesn't explain fatigue here. The client is at highest risk for bleeding as evidenced by the platelet count.</p>
+      </qti-content-body>
     </qti-feedback-block>
   </qti-item-body>
 

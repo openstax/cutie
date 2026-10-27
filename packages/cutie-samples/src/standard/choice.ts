@@ -62,31 +62,41 @@ adaptive="false" time-dependent="false" xml:lang="en">
       <qti-simple-choice identifier="choiceA">
         <p>Mitochondrion</p>
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceA" show-hide="show">
-          <p>The citric acid cycle and the electron transport chain both take place in the mitochondrion, and together they produce most of the ATP made during cellular respiration.</p>
+          <qti-content-body>
+            <p>The citric acid cycle and the electron transport chain both take place in the mitochondrion, and together they produce most of the ATP made during cellular respiration.</p>
+          </qti-content-body>
         </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceB">
         <p>Ribosome</p>
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceB" show-hide="show">
-          <p>Ribosomes use ATP to build proteins, but they don't produce it. Their job is translating mRNA into chains of amino acids.</p>
+          <qti-content-body>
+            <p>Ribosomes use ATP to build proteins, but they don't produce it. Their job is translating mRNA into chains of amino acids.</p>
+          </qti-content-body>
         </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceC">
         <p>Golgi apparatus</p>
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceC" show-hide="show">
-          <p>The Golgi apparatus modifies, sorts, and packages proteins and lipids for transport. It isn't involved in producing energy.</p>
+          <qti-content-body>
+            <p>The Golgi apparatus modifies, sorts, and packages proteins and lipids for transport. It isn't involved in producing energy.</p>
+          </qti-content-body>
         </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceD">
         <p>Lysosome</p>
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceD" show-hide="show">
-          <p>Lysosomes break down waste and worn-out cell parts with digestive enzymes. Breaking molecules down there doesn't capture energy as ATP.</p>
+          <qti-content-body>
+            <p>Lysosomes break down waste and worn-out cell parts with digestive enzymes. Breaking molecules down there doesn't capture energy as ATP.</p>
+          </qti-content-body>
         </qti-feedback-block>
       </qti-simple-choice>
     </qti-choice-interaction>
 
     <qti-feedback-block outcome-identifier="FEEDBACK" identifier="ITEM_completed" show-hide="show">
-      <p>Cellular respiration happens in three stages. Glycolysis takes place in the cytoplasm and makes only a small amount of ATP. The citric acid cycle runs in the mitochondrial matrix, and the electron transport chain sits on the inner mitochondrial membrane. Because oxidative phosphorylation along that membrane produces most of the cell's ATP, the answer is the mitochondrion, which is why it's often called the powerhouse of the cell.</p>
+      <qti-content-body>
+        <p>Cellular respiration happens in three stages. Glycolysis takes place in the cytoplasm and makes only a small amount of ATP. The citric acid cycle runs in the mitochondrial matrix, and the electron transport chain sits on the inner mitochondrial membrane. Because oxidative phosphorylation along that membrane produces most of the cell's ATP, the answer is the mitochondrion, which is why it's often called the powerhouse of the cell.</p>
+      </qti-content-body>
     </qti-feedback-block>
   </qti-item-body>
 

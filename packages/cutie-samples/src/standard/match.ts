@@ -75,7 +75,9 @@ adaptive="false" time-dependent="false" xml:lang="en">
     </qti-match-interaction>
 
     <qti-feedback-block outcome-identifier="FEEDBACK" identifier="ITEM_completed" show-hide="show">
-      <p>Macromolecules are polymers made by linking many smaller monomers together, and the monomer's name often hints at the polymer it builds. Proteins are chains of amino acids joined by peptide bonds. Nucleic acids such as DNA and RNA are chains of nucleotides, each made of a sugar, a phosphate group, and a nitrogenous base. Carbohydrates such as starch and cellulose are chains of monosaccharides ("single sugars") like glucose.</p>
+      <qti-content-body>
+        <p>Macromolecules are polymers made by linking many smaller monomers together, and the monomer's name often hints at the polymer it builds. Proteins are chains of amino acids joined by peptide bonds. Nucleic acids such as DNA and RNA are chains of nucleotides, each made of a sugar, a phosphate group, and a nitrogenous base. Carbohydrates such as starch and cellulose are chains of monosaccharides ("single sugars") like glucose.</p>
+      </qti-content-body>
     </qti-feedback-block>
   </qti-item-body>
 

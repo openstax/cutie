@@ -73,43 +73,57 @@ adaptive="false" time-dependent="false" xml:lang="en">
       <qti-simple-choice identifier="choiceA">
         <p>Fewer crackles heard in the lung bases</p>
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceA" show-hide="show">
-          <p>Crackles in the lung bases come from fluid in the alveoli. Fewer crackles means pulmonary congestion is easing as the diuretic removes excess fluid.</p>
+          <qti-content-body>
+            <p>Crackles in the lung bases come from fluid in the alveoli. Fewer crackles means pulmonary congestion is easing as the diuretic removes excess fluid.</p>
+          </qti-content-body>
         </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceB">
         <p>Weight down 1.2 kg (2.6 lb) since yesterday</p>
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceB" show-hide="show">
-          <p>Daily weight is the most reliable measure of fluid balance. A loss of about 1 kg reflects about 1 L of fluid removed, which is the goal of diuresis.</p>
+          <qti-content-body>
+            <p>Daily weight is the most reliable measure of fluid balance. A loss of about 1 kg reflects about 1 L of fluid removed, which is the goal of diuresis.</p>
+          </qti-content-body>
         </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceC">
         <p>Urine output increased after the dose</p>
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceC" show-hide="show">
-          <p>Furosemide blocks sodium and water reabsorption in the loop of Henle, so increased urine output shows the drug is working.</p>
+          <qti-content-body>
+            <p>Furosemide blocks sodium and water reabsorption in the loop of Henle, so increased urine output shows the drug is working.</p>
+          </qti-content-body>
         </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceD">
         <p>Serum potassium 3.1 mEq/L</p>
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceD" show-hide="show">
-          <p>A potassium level below 3.5 mEq/L is hypokalemia, a common adverse effect of loop diuretics. It needs follow-up, but it isn't a sign of the desired effect.</p>
+          <qti-content-body>
+            <p>A potassium level below 3.5 mEq/L is hypokalemia, a common adverse effect of loop diuretics. It needs follow-up, but it isn't a sign of the desired effect.</p>
+          </qti-content-body>
         </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceE">
         <p>New 2+ pitting edema in both ankles</p>
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceE" show-hide="show">
-          <p>New or worsening edema means fluid is still building up, so the diuretic isn't yet having the desired effect.</p>
+          <qti-content-body>
+            <p>New or worsening edema means fluid is still building up, so the diuretic isn't yet having the desired effect.</p>
+          </qti-content-body>
         </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceF">
         <p>Respiratory rate 28 breaths/min</p>
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceF" show-hide="show">
-          <p>A respiratory rate of 28 breaths/min is above the normal range and suggests the client is still working hard to breathe. It doesn't show improvement.</p>
+          <qti-content-body>
+            <p>A respiratory rate of 28 breaths/min is above the normal range and suggests the client is still working hard to breathe. It doesn't show improvement.</p>
+          </qti-content-body>
         </qti-feedback-block>
       </qti-simple-choice>
     </qti-choice-interaction>
 
     <qti-feedback-block outcome-identifier="FEEDBACK" identifier="ITEM_completed" show-hide="show">
-      <p>Furosemide is a loop diuretic given to remove the excess fluid that causes congestion in heart failure. To decide whether it is working, look for signs that fluid is leaving the body and congestion is easing. Increased urine output shows diuresis is happening. A weight loss of 1.2 kg reflects about 1.2 L of fluid removed. Fewer crackles in the lung bases means less fluid in the lungs. New ankle edema and a fast respiratory rate point to ongoing fluid overload, and a potassium of 3.1 mEq/L is an adverse effect that needs follow-up. The findings that show the desired effect are fewer crackles, the weight loss, and the increased urine output.</p>
+      <qti-content-body>
+        <p>Furosemide is a loop diuretic given to remove the excess fluid that causes congestion in heart failure. To decide whether it is working, look for signs that fluid is leaving the body and congestion is easing. Increased urine output shows diuresis is happening. A weight loss of 1.2 kg reflects about 1.2 L of fluid removed. Fewer crackles in the lung bases means less fluid in the lungs. New ankle edema and a fast respiratory rate point to ongoing fluid overload, and a potassium of 3.1 mEq/L is an adverse effect that needs follow-up. The findings that show the desired effect are fewer crackles, the weight loss, and the increased urine output.</p>
+      </qti-content-body>
     </qti-feedback-block>
   </qti-item-body>
 

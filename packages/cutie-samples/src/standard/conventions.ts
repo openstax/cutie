@@ -6,7 +6,8 @@ export const outcomes = `\
 Declare the outcomes \`SCORE\` (float, default 0) and \`MAXSCORE\` (float). When \
 the item has feedback, also declare \`FEEDBACK\` (identifier, multiple \
 cardinality); feedback elements use \`outcome-identifier="FEEDBACK"\` and \
-\`show-hide="show"\`.`;
+\`show-hide="show"\`. Put the content of each \`qti-feedback-block\` inside a \
+\`qti-content-body\`; QTI 3 doesn't allow it directly in the feedback block.`;
 
 export const correctResponse = `\
 Always declare a \`qti-correct-response\`, even when scoring uses a \`qti-mapping\`. \

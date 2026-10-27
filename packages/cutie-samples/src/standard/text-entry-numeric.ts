@@ -55,7 +55,9 @@ adaptive="false" time-dependent="false" xml:lang="en">
     <p><qti-text-entry-interaction response-identifier="RESPONSE" expected-length="6" pattern-mask=".+" data-patternmask-message="Response required"/> km/h</p>
 
     <qti-feedback-block outcome-identifier="FEEDBACK" identifier="ITEM_completed" show-hide="show">
-      <p>Average speed is total distance divided by total time: v = d / t. Here d = 25 km and t = 0.4 h, so v = 25 / 0.4 = 62.5 km/h. A common mistake is to multiply distance by time instead of dividing. To check the answer, multiply it by the time: 62.5 × 0.4 = 25 km, which matches the distance traveled.</p>
+      <qti-content-body>
+        <p>Average speed is total distance divided by total time: v = d / t. Here d = 25 km and t = 0.4 h, so v = 25 / 0.4 = 62.5 km/h. A common mistake is to multiply distance by time instead of dividing. To check the answer, multiply it by the time: 62.5 × 0.4 = 25 km, which matches the distance traveled.</p>
+      </qti-content-body>
     </qti-feedback-block>
   </qti-item-body>
 

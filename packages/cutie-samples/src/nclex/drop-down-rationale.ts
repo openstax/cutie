@@ -78,7 +78,9 @@ adaptive="false" time-dependent="false" xml:lang="en">
       </qti-inline-choice-interaction>.
     </p>
     <qti-feedback-block outcome-identifier="FEEDBACK" identifier="ITEM_completed" show-hide="show">
-      <p>Dysphagia is common after a stroke, and a bedside swallow screen looks for signs that food or fluid is entering the airway. Coughing and a wet, gurgling voice after sips of water mean the client isn't protecting the airway, so the client is at highest risk for aspiration, which can lead to pneumonia. The client should stay NPO until a speech-language pathologist completes a full swallow evaluation. Right-sided weakness does raise the risk of a pressure injury, but the client can turn with help, and airway risks come first. Voiding 350 mL of clear urine shows the bladder is emptying, so urinary retention isn't supported. The client is at highest risk for aspiration as evidenced by coughing and a wet voice after sips of water.</p>
+      <qti-content-body>
+        <p>Dysphagia is common after a stroke, and a bedside swallow screen looks for signs that food or fluid is entering the airway. Coughing and a wet, gurgling voice after sips of water mean the client isn't protecting the airway, so the client is at highest risk for aspiration, which can lead to pneumonia. The client should stay NPO until a speech-language pathologist completes a full swallow evaluation. Right-sided weakness does raise the risk of a pressure injury, but the client can turn with help, and airway risks come first. Voiding 350 mL of clear urine shows the bladder is emptying, so urinary retention isn't supported. The client is at highest risk for aspiration as evidenced by coughing and a wet voice after sips of water.</p>
+      </qti-content-body>
     </qti-feedback-block>
   </qti-item-body>
 

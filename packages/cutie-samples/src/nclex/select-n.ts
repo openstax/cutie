@@ -75,49 +75,65 @@ adaptive="false" time-dependent="false" xml:lang="en">
       <qti-simple-choice identifier="choiceA">
         <p>Heart rate 122 beats/min</p>
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceA" show-hide="show">
-          <p>Tachycardia is often the earliest sign of hypovolemia. The heart beats faster to maintain cardiac output as circulating volume drops.</p>
+          <qti-content-body>
+            <p>Tachycardia is often the earliest sign of hypovolemia. The heart beats faster to maintain cardiac output as circulating volume drops.</p>
+          </qti-content-body>
         </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceB">
         <p>Blood pressure 88/50 mm Hg</p>
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceB" show-hide="show">
-          <p>Hypotension means compensation is failing. Together with a fast heart rate, it suggests hemorrhage and possible shock.</p>
+          <qti-content-body>
+            <p>Hypotension means compensation is failing. Together with a fast heart rate, it suggests hemorrhage and possible shock.</p>
+          </qti-content-body>
         </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceC">
         <p>Skin cool and clammy</p>
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceC" show-hide="show">
-          <p>Cool, clammy skin shows the body is shunting blood away from the skin to the vital organs, a sign of shock.</p>
+          <qti-content-body>
+            <p>Cool, clammy skin shows the body is shunting blood away from the skin to the vital organs, a sign of shock.</p>
+          </qti-content-body>
         </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceD">
         <p>Incision pain rated 4 on a 0 to 10 scale</p>
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceD" show-hide="show">
-          <p>Moderate incision pain is expected 2 hours after abdominal surgery. The nurse manages it with the prescribed analgesics, but it doesn't need immediate follow-up.</p>
+          <qti-content-body>
+            <p>Moderate incision pain is expected 2 hours after abdominal surgery. The nurse manages it with the prescribed analgesics, but it doesn't need immediate follow-up.</p>
+          </qti-content-body>
         </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceE">
         <p>Temperature 37.4 °C (99.3 °F)</p>
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceE" show-hide="show">
-          <p>A slight temperature rise is common in the first day after surgery as part of the inflammatory response.</p>
+          <qti-content-body>
+            <p>A slight temperature rise is common in the first day after surgery as part of the inflammatory response.</p>
+          </qti-content-body>
         </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceF">
         <p>Hypoactive bowel sounds</p>
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceF" show-hide="show">
-          <p>Anesthesia and handling of the bowel slow peristalsis, so hypoactive bowel sounds are expected soon after bowel surgery.</p>
+          <qti-content-body>
+            <p>Anesthesia and handling of the bowel slow peristalsis, so hypoactive bowel sounds are expected soon after bowel surgery.</p>
+          </qti-content-body>
         </qti-feedback-block>
       </qti-simple-choice>
       <qti-simple-choice identifier="choiceG">
         <p>Oxygen saturation 95% on 2 L/min by nasal cannula</p>
         <qti-feedback-block outcome-identifier="FEEDBACK" identifier="RESPONSE_choice_choiceG" show-hide="show">
-          <p>An oxygen saturation of 95% with supplemental oxygen is within the expected range after surgery.</p>
+          <qti-content-body>
+            <p>An oxygen saturation of 95% with supplemental oxygen is within the expected range after surgery.</p>
+          </qti-content-body>
         </qti-feedback-block>
       </qti-simple-choice>
     </qti-choice-interaction>
 
     <qti-feedback-block outcome-identifier="FEEDBACK" identifier="ITEM_completed" show-hide="show">
-      <p>Hemorrhage is one of the most serious early complications after abdominal surgery, so look for cues that circulating volume is dropping. A heart rate of 122 beats/min, a blood pressure of 88/50 mm Hg, and cool, clammy skin together point to hypovolemia and early shock, which need immediate follow-up. Moderate incision pain, a slight temperature rise, hypoactive bowel sounds, and an oxygen saturation of 95% on oxygen are all expected 2 hours after surgery. The 3 findings that require immediate follow-up are the heart rate, the blood pressure, and the cool, clammy skin.</p>
+      <qti-content-body>
+        <p>Hemorrhage is one of the most serious early complications after abdominal surgery, so look for cues that circulating volume is dropping. A heart rate of 122 beats/min, a blood pressure of 88/50 mm Hg, and cool, clammy skin together point to hypovolemia and early shock, which need immediate follow-up. Moderate incision pain, a slight temperature rise, hypoactive bowel sounds, and an oxygen saturation of 95% on oxygen are all expected 2 hours after surgery. The 3 findings that require immediate follow-up are the heart rate, the blood pressure, and the cool, clammy skin.</p>
+      </qti-content-body>
     </qti-feedback-block>
   </qti-item-body>
 
