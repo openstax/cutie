@@ -33,13 +33,23 @@ const getMatchGroups = (choice: Element): string[] =>
 
 /**
  * A choice's plain-text name, used for announcements and accessible labels: its
- * text, or the alt text of its images when it has no text of its own.
+ * text, with each image's alt text in its place, so an image that identifies
+ * the choice isn't lost beside text of its own.
  */
-const getChoiceText = (choice: Element): string =>
-  choice.textContent?.trim()
-  || Array.from(choice.querySelectorAll('img'), (img) => img.getAttribute('alt') ?? '')
-    .join(' ')
-    .trim();
+const getChoiceText = (choice: Element): string => {
+  const parts: string[] = [];
+  const walk = (node: Node): void => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      parts.push(node.textContent ?? '');
+    } else if (node instanceof Element && node.tagName.toLowerCase() === 'img') {
+      parts.push(` ${node.getAttribute('alt') ?? ''} `);
+    } else {
+      node.childNodes.forEach(walk);
+    }
+  };
+  choice.childNodes.forEach(walk);
+  return parts.join('').replace(/\s+/g, ' ').trim();
+};
 
 const parseCount = (choice: Element, attribute: string, fallback: number): number => {
   const parsed = parseInt(choice.getAttribute(attribute) ?? String(fallback), 10);

@@ -711,6 +711,18 @@ describe('matchInteraction', () => {
       expect(sourceEl(container, 'ACT1').querySelector('img')).not.toBeNull();
     });
 
+    it('names choices by their text and their images’ alt text together', () => {
+      const container = render(BOWTIE_QTI
+        .replace('>Actions to Take<', '><img src="lung.png" alt="Lung diagram"> Region<')
+        .replace('>Action 1<', '>Inspect <img src="a.png" alt="the airway"> first<'));
+      place(container, 'ACT1', 'T_ACTIONS');
+
+      expect(slotsFor(container, 'T_ACTIONS')[0].getAttribute('aria-label'))
+        .toMatch(/^Lung diagram Region, slot 1 of 2, contains Inspect the airway first\./);
+      expect(container.querySelector('.cutie-constraint-text')!.textContent)
+        .toContain('Make 2 matches for Lung diagram Region.');
+    });
+
     it('keeps placed answers reachable but inert when interactions are disabled', () => {
       const container = render(BOWTIE_QTI);
       const [filled, empty] = slotsFor(container, 'T_ACTIONS');
