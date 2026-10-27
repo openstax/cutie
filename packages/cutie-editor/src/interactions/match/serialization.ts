@@ -40,7 +40,7 @@ function createDefaultAssociableChoice(
 function parseMatchInteraction(
   element: Element,
   convertChildren: ConvertChildrenFn,
-  _convertChildrenStructural: ConvertChildrenFn,
+  convertChildrenStructural: ConvertChildrenFn,
   context?: ParserContext
 ): SlateElement {
   const attributes: Record<string, string | undefined> = {};
@@ -66,13 +66,8 @@ function parseMatchInteraction(
       const el = child as Element;
       const tagName = el.tagName.toLowerCase();
       if (tagName === 'qti-prompt') {
-        // Parse the prompt
-        const promptChildren = convertChildren(Array.from(el.childNodes));
-        promptElement = {
-          type: 'qti-prompt',
-          children: promptChildren.length > 0 ? promptChildren : [{ text: '' }],
-          attributes: {},
-        } as SlateElement;
+        // Parse the prompt with the shared qti-prompt parser
+        promptElement = convertChildrenStructural([el])[0] as SlateElement;
       } else if (tagName === 'qti-simple-match-set') {
         matchSets.push(el);
       }
@@ -212,10 +207,8 @@ function serializeMatchInteraction(
   for (const child of element.children) {
     if ('type' in child) {
       if (child.type === 'qti-prompt') {
-        // Serialize prompt directly
-        const promptEl = createXmlElement(context.doc, 'qti-prompt');
-        convertChildren(child.children, promptEl);
-        xmlElement.appendChild(promptEl);
+        // Serialize prompt with the shared qti-prompt serializer
+        convertChildren([child], xmlElement);
       } else if (child.type === 'match-source-set') {
         // Unwrap to qti-simple-match-set
         const matchSet = createXmlElement(context.doc, 'qti-simple-match-set');
