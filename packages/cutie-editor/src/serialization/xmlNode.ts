@@ -25,13 +25,20 @@ export function domToXmlNode(element: Element): XmlNode {
     attributes[attr.name] = attr.value;
   }
 
+  // Whitespace-only text is formatting only between child elements with no other
+  // text; in a value (no child elements) or mixed content it is kept verbatim
+  const childNodes = Array.from(element.childNodes);
+  const hasElements = childNodes.some((child) => child.nodeType === Node.ELEMENT_NODE);
+  const hasText = childNodes.some((child) => isTextNode(child) && (child.textContent ?? '').trim() !== '');
+  const keepWhitespace = !hasElements || hasText;
+
   const children: Array<XmlNode | string> = [];
-  for (const child of element.childNodes) {
+  for (const child of childNodes) {
     if (child.nodeType === Node.ELEMENT_NODE) {
       children.push(domToXmlNode(child as Element));
     } else if (isTextNode(child)) {
       const text = child.textContent || '';
-      if (text.trim()) {
+      if (keepWhitespace || text.trim()) {
         children.push(text);
       }
     }

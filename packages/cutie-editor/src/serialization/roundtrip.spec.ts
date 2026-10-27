@@ -623,6 +623,26 @@ describe('XML Round-trip Tests', () => {
     });
   });
 
+  describe('outcome values', () => {
+    it.each([
+      ['CDATA sections separated by a space', '<![CDATA[first]]> <![CDATA[last]]>'],
+      ['text separated by a comment', 'first <!-- note --> last'],
+      ['a single space', ' '],
+    ])('should keep %s verbatim', (_label, value) => {
+      const input = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test-item" title="Test Item">
+  <qti-outcome-declaration identifier="LABEL" cardinality="single" base-type="string">
+    <qti-default-value><qti-value>${value}</qti-value></qti-default-value>
+  </qti-outcome-declaration>
+  <qti-item-body><p>Text</p></qti-item-body>
+</qti-assessment-item>`;
+      const expected = parseXml(input).querySelector('qti-value')!.textContent;
+      const item = parseXml(serializeSlateToQti(parseXmlToSlate(input), input).xml);
+
+      expect(item.querySelector('qti-outcome-declaration[identifier="LABEL"] qti-value')?.textContent).toBe(expected);
+    });
+  });
+
   describe('CDATA sections', () => {
     it('should keep CDATA content in outcome declarations and body text', () => {
       const input = `<?xml version="1.0" encoding="UTF-8"?>
