@@ -294,6 +294,24 @@ describe('parseXmlToSlate', () => {
     });
   });
 
+  describe('xhtml elements without a dedicated type', () => {
+    it('should keep an empty container editable', () => {
+      const xml = wrapInQtiItem('<table><tbody><tr><td/></tr></tbody></table>');
+      const table = getContentNodes(parseXmlToSlate(xml))[0] as any;
+      const cell = table.children[0].children[0].children[0];
+
+      expect(cell).toMatchObject({ type: 'xhtml-element', tagName: 'td', isVoid: false });
+      expect(cell.children).toEqual([{ text: '' }]);
+    });
+
+    it('should mark void tags as void', () => {
+      const xml = wrapInQtiItem('<p>long<wbr/>word</p>');
+      const para = getContentNodes(parseXmlToSlate(xml))[0] as any;
+
+      expect(para.children[1]).toMatchObject({ type: 'xhtml-element', tagName: 'wbr', isVoid: true });
+    });
+  });
+
   describe('attribute preservation', () => {
     it('should preserve all XML attributes', () => {
       const xml = wrapInQtiItem('<div class="test" id="my-div" data-custom="value">Content</div>');

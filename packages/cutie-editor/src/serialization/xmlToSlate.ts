@@ -15,7 +15,7 @@ import { isElementInline } from '../plugins/withQtiInteractions.js';
 import type { DocumentMetadata, ElementAttributes, SlateElement, SlateText, TextAlign } from '../types.js';
 import { classifyResponseProcessing } from '../utils/responseProcessingClassifier.js';
 import { domToXmlNode, type XmlNode } from './xmlNode.js';
-import { isBlockTag, isQtiElement, normalizeTagName, parseXml, serializeElement } from './xmlUtils.js';
+import { isBlockTag, isQtiElement, isVoidTag, normalizeTagName, parseXml, serializeElement } from './xmlUtils.js';
 
 /**
  * Parser context for passing response declarations to interaction parsers
@@ -470,7 +470,7 @@ function convertNodeToSlate(node: Node, context?: ParserContext): Descendant | D
       tagName,
       children: children.length > 0 ? children : [{ text: '' }],
       attributes,
-      isVoid: element.childNodes.length === 0,
+      isVoid: isVoidTag(tagName),
     };
   }
 

@@ -137,6 +137,24 @@ export function isBlockTag(tagName: string): boolean {
 }
 
 /**
+ * Void tags: HTML elements that never have content
+ */
+export const VOID_TAGS = [
+  'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
+  'link', 'meta', 'source', 'track', 'wbr',
+];
+
+/**
+ * Check if a tag name is a void tag
+ *
+ * @param tagName - Tag name to check
+ * @returns True if the element can never have content
+ */
+export function isVoidTag(tagName: string): boolean {
+  return VOID_TAGS.includes(tagName.toLowerCase());
+}
+
+/**
  * Normalize tag name (lowercase, handle namespace prefixes)
  *
  * @param tagName - Tag name to normalize
