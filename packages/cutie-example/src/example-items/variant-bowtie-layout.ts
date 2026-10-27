@@ -1,15 +1,15 @@
-// Variant test: bowtie rendered with qti-match-interaction (grouped layout).
+// Variant test: bowtie rendered with qti-match-interaction (per-column banks).
 // A two-set match whose source choices carry match-group naming their target
-// column; the handler derives one column per target (Actions | Condition |
-// Parameters). The qti-choices-* class repositions each column's word bank
+// column; the handler banks each column's sources with it (Actions | Condition |
+// Parameters), and each target's match-min pre-allocates its slots. The qti-choices-* class repositions each column's word bank
 // within its own column — DOM order stays bank -> slot, so only the visual
 // placement changes. Visual verification of qti-choices-top/bottom/left/right
-// on the grouped column layout.
+// on the per-column bank layout.
 
 export const name = "Match - Bowtie Layout";
 
 // A compact clinical-judgment bowtie collapsed to three target columns:
-// Actions (accepts 2) | Condition (accepts 1) | Parameters (accepts 2). Each
+// Actions (requires 2) | Condition (requires 1) | Parameters (requires 2). Each
 // source names its column via match-group; targets are fixed so the column
 // order survives shuffle. Reused per interaction with a different bank class.
 const buildBowtie = (rid: string, cls: string, label: string): string => `
@@ -28,9 +28,9 @@ const buildBowtie = (rid: string, cls: string, label: string): string => `
       </qti-simple-match-set>
 
       <qti-simple-match-set>
-        <qti-simple-associable-choice identifier="T_ACTIONS" match-max="2" fixed="true">Actions to Take</qti-simple-associable-choice>
-        <qti-simple-associable-choice identifier="T_CONDITION" match-max="1" fixed="true">Condition</qti-simple-associable-choice>
-        <qti-simple-associable-choice identifier="T_PARAMS" match-max="2" fixed="true">Parameters to Monitor</qti-simple-associable-choice>
+        <qti-simple-associable-choice identifier="T_ACTIONS" match-min="2" match-max="2" fixed="true">Actions to Take</qti-simple-associable-choice>
+        <qti-simple-associable-choice identifier="T_CONDITION" match-min="1" match-max="1" fixed="true">Condition</qti-simple-associable-choice>
+        <qti-simple-associable-choice identifier="T_PARAMS" match-min="2" match-max="2" fixed="true">Parameters to Monitor</qti-simple-associable-choice>
       </qti-simple-match-set>
     </qti-match-interaction>`;
 

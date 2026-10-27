@@ -23,8 +23,8 @@ Note: match is entirely **advanced** cert (Q13 is Level 2).
 | identifier | advanced | :white_check_mark: | |
 | match-max | advanced | :white_check_mark: | limits associations per choice |
 | fixed | advanced | :white_check_mark: | respected during shuffle |
-| match-min | not in checklist | :x: | |
-| match-group | not in checklist | :white_check_mark: | restricts pairing; when every source names exactly one target, no target excludes a source that names it, and every target's match-max can be filled, renders the grouped (bowtie) layout |
+| match-min | not in checklist | :white_check_mark: | client-side validity and constraint text; pre-allocates a target column's slots |
+| match-group | not in checklist | :white_check_mark: | restricts pairing; when every source names exactly one target and every target is named, each target column gets its own bank (bowtie) |
 | template-identifier | not in checklist | :white_check_mark: | processed in processTemplateConditionals |
 | show-hide | not in checklist | :white_check_mark: | processed in processTemplateConditionals |
 
@@ -34,12 +34,16 @@ Note: match is entirely **advanced** cert (Q13 is Level 2).
 
 | class | cutie | notes |
 |---|---|---|
-| qti-choices-top | :white_check_mark: | grouped (bowtie) layout: positions each column's bank above its slot (cutie's default; the spec names none) |
-| qti-choices-bottom | :white_check_mark: | grouped (bowtie) layout: bank below its slot |
-| qti-choices-left | :white_check_mark: | grouped (bowtie) layout: bank left of its slot |
-| qti-choices-right | :white_check_mark: | grouped (bowtie) layout: bank right of its slot |
+| qti-choices-top | :white_check_mark: | bank(s) above the target columns (cutie's default; the spec names none) |
+| qti-choices-bottom | :white_check_mark: | bank(s) below the target columns |
+| qti-choices-left | :white_check_mark: | bank(s) left of the target columns |
+| qti-choices-right | :white_check_mark: | bank(s) right of the target columns |
 
 The bank always precedes its slots in the DOM, whatever the visual placement: the vocab asks for choices to be presented before targets to assistive technology.
+
+### cutie presentation
+
+Sources sit in word banks; each target is a column: a header over slots that sources are dragged or placed into (source → target only). Every source shares one bank, unless the sources' match-groups partition them by target, in which case each column gets its own bank (a bowtie). A column pre-allocates one slot per unit of its match-min and grows one empty slot at a time while its capacity allows (the smallest of its match-max, the sources allowed to pair with it, and max-associations). A source with room left under its match-max stays in its bank after it is placed.
 
 ### tabular layout — advanced cert
 
