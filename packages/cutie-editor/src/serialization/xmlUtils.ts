@@ -127,13 +127,26 @@ export const BLOCK_TAGS = [
 ];
 
 /**
- * Check if a tag name is a block-level tag
+ * Inline QTI tags: the QTI elements of InlineGroup (Information Model 6.26).
+ * Every other QTI element is block-level, whether block content (BlockGroup) or
+ * a structural child such as a choice, a match set or feedback metadata.
+ */
+export const INLINE_QTI_TAGS = [
+  'qti-text-entry-interaction', 'qti-hottext', 'qti-printed-variable', 'qti-gap',
+  'qti-feedback-inline', 'qti-template-inline', 'qti-inline-choice-interaction',
+  'qti-end-attempt-interaction', 'qti-custom-interaction',
+];
+
+/**
+ * Check if a tag name is a block-level tag: one of BLOCK_TAGS, or a QTI element
+ * that isn't one of INLINE_QTI_TAGS
  *
  * @param tagName - Tag name to check
  * @returns True if block-level
  */
 export function isBlockTag(tagName: string): boolean {
-  return BLOCK_TAGS.includes(tagName.toLowerCase());
+  const tag = tagName.toLowerCase();
+  return BLOCK_TAGS.includes(tag) || (isQtiElement(tag) && !INLINE_QTI_TAGS.includes(tag));
 }
 
 /**

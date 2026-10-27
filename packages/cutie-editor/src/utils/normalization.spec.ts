@@ -48,6 +48,21 @@ describe('wrapFeedbackContentInContentBody', () => {
   });
 });
 
+describe('feedback metadata', () => {
+  it.each([
+    ['qti-feedback-block', '<p>Question</p><qti-feedback-block outcome-identifier="FEEDBACK" identifier="F1" show-hide="show">BODY</qti-feedback-block>'],
+    ['qti-modal-feedback', '<p>Question</p><qti-modal-feedback outcome-identifier="FEEDBACK" identifier="F1" show-hide="show">BODY</qti-modal-feedback>'],
+  ])('keeps stylesheet and catalog info as direct children of %s', (tagName, content) => {
+    const doc = normalizeItemBody(content.replace('BODY', `
+      <qti-stylesheet href="feedback.css" type="text/css"/>
+      <qti-content-body><p>Explanation</p></qti-content-body>
+      <qti-catalog-info><qti-catalog id="c1"><qti-card support="spoken"><qti-html-content>Explanation</qti-html-content></qti-card></qti-catalog></qti-catalog-info>`));
+
+    expect(Array.from(doc.querySelector(tagName)!.children).map(child => child.localName))
+      .toEqual(['qti-stylesheet', 'qti-content-body', 'qti-catalog-info']);
+  });
+});
+
 describe('ensurePromptFirst', () => {
   it('keeps a gap-match prompt and writes it before the choices', () => {
     const doc = normalizeItemBody(`
