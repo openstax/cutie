@@ -139,9 +139,8 @@ class TabContainerHandler implements ElementHandler {
       element.ownerDocument.querySelectorAll(TAB_CONTAINER_SELECTOR)
     ).indexOf(element)}`;
 
-    // Open sections, most recently opened last. Tabs show the last one.
     const saved = context.state?.get(stateKey);
-    let open = Array.isArray(saved) ? (saved as number[]) : [0];
+    let open = Array.isArray(saved) ? (saved as number[]).filter((i) => i < sections.length) : [0];
 
     // jsdom and other environments without matchMedia get tabs
     const media = typeof window.matchMedia === 'function' ? window.matchMedia(NARROW_MEDIA_QUERY) : null;

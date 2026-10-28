@@ -224,6 +224,14 @@ describe('tabContainer', () => {
     expect(panels(rerendered)[2]!.hidden).toBe(false);
   });
 
+  it('selects the first tab when the saved tab no longer exists', () => {
+    const state = new Map<string, unknown>([['tab-container:0', [5]]]);
+    const container = render(RECORD, state);
+
+    expect(tabs(container)[0]!.getAttribute('aria-selected')).toBe('true');
+    expect(panels(container)[0]!.hidden).toBe(false);
+  });
+
   it('remembers the selected tab of each container nested in a panel on its own', () => {
     const nested = (name: string) => `
       <div class="cutie-tab-container">
