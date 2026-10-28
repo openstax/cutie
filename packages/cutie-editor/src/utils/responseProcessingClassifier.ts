@@ -11,6 +11,48 @@ const TEMPLATE_PATTERNS = {
 } as const;
 
 /**
+ * Get the responses an item's response processing scores. For a standard
+ * template that's RESPONSE; for inline rules, every declared response they
+ * reference outside feedback-only conditions (whose rules only set FEEDBACK).
+ * Unknown templates score unknown responses, so none are reported.
+ *
+ * @param doc - The QTI XML document
+ * @returns Identifiers of the scored responses
+ */
+export function getScoredResponseIdentifiers(doc: Document): Set<string> {
+  const scored = new Set<string>();
+  const responseProcessing = doc.querySelector('qti-response-processing');
+  if (!responseProcessing) return scored;
+
+  const declared = new Set(
+    Array.from(doc.querySelectorAll('qti-response-declaration')).map((decl) => decl.getAttribute('identifier'))
+  );
+
+  const template = responseProcessing.getAttribute('template');
+  if (template) {
+    if (classifyTemplate(template) !== 'custom' && declared.has('RESPONSE')) {
+      scored.add('RESPONSE');
+    }
+    return scored;
+  }
+
+  const isFeedbackOnly = (condition: Element) => {
+    const rules = Array.from(condition.querySelectorAll('qti-set-outcome-value'));
+    return rules.length > 0 && rules.every((rule) => rule.getAttribute('identifier') === 'FEEDBACK');
+  };
+
+  for (const reference of responseProcessing.querySelectorAll('[identifier]')) {
+    const identifier = reference.getAttribute('identifier');
+    if (!identifier || !declared.has(identifier)) continue;
+    const condition = reference.closest('qti-response-condition');
+    if (condition && isFeedbackOnly(condition)) continue;
+    scored.add(identifier);
+  }
+
+  return scored;
+}
+
+/**
  * Classify response processing from a QTI document into a mode.
  *
  * Detection algorithm:
@@ -28,11 +70,27 @@ const TEMPLATE_PATTERNS = {
  *    - No response processing element -> default to allCorrect
  *    - Empty response processing -> default to allCorrect
  *
+ * Checked first: SCORE declared external-scored="human" -> manual, and
+ * external-scored="externalMachine" -> custom (not managed by the editor).
+ *
  * @param doc - The QTI XML document
  * @returns ResponseProcessingConfig with the detected mode
  */
 export function classifyResponseProcessing(doc: Document): ResponseProcessingConfig {
   const responseProcessing = doc.querySelector('qti-response-processing');
+
+  // SCORE set outside response processing
+  const externalScored = doc
+    .querySelector('qti-outcome-declaration[identifier="SCORE"]')
+    ?.getAttribute('external-scored');
+  if (externalScored === 'human') {
+    return { mode: 'manual' };
+  }
+  if (externalScored === 'externalMachine') {
+    return responseProcessing
+      ? { mode: 'custom', customXml: domToXmlNode(responseProcessing) }
+      : { mode: 'custom' };
+  }
 
   // No response processing element -> default to allCorrect
   if (!responseProcessing) {

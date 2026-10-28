@@ -78,7 +78,9 @@ adaptive="false" time-dependent="false" xml:lang="en">
       </p>
     </qti-gap-match-interaction>
     <qti-feedback-block outcome-identifier="FEEDBACK" identifier="ITEM_completed" show-hide="show">
-      <p>Tuberculosis spreads through tiny airborne particles that stay suspended in the air and travel on air currents, so the client needs airborne precautions rather than droplet or contact precautions. An airborne infection isolation room uses negative pressure, which pulls air into the room and vents it outside so the particles can't drift into the hallway; positive pressure would push them out. A surgical mask doesn't filter particles this small, so staff wear a fit-tested N95 respirator. The nurse places the client on airborne precautions in a negative-pressure room and wears a fit-tested N95 respirator.</p>
+      <qti-content-body>
+        <p>Tuberculosis spreads through tiny airborne particles that stay suspended in the air and travel on air currents, so the client needs airborne precautions rather than droplet or contact precautions. An airborne infection isolation room uses negative pressure, which pulls air into the room and vents it outside so the particles can't drift into the hallway; positive pressure would push them out. A surgical mask doesn't filter particles this small, so staff wear a fit-tested N95 respirator. The nurse places the client on airborne precautions in a negative-pressure room and wears a fit-tested N95 respirator.</p>
+      </qti-content-body>
     </qti-feedback-block>
   </qti-item-body>
 

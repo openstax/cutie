@@ -488,6 +488,18 @@ const CHOICE_INTERACTION_STYLES = `
     cursor: not-allowed;
   }
 
+  /* Block content (e.g. <p>) lines up with the input like bare text does.
+     The correct-answer overline is inserted first, so the element after it
+     counts as first too. */
+  .cutie-choice-interaction .cutie-simple-choice-content > :first-child,
+  .cutie-choice-interaction .cutie-simple-choice-content > .cutie-correct-answer-overline + * {
+    margin-top: 0;
+  }
+
+  .cutie-choice-interaction .cutie-simple-choice-content > :last-child {
+    margin-bottom: 0;
+  }
+
   /* ── Evaluated (review) state ───────────────────────────────── */
 
   /* Sits on its own line, directly above the choice's first line */

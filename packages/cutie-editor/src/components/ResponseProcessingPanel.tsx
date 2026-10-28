@@ -63,6 +63,20 @@ export function ResponseProcessingPanel({
           <input
             type="radio"
             name="scoring-mode"
+            value="manual"
+            checked={config.mode === 'manual'}
+            onChange={() => onModeChange('manual')}
+          />
+          <span>Manually graded</span>
+        </label>
+        <p className="radio-option-description">
+          A person grades each response; nothing is scored automatically
+        </p>
+
+        <label className="radio-option">
+          <input
+            type="radio"
+            name="scoring-mode"
             value="custom"
             checked={config.mode === 'custom'}
             onChange={() => onModeChange('custom')}

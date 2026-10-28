@@ -209,18 +209,17 @@ describe('mountItem onResponseChange', () => {
     it('match interaction: reports each association change, not selection-only clicks', () => {
       mount(MATCH_XML);
       const s1 = q(container, '.cutie-match-choice[data-identifier="S1"]');
-      const t1 = q(container, '.cutie-match-choice[data-identifier="T1"]');
+      const t1Slot = q(container, '.cutie-match-slot[data-target-id="T1"]');
 
       s1.click(); // selection only
       expect(onResponseChange).not.toHaveBeenCalled();
 
-      t1.click(); // creates S1 T1
+      t1Slot.click(); // creates S1 T1
       expect(onResponseChange).toHaveBeenCalledTimes(1);
       expect(onResponseChange).toHaveBeenLastCalledWith({ R1: ['S1 T1'] });
 
-      // Remove via the chip's keyboard shortcut
-      const chip = q(container, '.cutie-match-chip');
-      chip.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true }));
+      // Remove via the slot's keyboard shortcut
+      t1Slot.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true }));
       expect(onResponseChange).toHaveBeenCalledTimes(2);
       expect(onResponseChange).toHaveBeenLastCalledWith({ R1: null });
       expectNoValidationUi();
@@ -229,16 +228,16 @@ describe('mountItem onResponseChange', () => {
     it('match interaction: moving an association reports once with the final value', () => {
       mount(MATCH_XML);
       q(container, '.cutie-match-choice[data-identifier="S1"]').click();
-      q(container, '.cutie-match-choice[data-identifier="T1"]').click();
+      q(container, '.cutie-match-slot[data-target-id="T1"]').click();
       onResponseChange.mockClear();
 
-      // The chip beside S1 represents T1: selecting it picks up T1's end of the association
-      q(container, '.cutie-match-chip[data-connected-id="T1"]').click();
+      // Picking the placed source back up out of its slot is selection only
+      q(container, '.cutie-match-slot[data-target-id="T1"]').click();
       expect(onResponseChange).not.toHaveBeenCalled();
-      q(container, '.cutie-match-choice[data-identifier="S2"]').click(); // move to S2
+      q(container, '.cutie-match-slot[data-target-id="T2"]').click(); // move to T2
 
       expect(onResponseChange).toHaveBeenCalledTimes(1);
-      expect(onResponseChange).toHaveBeenLastCalledWith({ R1: ['S2 T1'] });
+      expect(onResponseChange).toHaveBeenLastCalledWith({ R1: ['S1 T2'] });
     });
 
     it('gap match interaction: reports placing and removing a choice', () => {

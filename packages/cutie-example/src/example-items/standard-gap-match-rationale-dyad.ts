@@ -5,8 +5,8 @@
 // A single gap-match interaction holds both gaps in one shared sentence. Its
 // choices are split into two visually separate word-bank boxes by cutie's
 // client renderer (one per match-group value: cause words, then effect
-// words — see packages/cutie-client's gapMatchInteractionHandler, the
-// leftover-choices multi-tray path) — even though both boxes belong to one
+// words — see packages/cutie-client's gapMatchInteractionHandler) — even
+// though both boxes belong to one
 // physical interaction/response, match-group scoping keeps each box's words
 // restricted to its own gap — a cause word can't be dropped into the effect
 // gap, or vice versa.

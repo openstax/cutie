@@ -108,7 +108,9 @@ adaptive="false" time-dependent="false" xml:lang="en">
       </table>
     </qti-hottext-interaction>
     <qti-feedback-block outcome-identifier="FEEDBACK" identifier="ITEM_completed" show-hide="show">
-      <p>Sepsis is the body's dysregulated response to an infection, and early cues are the signs of systemic inflammation. Compare each value with its normal range. A temperature above 38 °C, a heart rate above 90 beats/min, a respiratory rate above 20 breaths/min, and a white blood cell count above 12,000/mm³ are all signs of systemic inflammation, and together with a known infection they suggest developing sepsis. The blood pressure, oxygen saturation, and blood glucose are within normal limits, though the nurse keeps monitoring the blood pressure for hypotension. The findings to highlight are the temperature, the heart rate, the respiratory rate, and the white blood cell count.</p>
+      <qti-content-body>
+        <p>Sepsis is the body's dysregulated response to an infection, and early cues are the signs of systemic inflammation. Compare each value with its normal range. A temperature above 38 °C, a heart rate above 90 beats/min, a respiratory rate above 20 breaths/min, and a white blood cell count above 12,000/mm³ are all signs of systemic inflammation, and together with a known infection they suggest developing sepsis. The blood pressure, oxygen saturation, and blood glucose are within normal limits, though the nurse keeps monitoring the blood pressure for hypotension. The findings to highlight are the temperature, the heart rate, the respiratory rate, and the white blood cell count.</p>
+      </qti-content-body>
     </qti-feedback-block>
   </qti-item-body>
 

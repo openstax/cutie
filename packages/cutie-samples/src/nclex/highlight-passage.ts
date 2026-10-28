@@ -77,7 +77,9 @@ adaptive="false" time-dependent="false" xml:lang="en">
       </p>
     </qti-hottext-interaction>
     <qti-feedback-block outcome-identifier="FEEDBACK" identifier="ITEM_completed" show-hide="show">
-      <p>After a knee replacement, the client is at high risk for venous thromboembolism, so look for cues of a deep vein thrombosis and of a pulmonary embolism. A right calf that is warm, swollen, and tender on the surgical side suggests a deep vein thrombosis. New shortness of breath with exertion and an oxygen saturation that dropped from 97% to 90% suggest a clot may have traveled to the lungs. These need prompt follow-up. Mild pain controlled by an oral analgesic, a closed incision with no drainage, a soft left calf, walking with a walker, and active bowel sounds are all expected on day 2. The findings that require follow-up are the warm, swollen, tender right calf, the new shortness of breath, and the oxygen saturation of 90%.</p>
+      <qti-content-body>
+        <p>After a knee replacement, the client is at high risk for venous thromboembolism, so look for cues of a deep vein thrombosis and of a pulmonary embolism. A right calf that is warm, swollen, and tender on the surgical side suggests a deep vein thrombosis. New shortness of breath with exertion and an oxygen saturation that dropped from 97% to 90% suggest a clot may have traveled to the lungs. These need prompt follow-up. Mild pain controlled by an oral analgesic, a closed incision with no drainage, a soft left calf, walking with a walker, and active bowel sounds are all expected on day 2. The findings that require follow-up are the warm, swollen, tender right calf, the new shortness of breath, and the oxygen saturation of 90%.</p>
+      </qti-content-body>
     </qti-feedback-block>
   </qti-item-body>
 

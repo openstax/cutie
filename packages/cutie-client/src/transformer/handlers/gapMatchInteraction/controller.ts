@@ -81,7 +81,7 @@ export class GapMatchController {
 
   /**
    * The ordered choices that share a bank with choiceId — the roving group for
-   * arrow-key navigation. Each per-column bank is its own listbox, so arrow
+   * arrow-key navigation. Each bank is its own listbox, so arrow
    * keys stay within one bank while Tab moves between banks.
    */
   private bankChoices(choiceId: string): Map<string, HTMLElement> {

@@ -278,11 +278,8 @@ describe('parseXmlToSlate', () => {
       const xml = wrapInQtiItem('<qti-hotspot-interaction response-identifier="RESPONSE_1">Content</qti-hotspot-interaction>');
       const result = getContentNodes(parseXmlToSlate(xml));
 
-      // qti-unknown elements are inline, so they get wrapped in a paragraph
-      const para = result[0] as SlateElement;
-      expect(para.type).toBe('paragraph');
-
-      const unknown = para.children[0] as SlateElement;
+      // BlockGroup interactions stay block-level, not wrapped in a paragraph
+      const unknown = result[0] as SlateElement;
       expect(unknown).toMatchObject({
         type: 'qti-unknown',
         originalTagName: 'qti-hotspot-interaction',
@@ -294,6 +291,24 @@ describe('parseXmlToSlate', () => {
 
       expect(unknown).toHaveProperty('rawXml');
       expect((unknown as any).rawXml).toContain('qti-hotspot-interaction');
+    });
+  });
+
+  describe('xhtml elements without a dedicated type', () => {
+    it('should keep an empty container editable', () => {
+      const xml = wrapInQtiItem('<table><tbody><tr><td/></tr></tbody></table>');
+      const table = getContentNodes(parseXmlToSlate(xml))[0] as any;
+      const cell = table.children[0].children[0].children[0];
+
+      expect(cell).toMatchObject({ type: 'xhtml-element', tagName: 'td', isVoid: false });
+      expect(cell.children).toEqual([{ text: '' }]);
+    });
+
+    it('should mark void tags as void', () => {
+      const xml = wrapInQtiItem('<p>long<wbr/>word</p>');
+      const para = getContentNodes(parseXmlToSlate(xml))[0] as any;
+
+      expect(para.children[1]).toMatchObject({ type: 'xhtml-element', tagName: 'wbr', isVoid: true });
     });
   });
 

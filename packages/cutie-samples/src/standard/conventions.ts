@@ -6,7 +6,8 @@ export const outcomes = `\
 Declare the outcomes \`SCORE\` (float, default 0) and \`MAXSCORE\` (float). When \
 the item has feedback, also declare \`FEEDBACK\` (identifier, multiple \
 cardinality); feedback elements use \`outcome-identifier="FEEDBACK"\` and \
-\`show-hide="show"\`.`;
+\`show-hide="show"\`. Put the content of each \`qti-feedback-block\` inside a \
+\`qti-content-body\`; QTI 3 doesn't allow it directly in the feedback block.`;
 
 export const correctResponse = `\
 Always declare a \`qti-correct-response\`, even when scoring uses a \`qti-mapping\`. \
@@ -16,6 +17,10 @@ export const shuffle = `\
 Set \`shuffle="true"\` unless the order of the options matters. If only some \
 options depend on their position (such as "All of the above"), mark those options \
 \`fixed="true"\` instead of turning shuffle off.`;
+
+export const choiceText = `\
+Put each choice's text in a \`<p>\`, followed by the choice's feedback: \
+\`<qti-simple-choice><p>Choice text</p><qti-feedback-block>…</qti-feedback-block></qti-simple-choice>\`.`;
 
 export const workedSolution = `\
 After the interactions, include one \`qti-feedback-block\` with identifier \

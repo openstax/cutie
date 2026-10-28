@@ -1,10 +1,10 @@
-import { useCallback, useMemo, useState, useRef, useEffect } from 'react';
-import { createEditor, Descendant, Editor, Element as SlateElementType, Transforms } from 'slate';
-import { Slate, Editable, withReact, RenderElementProps, RenderLeafProps } from 'slate-react';
-import { withHistory } from 'slate-history';
+import { createElement, useCallback, useMemo, useState, useRef, useEffect } from 'react';
+import { Descendant, Editor, Element as SlateElementType, Transforms } from 'slate';
+import { Slate, Editable, RenderElementProps, RenderLeafProps } from 'slate-react';
 import type { Path } from 'slate';
 import type { SlateEditorProps, SlateElement, ElementAttributes, XmlNode, DocumentMetadata, ResponseProcessingMode } from '../types.js';
-import { withQtiInteractions, withXhtml, withUnknownElements } from '../plugins/index.js';
+import { createQtiEditor } from './createQtiEditor.js';
+import { isElementInline } from '../plugins/withQtiInteractions.js';
 import { Toolbar } from './Toolbar.js';
 import { parseXmlToSlate } from '../serialization/xmlToSlate.js';
 import { serializeSlateToQti } from '../serialization/slateToXml.js';
@@ -40,10 +40,7 @@ export function SlateEditor({
   assetHandlers,
 }: SlateEditorProps): React.JSX.Element {
   // Create editor instance with plugins (stable across renders)
-  const editor = useMemo(() => {
-    const baseEditor = withReact(withHistory(createEditor()));
-    return withUnknownElements(withQtiInteractions(withXhtml(baseEditor)));
-  }, []);
+  const editor = useMemo(() => createQtiEditor(), []);
 
   // Track the current QTI XML to detect external changes
   const qtiXmlRef = useRef(qtiXml);
@@ -358,6 +355,19 @@ const interactionRenderers: Record<string, React.ComponentType<RenderElementProp
 };
 
 /**
+ * React props for the authored attributes of a passthrough xhtml element that
+ * change its layout or visibility. Other attributes are saved but not rendered.
+ */
+function xhtmlDisplayProps(el: SlateElement & { type: 'xhtml-element' }): Record<string, unknown> {
+  const props: Record<string, unknown> = {};
+  if (el.attributes?.['colspan']) props['colSpan'] = el.attributes['colspan'];
+  if (el.attributes?.['rowspan']) props['rowSpan'] = el.attributes['rowspan'];
+  // Always open, so its content can be edited
+  if (el.tagName === 'details') props['open'] = true;
+  return props;
+}
+
+/**
  * Element renderer component
  */
 function Element({ attributes, children, element }: RenderElementProps): React.JSX.Element {
@@ -380,12 +390,13 @@ function Element({ attributes, children, element }: RenderElementProps): React.J
         </span>
       );
 
-    case 'qti-unknown':
+    case 'qti-unknown': {
+      const Tag = isElementInline(element) ? 'span' : 'div';
       return (
-        <span
+        <Tag
           {...attributes}
           style={{
-            display: 'inline-block',
+            display: Tag === 'span' ? 'inline-block' : 'block',
             padding: '12px',
             margin: '8px 0',
             backgroundColor: '#fff3e0',
@@ -408,13 +419,20 @@ function Element({ attributes, children, element }: RenderElementProps): React.J
           >
             ⚠️ Unsupported element: <code>{el.originalTagName}</code>
             <span style={{ display: 'block', fontSize: '0.85em', marginTop: '4px' }}>
-              This QTI element is not yet supported by the editor. Content will be preserved when
+              This element is not yet supported by the editor. Content will be preserved when
               you save.
             </span>
           </span>
           {children}
-        </span>
+        </Tag>
       );
+    }
+
+    case 'xhtml-element':
+      if (el.isVoid) {
+        return <span {...attributes} contentEditable={false}>{children}</span>;
+      }
+      return createElement(el.tagName, { ...xhtmlDisplayProps(el), ...attributes }, children);
 
     case 'paragraph':
       return <p {...attributes} style={{ textAlign: el.align }}>{children}</p>;

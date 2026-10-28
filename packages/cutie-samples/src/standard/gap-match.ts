@@ -76,7 +76,9 @@ adaptive="false" time-dependent="false" xml:lang="en">
     </qti-gap-match-interaction>
 
     <qti-feedback-block outcome-identifier="FEEDBACK" identifier="ITEM_completed" show-hide="show">
-      <p>Start from the overall equation for photosynthesis: 6CO₂ + 6H₂O + light energy → C₆H₁₂O₆ + 6O₂. The reactants are carbon dioxide and water. Carbon dioxide is a gas, so it enters the leaf from the air through small pores called stomata, while water is absorbed by the roots and carried up to the leaves. The light-dependent reactions split water molecules, releasing oxygen as a byproduct. Nitrogen doesn't appear in the equation at all.</p>
+      <qti-content-body>
+        <p>Start from the overall equation for photosynthesis: 6CO₂ + 6H₂O + light energy → C₆H₁₂O₆ + 6O₂. The reactants are carbon dioxide and water. Carbon dioxide is a gas, so it enters the leaf from the air through small pores called stomata, while water is absorbed by the roots and carried up to the leaves. The light-dependent reactions split water molecules, releasing oxygen as a byproduct. Nitrogen doesn't appear in the equation at all.</p>
+      </qti-content-body>
     </qti-feedback-block>
   </qti-item-body>
 

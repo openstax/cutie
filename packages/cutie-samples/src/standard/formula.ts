@@ -63,7 +63,9 @@ adaptive="false" time-dependent="false" xml:lang="en">
     </qti-extended-text-interaction>
 
     <qti-feedback-block outcome-identifier="FEEDBACK" identifier="ITEM_completed" show-hide="show">
-      <p>The distributive property says a(b + c) = ab + ac, so the 2 outside the parentheses multiplies every term inside. First, 2 · x = 2x. Next, 2 · 3 = 6. Adding the products gives 2x + 6. A common mistake is multiplying only the first term, which gives 2x + 3.</p>
+      <qti-content-body>
+        <p>The distributive property says a(b + c) = ab + ac, so the 2 outside the parentheses multiplies every term inside. First, 2 · x = 2x. Next, 2 · 3 = 6. Adding the products gives 2x + 6. A common mistake is multiplying only the first term, which gives 2x + 3.</p>
+      </qti-content-body>
     </qti-feedback-block>
   </qti-item-body>
 

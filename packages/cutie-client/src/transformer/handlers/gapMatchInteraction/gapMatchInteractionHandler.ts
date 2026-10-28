@@ -122,8 +122,55 @@ export class GapMatchInteractionHandler implements ElementHandler {
       });
     }
 
-    // Create the choice buttons up front; the layout below decides where
-    // each button lands in the DOM.
+    // Create the word bank(s); their position follows the interaction's
+    // qti-choices-* class. When the choices span 2+ match-groups (e.g. a
+    // flowing sentence whose gaps are scoped by match-group), each group gets
+    // its own word bank so the visual layout matches the functional
+    // restriction. Choices bucket by their first match-group; ungrouped
+    // choices form their own bucket.
+    const groupKey = (choice: ChoiceData): string => choice.matchGroups[0] ?? '';
+    const groupKeys = [...new Set(choices.map(groupKey))];
+    const choiceBanks: HTMLElement[] = [];
+    const bankForGroup = new Map<string, HTMLElement>();
+
+    const createBank = (label: string): HTMLElement => {
+      const bank = document.createElement('div');
+      bank.className = 'cutie-gap-match-choices';
+      bank.setAttribute('role', 'listbox');
+      bank.setAttribute('aria-label', label);
+      choiceBanks.push(bank);
+      return bank;
+    };
+
+    // The outer element keeps the cutie-gap-match-choices class either way,
+    // so the qti-choices-* positioning rules apply to it unchanged
+    let choicesContainer: HTMLElement;
+    if (groupKeys.length >= 2) {
+      // A layout row, not itself a bank: role="group" because its children,
+      // not it, are the listboxes
+      const row = document.createElement('div');
+      row.className = 'cutie-gap-match-choices cutie-gap-match-choices--multi-tray';
+      row.setAttribute('role', 'group');
+      row.setAttribute('aria-label', 'Available choices');
+      groupKeys.forEach((key, index) => {
+        // match-group is an opaque author-chosen identifier with no display
+        // semantics, so each bank gets an ordinal name instead
+        const bank = createBank(`Word bank ${index + 1}`);
+        bank.classList.add('cutie-gap-match-choices--group');
+        if (key) bank.setAttribute('data-match-group', key);
+        row.appendChild(bank);
+        bankForGroup.set(key, bank);
+      });
+      choicesContainer = row;
+    } else {
+      choicesContainer = createBank('Available choices');
+    }
+    const choicesContainerWidth = parseChoicesContainerWidth(element);
+    if (choicesContainerWidth !== null) {
+      choicesContainer.style.width = `${choicesContainerWidth}px`;
+    }
+    container.appendChild(choicesContainer);
+
     const choiceButtons = new Map<string, { button: HTMLButtonElement; content: string }>();
     for (const choice of choices) {
       const choiceBtn = document.createElement('button');
@@ -152,41 +199,9 @@ export class GapMatchInteractionHandler implements ElementHandler {
         choiceBtn.textContent = content;
       }
 
+      (bankForGroup.get(groupKey(choice)) ?? choicesContainer).appendChild(choiceBtn);
       choiceButtons.set(choice.identifier, { button: choiceBtn, content });
     }
-
-    const choicesContainerWidth = parseChoicesContainerWidth(element);
-    const choiceBanks: HTMLElement[] = [];
-    const orderedChoices: ChoiceData[] = [];
-
-    // A bank is a listbox; name it either by a referenced element
-    // (aria-labelledby — e.g. the column's own heading) or a literal string.
-    const createBank = (naming: { label: string } | { labelledBy: string }): HTMLElement => {
-      const bank = document.createElement('div');
-      bank.className = 'cutie-gap-match-choices';
-      bank.setAttribute('role', 'listbox');
-      if ('labelledBy' in naming) {
-        bank.setAttribute('aria-labelledby', naming.labelledBy);
-      } else {
-        bank.setAttribute('aria-label', naming.label);
-      }
-      if (choicesContainerWidth !== null) {
-        bank.style.width = `${choicesContainerWidth}px`;
-      }
-      choiceBanks.push(bank);
-      return bank;
-    };
-
-    const placeChoice = (parent: HTMLElement, choice: ChoiceData): void => {
-      const entry = choiceButtons.get(choice.identifier);
-      if (entry) {
-        parent.appendChild(entry.button);
-        orderedChoices.push(choice);
-      }
-    };
-
-    const choicesForGroup = (group: string): ChoiceData[] =>
-      choices.filter((choice) => choice.matchGroups.length === 1 && choice.matchGroups[0] === group);
 
     // Create content container and transform remaining children (which includes gaps)
     const contentContainer = document.createElement('div');
@@ -209,115 +224,6 @@ export class GapMatchInteractionHandler implements ElementHandler {
         contentContainer.appendChild(context.transformNode(child));
       } else if (context.transformChildren) {
         contentContainer.appendChild(context.transformChildren(child));
-      }
-    }
-
-    // Author-declared columns: when the content is laid out with the QTI
-    // layout grid (qti-layout-row / qti-layout-col*), each column whose gaps
-    // all share a single match-group gets that group's choices banked inside
-    // it. The layout is declared by the author via standard vocabulary — the
-    // handler renders what was declared rather than inferring it from data.
-    const claimedGroups = new Set<string>();
-    for (const column of contentContainer.querySelectorAll('[class*="qti-layout-col"]')) {
-      const groups = new Set<string>();
-      for (const gap of column.querySelectorAll('.cutie-gap')) {
-        const groupAttr = gap.getAttribute('data-match-group');
-        if (groupAttr) {
-          for (const group of groupAttr.split(/\s+/).filter(Boolean)) {
-            groups.add(group);
-          }
-        }
-      }
-      if (groups.size !== 1) continue;
-
-      const [group] = groups;
-      if (claimedGroups.has(group)) continue;
-
-      const groupChoices = choicesForGroup(group);
-      if (groupChoices.length === 0) continue;
-
-      // Name the bank after the column's own heading so screen-reader users
-      // hear a meaningful listbox name on entering it.
-      const columnHeading = column.querySelector('h1, h2, h3, h4, h5, h6');
-      let bank: HTMLElement;
-      if (columnHeading) {
-        if (!columnHeading.id) columnHeading.id = `${responseIdentifier}-${group}-bank-label`;
-        bank = createBank({ labelledBy: columnHeading.id });
-      } else {
-        bank = createBank({ label: 'Available choices' });
-      }
-      bank.classList.add('cutie-gap-match-choices--column');
-      bank.setAttribute('data-match-group', group);
-      column.classList.add('cutie-gap-match-column');
-      for (const choice of groupChoices) {
-        placeChoice(bank, choice);
-      }
-      column.appendChild(bank);
-      claimedGroups.add(group);
-    }
-
-    // Any choices not placed into a column — no columns at all, an ungrouped
-    // pool, or a group no column claimed — go into a shared tray whose
-    // position follows the interaction's qti-choices-* class. When these
-    // leftovers span 2+ distinct match-groups (e.g. a flowing sentence whose
-    // gaps are scoped by match-group but never wrapped in layout columns),
-    // split them into one labeled box per group instead of one flat tray —
-    // this is how a continuous sentence gets visually separated word banks
-    // without being torn into qti-layout-col fragments.
-    const leftoverChoices = choices.filter((choice) => !orderedChoices.includes(choice));
-    if (leftoverChoices.length > 0) {
-      container.classList.add('cutie-gap-match-interaction--shared-tray');
-
-      const bucketOrder: string[] = [];
-      const buckets = new Map<string, ChoiceData[]>();
-      for (const choice of leftoverChoices) {
-        const key = choice.matchGroups[0] ?? '';
-        if (!buckets.has(key)) {
-          buckets.set(key, []);
-          bucketOrder.push(key);
-        }
-        buckets.get(key)!.push(choice);
-      }
-
-      if (bucketOrder.length >= 2) {
-        // The wrapper keeps the bare cutie-gap-match-choices class (not each
-        // inner box) so it slots into the qti-choices-top/bottom/left/right
-        // positioning rules unchanged — those select a direct child of
-        // --shared-tray, which this wrapper is and the nested boxes below
-        // are not. It's a plain layout row, not itself a bank: it isn't
-        // pushed into choiceBanks, and role="group" (not "listbox") reflects
-        // that its children — not it — are the selectable listboxes.
-        const row = document.createElement('div');
-        row.className = 'cutie-gap-match-choices cutie-gap-match-choices--multi-tray';
-        row.setAttribute('role', 'group');
-        row.setAttribute('aria-label', 'Available choices');
-        if (choicesContainerWidth !== null) {
-          row.style.width = `${choicesContainerWidth}px`;
-        }
-
-        bucketOrder.forEach((key, index) => {
-          // match-group is a spec-opaque, author-chosen identifier with no
-          // display semantics (see docs/qti/interactions/gap-match.md) —
-          // there's no safe way to humanize an arbitrary token into a label,
-          // so each box gets a generated ordinal name instead, matching the
-          // existing "Gap 1"/"Gap 2" convention used below for gaps.
-          const bank = createBank({ label: `Word bank ${index + 1}` });
-          bank.classList.add('cutie-gap-match-choices--group');
-          bank.style.width = ''; // width belongs to the row, not each box
-          if (key) bank.setAttribute('data-match-group', key);
-          for (const choice of buckets.get(key)!) {
-            placeChoice(bank, choice);
-          }
-          row.appendChild(bank);
-        });
-
-        container.appendChild(row);
-      } else {
-        const tray = createBank({ label: 'Available choices' });
-        for (const choice of leftoverChoices) {
-          placeChoice(tray, choice);
-        }
-        container.appendChild(tray);
       }
     }
 
@@ -358,7 +264,9 @@ export class GapMatchInteractionHandler implements ElementHandler {
     // Create the controller
     const controller = new GapMatchController(responseIdentifier, choiceBanks, context, container, maxAssociations);
 
-    // Register choices in DOM order so keyboard navigation follows the layout
+    // Register choices in DOM order (grouped by bank) so keyboard navigation
+    // follows the layout
+    const orderedChoices = groupKeys.flatMap((key) => choices.filter((choice) => groupKey(choice) === key));
     for (const choice of orderedChoices) {
       const entry = choiceButtons.get(choice.identifier);
       if (!entry) continue;

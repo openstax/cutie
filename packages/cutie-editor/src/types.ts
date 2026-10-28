@@ -29,8 +29,9 @@ declare module 'slate' {
  * - 'custom': Complex logic that cannot be classified; read-only, preserved as-is
  * - 'sumScores': Partial credit; each interaction produces a score, totaled together
  * - 'allCorrect': Binary 0/1; all responses must be correct for score of 1
+ * - 'manual': Graded by a person; SCORE is external-scored="human" and no response processing is generated
  */
-export type ResponseProcessingMode = 'custom' | 'sumScores' | 'allCorrect';
+export type ResponseProcessingMode = 'custom' | 'sumScores' | 'allCorrect' | 'manual';
 
 /**
  * Configuration for response processing
@@ -49,6 +50,12 @@ export interface DocumentMetadata {
   type: 'document-metadata';
   children: [{ text: '' }]; // Void element requires children
   responseProcessing: ResponseProcessingConfig;
+  /**
+   * The item's outcome declarations as loaded. Saving rebuilds the outcome
+   * declarations from these and the current editor state, never from a previous
+   * save, so undo (which only restores editor state) restores them too.
+   */
+  outcomeDeclarations?: XmlNode[];
 }
 
 // ============================================================================
@@ -361,6 +368,19 @@ export interface UnknownQtiElement {
   attributes: ElementAttributes;
   rawXml?: string; // Store original XML for perfect round-trip
   isVoid?: boolean; // Whether this element should be void
+  responseDeclarations?: Record<string, XmlNode>; // Declarations for responses bound inside this element
+  scoredResponseIdentifiers?: string[]; // Those of the responses that generated scoring includes
+}
+
+/**
+ * XHTML element without a dedicated type (passed through with its tag name)
+ */
+export interface XhtmlElement {
+  type: 'xhtml-element';
+  tagName: string;
+  children: Array<SlateElement | SlateText>;
+  attributes?: ElementAttributes;
+  isVoid?: boolean; // Whether this element should be void
 }
 
 /**
@@ -509,6 +529,7 @@ export type SlateElement =
   | QtiModalFeedback
   | QtiContentBody
   | UnknownQtiElement
+  | XhtmlElement
   | ParagraphElement
   | DivElement
   | SpanElement

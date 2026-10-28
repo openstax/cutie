@@ -61,7 +61,9 @@ adaptive="false" time-dependent="false" xml:lang="en">
     <p>The SI unit of force, equal to one kilogram meter per second squared, is the <qti-text-entry-interaction response-identifier="RESPONSE" expected-length="10" pattern-mask=".+" data-patternmask-message="Response required"/>.</p>
 
     <qti-feedback-block outcome-identifier="FEEDBACK" identifier="ITEM_completed" show-hide="show">
-      <p>Start from Newton's second law, F = ma. The SI unit of mass is the kilogram and the SI unit of acceleration is meters per second squared, so the unit of force is kg·m/s². That derived unit is named the newton (N) after Isaac Newton.</p>
+      <qti-content-body>
+        <p>Start from Newton's second law, F = ma. The SI unit of mass is the kilogram and the SI unit of acceleration is meters per second squared, so the unit of force is kg·m/s². That derived unit is named the newton (N) after Isaac Newton.</p>
+      </qti-content-body>
     </qti-feedback-block>
   </qti-item-body>
 

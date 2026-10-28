@@ -1,6 +1,8 @@
+/* spell-checker: ignore hottext */
 import type { Descendant } from 'slate';
 import { describe, expect, it } from 'vitest';
-import { serializeSlateToXml } from './slateToXml.js';
+import type { DocumentMetadata, ResponseProcessingMode } from '../types.js';
+import { serializeSlateToQti, serializeSlateToXml } from './slateToXml.js';
 import { parseXmlToSlate } from './xmlToSlate.js';
 
 /**
@@ -341,6 +343,62 @@ describe('XML Round-trip Tests', () => {
       expect(output).toContain('response-identifier="R1"');
       expect(output).toContain('qti-hotspot-choice');
     });
+
+    it('should not score an unknown interaction the loaded rules did not score', () => {
+      const input = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test-item" title="Test Item">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier">
+    <qti-correct-response><qti-value>A</qti-value></qti-correct-response>
+  </qti-response-declaration>
+  <qti-response-declaration identifier="END_ATTEMPT" cardinality="single" base-type="boolean"/>
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/>
+  <qti-item-body>
+    <qti-choice-interaction response-identifier="RESPONSE" max-choices="1">
+      <qti-prompt>Pick one</qti-prompt>
+      <qti-simple-choice identifier="A">A</qti-simple-choice>
+    </qti-choice-interaction>
+    <p><qti-end-attempt-interaction response-identifier="END_ATTEMPT" title="Done"/></p>
+  </qti-item-body>
+  <qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>
+</qti-assessment-item>`;
+
+      const item = parseXml(serializeSlateToQti(parseXmlToSlate(input), input).xml).documentElement;
+
+      expect(item.querySelector('qti-response-declaration[identifier="END_ATTEMPT"]')).not.toBeNull();
+      expect(item.querySelector('qti-response-processing')?.getAttribute('template')).toContain('match_correct');
+      expect(item.querySelector('qti-response-processing [identifier="END_ATTEMPT"]')).toBeNull();
+    });
+
+    it('should keep declarations and scoring for unknown interactions', () => {
+      const input = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test-item" title="Test Item">
+  <qti-response-declaration identifier="R1" cardinality="multiple" base-type="identifier">
+    <qti-correct-response><qti-value>h1</qti-value></qti-correct-response>
+    <qti-mapping default-value="0"><qti-map-entry map-key="h1" mapped-value="1"/></qti-mapping>
+  </qti-response-declaration>
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/>
+  <qti-item-body>
+    <qti-hottext-interaction response-identifier="R1" max-choices="0">
+      <p><qti-hottext identifier="h1">Hot 1</qti-hottext></p>
+    </qti-hottext-interaction>
+  </qti-item-body>
+  <qti-response-processing>
+    <qti-set-outcome-value identifier="SCORE">
+      <qti-sum><qti-map-response identifier="R1"/></qti-sum>
+    </qti-set-outcome-value>
+  </qti-response-processing>
+</qti-assessment-item>`;
+
+      const { xml } = serializeSlateToQti(parseXmlToSlate(input), input);
+      const item = parseXml(xml).documentElement;
+      const declarations = Array.from(item.children)
+        .map(child => child.localName)
+        .filter(name => name.endsWith('-declaration'));
+
+      expect(item.querySelector('qti-response-declaration[identifier="R1"] qti-map-entry')).not.toBeNull();
+      expect(declarations).toEqual(['qti-response-declaration', 'qti-outcome-declaration']);
+      expect(item.querySelector('qti-response-processing qti-sum > qti-map-response[identifier="R1"]')).not.toBeNull();
+    });
   });
 
   describe('complete QTI items', () => {
@@ -587,6 +645,207 @@ describe('XML Round-trip Tests', () => {
 
       expect(paragraphs[0].children[0].text).toBe(' Paragraph with multiple lines ');
       expect(paragraphs[1].children[0].text).toBe(' Another paragraph ');
+    });
+  });
+
+  describe('outcome values', () => {
+    it.each([
+      ['CDATA sections separated by a space', '<![CDATA[first]]> <![CDATA[last]]>'],
+      ['text separated by a comment', 'first <!-- note --> last'],
+      ['a single space', ' '],
+    ])('should keep %s verbatim', (_label, value) => {
+      const input = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test-item" title="Test Item">
+  <qti-outcome-declaration identifier="LABEL" cardinality="single" base-type="string">
+    <qti-default-value><qti-value>${value}</qti-value></qti-default-value>
+  </qti-outcome-declaration>
+  <qti-item-body><p>Text</p></qti-item-body>
+</qti-assessment-item>`;
+      const expected = parseXml(input).querySelector('qti-value')!.textContent;
+      const item = parseXml(serializeSlateToQti(parseXmlToSlate(input), input).xml);
+
+      expect(item.querySelector('qti-outcome-declaration[identifier="LABEL"] qti-value')?.textContent).toBe(expected);
+    });
+  });
+
+  describe('CDATA sections', () => {
+    it('should keep CDATA content in outcome declarations and body text', () => {
+      const input = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test-item" title="Test Item">
+  <qti-outcome-declaration identifier="MAXSCORE" cardinality="single" base-type="float">
+    <qti-default-value><qti-value><![CDATA[5]]></qti-value></qti-default-value>
+  </qti-outcome-declaration>
+  <qti-item-body>
+    <p><![CDATA[Is a < b?]]></p>
+  </qti-item-body>
+</qti-assessment-item>`;
+      const item = parseXml(serializeSlateToQti(parseXmlToSlate(input), input).xml);
+
+      expect(item.querySelector('qti-outcome-declaration[identifier="MAXSCORE"] qti-value')?.textContent).toBe('5');
+      expect(item.querySelector('qti-item-body p')?.textContent).toBe('Is a < b?');
+    });
+  });
+
+  describe('prompts', () => {
+    it('should keep a formatted paragraph in a match prompt', () => {
+      const content = `
+        <qti-match-interaction response-identifier="RESPONSE" max-associations="1">
+          <qti-prompt><p class="note" style="text-align: right">Match the pairs.</p></qti-prompt>
+          <qti-simple-match-set><qti-simple-associable-choice identifier="S" match-max="1">S</qti-simple-associable-choice></qti-simple-match-set>
+          <qti-simple-match-set><qti-simple-associable-choice identifier="T" match-max="1">T</qti-simple-associable-choice></qti-simple-match-set>
+        </qti-match-interaction>`;
+      const input = wrapInQtiItem(content);
+      const item = parseXml(serializeSlateToQti(parseXmlToSlate(input), input).xml);
+      const paragraph = item.querySelector('qti-prompt > p');
+
+      expect(paragraph?.getAttribute('class')).toBe('note');
+      expect(paragraph?.getAttribute('style')).toContain('text-align: right');
+      expect(paragraph?.textContent).toBe('Match the pairs.');
+    });
+  });
+
+  describe('manually graded items', () => {
+    const extendedTextItem = (scoreDeclaration: string, responseProcessing = '') => `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test-item" title="Test Item">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="string"/>
+  ${scoreDeclaration}
+  <qti-item-body>
+    <qti-extended-text-interaction response-identifier="RESPONSE">
+      <qti-prompt>Explain your answer.</qti-prompt>
+    </qti-extended-text-interaction>
+  </qti-item-body>
+  ${responseProcessing}
+</qti-assessment-item>`;
+
+    /** Serialize an item, optionally switching its scoring mode first */
+    const roundTrip = (input: string, mode?: ResponseProcessingMode) => {
+      const nodes = parseXmlToSlate(input);
+      if (mode) {
+        (nodes[0] as DocumentMetadata).responseProcessing = { mode };
+      }
+      return parseXml(serializeSlateToQti(nodes, input).xml).documentElement;
+    };
+
+    it('should not add response processing to a human-scored item', () => {
+      const item = roundTrip(extendedTextItem(
+        '<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float" external-scored="human" normal-maximum="2"/>'
+      ));
+      const score = item.querySelector('qti-outcome-declaration[identifier="SCORE"]')!;
+
+      expect(item.querySelector('qti-response-processing')).toBeNull();
+      expect(score.getAttribute('external-scored')).toBe('human');
+      expect(score.getAttribute('normal-maximum')).toBe('2');
+    });
+
+    it('should mark SCORE as human-scored when switching to manual', () => {
+      const item = roundTrip(extendedTextItem(
+        '<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"><qti-default-value><qti-value>0</qti-value></qti-default-value></qti-outcome-declaration>',
+        '<qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>'
+      ), 'manual');
+      const score = item.querySelector('qti-outcome-declaration[identifier="SCORE"]')!;
+
+      expect(item.querySelector('qti-response-processing')).toBeNull();
+      expect(score.getAttribute('external-scored')).toBe('human');
+      expect(score.getAttribute('normal-maximum')).toBe('1.0');
+      expect(score.querySelector('qti-default-value')).toBeNull();
+    });
+
+    it('should declare SCORE when switching to manual on an item without one', () => {
+      const item = roundTrip(extendedTextItem(''), 'manual');
+      const score = item.querySelector('qti-outcome-declaration[identifier="SCORE"]');
+
+      expect(score?.getAttribute('external-scored')).toBe('human');
+      expect(score?.getAttribute('normal-maximum')).toBe('1.0');
+    });
+
+    it('should clear externalMachine scoring only when switching to automatic scoring', () => {
+      const input = extendedTextItem(
+        '<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float" external-scored="externalMachine"/>'
+      );
+      const scoreOf = (item: Element) => item.querySelector('qti-outcome-declaration[identifier="SCORE"]')!;
+
+      expect(scoreOf(roundTrip(input)).getAttribute('external-scored')).toBe('externalMachine');
+      expect(scoreOf(roundTrip(input, 'allCorrect')).hasAttribute('external-scored')).toBe(false);
+    });
+
+    /**
+     * Switch an item's scoring mode, then switch back the way the editor does:
+     * each save is serialized against the previous save, and undo restores the
+     * editor state, including the loaded config, but not the XML.
+     */
+    const switchAndBack = (input: string, mode: ResponseProcessingMode, back?: ResponseProcessingMode) => {
+      const nodes = parseXmlToSlate(input);
+      const metadata = nodes[0] as DocumentMetadata;
+      const loadedConfig = metadata.responseProcessing;
+      metadata.responseProcessing = { mode };
+      const switched = serializeSlateToQti(nodes, input).xml;
+      metadata.responseProcessing = back ? { mode: back } : loadedConfig;
+      return parseXml(serializeSlateToQti(nodes, switched).xml)
+        .querySelector('qti-outcome-declaration[identifier="SCORE"]');
+    };
+
+    it('should restore the points when undoing a switch away from manual', () => {
+      const score = switchAndBack(extendedTextItem(
+        '<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float" external-scored="human" normal-maximum="2"/>'
+      ), 'allCorrect');
+
+      expect(score?.getAttribute('normal-maximum')).toBe('2');
+    });
+
+    it('should restore the points when switching away from manual and back', () => {
+      const score = switchAndBack(extendedTextItem(
+        '<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float" external-scored="human" normal-maximum="2"/>'
+      ), 'allCorrect', 'manual');
+
+      expect(score?.getAttribute('normal-maximum')).toBe('2');
+    });
+
+    it.each(['allCorrect', 'manual'] as const)('should restore externalMachine scoring when undoing a switch to %s', (mode) => {
+      const score = switchAndBack(extendedTextItem(
+        '<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float" external-scored="externalMachine" normal-maximum="5"/>'
+      ), mode);
+
+      expect(score?.getAttribute('external-scored')).toBe('externalMachine');
+      expect(score?.getAttribute('normal-maximum')).toBe('5');
+    });
+
+    it('should restore SCORE\'s default value when undoing a switch to manual', () => {
+      const score = switchAndBack(extendedTextItem(
+        '<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"><qti-default-value><qti-value>0.5</qti-value></qti-default-value></qti-outcome-declaration>',
+        '<qti-response-processing><qti-set-outcome-value identifier="SCORE"><qti-base-value base-type="float">1</qti-base-value></qti-set-outcome-value></qti-response-processing>'
+      ), 'manual');
+
+      expect(score?.querySelector('qti-default-value qti-value')?.textContent).toBe('0.5');
+    });
+
+    it('should drop an externally scored maximum when switching to automatic scoring', () => {
+      const item = roundTrip(extendedTextItem(
+        '<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float" external-scored="externalMachine" normal-maximum="5"/>'
+      ), 'allCorrect');
+      const score = item.querySelector('qti-outcome-declaration[identifier="SCORE"]')!;
+
+      expect(score.hasAttribute('external-scored')).toBe(false);
+      expect(score.hasAttribute('normal-maximum')).toBe(false);
+    });
+
+    it('should keep SCORE declared when switching an item without one from manual to automatic scoring', () => {
+      const score = switchAndBack(extendedTextItem(''), 'manual', 'allCorrect');
+
+      expect(score).not.toBeNull();
+      expect(score?.hasAttribute('external-scored')).toBe(false);
+      expect(score?.querySelector('qti-default-value qti-value')?.textContent).toBe('0');
+    });
+
+    it('should clear human scoring when switching away from manual', () => {
+      const item = roundTrip(extendedTextItem(
+        '<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float" external-scored="human" normal-maximum="1.0"/>'
+      ), 'allCorrect');
+      const score = item.querySelector('qti-outcome-declaration[identifier="SCORE"]')!;
+
+      expect(item.querySelector('qti-response-processing')).not.toBeNull();
+      expect(score.hasAttribute('external-scored')).toBe(false);
+      expect(score.hasAttribute('normal-maximum')).toBe(false);
+      expect(score.querySelector('qti-default-value qti-value')?.textContent).toBe('0');
     });
   });
 });

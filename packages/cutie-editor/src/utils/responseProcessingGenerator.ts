@@ -48,6 +48,9 @@ export function generateResponseProcessingXml(
       return generateAllCorrectXml(responseIdentifiers, responseDeclarations, doc, feedbackIdentifiersUsed, responseConfigs);
     case 'sumScores':
       return generateSumScoresXml(responseIdentifiers, responseDeclarations, outcomeDeclarations, doc, feedbackIdentifiersUsed, responseConfigs);
+    case 'manual':
+      // SCORE is set by a person, not by response processing
+      return null;
     default:
       return null;
   }
