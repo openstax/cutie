@@ -89,8 +89,8 @@ class TabContainerHandler implements ElementHandler {
     list.className = 'cutie-tablist';
     container.appendChild(list);
 
-    // The container has no role, so an authored label names the tablist instead.
-    // The accordion has no grouping role, so it drops the label.
+    // The container has no role, so an authored label names the tablist instead,
+    // or in an accordion, the group of section buttons.
     const labels: Attr[] = [];
     for (const attr of Array.from(element.attributes)) {
       if (TABLIST_LABEL_ATTRIBUTES.includes(attr.name)) labels.push(attr);
@@ -160,10 +160,13 @@ class TabContainerHandler implements ElementHandler {
         }
       }
 
-      if (mode === 'tabs') {
-        list.setAttribute('role', 'tablist');
+      // An unlabeled group adds nothing, so the accordion gets one only with a label
+      if (mode === 'tabs' || labels.length > 0) {
+        list.setAttribute('role', mode === 'tabs' ? 'tablist' : 'group');
         for (const attr of labels) list.setAttribute(attr.name, attr.value);
+      }
 
+      if (mode === 'tabs') {
         for (const { heading, button, panel, needsTabStop } of sections) {
           heading.setAttribute('role', 'presentation');
           button.setAttribute('role', 'tab');
@@ -332,7 +335,7 @@ const TAB_CONTAINER_STYLES = `
   }
 
   /* Accordion: each heading's button sits directly above its panel */
-  .cutie-tab-container .cutie-tablist:not([role]) > .cutie-tab-heading:not(:first-child) {
+  .cutie-tab-container .cutie-tablist:not([role="tablist"]) > .cutie-tab-heading:not(:first-child) {
     margin-top: 0.25em;
   }
 

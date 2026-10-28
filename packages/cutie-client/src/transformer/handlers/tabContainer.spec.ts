@@ -305,7 +305,10 @@ describe('tabContainer', () => {
 
       expect(container.querySelector('[role="tablist"], [role="tab"], [role="tabpanel"], [role="presentation"]'))
         .toBeNull();
-      expect(container.querySelector('[aria-label]')).toBeNull();
+      const group = container.querySelector('.cutie-tablist')!;
+      expect(group.getAttribute('role')).toBe('group');
+      expect(group.getAttribute('aria-label')).toBe('Client record');
+      expect(container.querySelectorAll('[aria-label]')).toHaveLength(1);
       expect(notes!.parentElement!.localName).toBe('h3');
       expect(notes!.parentElement!.nextElementSibling).toBe(notesPanel);
       expect(sources!.parentElement!.nextElementSibling).toBe(sourcesPanel);
@@ -316,6 +319,30 @@ describe('tabContainer', () => {
       expect(sources!.getAttribute('aria-expanded')).toBe('false');
       expect(notesPanel!.hidden).toBe(false);
       expect(sourcesPanel!.hidden).toBe(true);
+    });
+
+    it('leaves an unlabeled accordion without a group role', () => {
+      stubViewport(true);
+      const container = render(RECORD);
+
+      expect(container.querySelector('.cutie-tablist')!.hasAttribute('role')).toBe(false);
+    });
+
+    it('moves the label between the group and the tablist across the breakpoint', () => {
+      const viewport = stubViewport(true);
+      const container = render(`
+        <div class="cutie-tab-container" aria-label="Client record">
+          <section><h3>Notes</h3><p>Text</p></section>
+        </div>`);
+      const list = container.querySelector('.cutie-tablist')!;
+
+      viewport.setNarrow(false);
+      expect(list.getAttribute('role')).toBe('tablist');
+      expect(list.getAttribute('aria-label')).toBe('Client record');
+
+      viewport.setNarrow(true);
+      expect(list.getAttribute('role')).toBe('group');
+      expect(list.getAttribute('aria-label')).toBe('Client record');
     });
 
     it('opens several sections and closes an open one on click', () => {
