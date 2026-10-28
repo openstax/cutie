@@ -114,17 +114,18 @@ class TabContainerHandler implements ElementHandler {
       heading.appendChild(button);
       list.appendChild(heading);
 
-      const panelSource = element.cloneNode(false) as Element;
-      for (const node of section.content) {
-        panelSource.appendChild(node.cloneNode(true));
-      }
-
       const panel = document.createElement('div');
       panel.className = 'cutie-tabpanel';
       panel.id = `${id}-panel`;
       panel.setAttribute('aria-labelledby', id);
-      if (context.transformChildren) {
-        panel.appendChild(context.transformChildren(panelSource));
+      // Transforms the authored nodes in place, so handlers inside a panel can
+      // still find their ancestors (qti-item-body, feedback, blocks)
+      for (const node of section.content) {
+        if (node.nodeType === Node.TEXT_NODE) {
+          panel.appendChild(node.cloneNode(true));
+        } else if (node.nodeType === Node.ELEMENT_NODE && context.transformNode) {
+          panel.appendChild(context.transformNode(node as Element));
+        }
       }
 
       // Tab panels without focusable content need a tab stop so keyboard users
