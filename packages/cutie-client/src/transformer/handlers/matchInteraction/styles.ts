@@ -283,16 +283,27 @@ export const MATCH_INTERACTION_STYLES = `
   }
 
   /*
-   * Per-column banks, qti-choices-left / -right: bank beside its target. The
-   * target area keeps the header and slot rows so they still line up across
-   * columns, and the bank spans all three rows beside it — explicit placement,
-   * so it does not depend on source order.
+   * Per-column banks, qti-choices-left / -right: the banks stack in one track
+   * and the targets in the other (the first match set beside the second). The
+   * columns stack as rows that adopt both tracks, so every bank and every
+   * target gets the same width and each bank sits level with its own target.
+   * The rows sit further apart than a bank from its target, so each bank reads
+   * as paired with its target, not grouped with the other banks. The bank
+   * spans the target's header and slot rows — explicit placement, so it does
+   * not depend on source order.
    */
+  .cutie-match-interaction--column-banks.qti-choices-left .cutie-match-columns,
+  .cutie-match-interaction--column-banks.qti-choices-right .cutie-match-columns {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2.5em 1em;
+  }
+
   .cutie-match-interaction--column-banks.qti-choices-left .cutie-match-column,
   .cutie-match-interaction--column-banks.qti-choices-right .cutie-match-column {
-    grid-template-columns: auto auto;
-    justify-content: center;
-    column-gap: 1em;
+    grid-column: 1 / -1;
+    grid-row: auto;
+    grid-template-columns: subgrid;
+    grid-template-rows: auto auto;
   }
 
   .cutie-match-interaction--column-banks.qti-choices-left .cutie-match-bank,
@@ -327,9 +338,14 @@ export const MATCH_INTERACTION_STYLES = `
       flex-direction: column;
     }
 
+    .cutie-match-interaction--column-banks.qti-choices-left .cutie-match-columns,
+    .cutie-match-interaction--column-banks.qti-choices-right .cutie-match-columns {
+      grid-template-columns: 1fr;
+    }
+
     .cutie-match-interaction--column-banks.qti-choices-left .cutie-match-column,
     .cutie-match-interaction--column-banks.qti-choices-right .cutie-match-column {
-      grid-template-columns: 1fr;
+      grid-template-rows: auto auto auto;
     }
 
     .cutie-match-interaction--column-banks.qti-choices-left .cutie-match-bank,
