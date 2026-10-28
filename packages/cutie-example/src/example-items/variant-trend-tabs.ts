@@ -1,7 +1,7 @@
 // cspell:ignore hottext
-// Variant test: NCLEX-style trend item. A tabbed record (flat
-// heading-delimited HTML in a cutie-tab-container) sits in a layout column
-// beside a hottext interaction.
+// Variant test: NCLEX-style trend item. A tabbed record (one <section> per tab
+// in a cutie-tab-container) sits in a layout column beside a hottext
+// interaction.
 
 export const name = "Trend - Tabbed Record";
 
@@ -37,45 +37,53 @@ adaptive="false" time-dependent="false" xml:lang="en">
     <div class="qti-layout-row">
       <div class="qti-layout-col7">
         <div class="cutie-tab-container" aria-label="Bench record">
-          <h3>Bench Profile</h3>
-          <p>Tomato seedlings, three weeks old, in 4-inch pots. Irrigation runs automatically
-            at 0700 and 1500. The roof vent opens automatically above 85 °F; maintenance
-            reported it sticking last week.</p>
+          <section>
+            <h3>Bench Profile</h3>
+            <p>Tomato seedlings, three weeks old, in 4-inch pots. Irrigation runs automatically
+              at 0700 and 1500. The roof vent opens automatically above 85 °F; maintenance
+              reported it sticking last week.</p>
+          </section>
 
-          <h3>Grower's Notes</h3>
-          <h4>1200</h4>
-          <p>Seedlings upright with deep green leaves. Roof vent closed. Circulation fan
-            running. Trays draining normally after the morning irrigation.</p>
-          <h4>1300</h4>
-          <p>A few seedlings drooping at the tips. Roof vent still closed. Circulation fan
-            running.</p>
-          <h4>1400</h4>
-          <p>Most seedlings wilting, with lower leaves curling. Roof vent still closed.
-            Potting mix pulling away from the edges of the pots. Circulation fan running.</p>
+          <section>
+            <h3>Grower's Notes</h3>
+            <h4>1200</h4>
+            <p>Seedlings upright with deep green leaves. Roof vent closed. Circulation fan
+              running. Trays draining normally after the morning irrigation.</p>
+            <h4>1300</h4>
+            <p>A few seedlings drooping at the tips. Roof vent still closed. Circulation fan
+              running.</p>
+            <h4>1400</h4>
+            <p>Most seedlings wilting, with lower leaves curling. Roof vent still closed.
+              Potting mix pulling away from the edges of the pots. Circulation fan running.</p>
+          </section>
 
-          <h3>Conditions</h3>
-          <table>
-            <thead>
-              <tr><th>Time</th><th>Air temp</th><th>Humidity</th><th>Soil moisture</th><th>Fan</th></tr>
-            </thead>
-            <tbody>
-              <tr><td>1200</td><td>82 °F</td><td>65%</td><td>40%</td><td>On</td></tr>
-              <tr><td>1300</td><td>89 °F</td><td>52%</td><td>31%</td><td>On</td></tr>
-              <tr><td>1400</td><td>96 °F</td><td>41%</td><td>22%</td><td>On</td></tr>
-            </tbody>
-          </table>
+          <section>
+            <h3>Conditions</h3>
+            <table>
+              <thead>
+                <tr><th>Time</th><th>Air temp</th><th>Humidity</th><th>Soil moisture</th><th>Fan</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>1200</td><td>82 °F</td><td>65%</td><td>40%</td><td>On</td></tr>
+                <tr><td>1300</td><td>89 °F</td><td>52%</td><td>31%</td><td>On</td></tr>
+                <tr><td>1400</td><td>96 °F</td><td>41%</td><td>22%</td><td>On</td></tr>
+              </tbody>
+            </table>
+          </section>
 
-          <h3>Water Test</h3>
-          <table>
-            <thead>
-              <tr><th>Test</th><th>0700</th><th>Target range</th></tr>
-            </thead>
-            <tbody>
-              <tr><td>pH</td><td>6.4</td><td>5.8–6.8</td></tr>
-              <tr><td>Conductivity</td><td>1.6 mS/cm</td><td>1.2–2.0 mS/cm</td></tr>
-              <tr><td>Water temperature</td><td>68 °F</td><td>65–72 °F</td></tr>
-            </tbody>
-          </table>
+          <section>
+            <h3>Water Test</h3>
+            <table>
+              <thead>
+                <tr><th>Test</th><th>0700</th><th>Target range</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>pH</td><td>6.4</td><td>5.8–6.8</td></tr>
+                <tr><td>Conductivity</td><td>1.6 mS/cm</td><td>1.2–2.0 mS/cm</td></tr>
+                <tr><td>Water temperature</td><td>68 °F</td><td>65–72 °F</td></tr>
+              </tbody>
+            </table>
+          </section>
         </div>
       </div>
 

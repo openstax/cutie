@@ -39,14 +39,20 @@ function stubViewport(narrow: boolean) {
 
 const RECORD = `
   <div class="cutie-tab-container" id="record">
-    <h3>Nurses' <em>Notes</em></h3>
-    <h4>0800</h4>
-    <p>Client admitted.</p>
-    <h4>0900</h4>
-    <p>Client lethargic.</p>
-    <h3>Vital Signs</h3>
-    <table><tr><th>BP</th><td>100/68</td></tr></table>
-    <h3>Laboratory Results</h3>
+    <section>
+      <h3>Nurses' <em>Notes</em></h3>
+      <h4>0800</h4>
+      <p>Client admitted.</p>
+      <h4>0900</h4>
+      <p>Client lethargic.</p>
+    </section>
+    <section>
+      <h3>Vital Signs</h3>
+      <table><tr><th>BP</th><td>100/68</td></tr></table>
+    </section>
+    <section>
+      <h3>Laboratory Results</h3>
+    </section>
   </div>`;
 
 function tabs(container: HTMLElement): HTMLElement[] {
@@ -84,7 +90,7 @@ describe('tabContainer', () => {
     vi.unstubAllGlobals();
   });
 
-  it('splits content at headings of the first heading level', () => {
+  it('makes a tab of each section, labeled by its first heading', () => {
     const container = render(RECORD);
 
     expect(tabs(container).map((t) => t.textContent)).toEqual([
@@ -99,6 +105,21 @@ describe('tabContainer', () => {
     expect(labs!.textContent?.trim()).toBe('');
   });
 
+  it('keeps later headings in a section in its panel', () => {
+    const container = render(`
+      <div class="cutie-tab-container">
+        <section>
+          <h3>Notes</h3>
+          <p>Text</p>
+          <h3>Addendum</h3>
+          <p>More text</p>
+        </section>
+      </div>`);
+
+    expect(tabs(container).map((t) => t.textContent)).toEqual(['Notes']);
+    expect(panels(container)[0]!.querySelector('h3')?.textContent).toBe('Addendum');
+  });
+
   it('keeps the authored attributes on the container', () => {
     const container = render(RECORD);
     const root = container.querySelector('#record')!;
@@ -110,8 +131,10 @@ describe('tabContainer', () => {
   it('names the tablist with an authored label', () => {
     const container = render(`
       <div class="cutie-tab-container" aria-label="Client record">
-        <h3>Notes</h3>
-        <p>Text</p>
+        <section>
+          <h3>Notes</h3>
+          <p>Text</p>
+        </section>
       </div>`);
     const root = container.querySelector('.cutie-tab-container')!;
 
@@ -122,10 +145,14 @@ describe('tabContainer', () => {
   it('makes a panel a tab stop only when it has no focusable content', () => {
     const container = render(`
       <div class="cutie-tab-container">
-        <h3>Notes</h3>
-        <p>Text</p>
-        <h3>Sources</h3>
-        <p><a href="https://example.com">Reference</a></p>
+        <section>
+          <h3>Notes</h3>
+          <p>Text</p>
+        </section>
+        <section>
+          <h3>Sources</h3>
+          <p><a href="https://example.com">Reference</a></p>
+        </section>
       </div>`);
     const [text, links] = panels(container);
 
@@ -212,10 +239,14 @@ describe('tabContainer', () => {
       stubViewport(true);
       const container = render(`
         <div class="cutie-tab-container" aria-label="Client record">
-          <h3>Notes</h3>
-          <p>Text</p>
-          <h3>Sources</h3>
-          <p>More text</p>
+          <section>
+            <h3>Notes</h3>
+            <p>Text</p>
+          </section>
+          <section>
+            <h3>Sources</h3>
+            <p>More text</p>
+          </section>
         </div>`);
       const [notes, sources] = buttons(container);
       const [notesPanel, sourcesPanel] = sectionPanels(container);
@@ -294,11 +325,17 @@ describe('tabContainer', () => {
       const viewport = stubViewport(true);
       const container = render(`
         <div class="cutie-tab-container">
-          <h3>Notes</h3>
-          <p>Text</p>
-          <h3>Sources</h3>
-          <p><a href="https://example.com">Reference</a></p>
-          <h3>Labs</h3>
+          <section>
+            <h3>Notes</h3>
+            <p>Text</p>
+          </section>
+          <section>
+            <h3>Sources</h3>
+            <p><a href="https://example.com">Reference</a></p>
+          </section>
+          <section>
+            <h3>Labs</h3>
+          </section>
         </div>`);
       buttons(container)[1]!.click();
       buttons(container)[2]!.click();
@@ -348,20 +385,20 @@ describe('tabContainer', () => {
     });
   });
 
-  it('falls back to plain HTML when content does not start with a heading', () => {
-    const container = render(`
-      <div class="cutie-tab-container">
-        Intro text
-        <h3>Nurses' Notes</h3>
-        <p>Client admitted.</p>
-      </div>`);
+  it.each([
+    ['content outside a section', '<section><h3>Notes</h3><p>Text</p></section> Intro text'],
+    ['an element outside a section', '<p>Intro</p><section><h3>Notes</h3><p>Text</p></section>'],
+    ['a section that does not start with a heading', '<section><p>Intro</p><h3>Notes</h3></section>'],
+    ['no sections', '<h3>Notes</h3><p>Text</p>'],
+  ])('falls back to plain HTML for %s', (_, content) => {
+    const container = render(`<div class="cutie-tab-container">${content}</div>`);
 
     expect(container.querySelector('[role="tablist"]')).toBeNull();
-    expect(container.querySelector('h3')?.textContent).toBe('Nurses\' Notes');
+    expect(container.querySelector('h3')?.textContent).toBe('Notes');
   });
 
-  it('ignores headings without the container class', () => {
-    const container = render('<div><h3>Notes</h3><p>Text</p></div>');
+  it('ignores sections without the container class', () => {
+    const container = render('<div><section><h3>Notes</h3><p>Text</p></section></div>');
     expect(container.querySelector('[role="tablist"]')).toBeNull();
   });
 });

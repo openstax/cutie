@@ -35,37 +35,38 @@ function isHeading(element: Element): boolean {
   return /^h[1-6]$/.test(element.localName.toLowerCase());
 }
 
-/**
- * Split a container's flat content into tabs. Each heading at the level of the
- * container's first heading starts a tab; everything up to the next such
- * heading is that tab's panel.
- */
-function splitSections(element: Element): TabSection[] | null {
-  const first = element.firstElementChild;
-  if (!first || !isHeading(first)) return null;
-
-  const level = first.localName.toLowerCase();
-  const sections: TabSection[] = [];
-
-  for (const node of Array.from(element.childNodes)) {
-    if (node.nodeType === Node.ELEMENT_NODE && (node as Element).localName.toLowerCase() === level) {
-      sections.push({ heading: node as Element, content: [] });
-      continue;
-    }
-
-    const current = sections[sections.length - 1];
-    if (current) {
-      current.content.push(node);
-    } else if (node.nodeType === Node.TEXT_NODE && node.textContent?.trim()) {
-      return null;
-    }
-  }
-
-  return sections;
+/** Whitespace and comments, which may sit between the elements we look for */
+function isBlank(node: Node): boolean {
+  if (node.nodeType === Node.COMMENT_NODE) return true;
+  return node.nodeType === Node.TEXT_NODE && !node.textContent?.trim();
 }
 
 /**
- * Handler for `<div class="cutie-tab-container">`
+ * Find a container's tabs. Each child `<section>` is a tab: its first heading
+ * labels the tab, and the rest of the section is that tab's panel.
+ */
+function splitSections(element: Element): TabSection[] | null {
+  const sections: TabSection[] = [];
+
+  for (const node of Array.from(element.childNodes)) {
+    if (isBlank(node)) continue;
+    if (node.nodeType !== Node.ELEMENT_NODE || (node as Element).localName.toLowerCase() !== 'section') {
+      return null;
+    }
+
+    const nodes = Array.from(node.childNodes);
+    const start = nodes.findIndex((child) => !isBlank(child));
+    const heading = nodes[start];
+    if (!heading || heading.nodeType !== Node.ELEMENT_NODE || !isHeading(heading as Element)) return null;
+
+    sections.push({ heading: heading as Element, content: nodes.slice(start + 1) });
+  }
+
+  return sections.length > 0 ? sections : null;
+}
+
+/**
+ * Handler for `<div class="cutie-tab-container">` holding `<section>`s
  *
  * Renders tabs on wide viewports and an accordion on narrow ones, from one set
  * of elements: each section is a heading wrapping a button, plus a panel.
