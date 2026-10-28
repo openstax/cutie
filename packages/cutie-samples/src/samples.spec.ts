@@ -1,4 +1,4 @@
-/* spell-checker: ignore parsererror canonicalize */
+/* spell-checker: ignore parsererror canonicalize enoxaparin */
 import { beginAttempt, submitResponse } from '@openstax/cutie-core';
 import { createQtiEditor } from '@openstax/cutie-editor/editor/createQtiEditor';
 import { serializeSlateToQti } from '@openstax/cutie-editor/serialization/slateToXml';
@@ -31,6 +31,7 @@ const incorrectSubmissions: Record<string, Submission> = {
   'nclex-drag-and-drop-rationale': { RESPONSE: ['bleeding G1', 'whiteCells G2'] },
   'nclex-highlight-passage': { RESPONSE: ['pain', 'leftCalf'] },
   'nclex-highlight-table': { RESPONSE: ['bloodPressure', 'glucose'] },
+  'nclex-bowtie': { RESPONSE: ['ambulate actions', 'enoxaparin actions', 'sepsis condition', 'bowelSounds parameters', 'temperature parameters'] },
 };
 
 /* mapped text entries: forgiving word forms, case-sensitive symbols */
