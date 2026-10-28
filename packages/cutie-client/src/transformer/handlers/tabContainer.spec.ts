@@ -1,6 +1,7 @@
 /* spell-checker: ignore tablist tabpanel unstub viewports */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { parseQtiXml } from '../../parser/xmlParser.js';
+import { ItemStateImpl } from '../../state/itemState.js';
 import { createTransformContext, transformChildren } from '../elementTransformer.js';
 
 function render(
@@ -221,6 +222,49 @@ describe('tabContainer', () => {
     const rerendered = render(RECORD, state);
     expect(tabs(rerendered)[2]!.getAttribute('aria-selected')).toBe('true');
     expect(panels(rerendered)[2]!.hidden).toBe(false);
+  });
+
+  it('remembers the selected tab of each container nested in a panel on its own', () => {
+    const nested = (name: string) => `
+      <div class="cutie-tab-container">
+        <section><h4>${name} 1</h4></section>
+        <section><h4>${name} 2</h4></section>
+      </div>`;
+    const xml = `
+      <div class="cutie-tab-container">
+        <section><h3>A</h3>${nested('A')}</section>
+        <section><h3>B</h3>${nested('B')}</section>
+      </div>`;
+    const tabNamed = (container: HTMLElement, name: string) =>
+      tabs(container).find((tab) => tab.textContent === name)!;
+    const state = new Map<string, unknown>();
+    tabNamed(render(xml, state), 'A 2').click();
+
+    const rerendered = render(xml, state);
+    expect(tabNamed(rerendered, 'A 2').getAttribute('aria-selected')).toBe('true');
+    expect(tabNamed(rerendered, 'B 1').getAttribute('aria-selected')).toBe('true');
+  });
+
+  it('keeps panel content inside the item body for its handlers', () => {
+    const xml = `<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+      identifier="item" title="Item" adaptive="false" time-dependent="false">
+      <qti-item-body data-cutie-preview="true">
+        <div class="cutie-tab-container">
+          <section>
+            <h3>Response</h3>
+            <qti-extended-text-interaction response-identifier="R1"></qti-extended-text-interaction>
+          </section>
+        </div>
+      </qti-item-body>
+    </qti-assessment-item>`;
+    const itemState = new ItemStateImpl();
+    itemState.setInteractionState('readonly');
+    const { itemBody } = parseQtiXml(xml);
+    const container = document.createElement('div');
+    container.appendChild(transformChildren(itemBody, createTransformContext({ itemState })));
+
+    expect(container.querySelector('.cutie-read-only-response')!.textContent)
+      .toBe('Students will write their response here.');
   });
 
   it('wraps each tab in a presentational heading and places panels after the tablist', () => {
