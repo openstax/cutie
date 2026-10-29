@@ -9,8 +9,6 @@ const TAB_CONTAINER_SELECTOR = `[class~="${TAB_CONTAINER_CLASS}"]`;
 const TABLIST_LABEL_ATTRIBUTES = ['aria-label', 'aria-labelledby'];
 const MODE_ATTRIBUTES = ['role', 'aria-selected', 'aria-expanded', 'tabindex'];
 const SECTION_TEXT_ATTRIBUTES = ['lang', 'xml:lang', 'dir'];
-const FOCUSABLE_SELECTOR =
-  'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"]), [contenteditable="true"]';
 
 let idCounter = 0;
 
@@ -24,7 +22,6 @@ interface RenderedSection {
   heading: HTMLElement;
   button: HTMLButtonElement;
   panel: HTMLElement;
-  needsTabStop: boolean;
 }
 
 type Mode = 'tabs' | 'accordion';
@@ -156,9 +153,7 @@ class TabContainerHandler implements ElementHandler {
         }
       }
 
-      // Tab panels without focusable content need a tab stop so keyboard users
-      // can reach them; otherwise Tab goes straight to the panel's first control.
-      return { heading, button, panel, needsTabStop: !panel.querySelector(FOCUSABLE_SELECTOR) };
+      return { heading, button, panel };
     });
 
     const tabs = new Map(sections.map((section) => [section.button.id, section.button as HTMLElement]));
@@ -168,7 +163,8 @@ class TabContainerHandler implements ElementHandler {
     ).indexOf(element)}`;
 
     const saved = context.state?.get(stateKey);
-    let open = Array.isArray(saved) ? (saved as number[]).filter((i) => i < sections.length) : [0];
+    const isSection = (i: unknown): i is number => Number.isInteger(i) && (i as number) >= 0 && (i as number) < sections.length;
+    let open = Array.isArray(saved) ? saved.filter(isSection) : [0];
 
     // jsdom and other environments without matchMedia get tabs
     const media = typeof window.matchMedia === 'function' ? window.matchMedia(NARROW_MEDIA_QUERY) : null;
@@ -195,11 +191,11 @@ class TabContainerHandler implements ElementHandler {
       }
 
       if (mode === 'tabs') {
-        for (const { heading, button, panel, needsTabStop } of sections) {
+        for (const { heading, button, panel } of sections) {
           heading.setAttribute('role', 'presentation');
           button.setAttribute('role', 'tab');
           panel.setAttribute('role', 'tabpanel');
-          if (needsTabStop) panel.setAttribute('tabindex', '0');
+          panel.setAttribute('tabindex', '0');
         }
         list.after(...sections.map((s) => s.panel));
       } else {

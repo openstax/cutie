@@ -190,7 +190,7 @@ describe('tabContainer', () => {
     expect(root.hasAttribute('aria-label')).toBe(false);
   });
 
-  it('makes a panel a tab stop only when it has no focusable content', () => {
+  it('makes each panel a tab stop, even one with links', () => {
     const container = render(`
       <div class="cutie-tab-container">
         <section>
@@ -205,7 +205,7 @@ describe('tabContainer', () => {
     const [text, links] = panels(container);
 
     expect(text!.getAttribute('tabindex')).toBe('0');
-    expect(links!.hasAttribute('tabindex')).toBe(false);
+    expect(links!.getAttribute('tabindex')).toBe('0');
   });
 
   it('wires tabs and panels together and shows only the first panel', () => {
@@ -271,8 +271,13 @@ describe('tabContainer', () => {
     expect(panels(rerendered)[2]!.hidden).toBe(false);
   });
 
-  it('selects the first tab when the saved tab no longer exists', () => {
-    const state = new Map<string, unknown>([['tab-container:0', [5]]]);
+  it.each([
+    ['no longer exists', 5],
+    ['is negative', -1],
+    ['is not a whole number', 1.5],
+    ['is not a number', 'notes'],
+  ])('selects the first tab when the saved tab %s', (_, saved) => {
+    const state = new Map<string, unknown>([['tab-container:0', [saved]]]);
     const container = render(RECORD, state);
 
     expect(tabs(container)[0]!.getAttribute('aria-selected')).toBe('true');
