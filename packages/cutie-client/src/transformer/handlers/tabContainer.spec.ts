@@ -158,6 +158,24 @@ describe('tabContainer', () => {
     expect(notes!.parentElement!.getAttribute('lang')).toBe('fr');
   });
 
+  it('moves authored ARIA attributes from the heading to its tab', () => {
+    const container = render(`
+      <div class="cutie-tab-container">
+        <section id="vitals">
+          <h3 id="vitals-heading" aria-describedby="vitals-hint" aria-controls="elsewhere">Vital Signs</h3>
+          <p id="vitals-hint">Taken at 0800</p>
+        </section>
+      </div>`);
+    const [vitals] = tabs(container);
+    const heading = vitals!.parentElement!;
+
+    expect(heading.id).toBe('vitals-heading');
+    expect(heading.getAttribute('role')).toBe('presentation');
+    expect(Array.from(heading.attributes).some((attr) => attr.name.startsWith('aria-'))).toBe(false);
+    expect(vitals!.getAttribute('aria-describedby')).toBe('vitals-hint');
+    expect(vitals!.getAttribute('aria-controls')).toBe('vitals');
+  });
+
   it('names the tablist with an authored label', () => {
     const container = render(`
       <div class="cutie-tab-container" aria-label="Client record">

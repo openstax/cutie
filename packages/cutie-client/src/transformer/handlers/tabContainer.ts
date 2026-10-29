@@ -37,13 +37,17 @@ function isHeading(element: Element): boolean {
   return /^h[1-6]$/.test(element.localName.toLowerCase());
 }
 
-/** Copy authored attributes (or only `names`) onto a rendered element, adding to its classes */
-function copyAttributes(from: Element, to: HTMLElement, names?: string[]): void {
+/** Copy authored attributes (or those `include` accepts) onto a rendered element, adding to its classes */
+function copyAttributes(from: Element, to: HTMLElement, include: (name: string) => boolean = () => true): void {
   for (const attr of Array.from(from.attributes)) {
-    if (names && !names.includes(attr.name)) continue;
+    if (!include(attr.name)) continue;
     if (attr.name === 'class') to.classList.add(...attr.value.split(/\s+/).filter(Boolean));
     else to.setAttribute(attr.name, attr.value);
   }
+}
+
+function isAria(name: string): boolean {
+  return name.startsWith('aria-');
 }
 
 /** Whitespace and comments, which may sit between the elements we look for */
@@ -113,15 +117,18 @@ class TabContainerHandler implements ElementHandler {
 
       // Keeps the authored heading level, so the accordion's outline matches.
       // In tabs mode the heading sits apart from its panel, so it takes the
-      // section's language and direction too; its own attributes win.
+      // section's language and direction too; its own attributes win. Its ARIA
+      // attributes go on the button: on the heading they would override its
+      // presentation role in tabs mode, putting a heading in the tablist.
       const heading = document.createElement(section.heading.localName.toLowerCase());
       heading.className = 'cutie-tab-heading';
-      copyAttributes(section.section, heading, SECTION_TEXT_ATTRIBUTES);
-      copyAttributes(section.heading, heading);
+      copyAttributes(section.section, heading, (name) => SECTION_TEXT_ATTRIBUTES.includes(name));
+      copyAttributes(section.heading, heading, (name) => !isAria(name));
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'cutie-tab';
       button.id = id;
+      copyAttributes(section.heading, button, isAria);
       if (context.transformChildren) {
         button.appendChild(context.transformChildren(section.heading));
       }
