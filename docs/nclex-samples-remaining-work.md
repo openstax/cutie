@@ -1,7 +1,7 @@
 # NCLEX samples: remaining work
 
 The [Assignable NCLEX Epic & PRD](https://docs.google.com/document/d/1iqb1fXxcNIFB-OOv2WqlhhGo_7yxg2Rw4eez7AQEfzc/edit)
-lists 14 question types. `packages/cutie-samples/src/nclex/` has canonical samples for 9 of them:
+lists 14 question types. `packages/cutie-samples/src/nclex/` has canonical samples for 10 of them:
 
 - Multiple Response: Select All That Apply
 - Multiple Response: Select N
@@ -12,6 +12,7 @@ lists 14 question types. `packages/cutie-samples/src/nclex/` has canonical sampl
 - Drag-and-Drop: Rationale (dyad only)
 - Text Highlight: Passage
 - Text Highlight: Table
+- Bowtie
 
 This document covers the client bug found while writing them and the samples that still need
 to be made.
@@ -58,21 +59,6 @@ groups and prompts was also written and removed, because it isn't the NCLEX form
 **Needed:** check the table format for any real blockers, then write the sample. Scoring
 already works (summed `qti-map-response`, classified as `sumScores`).
 
-### Bowtie
-
-**Requirements:** the NCLEX bowtie layout: a center condition, two actions on one side, and two
-parameters to monitor on the other, each column filled from its own list of options. Scored
-0/1 (+1 for each correct placement). Case information is usually shown in tabs.
-
-**Why not made:** the item structure is changing. On `main`, bowtie renders as a gap match with
-`match-group` banks (example: "Gap Match - Bowtie Layout"). CORE-2917 (branch `bowtie-match`,
-not yet merged into `main`) is converting it to a plain match interaction. A canonical sample written now would be outdated
-when that lands.
-
-**Needed:** finish CORE-2917, then write the sample on the match structure with a `qti-mapping`
-(+1 per correct pair, `lower-bound="0"`) so scoring is 0/1 and not all-or-nothing. Its response
-processing classifies as `sumScores`; `lower-bound` changes the score, not the classification.
-
 ### Drop-Down: Rationale (triad)
 
 **Requirements:** one sentence with a cause drop-down and two effect drop-downs. Scored with the
@@ -100,7 +86,7 @@ depending on their order. The interaction is gap match, as in the dyad sample. T
 mentions `order`, but the client has no order interaction and the in-progress work (CORE-2689,
 branch `core-2689`, not yet merged) uses gap match. That branch also changes gap match rendering
 (a word bank per group) and is built on the earlier bowtie work, so it will likely need a rebase
-once `bowtie-match` lands.
+now that the bowtie match work (CORE-2917) is merged.
 
 ### Matrix Multiple-Choice
 

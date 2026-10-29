@@ -1400,6 +1400,92 @@ describe('initializeState', () => {
       expect(state.variables.RESULT).toBe(8.0);
     });
 
+    describe('qti-min and qti-max operators', () => {
+      const evaluate = (expression: string): unknown => {
+        const xml = `<?xml version="1.0" encoding="UTF-8"?>
+          <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+            identifier="min-max-operator" title="Min Max Operator">
+            <qti-template-declaration identifier="RESULT" cardinality="single" base-type="float"/>
+            <qti-template-processing>
+              <qti-set-template-value identifier="RESULT">${expression}</qti-set-template-value>
+            </qti-template-processing>
+            <qti-item-body><p>Test</p></qti-item-body>
+          </qti-assessment-item>`;
+
+        const itemDoc = parser.parseFromString(xml, 'text/xml');
+        return initializeState(itemDoc).variables.RESULT;
+      };
+
+      test('qti-max returns the greatest value', () => {
+        expect(evaluate(`
+          <qti-max>
+            <qti-base-value base-type="float">-2</qti-base-value>
+            <qti-base-value base-type="integer">3</qti-base-value>
+            <qti-base-value base-type="float">1.5</qti-base-value>
+          </qti-max>`)).toBe(3);
+      });
+
+      test('qti-min returns the smallest value', () => {
+        expect(evaluate(`
+          <qti-min>
+            <qti-base-value base-type="float">-2</qti-base-value>
+            <qti-base-value base-type="integer">3</qti-base-value>
+            <qti-base-value base-type="float">1.5</qti-base-value>
+          </qti-min>`)).toBe(-2);
+      });
+
+      test('qti-max floors a sum at 0', () => {
+        expect(evaluate(`
+          <qti-max>
+            <qti-base-value base-type="float">0</qti-base-value>
+            <qti-sum>
+              <qti-base-value base-type="float">-2</qti-base-value>
+              <qti-base-value base-type="float">1</qti-base-value>
+            </qti-sum>
+          </qti-max>`)).toBe(0);
+      });
+
+      test('includes every value of a container sub-expression', () => {
+        expect(evaluate(`
+          <qti-max>
+            <qti-base-value base-type="integer">1</qti-base-value>
+            <qti-multiple>
+              <qti-base-value base-type="integer">4</qti-base-value>
+              <qti-base-value base-type="integer">2</qti-base-value>
+            </qti-multiple>
+          </qti-max>`)).toBe(4);
+        expect(evaluate(`
+          <qti-min>
+            <qti-base-value base-type="integer">1</qti-base-value>
+            <qti-ordered>
+              <qti-base-value base-type="integer">4</qti-base-value>
+              <qti-base-value base-type="integer">-1</qti-base-value>
+            </qti-ordered>
+          </qti-min>`)).toBe(-1);
+      });
+
+      test('returns NULL when any sub-expression is NULL', () => {
+        expect(evaluate(`
+          <qti-max>
+            <qti-base-value base-type="integer">1</qti-base-value>
+            <qti-null/>
+          </qti-max>`)).toBeNull();
+        expect(evaluate(`
+          <qti-min>
+            <qti-base-value base-type="integer">1</qti-base-value>
+            <qti-null/>
+          </qti-min>`)).toBeNull();
+      });
+
+      test('returns NULL when any sub-expression is not numeric', () => {
+        expect(evaluate(`
+          <qti-max>
+            <qti-base-value base-type="integer">1</qti-base-value>
+            <qti-base-value base-type="string">two</qti-base-value>
+          </qti-max>`)).toBeNull();
+      });
+    });
+
     test('evaluates nested mathematical operators', () => {
       const xml = `<?xml version="1.0" encoding="UTF-8"?>
         <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"

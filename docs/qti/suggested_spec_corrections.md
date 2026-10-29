@@ -218,11 +218,16 @@ them. Consider lowering the cap to match the spec's guidance.
 
 Any unrecognized expression throws `Unsupported expression type`. Notable
 gaps include `qti-lookup-outcome-value`, `qti-default`, `qti-inside`,
-`qti-min`, `qti-max`, `qti-gcd`, `qti-lcm`, `qti-math-operator`,
+`qti-gcd`, `qti-lcm`, `qti-math-operator`,
 `qti-math-constant`, `qti-equal-rounded`, `qti-round-to`, `qti-stats-operator`,
 `qti-duration-lt`, `qti-duration-gte`, and `qti-custom-operator`. The
 response processing rule `qti-response-processing-fragment` isn't supported,
 and response processing silently skips any other rule it doesn't recognize.
+
+`qti-min` and `qti-max` are implemented (`expressionEvaluator/arithmetic.ts`),
+following the QTI 3 Information Model §2.11.3.13 and §2.11.3.14: values of
+multiple and ordered containers are included, and the result is NULL when any
+sub-expression is NULL or not numeric.
 
 **Spec example these block:** the 1EdTech
 [`Example04-feedbackBlock-templateBlock.xml`](https://github.com/1EdTech/qti-examples/blob/master/qtiv3-examples/packaging/items/Example04-feedbackBlock-templateBlock.xml)
