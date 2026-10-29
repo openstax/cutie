@@ -309,6 +309,7 @@ const TAB_CONTAINER_STYLES = `
     display: flex;
     flex: 1;
     min-width: 0;
+    container-type: inline-size;
   }
 
   .cutie-tab-container .cutie-tab[role="tab"] {
@@ -326,6 +327,18 @@ const TAB_CONTAINER_STYLES = `
     border-top: 4px solid var(--cutie-primary);
     background-color: var(--cutie-bg);
     border-bottom-color: var(--cutie-bg);
+  }
+
+  @container (max-width: 10em) {
+    .cutie-tab-container .cutie-tab[role="tab"] {
+      padding-inline: 0.5em;
+    }
+  }
+
+  @container (max-width: 6em) {
+    .cutie-tab-container .cutie-tab[role="tab"] {
+      padding-inline: 0.25em;
+    }
   }
 
   @media (forced-colors: active) {
