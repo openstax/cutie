@@ -1,4 +1,4 @@
-/* spell-checker: ignore tablist tabpanel unstub viewports */
+/* spell-checker: ignore tablist tabpanel unstub viewports Signos vitales Presión */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { parseQtiXml } from '../../parser/xmlParser.js';
 import { ItemStateImpl } from '../../state/itemState.js';
@@ -127,6 +127,35 @@ describe('tabContainer', () => {
 
     expect(root.classList.contains('cutie-tab-container')).toBe(true);
     expect(root.querySelector('[role="tablist"]')).not.toBeNull();
+  });
+
+  it('keeps the authored attributes on each section and heading', () => {
+    const container = render(`
+      <div class="cutie-tab-container">
+        <section id="vitals" class="record" lang="es" dir="ltr" aria-labelledby="elsewhere">
+          <h3 id="vitals-heading" class="highlight">Signos vitales</h3>
+          <p>Presión arterial: 100/68</p>
+        </section>
+        <section>
+          <h3 lang="fr">Notes</h3>
+        </section>
+      </div>`);
+    const [vitals, notes] = tabs(container);
+    const [vitalsPanel] = panels(container);
+
+    expect(vitalsPanel!.id).toBe('vitals');
+    expect(vitalsPanel!.className).toBe('cutie-tabpanel record');
+    expect(vitalsPanel!.getAttribute('lang')).toBe('es');
+    expect(vitalsPanel!.getAttribute('dir')).toBe('ltr');
+    expect(vitalsPanel!.getAttribute('aria-labelledby')).toBe(vitals!.id);
+    expect(vitals!.getAttribute('aria-controls')).toBe('vitals');
+
+    const heading = vitals!.parentElement!;
+    expect(heading.id).toBe('vitals-heading');
+    expect(heading.className).toBe('cutie-tab-heading highlight');
+    expect(heading.getAttribute('lang')).toBe('es');
+    expect(heading.getAttribute('dir')).toBe('ltr');
+    expect(notes!.parentElement!.getAttribute('lang')).toBe('fr');
   });
 
   it('names the tablist with an authored label', () => {
