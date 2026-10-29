@@ -86,6 +86,9 @@ function splitSections(element: Element): TabSection[] | null {
  * Renders tabs on wide viewports and an accordion on narrow ones, from one set
  * of elements: each section is a heading wrapping a button, plus a panel.
  * Switching modes changes their roles and moves the panels.
+ *
+ * Sections hold reference content (text, tables, media, links), not
+ * interactions or form controls.
  */
 class TabContainerHandler implements ElementHandler {
   canHandle(element: Element): boolean {
