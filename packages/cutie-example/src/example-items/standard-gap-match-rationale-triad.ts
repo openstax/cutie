@@ -10,7 +10,8 @@
 // effect words — see packages/cutie-client's gapMatchInteractionHandler)
 // — even though both boxes belong to
 // one physical interaction/response, match-group scoping keeps each box's
-// words restricted to its own gap(s) — a cause word can't be dropped into
+// words restricted to its own gap(s), and each box carries an authored
+// heading (an h3 tied to its group by data-for-match-group) — a cause word can't be dropped into
 // an effect gap, or vice versa.
 // Per-gap credit is computed with qti-member (checking whether the
 // declared-correct pair for that gap — read via qti-correct + qti-index — is
@@ -72,6 +73,8 @@ adaptive="false" time-dependent="false" xml:lang="en">
       <qti-gap-text identifier="gusting_winds" match-max="1" match-group="effects">gusting winds</qti-gap-text>
       <qti-gap-text identifier="rising_temperature" match-max="1" match-group="effects">a rising temperature</qti-gap-text>
       <qti-gap-text identifier="calm_winds" match-max="1" match-group="effects">calm winds</qti-gap-text>
+      <h3 data-for-match-group="cause">Event</h3>
+      <h3 data-for-match-group="effects">Readings</h3>
       <p>The station data most likely indicate that a <qti-gap identifier="GC" match-group="cause"/>
         is approaching, as evidenced by <qti-gap identifier="GE1" match-group="effects"/> and
         <qti-gap identifier="GE2" match-group="effects"/>.</p>

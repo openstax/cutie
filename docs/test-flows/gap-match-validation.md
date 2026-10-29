@@ -88,10 +88,11 @@ The correct answers are: cause gap = **warm front**, effect gap = **a rising tem
 1. Observe the rendered item.
    - [ ] One interaction is visible: a single sentence with two gaps (cause, then effect), and
      two bordered word-bank boxes below/beside it, side by side
-   - [ ] The first box ("Word bank 1" for screen readers) shows the cause words: "warm front",
-     "cold front", "stationary front"
-   - [ ] The second box ("Word bank 2" for screen readers) shows the effect words: "a rising
+   - [ ] The first box has the heading "Event" (also its screen-reader name) and shows the
+     cause words: "warm front", "cold front", "stationary front"
+   - [ ] The second box has the heading "Reading" and shows the effect words: "a rising
      temperature", "a falling temperature", "a steady temperature"
+   - [ ] The headings appear only over the boxes, not in the sentence area
    - [ ] The constraint text reads "Fill at least 2 gaps."
 
 2. Try to drag an effect word (e.g. a rising temperature) into the cause gap, and a cause word
@@ -139,9 +140,9 @@ effect gap 2 = **gusting winds**.
 1. Observe the rendered item.
    - [ ] One interaction is visible: a single sentence with three gaps (cause, then two
      effects), and two bordered word-bank boxes below/beside it, side by side
-   - [ ] The first box ("Word bank 1" for screen readers) shows the cause words: "cold front",
-     "warm front", "high-pressure system"
-   - [ ] The second box ("Word bank 2" for screen readers) shows all four effect words: "a
+   - [ ] The first box has the heading "Event" (also its screen-reader name) and shows the
+     cause words: "cold front", "warm front", "high-pressure system"
+   - [ ] The second box has the heading "Readings" and shows all four effect words: "a
      falling temperature", "gusting winds", "a rising temperature", "calm winds"
    - [ ] The constraint text reads "Fill at least 3 gaps."
 

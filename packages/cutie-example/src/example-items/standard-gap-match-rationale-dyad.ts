@@ -8,7 +8,8 @@
 // words — see packages/cutie-client's gapMatchInteractionHandler) — even
 // though both boxes belong to one
 // physical interaction/response, match-group scoping keeps each box's words
-// restricted to its own gap — a cause word can't be dropped into the effect
+// restricted to its own gap, and each box carries an authored heading
+// (an h3 tied to its group by data-for-match-group) — a cause word can't be dropped into the effect
 // gap, or vice versa.
 // Scoring is a plain qti-match against the whole (2-pair) correct response,
 // with an explicit MAXSCORE of 1.
@@ -54,6 +55,8 @@ adaptive="false" time-dependent="false" xml:lang="en">
       <qti-gap-text identifier="rising_temperature" match-max="1" match-group="effect">a rising temperature</qti-gap-text>
       <qti-gap-text identifier="falling_temperature" match-max="1" match-group="effect">a falling temperature</qti-gap-text>
       <qti-gap-text identifier="steady_temperature" match-max="1" match-group="effect">a steady temperature</qti-gap-text>
+      <h3 data-for-match-group="cause">Event</h3>
+      <h3 data-for-match-group="effect">Reading</h3>
       <p>The station data most likely indicate that a <qti-gap identifier="GC" match-group="cause"/>
         is approaching, as evidenced by <qti-gap identifier="GE" match-group="effect"/>.</p>
     </qti-gap-match-interaction>

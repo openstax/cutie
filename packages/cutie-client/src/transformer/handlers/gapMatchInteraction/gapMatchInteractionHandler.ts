@@ -31,6 +31,16 @@ function buildGapMatchConstraintText(min: number, max: number): string | null {
   return null;
 }
 
+/**
+ * Custom attribute on a heading inside the interaction naming the match-group
+ * whose word bank it titles
+ */
+const MATCH_GROUP_HEADING_ATTRIBUTE = 'data-for-match-group';
+
+function isBankHeading(element: Element): boolean {
+  return /^h[1-6]$/.test(element.tagName.toLowerCase()) && element.hasAttribute(MATCH_GROUP_HEADING_ATTRIBUTE);
+}
+
 interface ChoiceData {
   identifier: string;
   element: Element;
@@ -122,22 +132,40 @@ export class GapMatchInteractionHandler implements ElementHandler {
       });
     }
 
+    // Word-bank headings: QTI has no vocabulary for labeling a match-group, so
+    // the author declares one as an ordinary heading in the interaction's
+    // content, tied to its group by a custom data attribute (QTI's extension
+    // point for behavior beyond the spec). Other delivery systems show it as
+    // plain content; here it moves into its group's bank and names it.
+    const headingForGroup = new Map<string, Element>();
+    for (const child of children) {
+      if (!isBankHeading(child)) continue;
+      const key = child.getAttribute(MATCH_GROUP_HEADING_ATTRIBUTE)!;
+      if (!headingForGroup.has(key)) headingForGroup.set(key, child);
+    }
+
     // Create the word bank(s); their position follows the interaction's
     // qti-choices-* class. When the choices span 2+ match-groups (e.g. a
-    // flowing sentence whose gaps are scoped by match-group), each group gets
-    // its own word bank so the visual layout matches the functional
-    // restriction. Choices bucket by their first match-group; ungrouped
-    // choices form their own bucket.
+    // flowing sentence whose gaps are scoped by match-group) or a group has a
+    // heading, each group gets its own word bank so the visual layout matches
+    // the functional restriction. Choices bucket by their first match-group;
+    // ungrouped choices form their own bucket.
     const groupKey = (choice: ChoiceData): string => choice.matchGroups[0] ?? '';
     const groupKeys = [...new Set(choices.map(groupKey))];
     const choiceBanks: HTMLElement[] = [];
     const bankForGroup = new Map<string, HTMLElement>();
 
-    const createBank = (label: string): HTMLElement => {
+    // A bank is a listbox, named either by a referenced element
+    // (aria-labelledby — its heading) or a literal string
+    const createBank = (naming: { label: string } | { labelledBy: string }): HTMLElement => {
       const bank = document.createElement('div');
       bank.className = 'cutie-gap-match-choices';
       bank.setAttribute('role', 'listbox');
-      bank.setAttribute('aria-label', label);
+      if ('labelledBy' in naming) {
+        bank.setAttribute('aria-labelledby', naming.labelledBy);
+      } else {
+        bank.setAttribute('aria-label', naming.label);
+      }
       choiceBanks.push(bank);
       return bank;
     };
@@ -145,7 +173,7 @@ export class GapMatchInteractionHandler implements ElementHandler {
     // The outer element keeps the cutie-gap-match-choices class either way,
     // so the qti-choices-* positioning rules apply to it unchanged
     let choicesContainer: HTMLElement;
-    if (groupKeys.length >= 2) {
+    if (groupKeys.length >= 2 || groupKeys.some((key) => headingForGroup.has(key))) {
       // A layout row, not itself a bank: role="group" because its children,
       // not it, are the listboxes
       const row = document.createElement('div');
@@ -153,17 +181,36 @@ export class GapMatchInteractionHandler implements ElementHandler {
       row.setAttribute('role', 'group');
       row.setAttribute('aria-label', 'Available choices');
       groupKeys.forEach((key, index) => {
+        const section = document.createElement('div');
+        section.className = 'cutie-gap-match-bank';
+
         // match-group is an opaque author-chosen identifier with no display
-        // semantics, so each bank gets an ordinal name instead
-        const bank = createBank(`Word bank ${index + 1}`);
+        // semantics, so a bank without a heading gets an ordinal name instead
+        const authoredHeading = headingForGroup.get(key);
+        let bank: HTMLElement;
+        if (authoredHeading) {
+          const heading = document.createElement(authoredHeading.tagName.toLowerCase());
+          heading.className = 'cutie-gap-match-bank-heading';
+          heading.id = `${responseIdentifier}-${key}-bank-heading`;
+          if (context.transformChildren) {
+            heading.appendChild(context.transformChildren(authoredHeading));
+          } else {
+            heading.textContent = authoredHeading.textContent;
+          }
+          section.appendChild(heading);
+          bank = createBank({ labelledBy: heading.id });
+        } else {
+          bank = createBank({ label: `Word bank ${index + 1}` });
+        }
         bank.classList.add('cutie-gap-match-choices--group');
         if (key) bank.setAttribute('data-match-group', key);
-        row.appendChild(bank);
+        section.appendChild(bank);
+        row.appendChild(section);
         bankForGroup.set(key, bank);
       });
       choicesContainer = row;
     } else {
-      choicesContainer = createBank('Available choices');
+      choicesContainer = createBank({ label: 'Available choices' });
     }
     const choicesContainerWidth = parseChoicesContainerWidth(element);
     if (choicesContainerWidth !== null) {
@@ -212,7 +259,8 @@ export class GapMatchInteractionHandler implements ElementHandler {
       return (
         tagName !== 'qti-prompt' &&
         tagName !== 'qti-gap-text' &&
-        tagName !== 'qti-gap-img'
+        tagName !== 'qti-gap-img' &&
+        !isBankHeading(child)
       );
     });
 

@@ -15,11 +15,19 @@ such as "The client is at highest risk for ___ as evidenced by the ___." Use a \
 \`qti-gap-match-interaction\` with a \`qti-prompt\`, a \`qti-gap-text\` for each \
 option, and the sentence with a \`qti-gap\` for the cause (\`G1\`) and one for the \
 effect (\`G2\`). The response is a \`multiple\` cardinality \`directedPair\` of \
-"option gap" identifiers. Include 2 to 3 cause options and 2 to 3 effect options \
-in one shared bank. Each effect option should be a finding from the scenario.
+"option gap" identifiers. Include 2 to 3 cause options and 2 to 3 effect options. \
+Each effect option should be a finding from the scenario.
 
 - ${rationaleDyad}
 - ${clinicalScenario}
+- Put the cause and effect options in two word banks. Set \
+\`match-group="cause"\` on each cause option and on \`G1\`, and \
+\`match-group="effect"\` on each effect option and on \`G2\`, so each blank \
+only accepts options from its own bank.
+- Title each bank with an \`h3\` placed after the options and before the \
+sentence, tied to its group by \`data-for-match-group\`, such as \
+\`<h3 data-for-match-group="cause">Risk</h3>\`. Name what the blank holds, \
+not the answer.
 - Set \`shuffle="true"\` so the option bank order varies.
 - Set \`match-max="1"\` on every \`qti-gap-text\`, so each option is used at most once.
 - Set \`min-associations="2"\`, so both blanks must be filled before submitting.
@@ -62,14 +70,16 @@ adaptive="false" time-dependent="false" xml:lang="en">
     <p>A client with acute leukemia completed a cycle of chemotherapy 10 days ago. Today's laboratory results are a platelet count of 38,000/mm³, a white blood cell count of 6,200/mm³, and a hemoglobin of 12.8 g/dL.</p>
     <qti-gap-match-interaction response-identifier="RESPONSE" shuffle="true" min-associations="2">
       <qti-prompt>Complete the sentence by dragging an option into each blank.</qti-prompt>
-      <qti-gap-text identifier="bleeding" match-max="1">bleeding</qti-gap-text>
-      <qti-gap-text identifier="infection" match-max="1">infection</qti-gap-text>
-      <qti-gap-text identifier="fatigue" match-max="1">fatigue from anemia</qti-gap-text>
-      <qti-gap-text identifier="platelets" match-max="1">platelet count</qti-gap-text>
-      <qti-gap-text identifier="whiteCells" match-max="1">white blood cell count</qti-gap-text>
-      <qti-gap-text identifier="hemoglobin" match-max="1">hemoglobin</qti-gap-text>
+      <qti-gap-text identifier="bleeding" match-max="1" match-group="cause">bleeding</qti-gap-text>
+      <qti-gap-text identifier="infection" match-max="1" match-group="cause">infection</qti-gap-text>
+      <qti-gap-text identifier="fatigue" match-max="1" match-group="cause">fatigue from anemia</qti-gap-text>
+      <qti-gap-text identifier="platelets" match-max="1" match-group="effect">platelet count</qti-gap-text>
+      <qti-gap-text identifier="whiteCells" match-max="1" match-group="effect">white blood cell count</qti-gap-text>
+      <qti-gap-text identifier="hemoglobin" match-max="1" match-group="effect">hemoglobin</qti-gap-text>
+      <h3 data-for-match-group="cause">Risk</h3>
+      <h3 data-for-match-group="effect">Finding</h3>
       <p>
-        The client is at highest risk for <qti-gap identifier="G1"/> as evidenced by the <qti-gap identifier="G2"/>.
+        The client is at highest risk for <qti-gap identifier="G1" match-group="cause"/> as evidenced by the <qti-gap identifier="G2" match-group="effect"/>.
       </p>
     </qti-gap-match-interaction>
     <qti-feedback-block outcome-identifier="FEEDBACK" identifier="ITEM_completed" show-hide="show">
@@ -108,7 +118,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
 export const dragAndDropRationale: Sample = {
   id: 'nclex-drag-and-drop-rationale',
   name: 'Drag-and-Drop: Rationale',
-  summary: 'NCLEX drag-and-drop rationale (dyad): drag a cause and the finding that supports it into a sentence, both correct for credit.',
+  summary: 'NCLEX drag-and-drop rationale (dyad): drag a cause and the finding that supports it from separate word banks into a sentence, both correct for credit.',
   description,
   interactionTypes: ['gap-match'],
   item,

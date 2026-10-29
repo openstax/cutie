@@ -286,8 +286,9 @@ export const GAP_MATCH_INTERACTION_STYLES = `
   }
 
   /*
-   * Per-group word banks: when the choices span 2+ match-groups, each group
-   * gets its own bordered bank inside a row. The row keeps the base
+   * Per-group word banks: when the choices span 2+ match-groups, or a group
+   * has an authored heading, each group gets its own section (optional
+   * heading over a bordered bank) inside a row. The row keeps the base
    * .cutie-gap-match-choices class so the qti-choices-* rules above position
    * it like a single bank; --multi-tray strips its own box chrome since each
    * bank inside draws its own border.
@@ -301,9 +302,23 @@ export const GAP_MATCH_INTERACTION_STYLES = `
     background-color: transparent;
   }
 
-  .cutie-gap-match-choices--group {
+  .cutie-gap-match-bank {
+    display: flex;
+    flex-direction: column;
     flex: 1 1 auto;
     min-width: 10em;
+  }
+
+  .cutie-gap-match-bank-heading {
+    margin: 0 0 0.5em;
+    font-size: 1em;
+    font-weight: 600;
+  }
+
+  /* Fill the section so banks in a row share a height */
+  .cutie-gap-match-choices--group {
+    flex: 1 1 auto;
+    align-content: flex-start;
     margin-bottom: 0;
   }
 
@@ -313,7 +328,7 @@ export const GAP_MATCH_INTERACTION_STYLES = `
       flex-direction: column;
     }
 
-    .cutie-gap-match-choices--group {
+    .cutie-gap-match-bank {
       min-width: unset;
       width: 100%;
     }
