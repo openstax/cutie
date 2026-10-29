@@ -8,12 +8,14 @@ const TAB_CONTAINER_CLASS = 'cutie-tab-container';
 const TAB_CONTAINER_SELECTOR = `[class~="${TAB_CONTAINER_CLASS}"]`;
 const TABLIST_LABEL_ATTRIBUTES = ['aria-label', 'aria-labelledby'];
 const MODE_ATTRIBUTES = ['role', 'aria-selected', 'aria-expanded', 'tabindex'];
+const SECTION_TEXT_ATTRIBUTES = ['lang', 'xml:lang', 'dir'];
 const FOCUSABLE_SELECTOR =
   'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"]), [contenteditable="true"]';
 
 let idCounter = 0;
 
 interface TabSection {
+  section: Element;
   heading: Element;
   content: Node[];
 }
@@ -33,6 +35,15 @@ function hasClassToken(element: Element, token: string): boolean {
 
 function isHeading(element: Element): boolean {
   return /^h[1-6]$/.test(element.localName.toLowerCase());
+}
+
+/** Copy authored attributes (or only `names`) onto a rendered element, adding to its classes */
+function copyAttributes(from: Element, to: HTMLElement, names?: string[]): void {
+  for (const attr of Array.from(from.attributes)) {
+    if (names && !names.includes(attr.name)) continue;
+    if (attr.name === 'class') to.classList.add(...attr.value.split(/\s+/).filter(Boolean));
+    else to.setAttribute(attr.name, attr.value);
+  }
 }
 
 /** Whitespace and comments, which may sit between the elements we look for */
@@ -59,7 +70,7 @@ function splitSections(element: Element): TabSection[] | null {
     const heading = nodes[start];
     if (!heading || heading.nodeType !== Node.ELEMENT_NODE || !isHeading(heading as Element)) return null;
 
-    sections.push({ heading: heading as Element, content: nodes.slice(start + 1) });
+    sections.push({ section: node as Element, heading: heading as Element, content: nodes.slice(start + 1) });
   }
 
   return sections.length > 0 ? sections : null;
@@ -100,24 +111,31 @@ class TabContainerHandler implements ElementHandler {
     const sections: RenderedSection[] = (splitSections(element) ?? []).map((section) => {
       const id = `cutie-tab-${++idCounter}`;
 
-      // Keeps the authored heading level, so the accordion's outline matches
+      // Keeps the authored heading level, so the accordion's outline matches.
+      // In tabs mode the heading sits apart from its panel, so it takes the
+      // section's language and direction too; its own attributes win.
       const heading = document.createElement(section.heading.localName.toLowerCase());
       heading.className = 'cutie-tab-heading';
+      copyAttributes(section.section, heading, SECTION_TEXT_ATTRIBUTES);
+      copyAttributes(section.heading, heading);
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'cutie-tab';
       button.id = id;
-      button.setAttribute('aria-controls', `${id}-panel`);
       if (context.transformChildren) {
         button.appendChild(context.transformChildren(section.heading));
       }
       heading.appendChild(button);
       list.appendChild(heading);
 
+      // The panel stands in for the section, keeping its attributes. The tab
+      // wiring is set after, so authored attributes can't break it.
       const panel = document.createElement('div');
       panel.className = 'cutie-tabpanel';
-      panel.id = `${id}-panel`;
+      copyAttributes(section.section, panel);
+      if (!panel.id) panel.id = `${id}-panel`;
       panel.setAttribute('aria-labelledby', id);
+      button.setAttribute('aria-controls', panel.id);
       // Transforms the authored nodes in place, so handlers inside a panel can
       // still find their ancestors (qti-item-body, feedback, blocks)
       for (const node of section.content) {
@@ -329,7 +347,7 @@ const TAB_CONTAINER_STYLES = `
     border-bottom-color: var(--cutie-bg);
   }
 
-  @container (max-width: 10em) {
+  @container (max-width: 8em) {
     .cutie-tab-container .cutie-tab[role="tab"] {
       padding-inline: 0.5em;
     }
