@@ -10,6 +10,16 @@ describe('buildScore', () => {
     expect(score.scaled).toBe(1);
   });
 
+  test.each([
+    ['floating point noise', 0.1 + 0.2],
+    ['a repeating decimal', 1 / 3],
+  ])('gives a full score with %s equal raw and max, scaled to 1', (_name, value) => {
+    const score = buildScore(value, value);
+
+    expect(score.raw).toBe(score.max);
+    expect(score.scaled).toBe(1);
+  });
+
   test('keeps a full score smaller than the rounding of floating point noise', () => {
     const score = buildScore(1e-10, 1e-10);
 

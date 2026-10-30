@@ -13,7 +13,7 @@ export function roundScore(score: number): number {
 
 /**
  * Builds an xAPI-compatible Score object from raw score and max score values.
- * Raw and scaled are rounded (see roundScore), so a full score scales to exactly 1.
+ * Raw, max and scaled are rounded (see roundScore), so a full score scales to exactly 1.
  *
  * @param raw - The raw score achieved
  * @param max - The maximum possible score
@@ -21,11 +21,12 @@ export function roundScore(score: number): number {
  */
 export function buildScore(raw: number, max: number): Score {
   const rawScore = roundScore(raw);
+  const maxScore = roundScore(max);
   return {
     raw: rawScore,
     min: 0,
-    max,
-    scaled: max > 0 ? roundScore(rawScore / max) : 0,
+    max: maxScore,
+    scaled: maxScore > 0 ? roundScore(rawScore / maxScore) : 0,
   };
 }
 
