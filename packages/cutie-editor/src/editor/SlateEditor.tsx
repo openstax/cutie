@@ -2,7 +2,7 @@ import { createElement, useCallback, useMemo, useState, useRef, useEffect } from
 import { Descendant, Editor, Element as SlateElementType, Transforms } from 'slate';
 import { Slate, Editable, RenderElementProps, RenderLeafProps } from 'slate-react';
 import type { Path } from 'slate';
-import type { SlateEditorProps, SlateElement, ElementAttributes, XmlNode, DocumentMetadata, ResponseProcessingMode } from '../types.js';
+import type { SlateEditorProps, SlateElement, ElementAttributes, XmlNode, DocumentMetadata, ResponseProcessingConfig, ResponseProcessingMode, ResponseProcessingSettings } from '../types.js';
 import { createQtiEditor } from './createQtiEditor.js';
 import { isElementInline } from '../plugins/withQtiInteractions.js';
 import { Toolbar } from './Toolbar.js';
@@ -73,6 +73,10 @@ export function SlateEditor({
   // Track selected interaction element for properties panel
   const [selectedElement, setSelectedElement] = useState<SlateElement | null>(null);
   const [selectedPath, setSelectedPath] = useState<Path | null>(null);
+  // The sumScores maximum score calculated when the item was last serialized
+  const [calculatedMaximumScore, setCalculatedMaximumScore] = useState<number | null>(
+    () => calculateMaximumScore(initialValue, qtiXml)
+  );
 
   // Normalize on initial mount to ensure trailing paragraph exists
   useEffect(() => {
@@ -114,11 +118,13 @@ export function SlateEditor({
       }
     }
 
-    // Serialize back to QTI and notify parent
-    if (onQtiChange && !readOnly) {
-      try {
-        const result = serializeSlateToQti(newValue, qtiXmlRef.current);
+    // Serialize back to QTI, for the calculated maximum score and to notify the parent
+    const notify = onQtiChange && !readOnly;
+    try {
+      const result = serializeSlateToQti(newValue, qtiXmlRef.current);
+      setCalculatedMaximumScore(result.calculatedMaximumScore);
 
+      if (notify) {
         // Check for errors
         if (result.errors && result.errors.length > 0) {
           const errorMessages = result.errors.map(e => e.message).join(', ');
@@ -128,7 +134,10 @@ export function SlateEditor({
         // Update the ref and notify parent
         qtiXmlRef.current = result.xml;
         onQtiChange(result.xml, result);
-      } catch (err) {
+      }
+    } catch (err) {
+      setCalculatedMaximumScore(null);
+      if (notify) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to serialize QTI XML';
         onError?.(errorMessage);
       }
@@ -165,30 +174,42 @@ export function SlateEditor({
     [editor]
   );
 
-  // Handle response processing mode change
-  const handleResponseProcessingModeChange = useCallback(
-    (mode: ResponseProcessingMode) => {
-      // Find the metadata node at [0]
+  // Replace the response processing config in the metadata node at [0], using
+  // Transforms.setNodes so the change is part of undo history
+  const updateResponseProcessingConfig = useCallback(
+    (update: (config: ResponseProcessingConfig) => ResponseProcessingConfig) => {
       const metadata = getDocumentMetadata(value);
       if (!metadata) return;
 
-      // If switching to 'custom' mode, preserve the existing customXml if any
-      // If switching to a managed mode, clear customXml (we'll regenerate response processing)
-      const newConfig =
-        mode === 'custom'
-          ? { mode, customXml: metadata.responseProcessing.customXml }
-          : { mode };
-
-      // Update the mode using Transforms.setNodes
       Transforms.setNodes(
         editor,
         {
-          responseProcessing: newConfig,
+          responseProcessing: update(metadata.responseProcessing),
         } as Partial<DocumentMetadata>,
         { at: [0] }
       );
     },
     [editor, value]
+  );
+
+  // Handle response processing mode change
+  const handleResponseProcessingModeChange = useCallback(
+    (mode: ResponseProcessingMode) => {
+      // If switching to 'custom' mode, preserve the existing customXml if any
+      // If switching to a managed mode, clear customXml (we'll regenerate response processing)
+      updateResponseProcessingConfig((config) =>
+        mode === 'custom' ? { mode, customXml: config.customXml } : { mode }
+      );
+    },
+    [updateResponseProcessingConfig]
+  );
+
+  // Handle changes to the sumScores score offset and maximum score
+  const handleResponseProcessingSettingsChange = useCallback(
+    (settings: ResponseProcessingSettings) => {
+      updateResponseProcessingConfig((config) => ({ ...config, ...settings }));
+    },
+    [updateResponseProcessingConfig]
   );
 
   // Extract response processing config and interaction info
@@ -255,12 +276,26 @@ export function SlateEditor({
               interactionCount={interactionCount}
               hasFeedbackElements={hasFeedbackElements}
               onResponseProcessingModeChange={handleResponseProcessingModeChange}
+              onResponseProcessingSettingsChange={handleResponseProcessingSettingsChange}
+              calculatedMaximumScore={calculatedMaximumScore}
             />
           </div>
         </Slate>
       </FeedbackIdentifiersContext.Provider>
     </AssetContext.Provider>
   );
+}
+
+/**
+ * The sumScores maximum score calculated from the responses, from serializing
+ * the item, or null when it can't be calculated (or the item can't be serialized)
+ */
+function calculateMaximumScore(nodes: Descendant[], qtiXml: string): number | null {
+  try {
+    return serializeSlateToQti(nodes, qtiXml).calculatedMaximumScore;
+  } catch {
+    return null;
+  }
 }
 
 /**

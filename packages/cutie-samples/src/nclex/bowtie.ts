@@ -7,7 +7,7 @@ import {
   workedSolution,
 } from '../standard/conventions.js';
 import type { Sample } from '../types.js';
-import { clientRecord, clinicalScenario, maxScore, sumMapResponses, zeroOneMappedScoring } from './conventions.js';
+import { cappedSumMapResponses, clientRecord, clinicalScenario, maxScore, zeroOneMappedScoring } from './conventions.js';
 
 const description = `\
 NCLEX bowtie: the condition the client is most likely experiencing in the center, \
@@ -36,7 +36,7 @@ submitting and the columns keep their order when shuffled.
 - Don't add per-option feedback.
 - ${workedSolution}
 - ${zeroOneMappedScoring} Map each correct "option column" pair.
-- ${sumMapResponses}
+- ${cappedSumMapResponses}
 - ${responseProcessingOrder}
 - ${correctResponse}
 - ${outcomes}
@@ -180,9 +180,12 @@ adaptive="false" time-dependent="false" xml:lang="en">
 
   <qti-response-processing>
     <qti-set-outcome-value identifier="SCORE">
-      <qti-sum>
-        <qti-map-response identifier="RESPONSE"/>
-      </qti-sum>
+      <qti-min>
+        <qti-base-value base-type="float">5</qti-base-value>
+        <qti-sum>
+          <qti-map-response identifier="RESPONSE"/>
+        </qti-sum>
+      </qti-min>
     </qti-set-outcome-value>
     <qti-set-outcome-value identifier="FEEDBACK">
       <qti-multiple>

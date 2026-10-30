@@ -29,7 +29,7 @@ import {
 } from '../interactions/match/config.js';
 import { textEntryInteractionConfig } from '../interactions/textEntry/config.js';
 import { isBlockTag } from '../serialization/xmlUtils.js';
-import type { CustomEditor, ElementConfig, FeedbackIdentifierSource } from '../types.js';
+import type { CustomEditor, ElementConfig, FeedbackIdentifierSource, SlateElement } from '../types.js';
 
 export const elementConfigs: ElementConfig[] = [
   // Interaction configs
@@ -161,6 +161,17 @@ export function collectExistingResponseIds(editor: Editor): Set<string> {
       if (attrs?.['response-identifier']) {
         existingIds.add(attrs['response-identifier']);
       }
+    }
+  }
+
+  // Interactions the editor passes through keep the responses bound inside them
+  for (const [node] of Editor.nodes(editor, {
+    at: [],
+    match: (n) => Element.isElement(n) && 'type' in n && n.type === 'qti-unknown',
+  })) {
+    const unknown = node as SlateElement & { type: 'qti-unknown' };
+    for (const responseId of Object.keys(unknown.responseDeclarations ?? {})) {
+      existingIds.add(responseId);
     }
   }
 

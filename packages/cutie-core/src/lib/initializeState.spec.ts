@@ -95,7 +95,7 @@ const minimalItemXml = `<?xml version="1.0" encoding="UTF-8"?>
     </qti-item-body>
 
     <qti-response-processing
-    template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>
+    template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct.xml"/>
   </qti-assessment-item>
 `;
 
@@ -2515,7 +2515,7 @@ describe('initializeState', () => {
             </qti-default-value>
           </qti-outcome-declaration>
           <qti-item-body><p>Test</p></qti-item-body>
-          <qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>
+          <qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct.xml"/>
         </qti-assessment-item>`;
 
       const itemDoc = parser.parseFromString(xml, 'text/xml');

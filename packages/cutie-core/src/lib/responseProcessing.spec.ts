@@ -2976,7 +2976,7 @@ describe('Complex Response Processing Scenarios', () => {
     </qti-choice-interaction>
   </qti-item-body>
 
-  <qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>
+  <qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct.xml"/>
 </qti-assessment-item>`;
 
       const itemDoc = parser.parseFromString(itemXml, 'text/xml');
@@ -3022,7 +3022,7 @@ describe('Complex Response Processing Scenarios', () => {
     <p>Test question</p>
   </qti-item-body>
 
-  <qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/map_response.xml"/>
+  <qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/map_response.xml"/>
 </qti-assessment-item>`;
 
       const itemDoc = parser.parseFromString(itemXml, 'text/xml');
@@ -3159,7 +3159,7 @@ describe('Complex Response Processing Scenarios', () => {
     <p>Test question</p>
   </qti-item-body>
 
-  <qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>
+  <qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct.xml"/>
 </qti-assessment-item>`;
 
       const itemDoc = parser.parseFromString(itemXml, 'text/xml');
@@ -3210,7 +3210,7 @@ describe('processResponse - Shuffle Order Preservation', () => {
     </qti-choice-interaction>
   </qti-item-body>
 
-  <qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>
+  <qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct.xml"/>
 </qti-assessment-item>`;
 
     const itemDoc = parser.parseFromString(itemXml, 'text/xml');
@@ -3260,7 +3260,7 @@ describe('processResponse - Shuffle Order Preservation', () => {
     </qti-choice-interaction>
   </qti-item-body>
 
-  <qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>
+  <qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct.xml"/>
 </qti-assessment-item>`;
 
     const itemDoc = parser.parseFromString(itemXml, 'text/xml');
@@ -3313,7 +3313,7 @@ describe('processResponse - Shuffle Order Preservation', () => {
     </qti-match-interaction>
   </qti-item-body>
 
-  <qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>
+  <qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct.xml"/>
 </qti-assessment-item>`;
 
     const itemDoc = parser.parseFromString(itemXml, 'text/xml');
@@ -3362,7 +3362,7 @@ describe('processResponse - Formula Response Processing', () => {
     <qti-extended-text-interaction response-identifier="RESPONSE"/>
   </qti-item-body>
 
-  <qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>
+  <qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct.xml"/>
 </qti-assessment-item>`;
 
       const itemDoc = parser.parseFromString(itemXml, 'text/xml');
@@ -3398,7 +3398,7 @@ describe('processResponse - Formula Response Processing', () => {
     <qti-extended-text-interaction response-identifier="RESPONSE"/>
   </qti-item-body>
 
-  <qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>
+  <qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct.xml"/>
 </qti-assessment-item>`;
 
       const itemDoc = parser.parseFromString(itemXml, 'text/xml');
@@ -3435,7 +3435,7 @@ describe('processResponse - Formula Response Processing', () => {
     <qti-extended-text-interaction response-identifier="RESPONSE"/>
   </qti-item-body>
 
-  <qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>
+  <qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct.xml"/>
 </qti-assessment-item>`;
 
       const itemDoc = parser.parseFromString(itemXml, 'text/xml');
@@ -3472,7 +3472,7 @@ describe('processResponse - Formula Response Processing', () => {
     <qti-extended-text-interaction response-identifier="RESPONSE"/>
   </qti-item-body>
 
-  <qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>
+  <qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct.xml"/>
 </qti-assessment-item>`;
 
       const itemDoc = parser.parseFromString(itemXml, 'text/xml');
@@ -3509,7 +3509,7 @@ describe('processResponse - Formula Response Processing', () => {
     <qti-extended-text-interaction response-identifier="RESPONSE"/>
   </qti-item-body>
 
-  <qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>
+  <qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct.xml"/>
 </qti-assessment-item>`;
 
       const itemDoc = parser.parseFromString(itemXml, 'text/xml');
@@ -3658,7 +3658,7 @@ describe('processResponse - Formula Response Processing', () => {
     <qti-extended-text-interaction response-identifier="RESPONSE"/>
   </qti-item-body>
 
-  <qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>
+  <qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct.xml"/>
 </qti-assessment-item>`;
 
       const itemDoc = parser.parseFromString(itemXml, 'text/xml');
@@ -3694,7 +3694,7 @@ describe('processResponse - Formula Response Processing', () => {
     <qti-extended-text-interaction response-identifier="RESPONSE"/>
   </qti-item-body>
 
-  <qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>
+  <qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct.xml"/>
 </qti-assessment-item>`;
 
       const itemDoc = parser.parseFromString(itemXml, 'text/xml');
@@ -3726,7 +3726,7 @@ describe('processResponse - Template Variable Correct Response', () => {
   <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="float"/>
   <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/>
   <qti-response-processing
-    template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>
+    template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct.xml"/>
 </qti-assessment-item>`;
 
     const currentState: AttemptState = {

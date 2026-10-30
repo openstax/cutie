@@ -1,11 +1,16 @@
+import { parseNumber } from '@openstax/cutie-core';
+import { useEffect, useId, useState } from 'react';
 import { useStyle } from '../hooks/useStyle.js';
-import type { ResponseProcessingConfig, ResponseProcessingMode } from '../types.js';
+import type { ResponseProcessingConfig, ResponseProcessingMode, ResponseProcessingSettings } from '../types.js';
 
 interface ResponseProcessingPanelProps {
   config: ResponseProcessingConfig;
   interactionCount: number;
   hasFeedbackElements: boolean;
   onModeChange: (mode: ResponseProcessingMode) => void;
+  onSettingsChange?: (settings: ResponseProcessingSettings) => void;
+  /** The maximum score calculated from the responses (sumScores), or null when it can't be calculated */
+  calculatedMaximumScore?: number | null;
 }
 
 /**
@@ -16,6 +21,8 @@ export function ResponseProcessingPanel({
   interactionCount,
   hasFeedbackElements,
   onModeChange,
+  onSettingsChange,
+  calculatedMaximumScore = null,
 }: ResponseProcessingPanelProps): React.JSX.Element {
   useStyle('response-processing-panel', RESPONSE_PROCESSING_PANEL_STYLES);
 
@@ -23,6 +30,11 @@ export function ResponseProcessingPanel({
 
   // Warning messages based on mode/content mismatch
   const warnings: string[] = [];
+  if (config.mode === 'sumScores' && onSettingsChange && config.maximumScore === undefined && calculatedMaximumScore === null) {
+    warnings.push(
+      "This item's maximum score can't be calculated. Enter a maximum score so its points can be reported."
+    );
+  }
 
   return (
     <div className="response-processing-panel">
@@ -58,6 +70,26 @@ export function ResponseProcessingPanel({
         <p className="radio-option-description">
           Each response contributes to the total score
         </p>
+
+        {config.mode === 'sumScores' && onSettingsChange && (
+          <div className="sum-scores-settings">
+            <NumberSetting
+              label="Score Offset"
+              description="Added to the total of the response scores. Can be negative; the total never goes below 0."
+              value={config.scoreOffset}
+              placeholder="0"
+              onChange={(scoreOffset) => onSettingsChange({ scoreOffset })}
+            />
+            <NumberSetting
+              label="Maximum Score"
+              description="The total score never goes above this. Leave empty to calculate it from the responses."
+              value={config.maximumScore}
+              placeholder={calculatedMaximumScore !== null ? `${calculatedMaximumScore} (calculated)` : 'Unknown'}
+              min={0}
+              onChange={(maximumScore) => onSettingsChange({ maximumScore })}
+            />
+          </div>
+        )}
 
         <label className="radio-option">
           <input
@@ -129,6 +161,84 @@ export function ResponseProcessingPanel({
   );
 }
 
+interface NumberSettingProps {
+  label: string;
+  description: string;
+  /** The setting's value, undefined when unset */
+  value: number | undefined;
+  placeholder: string;
+  /** The lowest value accepted */
+  min?: number;
+  onChange: (value: number | undefined) => void;
+}
+
+/**
+ * An optional number setting. The text is kept as typed and is saved when the
+ * field loses focus or Enter is pressed: a complete number (at least min) is
+ * passed on, empty text clears it, and anything else is flagged while typing
+ * and reverts to the saved value.
+ */
+function NumberSetting({ label, description, value, placeholder, min, onChange }: NumberSettingProps): React.JSX.Element {
+  const id = useId();
+  const [text, setText] = useState(formatSetting(value));
+
+  // Follow changes made elsewhere (undo, loading an item)
+  useEffect(() => {
+    setText(formatSetting(value));
+  }, [value]);
+
+  const save = () => {
+    if (text.trim() === '') {
+      if (value !== undefined) onChange(undefined);
+      setText('');
+      return;
+    }
+    const parsed = parseSetting(text, min);
+    if (parsed === undefined) {
+      setText(formatSetting(value));
+    } else if (parsed !== value) {
+      onChange(parsed);
+    }
+  };
+
+  return (
+    <div className="sum-scores-setting">
+      <label className="sum-scores-setting-label" htmlFor={id}>{label}</label>
+      <input
+        id={id}
+        type="text"
+        inputMode="decimal"
+        className="sum-scores-setting-input"
+        value={text}
+        aria-invalid={text.trim() !== '' && parseSetting(text, min) === undefined}
+        aria-describedby={`${id}-description`}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={save}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') save();
+        }}
+        placeholder={placeholder}
+      />
+      <p id={`${id}-description`} className="sum-scores-setting-description">{description}</p>
+    </div>
+  );
+}
+
+/**
+ * Parse a number setting's text: a finite decimal number of at least min, or undefined
+ */
+function parseSetting(text: string, min: number | undefined): number | undefined {
+  const parsed = parseNumber(text);
+  return parsed !== null && (min === undefined || parsed >= min) ? parsed : undefined;
+}
+
+/**
+ * Format a number setting's value as text
+ */
+function formatSetting(value: number | undefined): string {
+  return value === undefined ? '' : String(value);
+}
+
 const RESPONSE_PROCESSING_PANEL_STYLES = `
   .response-processing-panel h3 {
     margin-top: 0;
@@ -160,6 +270,46 @@ const RESPONSE_PROCESSING_PANEL_STYLES = `
 
   .radio-option-description {
     margin: 0 0 16px 24px;
+    font-size: 12px;
+    color: #6b7280;
+  }
+
+  .sum-scores-settings {
+    margin: 0 0 16px 24px;
+  }
+
+  .sum-scores-setting {
+    margin-bottom: 12px;
+  }
+
+  .sum-scores-setting:last-child {
+    margin-bottom: 0;
+  }
+
+  .sum-scores-setting-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 6px;
+  }
+
+  .sum-scores-setting-input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    font-family: inherit;
+    box-sizing: border-box;
+  }
+
+  .sum-scores-setting-input[aria-invalid="true"] {
+    border-color: #d32f2f;
+  }
+
+  .sum-scores-setting-description {
+    margin: 4px 0 0 0;
     font-size: 12px;
     color: #6b7280;
   }

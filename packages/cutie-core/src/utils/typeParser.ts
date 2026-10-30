@@ -87,3 +87,20 @@ export function parseResponseValue(text: string, baseType: string): unknown {
       return trimmed;
   }
 }
+
+/**
+ * A decimal number, optionally signed and with an exponent: the lexical form of
+ * a finite XSD float or double (so not hex, binary, octal or Infinity)
+ */
+const DECIMAL_NUMBER = /^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i;
+
+/**
+ * Parse text as a finite decimal number, or return null for anything else
+ * (including empty or whitespace-only text)
+ */
+export function parseNumber(text: string): number | null {
+  const trimmed = text.trim();
+  if (!DECIMAL_NUMBER.test(trimmed)) return null;
+  const value = Number(trimmed);
+  return Number.isFinite(value) ? value : null;
+}

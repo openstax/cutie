@@ -38,6 +38,12 @@ export const sumMapResponses = `\
 Set \`SCORE\` to a \`qti-sum\` of \`qti-map-response\` for each response, even \
 when there is only one.`;
 
+export const cappedSumMapResponses = `\
+${sumMapResponses} Wrap the \`qti-sum\` in a \`qti-min\` with the \`MAXSCORE\` \
+value: \`<qti-min><qti-base-value base-type="float">MAXSCORE value</qti-base-value><qti-sum>…</qti-sum></qti-min>\`. \
+\`MAXSCORE\` only declares the maximum and never limits \`SCORE\`, so the \
+\`qti-min\` makes the cap explicit.`;
+
 export const rationaleDyad = `\
 This is the dyad form: one cause and one effect, worth 1 point, and both must \
 be correct for credit. The triad form (one cause, two effects, worth 2 points, \

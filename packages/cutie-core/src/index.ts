@@ -318,6 +318,10 @@ function parseItem(itemXml: string): Document {
 }
 
 export { ResponseValidationError } from './lib/validateResponses.js';
+export { deriveMaxScore, inferExpressionMaxScore, inferResponseMaxScore, parseNumericBaseValue } from './lib/deriveMaxScore.js';
+export { canMappingBeNegative } from './lib/responseDeclarations.js';
+export { roundScore } from './lib/scoreUtils.js';
+export { parseNumber } from './utils/typeParser.js';
 
 // Re-export types for convenience
 export type { AttemptResult } from './lib/attemptTurn.js';

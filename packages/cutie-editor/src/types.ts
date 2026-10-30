@@ -40,7 +40,19 @@ export interface ResponseProcessingConfig {
   mode: ResponseProcessingMode;
   /** For 'custom' mode: preserve original XML for round-trip */
   customXml?: XmlNode;
+  /** For 'sumScores' mode: a constant added to the summed response scores (may be negative) */
+  scoreOffset?: number;
+  /**
+   * For 'sumScores' mode: the highest the total score can be, set by the author.
+   * When unset, the maximum inferred from the responses is used.
+   */
+  maximumScore?: number;
 }
+
+/**
+ * The sumScores settings that can be changed without changing the mode
+ */
+export type ResponseProcessingSettings = Pick<ResponseProcessingConfig, 'scoreOffset' | 'maximumScore'>;
 
 /**
  * Document metadata node stored at position [0] in the Slate document.
@@ -569,6 +581,11 @@ export interface SerializationResult {
   responseIdentifiers: string[];
   /** Any validation errors encountered during serialization */
   errors?: ValidationError[];
+  /**
+   * For 'sumScores' mode: the maximum score calculated from the responses,
+   * ignoring any maximum set by the author, or null when it can't be calculated
+   */
+  calculatedMaximumScore: number | null;
 }
 
 /**

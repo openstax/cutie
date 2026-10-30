@@ -3,7 +3,7 @@ import { beginAttempt, submitResponse } from '@openstax/cutie-core';
 import { createQtiEditor } from '@openstax/cutie-editor/editor/createQtiEditor';
 import { serializeSlateToQti } from '@openstax/cutie-editor/serialization/slateToXml';
 import { parseXmlToSlate } from '@openstax/cutie-editor/serialization/xmlToSlate';
-import { classifyResponseProcessing } from '@openstax/cutie-editor/utils/responseProcessingClassifier';
+import type { DocumentMetadata } from '@openstax/cutie-editor/types';
 import { describe, expect, it } from 'vitest';
 import type { Sample } from './types.js';
 import { samples } from './index.js';
@@ -149,7 +149,8 @@ describe.each(samples)('$id sample', (sample) => {
   });
 
   it('uses response processing the editor can manage', () => {
-    expect(classifyResponseProcessing(doc).mode).not.toBe('custom');
+    const [metadata] = parseXmlToSlate(sample.item);
+    expect((metadata as DocumentMetadata).responseProcessing.mode).not.toBe('custom');
   });
 
   it('round-trips through the editor unchanged', () => {

@@ -2,18 +2,28 @@ import type { Score } from '../types.js';
 import { deriveMaxScore } from './deriveMaxScore.js';
 
 /**
+ * Round a score to remove floating point noise (0.1 + 0.2 is 0.3, not
+ * 0.30000000000000004), so scores compare and print as authored
+ */
+export function roundScore(score: number): number {
+  return Math.round(score * 1e9) / 1e9;
+}
+
+/**
  * Builds an xAPI-compatible Score object from raw score and max score values.
+ * Raw and scaled are rounded (see roundScore), so a full score scales to exactly 1.
  *
  * @param raw - The raw score achieved
  * @param max - The maximum possible score
  * @returns A Score object with raw, min, max, and scaled values
  */
 export function buildScore(raw: number, max: number): Score {
+  const rawScore = roundScore(raw);
   return {
-    raw,
+    raw: rawScore,
     min: 0,
     max,
-    scaled: max > 0 ? raw / max : 0,
+    scaled: max > 0 ? roundScore(rawScore / max) : 0,
   };
 }
 

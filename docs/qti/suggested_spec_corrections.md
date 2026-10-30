@@ -187,15 +187,25 @@ same way.
 **Spec:**
 - For multiple cardinality, each distinct value is mapped once. Duplicates
   aren't counted twice.
-- `case-sensitive` on `qti-map-entry`: *needs verification*. The QTI 3
-  default may be `true`, and cutie treats it as `false`.
+- `case-sensitive` on `qti-map-entry` defaults to `false` (`MapEntryDType` in
+  the QTI 3 XSD), as cutie treats it.
 
 **Cutie:** Adds up every array element, duplicates included. Matches
 case-insensitively unless `case-sensitive="true"`. (Keys for `pair` responses
 already match without regard to order.)
 
-**Suggested fix:** Remove duplicates before mapping. Check the
-case-sensitivity default against the spec and XSD.
+**Suggested fix:** Remove duplicates before mapping.
+
+**Interaction with the inferred maximum score:** `inferResponseMaxScore`
+(`lib/deriveMaxScore.ts`) counts each value once, as the spec does, so a
+submission that repeats a value can score above the inferred maximum. For
+example, a choice response mapping `A` and `B` to 1 (maximum 2) scores 3 for
+`['A', 'A', 'A']`.
+
+Related, though not a duplicate value: `match-max` isn't checked on
+submission. A gap match item that relies on `match-max="1"` to stop the same
+option filling two gaps gets credit for both when a submission puts it in both,
+since `"A G1"` and `"A G2"` are different pairs, each mapped once.
 
 ## 10. Template variables are deleted when constraint retries run out
 
@@ -335,3 +345,28 @@ QTI.
 text has a `match-group`, it must include the gap's identifier; when the gap
 has one, it must include the gap text's identifier. Anything authored with
 shared group names needs converting to identifier lists.
+
+## 17. `qti-map-response` of a NULL response returns 0
+
+**File:** `packages/cutie-core/src/lib/responseDeclarations.ts` (`mapResponse`,
+and `mapResponsePoint` for `qti-map-response-point`)
+
+**Spec:** The Information Model (Map Response Expression §2.11.1.5) doesn't say
+what `qti-map-response` gives for a NULL response. The standard templates handle
+it themselves: §2.5.1, `map_response` "If RESPONSE was NULL the SCORE is set to
+0.0". The Implementation Guide's composite example (§3.3) guards
+`qti-map-response` with `qti-not(qti-is-null(...))` before summing. Read
+strictly, a NULL operand makes `qti-sum` NULL (§2.11.3.40), and `qti-min` /
+`qti-max` NULL too (§2.11.3.13, §2.11.3.14).
+
+**Cutie:** `mapResponse` returns 0 for a NULL response. The editor's
+partial-credit response processing relies on that: `SCORE` is
+`qti-sum(qti-map-response…)`, optionally inside `qti-min` / `qti-max`, with no
+NULL guards. In cutie an unanswered interaction adds 0. An engine that
+propagates NULL would set `SCORE` to NULL whenever any interaction is
+unanswered.
+
+**Suggested fix:** For portability, guard each mapped response in generated
+response processing (`qti-is-null` → 0, or an intermediate `<responseId>_SCORE`
+outcome as unmapped responses use). Keep returning 0 from `mapResponse`, which
+matches the templates.
