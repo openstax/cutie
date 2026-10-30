@@ -8,27 +8,14 @@ import {
   updateRovingTabindex,
 } from '../../../utils/index.js';
 import type { TransformContext } from '../../types.js';
-import { cloneLabel } from '../evaluation/index.js';
-
-interface ChoiceData {
-  id: string;
-  set: 'source' | 'target';
-  // A source's element is its choice in a word bank; a target's is its column header.
-  element: HTMLElement;
-  matchMin: number;
-  matchMax: number;
-  content: string;
-  connectedIds: Set<string>;
-  // The identifiers of the opposite-set choices this choice may associate with.
-  // Empty = unrestricted.
-  matchGroups: Set<string>;
-}
+import { cloneLabel, parseDirectedPair } from '../evaluation/index.js';
+import { type AssociableChoice, MatchAssociations, type Pair } from './associations.js';
+import type { MatchView } from './presentation.js';
 
 interface TargetSlots {
   container: HTMLElement;
   slots: HTMLElement[];
-  // The most associations the target can ever hold: its match-max, the sources
-  // allowed to pair with it, and max-associations, whichever is smallest.
+  // MatchAssociations.capacity, cached when the controller initializes
   capacity: number;
   describedBy: string[];
 }
@@ -48,19 +35,17 @@ interface Held {
  * its occupant. Each column pre-allocates one slot per unit of its match-min,
  * and grows one empty slot at a time while its capacity allows.
  */
-export class MatchController {
+export class MatchController implements MatchView {
   readonly responseIdentifier: string;
   private context: TransformContext;
   private container: HTMLElement;
-  private maxAssociations: number;
 
   // State
-  private associations = new Set<string>(); // "sourceId targetId" pairs
+  private model: MatchAssociations;
   private enabled = true;
 
-  private choices = new Map<string, ChoiceData>();
-  private sourceIds: string[] = [];
-  private targetIds: string[] = [];
+  // Each source's choice element in its word bank
+  private sourceElements = new Map<string, HTMLElement>();
 
   private targets = new Map<string, TargetSlots>();
   private slotOccupant = new Map<HTMLElement, string>();
@@ -85,7 +70,7 @@ export class MatchController {
     this.responseIdentifier = responseIdentifier;
     this.context = context;
     this.container = container;
-    this.maxAssociations = maxAssociations;
+    this.model = new MatchAssociations(maxAssociations);
 
     // Document click handler to clear selection when clicking outside. Only
     // this interaction's own choices, slots, and banks count as inside, so a
@@ -110,54 +95,19 @@ export class MatchController {
   /**
    * Register a source choice: its element sits in a word bank.
    */
-  registerSource(
-    id: string,
-    element: HTMLElement,
-    matchMin: number,
-    matchMax: number,
-    content: string,
-    matchGroups: string[] = []
-  ): void {
-    const choice: ChoiceData = {
-      id,
-      set: 'source',
-      element,
-      matchMin,
-      matchMax,
-      content,
-      connectedIds: new Set(),
-      matchGroups: new Set(matchGroups),
-    };
-    this.choices.set(id, choice);
-    this.sourceIds.push(id);
-    this.wireSource(choice);
+  registerSource(choice: AssociableChoice, element: HTMLElement): void {
+    this.model.addSource(choice);
+    this.sourceElements.set(choice.id, element);
+    this.wireSource(choice.id, element);
   }
 
   /**
    * Register a target column. Its header only labels the column and is never a
    * drop target; the controller draws the column's slots into slotsContainer.
    */
-  registerTarget(
-    id: string,
-    headerElement: HTMLElement,
-    slotsContainer: HTMLElement,
-    matchMin: number,
-    matchMax: number,
-    content: string,
-    matchGroups: string[] = []
-  ): void {
-    this.choices.set(id, {
-      id,
-      set: 'target',
-      element: headerElement,
-      matchMin,
-      matchMax,
-      content,
-      connectedIds: new Set(),
-      matchGroups: new Set(matchGroups),
-    });
-    this.targetIds.push(id);
-    this.targets.set(id, { container: slotsContainer, slots: [], capacity: 0, describedBy: [] });
+  registerTarget(choice: AssociableChoice, slotsContainer: HTMLElement): void {
+    this.model.addTarget(choice);
+    this.targets.set(choice.id, { container: slotsContainer, slots: [], capacity: 0, describedBy: [] });
   }
 
   /**
@@ -174,16 +124,10 @@ export class MatchController {
    */
   initialize(): void {
     for (const [targetId, target] of this.targets) {
-      const choice = this.choices.get(targetId);
-      const allowedSources = this.sourceIds.filter((sourceId) => this.groupsAllow(sourceId, targetId)).length;
-      target.capacity = Math.min(
-        choice && choice.matchMax > 0 ? choice.matchMax : Infinity,
-        this.maxAssociations > 0 ? this.maxAssociations : Infinity,
-        allowedSources
-      );
+      target.capacity = this.model.capacity(targetId);
       this.syncSlots(targetId);
     }
-    for (const sourceId of this.sourceIds) {
+    for (const sourceId of this.model.sourceIds) {
       this.updateExhaustionState(sourceId);
     }
     this.restoreRovingTabindex();
@@ -206,21 +150,7 @@ export class MatchController {
    * The number of associations a choice currently has.
    */
   associationCount(choiceId: string): number {
-    return this.choices.get(choiceId)?.connectedIds.size ?? 0;
-  }
-
-  /**
-   * Whether a source→target association is allowed by match-group. A choice
-   * with no groups is unrestricted; where a side declares groups, it must name
-   * the other choice's identifier.
-   */
-  private groupsAllow(sourceId: string, targetId: string): boolean {
-    const sourceGroups = this.choices.get(sourceId)?.matchGroups;
-    const targetGroups = this.choices.get(targetId)?.matchGroups;
-
-    if (sourceGroups?.size && !sourceGroups.has(targetId)) return false;
-    if (targetGroups?.size && !targetGroups.has(sourceId)) return false;
-    return true;
+    return this.model.associationCount(choiceId);
   }
 
   /**
@@ -228,9 +158,8 @@ export class MatchController {
    */
   private getBankChoiceElements(bank: Element): Map<string, HTMLElement> {
     const scoped = new Map<string, HTMLElement>();
-    for (const choiceId of this.sourceIds) {
-      const choice = this.choices.get(choiceId);
-      if (choice && bank.contains(choice.element)) scoped.set(choiceId, choice.element);
+    for (const [choiceId, element] of this.sourceElements) {
+      if (bank.contains(element)) scoped.set(choiceId, element);
     }
     return scoped;
   }
@@ -242,14 +171,14 @@ export class MatchController {
 
   /** The word bank element hosting a source choice. */
   private bankFor(sourceId: string): HTMLElement | null {
-    const el = this.choices.get(sourceId)?.element;
+    const el = this.sourceElements.get(sourceId);
     if (!el) return null;
     return this.banks.find((bank) => bank.contains(el)) ?? null;
   }
 
   /** Focus a source in its bank, making it the bank's tab stop. */
   private focusSource(sourceId: string): void {
-    const element = this.choices.get(sourceId)?.element;
+    const element = this.sourceElements.get(sourceId);
     const bank = this.bankFor(sourceId);
     if (!element || !bank) return;
     updateRovingTabindex(this.getBankChoiceElements(bank), element);
@@ -270,11 +199,9 @@ export class MatchController {
    * Wire a source choice in a word bank: click/Enter selects it, arrows rove
    * within the bank, and it can be dragged onto a slot.
    */
-  private wireSource(choice: ChoiceData): void {
-    const { id, element } = choice;
-
+  private wireSource(id: string, element: HTMLElement): void {
     const toggle = () => {
-      if (this.isSourceExhausted(id)) return;
+      if (this.model.isSourceExhausted(id)) return;
       if (this.selection?.sourceId === id && !this.selection.fromSlot) {
         this.clearSelection();
       } else {
@@ -312,7 +239,7 @@ export class MatchController {
     });
 
     element.addEventListener('dragstart', (e) => {
-      if (!this.enabled || this.isSourceExhausted(id)) {
+      if (!this.enabled || this.model.isSourceExhausted(id)) {
         e.preventDefault();
         return;
       }
@@ -524,49 +451,28 @@ export class MatchController {
   }
 
   /**
-   * Whether a choice can take another association under its own match-max.
-   */
-  private hasRoom(choiceId: string): boolean {
-    const choice = this.choices.get(choiceId);
-    if (!choice || choice.matchMax === 0) return true;
-    return choice.connectedIds.size < choice.matchMax;
-  }
-
-  /**
    * Whether `sourceId` may be placed into `slot`: the complete precondition for
    * placeInSlot, covering match-group, the pair already being made, both
    * choices' match-max, and max-associations. `fromSlot` is the slot the source
-   * is being moved out of, if any; a move frees that pairing first.
+   * is being moved out of, if any; a move frees that pairing first, as
+   * replacing the slot's occupant frees the occupant's.
    */
   private canPlaceInSlot(slot: HTMLElement, sourceId: string, fromSlot: HTMLElement | null): boolean {
     const targetId = slot.getAttribute('data-target-id');
-    if (!targetId || !this.choices.has(sourceId)) return false;
-    if (!this.groupsAllow(sourceId, targetId)) return false;
+    if (!targetId) return false;
 
     const occupant = this.slotOccupant.get(slot);
     if (occupant === sourceId) return false; // already here
 
+    const freed: Pair[] = [];
+    if (occupant) freed.push({ sourceId: occupant, targetId });
     // Only a move if the source really is sitting in fromSlot.
-    const moving = !!fromSlot && this.slotOccupant.get(fromSlot) === sourceId;
-    const movingWithinTarget = moving && fromSlot!.getAttribute('data-target-id') === targetId;
-
-    // A pair can only be made once, except by moving it within its own column.
-    if (this.associations.has(`${sourceId} ${targetId}`) && !movingWithinTarget) return false;
-
-    // A move frees the source's old pairing, so it uses no more of the source.
-    if (!moving && !this.hasRoom(sourceId)) return false;
-
-    // Replacing an occupant, or moving within the column, keeps the target level.
-    if (!occupant && !movingWithinTarget && !this.hasRoom(targetId)) return false;
-
-    // Replacing an occupant or moving keeps the association count level.
-    const addsAssociation = !occupant && !moving;
-    if (addsAssociation && this.maxAssociations > 0
-      && this.associations.size >= this.maxAssociations) {
-      return false;
+    const fromTargetId = fromSlot?.getAttribute('data-target-id');
+    if (fromSlot && fromTargetId && this.slotOccupant.get(fromSlot) === sourceId) {
+      freed.push({ sourceId, targetId: fromTargetId });
     }
 
-    return true;
+    return this.model.canAdd(sourceId, targetId, freed);
   }
 
   /**
@@ -580,7 +486,7 @@ export class MatchController {
     if (fromSlot) {
       fromSlot.classList.add('cutie-match-slot--selected');
     } else {
-      const el = this.choices.get(sourceId)?.element;
+      const el = this.sourceElements.get(sourceId);
       el?.classList.add('cutie-match-choice--selected');
       el?.setAttribute('aria-selected', 'true');
     }
@@ -602,7 +508,7 @@ export class MatchController {
       this.bankFor(sourceId)?.classList.add('cutie-match-bank--drop-target');
     }
 
-    const content = this.choices.get(sourceId)?.content ?? '';
+    const content = this.model.content(sourceId);
     const slots = available === 1 ? 'slot' : 'slots';
     announce(
       this.context,
@@ -620,7 +526,7 @@ export class MatchController {
       if (this.selection.fromSlot) {
         this.selection.fromSlot.classList.remove('cutie-match-slot--selected');
       } else {
-        const el = this.choices.get(this.selection.sourceId)?.element;
+        const el = this.sourceElements.get(this.selection.sourceId);
         el?.classList.remove('cutie-match-choice--selected');
         el?.setAttribute('aria-selected', 'false');
       }
@@ -671,7 +577,7 @@ export class MatchController {
     this.syncSlots(targetId);
     if (fromTargetId && fromTargetId !== targetId) this.syncSlots(fromTargetId);
 
-    announce(this.context, `${this.choices.get(sourceId)?.content ?? ''} placed.`);
+    announce(this.context, `${this.model.content(sourceId)} placed.`);
     return true;
   }
 
@@ -684,7 +590,7 @@ export class MatchController {
     this.vacate(slot);
     this.resetSlotState(slot);
     this.syncSlots(targetId);
-    announce(this.context, `${this.choices.get(sourceId)?.content ?? ''} returned to the word bank.`);
+    announce(this.context, `${this.model.content(sourceId)} returned to the word bank.`);
   }
 
   /** Empty a slot and remove its association, leaving the column's size alone. */
@@ -708,12 +614,11 @@ export class MatchController {
    */
   private syncSlots(targetId: string): void {
     const target = this.targets.get(targetId);
-    const choice = this.choices.get(targetId);
-    if (!target || !choice) return;
+    if (!target) return;
 
     const filled = target.slots.filter((slot) => this.slotOccupant.has(slot)).length;
     const desired = Math.max(
-      Math.min(choice.matchMin, target.capacity),
+      Math.min(this.model.matchMin(targetId), target.capacity),
       Math.min(this.enabled ? filled + 1 : filled, target.capacity)
     );
 
@@ -737,7 +642,7 @@ export class MatchController {
     }
 
     target.slots.forEach((slot, index) => {
-      this.slotPositionLabel.set(slot, `${choice.content}, slot ${index + 1} of ${target.slots.length}`);
+      this.slotPositionLabel.set(slot, `${this.model.content(targetId)}, slot ${index + 1} of ${target.slots.length}`);
       this.updateSlotLabel(slot);
     });
   }
@@ -755,7 +660,7 @@ export class MatchController {
     if (contentSpan) {
       // Copy the bank choice's rendered label rather than its flattened text, so
       // rich content (math, images) reads the same in the slot as in the bank.
-      const label = this.choices.get(sourceId)?.element.querySelector('.cutie-match-choice-label');
+      const label = this.sourceElements.get(sourceId)?.querySelector('.cutie-match-choice-label');
       contentSpan.replaceChildren(...(label ? [cloneLabel(label)] : []));
       contentSpan.style.display = '';
     }
@@ -793,7 +698,7 @@ export class MatchController {
       return;
     }
 
-    const content = this.choices.get(sourceId)?.content ?? '';
+    const content = this.model.content(sourceId);
     const hint = this.enabled ? ' Press Enter to pick up, or Backspace to remove.' : '';
     slot.setAttribute('aria-label', `${positionLabel}, contains ${content}.${hint}`);
   }
@@ -802,47 +707,26 @@ export class MatchController {
    * Create an association between a source and target choice.
    */
   private createAssociation(sourceId: string, targetId: string): boolean {
-    const key = `${sourceId} ${targetId}`;
-    if (this.associations.has(key)) return false;
-
-    this.associations.add(key);
-    this.choices.get(sourceId)?.connectedIds.add(targetId);
-    this.choices.get(targetId)?.connectedIds.add(sourceId);
+    if (!this.model.add(sourceId, targetId)) return false;
     this.updateExhaustionState(sourceId);
     return true;
   }
 
   private removeAssociation(sourceId: string, targetId: string): void {
-    const key = `${sourceId} ${targetId}`;
-    if (!this.associations.delete(key)) return;
-
-    this.choices.get(sourceId)?.connectedIds.delete(targetId);
-    this.choices.get(targetId)?.connectedIds.delete(sourceId);
-    this.updateExhaustionState(sourceId);
-  }
-
-  /**
-   * Whether a source has nothing left to place: its match-max is used up, or
-   * it is already paired with every target it may associate with.
-   */
-  private isSourceExhausted(sourceId: string): boolean {
-    if (!this.hasRoom(sourceId)) return true;
-    return this.targetIds.every(
-      (targetId) => !this.groupsAllow(sourceId, targetId) || this.associations.has(`${sourceId} ${targetId}`)
-    );
+    if (this.model.remove(sourceId, targetId)) this.updateExhaustionState(sourceId);
   }
 
   /**
    * Update the visual exhaustion state of a source choice.
    */
   private updateExhaustionState(sourceId: string): void {
-    const choice = this.choices.get(sourceId);
-    if (!choice) return;
+    const element = this.sourceElements.get(sourceId);
+    if (!element) return;
 
-    const exhausted = this.isSourceExhausted(sourceId);
-    choice.element.classList.toggle('cutie-match-choice--exhausted', exhausted);
-    choice.element.setAttribute('aria-disabled', String(exhausted));
-    choice.element.setAttribute('draggable', String(this.enabled && !exhausted));
+    const exhausted = this.model.isSourceExhausted(sourceId);
+    element.classList.toggle('cutie-match-choice--exhausted', exhausted);
+    element.setAttribute('aria-disabled', String(exhausted));
+    element.setAttribute('draggable', String(this.enabled && !exhausted));
   }
 
   /**
@@ -858,8 +742,8 @@ export class MatchController {
       this.clearSelection();
     }
 
-    for (const sourceId of this.sourceIds) {
-      const element = this.choices.get(sourceId)?.element;
+    for (const sourceId of this.model.sourceIds) {
+      const element = this.sourceElements.get(sourceId);
       if (!element) continue;
       if (enabled) {
         element.removeAttribute('disabled');
@@ -875,7 +759,7 @@ export class MatchController {
     }
 
     // Grow or trim each column's spare empty slot to suit the new state.
-    for (const targetId of this.targetIds) {
+    for (const targetId of this.model.targetIds) {
       this.syncSlots(targetId);
     }
 
@@ -900,7 +784,7 @@ export class MatchController {
    * Get the current response as an array of directed pairs.
    */
   getResponse(): string[] {
-    return Array.from(this.associations);
+    return this.model.pairs();
   }
 
   /**
@@ -908,12 +792,12 @@ export class MatchController {
    * target column.
    */
   initializeFromDefaults(defaults: string[]): void {
-    for (const pair of defaults) {
-      const [sourceId, targetId] = pair.split(' ');
-      if (!sourceId || !targetId) continue;
+    for (const value of defaults) {
+      const pair = parseDirectedPair(value);
+      if (!pair) continue;
 
-      const slot = this.targets.get(targetId)?.slots.find((s) => !this.slotOccupant.has(s));
-      if (slot) this.placeInSlot(slot, sourceId, null);
+      const slot = this.targets.get(pair.target)?.slots.find((s) => !this.slotOccupant.has(s));
+      if (slot) this.placeInSlot(slot, pair.source, null);
     }
   }
 }

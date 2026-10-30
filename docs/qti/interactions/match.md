@@ -13,7 +13,7 @@ Note: match is entirely **advanced** cert (Q13 is Level 2).
 |---|---|---|---|
 | response-identifier | advanced | :white_check_mark: | |
 | shuffle | advanced | :white_check_mark: | per match-set, server-side |
-| max-associations | advanced | :white_check_mark: | |
+| max-associations | advanced | :warning: | a missing max-associations is treated as 0 (no limit); the spec's default is 1 (see docs/outstanding-client-issues.md) |
 | min-associations | advanced | :white_check_mark: | client-side constraint messages |
 
 ## simple-associable-choice attributes (qti-simple-associable-choice)
@@ -49,9 +49,11 @@ Sources sit in word banks; each target is a column: a header over slots that sou
 
 | class/attribute | cutie | notes |
 |---|---|---|
-| qti-match-tabular | :x: | render as table/grid |
-| qti-header-hidden | :x: | hide table header row |
-| data-first-column-header | :x: | first column is a header |
+| qti-match-tabular | :white_check_mark: | a table: first match set as row headers, second as column headers, an input per cell (see below) |
+| qti-header-hidden | :white_check_mark: | column headers hidden visually; they still name each cell's input |
+| data-first-column-header | :white_check_mark: | text of the top-left header cell |
+
+In the table, a row whose source has a match-max of 1 is a radio group (choosing a cell replaces the row's pair); any other row is checkboxes. A cell the association rules exclude (match-group, a full row or column, max-associations) stays focusable but is `aria-disabled`, described by the reason, and refuses clicks; while the interaction isn't enabled, every input is natively disabled. A table wider than the item scrolls, and while it overflows its scroll container is a named region in the tab order. An evaluation puts the standard "Correct answer" / "Incorrect answer" overline above each marked cell's input, with every cell reserving the overline's room so the inputs stay level.
 
 ### orientation — in vocab, not in cert checklist
 

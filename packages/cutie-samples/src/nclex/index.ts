@@ -9,6 +9,7 @@ import { dropDownTable } from './drop-down-table.js';
 import { grouping } from './grouping.js';
 import { highlightPassage } from './highlight-passage.js';
 import { highlightTable } from './highlight-table.js';
+import { matrixMultipleChoice } from './matrix-multiple-choice.js';
 import { selectAll } from './select-all.js';
 import { selectN } from './select-n.js';
 
@@ -30,6 +31,7 @@ the same interaction scores differently.`,
     selectAll,
     selectN,
     grouping,
+    matrixMultipleChoice,
     dropDownCloze,
     dropDownRationale,
     dropDownRationaleTriad,
