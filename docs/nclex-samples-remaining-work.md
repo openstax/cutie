@@ -1,11 +1,13 @@
+<!-- spell-checker: ignore NCSBN Wayback -->
 # NCLEX samples: remaining work
 
 The [Assignable NCLEX Epic & PRD](https://docs.google.com/document/d/1iqb1fXxcNIFB-OOv2WqlhhGo_7yxg2Rw4eez7AQEfzc/edit)
-lists 14 question types. `packages/cutie-samples/src/nclex/` has canonical samples for 11 of them:
+lists 14 question types. `packages/cutie-samples/src/nclex/` has canonical samples for 12 of them:
 
 - Multiple Response: Select All That Apply
 - Multiple Response: Select N
 - Multiple Response: Grouping
+- Matrix Multiple-Choice
 - Drop-Down: Cloze
 - Drop-Down: Rationale (dyad and triad)
 - Drop-Down: Table
@@ -53,30 +55,42 @@ the in-progress work (CORE-2689, branch `core-2689`, not yet merged) uses gap ma
 also changes gap match rendering (a word bank per group) and is built on the earlier bowtie
 work, so it will likely need a rebase now that the bowtie match work (CORE-2917) is merged.
 
-### Matrix Multiple-Choice
-
-**Requirements:** a grid with a row for each finding and a column for each option (such as
-"Indicated" / "Not indicated"). Exactly one selection per row. Scored 0/1 per row.
-
-**Why not made:** the client's match interaction only renders as connect-the-items (click or
-drag a source onto a target). It has no grid layout with one radio button per cell.
-
-**Needed:** a grid rendering mode for `qti-match-interaction` in
-`packages/cutie-client/src/transformer/handlers/matchInteraction/`, with `match-max="1"` on each
-row choice for radio-button behavior. The QTI v3 shared vocabulary class for this layout is
-`qti-match-tabular`, listed as unsupported in `docs/qti/interactions/match.md`. Scoring already
-works (`qti-mapping` with +1 per correct pair, classified as `sumScores`). There's no Jira
-ticket for this yet.
-
 ### Matrix Multiple-Response
 
-**Requirements:** the same grid as Matrix Multiple-Choice, but any number of selections per row
-(checkbox behavior). Scored +/- (mapping with `default-value="-1"`, `lower-bound="0"`).
+**Requirements:** a grid with a row for each finding and a column for each category (such as
+the conditions a finding may support). Any number of selections per row, including none, and
+at least one selection in each column. Scored +/- **per column**: each column is scored like a
+select all that apply item and floored at 0 on its own, then the columns are added.
 
-**Why not made:** same as Matrix Multiple-Choice: no grid rendering for match.
+The per-column floor is NCSBN's rule. From *Next Generation NCLEX News*, Summer 2021, "NGN:
+Scoring Models" (`https://www.ncsbn.org/public-files/NGN_Summer21_ENG.pdf`, now only on the
+Wayback Machine):
 
-**Needed:** the same grid mode, with checkbox behavior when a row choice's `match-max` is not 1.
-No Jira ticket yet.
+> The +/– scoring rule is applied to each column of the Matrix MR and each row grouping of the
+> MR Grouping item types individually. Scores are summed across columns (Matrix MR) or rows (MR
+> Grouping) to generate the total score for the item. All negative column or row scores are
+> rounded to 0 as each column or row is scored independently and therefore does not negatively
+> impact surrounding rows or columns.
+
+Its worked example has three columns scoring 0, -2 (rounded to 0), and +1, for a total of 1.
+Flooring the whole item instead would give 0. The University of Maryland NGN faculty slides
+(slide 37), NURSING.com, and ExamSoft's support article also floor per column. No source we
+found floors the whole item; sources that only say "minimum 0" don't say at what level. The
+PRD's description ("minimum score = zero") is the same wording as select all that apply and
+doesn't settle it either. No NCSBN document after 2021 restates the rule, but nothing suggests
+it changed.
+
+**Why not made:** the client renders it (`qti-match-tabular`, with checkbox rows when a row
+choice's `match-max` isn't 1, and `match-min="1"` on each column choice for the one-per-column
+rule), but the scoring can't be represented yet. A matrix is one match interaction with one
+`directedPair` response, so a single `qti-mapping` with `default-value="-1"` and
+`lower-bound="0"` floors the whole item, not each column. Multiple Response: Grouping gets its
+per-group floor from a separate response per group, which a single grid can't have. Clamping
+each column in response processing would make it `custom` to the editor classifier.
+
+**Needed:** a standard scoring pattern for a sum of per-group floored mapped scores within one
+response, supported by cutie-core and recognized by the editor classifier, so the per-column
+scores can be authored and edited. No Jira ticket yet.
 
 ### Trend
 
