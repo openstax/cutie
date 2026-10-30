@@ -6,7 +6,7 @@ lists 14 question types. `packages/cutie-samples/src/nclex/` has canonical sampl
 - Multiple Response: Select All That Apply
 - Multiple Response: Select N
 - Drop-Down: Cloze
-- Drop-Down: Rationale (dyad only)
+- Drop-Down: Rationale (dyad and triad)
 - Drop-Down: Table
 - Drag-and-Drop: Cloze
 - Drag-and-Drop: Rationale (dyad only)
@@ -59,34 +59,27 @@ groups and prompts was also written and removed, because it isn't the NCLEX form
 **Needed:** check the table format for any real blockers, then write the sample. Scoring
 already works (summed `qti-map-response`, classified as `sumScores`).
 
-### Drop-Down: Rationale (triad)
-
-**Requirements:** one sentence with a cause drop-down and two effect drop-downs. Scored with the
-triad rule: 2 points, nothing unless the cause is correct, then 1 point per correct effect.
-
-**Why not made:** the "cause must be correct" gate can't be expressed with the editor's
-recognized patterns. The existing example ("Inline Choice - Rationale (Triad)" in
-`cutie-example`) classifies as `custom`.
-
-**Needed:** a new response processing mode in the editor classifier and generator
-(`packages/cutie-editor/src/utils/responseProcessingClassifier.ts` and
-`responseProcessingGenerator.ts`) that recognizes a gated sum. Design it once for both triad
-types.
-
 ### Drag-and-Drop: Rationale (triad)
 
 **Requirements:** the same triad scoring as the drop-down version, with options dragged into a
 cause gap and two effect gaps. The two effects can go in either order.
 
-**Why not made:** same scoring blocker as the drop-down triad. The interchangeable effects also
-mean a single `qti-correct-response` can't describe every correct answer.
+**Why not made:** the triad scoring itself is solved: the drop-down triad sample scores it as a
+sum of mapped responses with a score offset of -2, floored at 0, which the editor recognizes as
+partial credit (see `rationaleTriadScoring` in `packages/cutie-samples/src/nclex/conventions.ts`).
+What's left is the drag-and-drop form: the two effects can go in either order, so a single
+`qti-correct-response` can't describe every correct answer.
 
-**Needed:** the gated scoring mode above, designed so the two effect gaps are scored without
-depending on their order. The interaction is gap match, as in the dyad sample. The PRD's draft
-mentions `order`, but the client has no order interaction and the in-progress work (CORE-2689,
-branch `core-2689`, not yet merged) uses gap match. That branch also changes gap match rendering
-(a word bank per group) and is built on the earlier bowtie work, so it will likely need a rebase
-now that the bowtie match work (CORE-2917) is merged.
+**Needed:** a gap match with one `directedPair` response, mapped so the correct cause in the
+cause gap earns 2 and each correct effect earns 1 in either effect gap, with the same offset and
+floor as the drop-down triad. Each effect option must be usable only once (`match-max="1"`), or
+the same effect placed in both gaps would earn both points. cutie-core doesn't infer a maximum
+score for gap match yet, so the sample needs the Maximum Score set to 2, which adds a `qti-min`
+cap to the response processing. The interaction is gap match, as in
+the dyad sample. The PRD's draft mentions `order`, but the client has no order interaction and
+the in-progress work (CORE-2689, branch `core-2689`, not yet merged) uses gap match. That branch
+also changes gap match rendering (a word bank per group) and is built on the earlier bowtie
+work, so it will likely need a rebase now that the bowtie match work (CORE-2917) is merged.
 
 ### Matrix Multiple-Choice
 

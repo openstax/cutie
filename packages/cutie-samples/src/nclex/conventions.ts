@@ -46,8 +46,23 @@ value: \`<qti-min><qti-base-value base-type="float">MAXSCORE value</qti-base-val
 
 export const rationaleDyad = `\
 This is the dyad form: one cause and one effect, worth 1 point, and both must \
-be correct for credit. The triad form (one cause, two effects, worth 2 points, \
-with no credit unless the cause is correct) has no sample yet.`;
+be correct for credit.`;
+
+export const rationaleTriad = `\
+This is the triad form: one cause and two effects, worth 2 points. There is no \
+credit unless the cause is correct; with the correct cause, each correct effect \
+earns 1 point.`;
+
+export const rationaleTriadScoring = `\
+Score the triad as a sum of mapped responses with a score offset. Give each \
+response declaration a \`qti-mapping\` with \`default-value="0"\`, mapping the \
+cause's correct option to 2 and each effect's correct option to 1. Set \`SCORE\` \
+to a \`qti-sum\` of the offset \`<qti-base-value base-type="float">-2</qti-base-value>\` \
+and a \`qti-map-response\` for each response, in the order they appear, wrapped \
+in a \`qti-max\` with 0 so the score can't go below 0: \
+\`<qti-max><qti-base-value base-type="float">0</qti-base-value><qti-sum>…</qti-sum></qti-max>\`. \
+A wrong cause leaves at most 1 + 1 - 2 = 0 points, and the correct cause leaves \
+1 point for each correct effect. Set the \`MAXSCORE\` default to 2.`;
 
 export const maxScore = `\
 Set the \`MAXSCORE\` default to the most the item can award: one point for \
