@@ -5,7 +5,7 @@ tags: [gap-match, interaction, validation, accessibility, rationale, partial-cre
 examples:
   - Gap Match
   - Gap Match - Rationale (Dyad)
-  - Gap Match - Rationale (Triad)
+  - "Drag-and-Drop: Rationale (Triad)"
 ---
 
 # Gap Match — Validation
@@ -127,51 +127,54 @@ The correct answers are: cause gap = **warm front**, effect gap = **a rising tem
 
 ## Rationale Scoring: Cause Gate & Partial Credit (Triad)
 
-**Setup:** Load "Gap Match - Rationale (Triad)" from the Supported Examples group. This item is a
-single gap-match interaction whose sentence has three gaps (cause, and two effects), fed by two
-separate word-bank boxes side by side — one for the cause word, one shared by both effect words.
-`match-group` scoping keeps the cause box's word restricted to the cause gap, and the effects
-box's words restricted to either effect gap. Worth 2 points: the cause must be correct for any
-credit, with partial credit (1 point) for a single correct effect gap.
+**Setup:** Load "Drag-and-Drop: Rationale (Triad)" from the NCLEX Samples group. This item is a
+single gap-match interaction whose sentence has three gaps (a cause, then two findings), fed by
+two word banks side by side: one for the causes, one shared by both finding gaps. `match-group`
+scoping keeps each bank's options restricted to its own gaps. Worth 2 points: the cause must be
+correct for any credit, then each correct finding earns 1 point, in either order.
 
-The correct answers are: cause gap = **cold front**, effect gap 1 = **a falling temperature**,
-effect gap 2 = **gusting winds**.
+The correct answers are: cause = **hypoglycemia**, findings = **a capillary blood glucose of
+52 mg/dL** and **trembling and diaphoresis** (either finding in either finding gap).
 
 1. Observe the rendered item.
-   - [ ] One interaction is visible: a single sentence with three gaps (cause, then two
-     effects), and two bordered word-bank boxes below/beside it, side by side
-   - [ ] The first box has the heading "Event" (also its screen-reader name) and shows the
-     cause words: "cold front", "warm front", "high-pressure system"
-   - [ ] The second box has the heading "Readings" and shows all four effect words: "a
-     falling temperature", "gusting winds", "a rising temperature", "calm winds"
+   - [ ] One interaction is visible: a single sentence with three gaps (a cause, then two
+     findings), and two bordered word banks side by side
+   - [ ] One bank has the heading "Condition" (also its screen-reader name) and shows the
+     causes: "hypoglycemia", "hyperglycemia", "deficient fluid volume"
+   - [ ] The other bank has the heading "Findings" and shows all five findings: "a capillary
+     blood glucose of 52 mg/dL", "trembling and diaphoresis", "a respiratory rate of 16/min",
+     "moist mucous membranes", "a blood pressure of 126/78 mm Hg"
+   - [ ] The headings appear only over the banks, not in the sentence area
    - [ ] The constraint text reads "Fill at least 3 gaps."
 
-2. Try to drag an effect word (e.g. gusting winds) into the cause gap, and the cause word (e.g.
-   cold front) into either effect gap.
+2. Try to drag a finding (e.g. trembling and diaphoresis) into the cause gap, and a cause (e.g.
+   hypoglycemia) into either finding gap.
    - [ ] Neither placement is accepted (the gap does not highlight as a valid drop target while
-     dragging) — `match-group` keeps cause words out of the effect gaps and vice versa
+     dragging) — `match-group` keeps causes out of the finding gaps and vice versa
    - [ ] An announcement is made confirming the placement was rejected (e.g. "... cannot be
      placed in this gap.")
 
-3. Fill the cause gap with **cold front**, the first effect gap with **a falling temperature**,
-   and the second effect gap with **gusting winds**, then click "Submit".
+3. Fill the cause gap with **hypoglycemia**, the first finding gap with **a capillary blood
+   glucose of 52 mg/dL**, and the second with **trembling and diaphoresis**, then click "Submit".
    - [ ] Score displayed is **2 / 2**
-   - [ ] Correct-style feedback appears for the cause and both effect readings
+   - [ ] The worked solution appears below the sentence
 
-4. Reset. Fill the cause gap and the first effect gap correctly, but put the wrong word in the
-   second effect gap (e.g. calm winds), then click "Submit".
+4. Reset. Fill the same answers with the two findings swapped, then click "Submit".
+   - [ ] Score displayed is **2 / 2** (the findings can go in either order)
+
+5. Reset. Fill the cause gap and one finding gap correctly, but put a wrong finding in the other
+   (e.g. a blood pressure of 126/78 mm Hg), then click "Submit".
    - [ ] Score displayed is **1 / 2** (partial credit)
-   - [ ] Reading 2 shows incorrect-style feedback; cause and reading 1 show correct
 
-5. Reset. Fill the cause gap with the wrong word (e.g. warm front) but both effect gaps
+6. Reset. Fill the cause gap with the wrong cause (e.g. hyperglycemia) but both finding gaps
    correctly, then click "Submit".
    - [ ] Score displayed is **0 / 2** (cause gate — no credit without the correct cause)
-   - [ ] Cause shows incorrect-style feedback
+   - [ ] The worked solution appears below the sentence
 
-6. Verify the effects word bank enforces one use per word: drag **a falling temperature** into
-   the first effect gap.
-   - [ ] The word becomes disabled/unavailable in its word-bank box (`match-max="1"`) and cannot
-     be dragged into the second effect gap as well
+7. Verify the findings bank enforces one use per option: drag **trembling and diaphoresis** into
+   the first finding gap.
+   - [ ] The option becomes disabled/unavailable in its bank (`match-max="1"`) and cannot be
+     dragged into the second finding gap as well
 
-7. After any submission.
+8. After any submission.
    - [ ] The interaction becomes disabled

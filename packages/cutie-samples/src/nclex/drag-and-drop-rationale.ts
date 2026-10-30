@@ -7,7 +7,7 @@ import {
   workedSolution,
 } from '../standard/conventions.js';
 import type { Sample } from '../types.js';
-import { clinicalScenario, rationaleDyad } from './conventions.js';
+import { clinicalScenario, rationaleDyad, rationaleWordBanks } from './conventions.js';
 
 const description = `\
 NCLEX drag-and-drop rationale: one sentence that links a cause to its effect, \
@@ -20,14 +20,7 @@ Each effect option should be a finding from the scenario.
 
 - ${rationaleDyad}
 - ${clinicalScenario}
-- Put the cause and effect options in two word banks. Set \
-\`match-group="cause"\` on each cause option and on \`G1\`, and \
-\`match-group="effect"\` on each effect option and on \`G2\`, so each blank \
-only accepts options from its own bank.
-- Title each bank with an \`h3\` placed after the options and before the \
-sentence, tied to its group by \`data-for-match-group\`, such as \
-\`<h3 data-for-match-group="cause">Risk</h3>\`. Name what the blank holds, \
-not the answer.
+- ${rationaleWordBanks}
 - Set \`shuffle="true"\` so the option bank order varies.
 - Set \`match-max="1"\` on every \`qti-gap-text\`, so each option is used at most once.
 - Set \`min-associations="2"\`, so both blanks must be filled before submitting.

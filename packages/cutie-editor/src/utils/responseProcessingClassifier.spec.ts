@@ -5,7 +5,6 @@ import { item as modalFeedbackItem } from '../../../cutie-example/src/example-it
 import { item as choiceMultipleFeedbackItem } from '../../../cutie-example/src/example-items/standard-choice-multiple-wrong-choice-feedback.js';
 import { item as choicePartialItem } from '../../../cutie-example/src/example-items/standard-choice-partial.js';
 import { item as gapMatchRationaleDyadItem } from '../../../cutie-example/src/example-items/standard-gap-match-rationale-dyad.js';
-import { item as gapMatchRationaleTriadItem } from '../../../cutie-example/src/example-items/standard-gap-match-rationale-triad.js';
 import { item as multiInteractionItem } from '../../../cutie-example/src/example-items/standard-multi-interaction.js';
 import { item as textEntryPartialItem } from '../../../cutie-example/src/example-items/standard-text-entry-partial.js';
 import { item as textEntryMultiItem } from '../../../cutie-example/src/example-items/text-entry-multi.js';
@@ -1068,12 +1067,6 @@ describe('responseProcessingClassifier', () => {
 
     it('should classify standard-gap-match-rationale-dyad.ts as custom, since the editor does not generate its per-gap feedback', () => {
       const doc = parseItem(gapMatchRationaleDyadItem);
-      const result = classify(doc);
-      expect(result.mode).toBe('custom');
-    });
-
-    it('should classify standard-gap-match-rationale-triad.ts as custom', () => {
-      const doc = parseItem(gapMatchRationaleTriadItem);
       const result = classify(doc);
       expect(result.mode).toBe('custom');
     });
