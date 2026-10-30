@@ -10,7 +10,7 @@ lists 14 question types. `packages/cutie-samples/src/nclex/` has canonical sampl
 - Drop-Down: Rationale (dyad and triad)
 - Drop-Down: Table
 - Drag-and-Drop: Cloze
-- Drag-and-Drop: Rationale (dyad only)
+- Drag-and-Drop: Rationale (dyad and triad)
 - Text Highlight: Passage
 - Text Highlight: Table
 - Bowtie
@@ -30,28 +30,6 @@ and it matches the PRD's format and scoring rule. An approximation is worse than
   1 point for each correct effect.
 
 ## Samples not made
-
-### Drag-and-Drop: Rationale (triad)
-
-**Requirements:** the same triad scoring as the drop-down version, with options dragged into a
-cause gap and two effect gaps. The two effects can go in either order.
-
-**Why not made:** the triad scoring itself is solved: the drop-down triad sample scores it as a
-sum of mapped responses with a score offset of -2, floored at 0, which the editor recognizes as
-partial credit (see `rationaleTriadScoring` in `packages/cutie-samples/src/nclex/conventions.ts`).
-What's left is the drag-and-drop form: the two effects can go in either order, so a single
-`qti-correct-response` can't describe every correct answer.
-
-**Needed:** a gap match with one `directedPair` response, mapped so the correct cause in the
-cause gap earns 2 and each correct effect earns 1 in either effect gap, with the same offset and
-floor as the drop-down triad. Each effect option must be usable only once (`match-max="1"`), or
-the same effect placed in both gaps would earn both points. cutie-core doesn't infer a maximum
-score for gap match yet, so the sample needs the Maximum Score set to 2, which adds a `qti-min`
-cap to the response processing. The interaction is gap match, as in
-the dyad sample. The PRD's draft mentions `order`, but the client has no order interaction and
-the in-progress work (CORE-2689, branch `core-2689`, not yet merged) uses gap match. That branch
-also changes gap match rendering (a word bank per group) and is built on the earlier bowtie
-work, so it will likely need a rebase now that the bowtie match work (CORE-2917) is merged.
 
 ### Matrix Multiple-Choice
 

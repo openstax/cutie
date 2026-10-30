@@ -1,6 +1,7 @@
 import type { SampleGroup } from '../types.js';
 import { bowtie } from './bowtie.js';
 import { dragAndDropCloze } from './drag-and-drop-cloze.js';
+import { dragAndDropRationaleTriad } from './drag-and-drop-rationale-triad.js';
 import { dragAndDropRationale } from './drag-and-drop-rationale.js';
 import { dropDownCloze } from './drop-down-cloze.js';
 import { dropDownRationaleTriad } from './drop-down-rationale-triad.js';
@@ -36,6 +37,7 @@ the same interaction scores differently.`,
     dropDownTable,
     dragAndDropCloze,
     dragAndDropRationale,
+    dragAndDropRationaleTriad,
     highlightPassage,
     highlightTable,
     bowtie,

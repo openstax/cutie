@@ -2,8 +2,9 @@ import type { Descendant } from 'slate';
 import type { SerializationContext } from '../../serialization/slateToXml.js';
 import type { ConvertChildrenFn, ParserContext } from '../../serialization/xmlToSlate.js';
 import { createXmlElement, isTextNode } from '../../serialization/xmlUtils.js';
-import type { QtiGapText, SlateElement, XmlNode } from '../../types.js';
+import type { MatchGroup, QtiGapText, SlateElement, XmlNode } from '../../types.js';
 import { gapMatchInteractionConfig } from './config.js';
+import { isMatchGroupHeading, MATCH_GROUP_HEADING_ATTRIBUTE } from './matchGroups.js';
 
 /**
  * Create a default response declaration for a gap-match interaction
@@ -46,6 +47,7 @@ function parseGapMatchInteraction(
   const children = Array.from(element.childNodes);
   const choiceElements: Node[] = [];
   const contentElements: Node[] = [];
+  const matchGroups: MatchGroup[] = [];
   let promptElement: SlateElement | null = null;
 
   for (const child of children) {
@@ -57,6 +59,11 @@ function parseGapMatchInteraction(
       } else if (tagName === 'qti-prompt') {
         // Parse the prompt with the shared qti-prompt parser
         promptElement = convertChildrenStructural([el])[0] as SlateElement;
+      } else if (isMatchGroupHeading(el)) {
+        matchGroups.push({
+          identifier: el.getAttribute(MATCH_GROUP_HEADING_ATTRIBUTE) ?? '',
+          heading: el.textContent?.trim() ?? '',
+        });
       } else {
         contentElements.push(child);
       }
@@ -94,6 +101,7 @@ function parseGapMatchInteraction(
       ...attributes,
     },
     responseDeclaration,
+    ...(matchGroups.length > 0 && { matchGroups }),
   } as SlateElement;
 }
 
@@ -254,8 +262,10 @@ function serializeGapMatchInteraction(
   for (const child of element.children) {
     if ('type' in child) {
       if (child.type === 'gap-match-choices') {
-        // Unwrap: serialize choice children directly to interaction
+        // Unwrap: serialize choice children directly to interaction, then
+        // the word-bank headings (block content, so after the choices)
         convertChildren(child.children, xmlElement);
+        appendMatchGroupHeadings(context.doc, xmlElement, element.matchGroups ?? []);
       } else if (child.type === 'gap-match-content') {
         // Unwrap: serialize content children directly to interaction
         convertChildren(child.children, xmlElement);
@@ -267,6 +277,21 @@ function serializeGapMatchInteraction(
   }
 
   return xmlElement;
+}
+
+/**
+ * Append a heading for each match-group that has one. A group without a
+ * heading needs no markup: its choices and gaps already name it.
+ */
+function appendMatchGroupHeadings(doc: XMLDocument, parent: Element, matchGroups: MatchGroup[]): void {
+  for (const group of matchGroups) {
+    const heading = group.heading.trim();
+    if (!group.identifier || !heading) continue;
+    const headingElement = createXmlElement(doc, 'h3');
+    headingElement.setAttribute(MATCH_GROUP_HEADING_ATTRIBUTE, group.identifier);
+    headingElement.textContent = heading;
+    parent.appendChild(headingElement);
+  }
 }
 
 /**

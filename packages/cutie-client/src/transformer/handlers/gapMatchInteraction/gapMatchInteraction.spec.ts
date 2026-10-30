@@ -375,16 +375,18 @@ describe('gapMatchInteraction', () => {
       expect(row!.querySelectorAll(':scope > .qti-layout-col6').length).toBe(2);
     });
 
-    it('renders every choice in a single word bank regardless of match-group', () => {
+    it('renders one word bank per match-group, each with one tabbable choice', () => {
       const container = transformToContainer(LAYOUT_COLUMNS_QTI);
 
-      const banks = container.querySelectorAll('.cutie-gap-match-choices');
-      expect(banks.length).toBe(1);
-      const ids = Array.from(banks[0].querySelectorAll('.cutie-gap-text')).map((b) =>
-        b.getAttribute('data-identifier')
+      const banks = container.querySelectorAll('.cutie-gap-match-choices--group');
+      expect(banks.length).toBe(2);
+      const ids = Array.from(banks).map((bank) =>
+        Array.from(bank.querySelectorAll('.cutie-gap-text')).map((b) => b.getAttribute('data-identifier'))
       );
-      expect(ids).toEqual(['ACT1', 'ACT2', 'PAR1']);
-      expect(container.querySelectorAll('.cutie-gap-text[tabindex="0"]').length).toBe(1);
+      expect(ids).toEqual([['ACT1', 'ACT2'], ['PAR1']]);
+      banks.forEach((bank) => {
+        expect(bank.querySelectorAll('.cutie-gap-text[tabindex="0"]').length).toBe(1);
+      });
     });
 
     it('preserves each gap match-group so drops stay group-restricted', () => {
@@ -452,11 +454,302 @@ describe('gapMatchInteraction', () => {
 
         // Pick the choice back up, then click the bank background to return it.
         gap.click();
-        container.querySelector<HTMLElement>('.cutie-gap-match-choices')!.click();
+        container.querySelector<HTMLElement>('.cutie-gap-match-choices--group')!.click();
         expect(gap.classList.contains('cutie-gap--filled')).toBe(false);
       } finally {
         container.remove();
       }
+    });
+  });
+
+  describe('per-group word banks (flowing sentence, no layout columns)', () => {
+    // Two match-groups, one gap each, both gaps in ONE flowing sentence — no
+    // qti-layout-col at all. Shaped like the gap-match rationale "dyad".
+    const DYAD_QTI = `
+      <qti-gap-match-interaction response-identifier="R1">
+        <qti-gap-text identifier="A1" match-max="1" match-group="cause">Cause A</qti-gap-text>
+        <qti-gap-text identifier="A2" match-max="1" match-group="cause">Cause B</qti-gap-text>
+        <qti-gap-text identifier="B1" match-max="1" match-group="effect">Effect A</qti-gap-text>
+        <qti-gap-text identifier="B2" match-max="1" match-group="effect">Effect B</qti-gap-text>
+        <p>The station data indicate a <qti-gap identifier="GC" match-group="cause"></qti-gap>,
+           evidenced by <qti-gap identifier="GE" match-group="effect"></qti-gap>.</p>
+      </qti-gap-match-interaction>
+    `;
+
+    // One match-group spanning two gaps, still one flowing sentence. Shaped
+    // like the gap-match rationale "triad".
+    const TRIAD_QTI = `
+      <qti-gap-match-interaction response-identifier="R1">
+        <qti-gap-text identifier="A1" match-max="1" match-group="cause">Cause A</qti-gap-text>
+        <qti-gap-text identifier="B1" match-max="1" match-group="effects">Effect A</qti-gap-text>
+        <qti-gap-text identifier="B2" match-max="1" match-group="effects">Effect B</qti-gap-text>
+        <p>The station data indicate a <qti-gap identifier="GC" match-group="cause"></qti-gap>,
+           evidenced by <qti-gap identifier="GE1" match-group="effects"></qti-gap> and
+           <qti-gap identifier="GE2" match-group="effects"></qti-gap>.</p>
+      </qti-gap-match-interaction>
+    `;
+
+    // Grouped and ungrouped choices mixed, no columns — the ungrouped
+    // choices should still form their own bucket.
+    const MIXED_QTI = `
+      <qti-gap-match-interaction response-identifier="R1">
+        <qti-gap-text identifier="A1" match-max="1" match-group="a">Grouped A</qti-gap-text>
+        <qti-gap-text identifier="U1" match-max="1">Ungrouped A</qti-gap-text>
+        <qti-gap-text identifier="U2" match-max="1">Ungrouped B</qti-gap-text>
+        <p>Fill in <qti-gap identifier="G1" match-group="a"></qti-gap> and <qti-gap identifier="G2"></qti-gap>.</p>
+      </qti-gap-match-interaction>
+    `;
+
+    function transformToContainer(qti: string): HTMLElement {
+      const doc = createQtiDocument(qti);
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+      return container;
+    }
+
+    it('keeps the gaps in one flowing paragraph, uninterrupted by any layout markup', () => {
+      const container = transformToContainer(DYAD_QTI);
+
+      const paragraphs = container.querySelectorAll('.cutie-gap-match-content > p');
+      expect(paragraphs.length).toBe(1);
+      expect(paragraphs[0]!.querySelectorAll('.cutie-gap').length).toBe(2);
+      expect(container.querySelector('.qti-layout-row')).toBeNull();
+    });
+
+    it('splits choices into per-group banks for a dyad-shaped sentence', () => {
+      const container = transformToContainer(DYAD_QTI);
+
+      const wrapper = container.querySelector('.cutie-gap-match-choices--multi-tray')!;
+      expect(wrapper).not.toBeNull();
+      expect(wrapper.getAttribute('role')).toBe('group');
+      expect(wrapper.classList.contains('cutie-gap-match-choices')).toBe(true);
+
+      const groups = wrapper.querySelectorAll('.cutie-gap-match-choices--group');
+      expect(groups.length).toBe(2);
+
+      expect(groups[0]!.getAttribute('role')).toBe('listbox');
+      expect(groups[0]!.getAttribute('aria-label')).toBe('Word bank 1');
+      expect(groups[1]!.getAttribute('aria-label')).toBe('Word bank 2');
+
+      const group1Ids = Array.from(groups[0]!.querySelectorAll('.cutie-gap-text')).map((el) =>
+        el.getAttribute('data-identifier')
+      );
+      expect(group1Ids).toEqual(['A1', 'A2']);
+
+      const group2Ids = Array.from(groups[1]!.querySelectorAll('.cutie-gap-text')).map((el) =>
+        el.getAttribute('data-identifier')
+      );
+      expect(group2Ids).toEqual(['B1', 'B2']);
+    });
+
+    it('splits choices into per-group banks for a triad-shaped sentence (one group spanning two gaps)', () => {
+      const container = transformToContainer(TRIAD_QTI);
+
+      const groups = container.querySelectorAll('.cutie-gap-match-choices--group');
+      expect(groups.length).toBe(2);
+      expect(groups[0]!.querySelectorAll('.cutie-gap-text').length).toBe(1);
+      expect(groups[1]!.querySelectorAll('.cutie-gap-text').length).toBe(2);
+
+      const gaps = container.querySelectorAll('.cutie-gap');
+      expect(gaps.length).toBe(3);
+    });
+
+    it('treats ungrouped choices as their own bucket when mixed with a grouped choice', () => {
+      const container = transformToContainer(MIXED_QTI);
+
+      const groups = container.querySelectorAll('.cutie-gap-match-choices--group');
+      expect(groups.length).toBe(2);
+
+      const group1Ids = Array.from(groups[0]!.querySelectorAll('.cutie-gap-text')).map((el) =>
+        el.getAttribute('data-identifier')
+      );
+      expect(group1Ids).toEqual(['A1']);
+
+      const group2Ids = Array.from(groups[1]!.querySelectorAll('.cutie-gap-text')).map((el) =>
+        el.getAttribute('data-identifier')
+      );
+      expect(group2Ids).toEqual(['U1', 'U2']);
+    });
+
+    it('keeps a single word bank when every choice shares one match-group', () => {
+      const container = transformToContainer(`
+        <qti-gap-match-interaction response-identifier="R1">
+          <qti-gap-text identifier="A1" match-max="1" match-group="cause">Cause A</qti-gap-text>
+          <qti-gap-text identifier="A2" match-max="1" match-group="cause">Cause B</qti-gap-text>
+          <p>Fill in <qti-gap identifier="G1" match-group="cause"></qti-gap>.</p>
+        </qti-gap-match-interaction>
+      `);
+
+      expect(container.querySelector('.cutie-gap-match-choices--multi-tray')).toBeNull();
+      expect(container.querySelector('.cutie-gap-match-choices--group')).toBeNull();
+
+      const tray = container.querySelector('.cutie-gap-match-choices')!;
+      expect(tray.getAttribute('role')).toBe('listbox');
+      expect(tray.querySelectorAll('.cutie-gap-text').length).toBe(2);
+    });
+
+    it('still places a choice from a non-first bank into its gap correctly', () => {
+      const container = transformToContainer(DYAD_QTI);
+      document.body.appendChild(container);
+
+      try {
+        const effectChoice = container.querySelector<HTMLElement>('.cutie-gap-text[data-identifier="B1"]')!;
+        const effectGap = container.querySelector<HTMLElement>('.cutie-gap[data-identifier="GE"]')!;
+
+        effectChoice.click();
+        effectGap.click();
+
+        expect(effectGap.classList.contains('cutie-gap--filled')).toBe(true);
+        expect(effectGap.getAttribute('data-choice-identifier')).toBe('B1');
+      } finally {
+        container.remove();
+      }
+    });
+
+    it('returns a picked-up choice when clicking its own bank background', () => {
+      const container = transformToContainer(DYAD_QTI);
+      document.body.appendChild(container);
+
+      try {
+        const causeChoice = container.querySelector<HTMLElement>('.cutie-gap-text[data-identifier="A1"]')!;
+        const causeGap = container.querySelector<HTMLElement>('.cutie-gap[data-identifier="GC"]')!;
+
+        causeChoice.click();
+        causeGap.click();
+        expect(causeGap.classList.contains('cutie-gap--filled')).toBe(true);
+
+        causeGap.click(); // pick back up
+        const bank = container.querySelector<HTMLElement>('.cutie-gap-match-choices--group')!;
+        bank.click();
+        expect(causeGap.classList.contains('cutie-gap--filled')).toBe(false);
+      } finally {
+        container.remove();
+      }
+    });
+
+    it('keeps arrow-key navigation within a bank, wrapping instead of crossing into the other bank', () => {
+      const container = transformToContainer(DYAD_QTI);
+      document.body.appendChild(container);
+
+      try {
+        const a1 = container.querySelector<HTMLElement>('.cutie-gap-text[data-identifier="A1"]')!;
+        const a2 = container.querySelector<HTMLElement>('.cutie-gap-text[data-identifier="A2"]')!;
+
+        a1.focus();
+        a1.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+        expect(document.activeElement).toBe(a2);
+
+        a2.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+        expect(document.activeElement).toBe(a1);
+      } finally {
+        container.remove();
+      }
+    });
+  });
+
+  describe('word bank headings', () => {
+    const HEADINGS_QTI = `
+      <qti-gap-match-interaction response-identifier="R1">
+        <qti-gap-text identifier="A1" match-max="1" match-group="cause">Cause A</qti-gap-text>
+        <qti-gap-text identifier="B1" match-max="1" match-group="effect">Effect A</qti-gap-text>
+        <h3 data-for-match-group="cause">Condition</h3>
+        <h4 data-for-match-group="effect">Evidence <em>found</em></h4>
+        <p>At risk for <qti-gap identifier="GC" match-group="cause"></qti-gap>,
+           evidenced by <qti-gap identifier="GE" match-group="effect"></qti-gap>.</p>
+      </qti-gap-match-interaction>
+    `;
+
+    function transformToContainer(qti: string): HTMLElement {
+      const doc = createQtiDocument(qti);
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+      return container;
+    }
+
+    it('moves each heading into its group bank and names the listbox with it', () => {
+      const container = transformToContainer(HEADINGS_QTI);
+
+      const sections = container.querySelectorAll('.cutie-gap-match-bank');
+      expect(sections.length).toBe(2);
+
+      const heading = sections[0]!.querySelector('h3.cutie-gap-match-bank-heading')!;
+      expect(heading.textContent).toBe('Condition');
+      const bank = sections[0]!.querySelector('[role="listbox"]')!;
+      expect(bank.getAttribute('aria-labelledby')).toBe(heading.id);
+      expect(bank.hasAttribute('aria-label')).toBe(false);
+      expect(bank.querySelector('.cutie-gap-text')!.getAttribute('data-identifier')).toBe('A1');
+    });
+
+    it('keeps the authored heading level and inline markup', () => {
+      const container = transformToContainer(HEADINGS_QTI);
+
+      const heading = container.querySelectorAll('.cutie-gap-match-bank')[1]!.querySelector('h4')!;
+      expect(heading.querySelector('em')!.textContent).toBe('found');
+    });
+
+    it('leaves the headings out of the content', () => {
+      const container = transformToContainer(HEADINGS_QTI);
+
+      const content = container.querySelector('.cutie-gap-match-content')!;
+      expect(content.querySelector('h3, h4')).toBeNull();
+    });
+
+    it('falls back to an ordinal name for a group without a heading', () => {
+      const container = transformToContainer(`
+        <qti-gap-match-interaction response-identifier="R1">
+          <qti-gap-text identifier="A1" match-max="1" match-group="cause">Cause A</qti-gap-text>
+          <qti-gap-text identifier="B1" match-max="1" match-group="effect">Effect A</qti-gap-text>
+          <h3 data-for-match-group="cause">Condition</h3>
+          <p><qti-gap identifier="GC" match-group="cause"></qti-gap> <qti-gap identifier="GE" match-group="effect"></qti-gap></p>
+        </qti-gap-match-interaction>
+      `);
+
+      const banks = container.querySelectorAll('.cutie-gap-match-choices--group');
+      expect(banks[0]!.hasAttribute('aria-labelledby')).toBe(true);
+      expect(banks[1]!.getAttribute('aria-label')).toBe('Word bank 2');
+    });
+
+    it('gives a single group its own headed bank', () => {
+      const container = transformToContainer(`
+        <qti-gap-match-interaction response-identifier="R1">
+          <qti-gap-text identifier="A1" match-max="1" match-group="cause">Cause A</qti-gap-text>
+          <qti-gap-text identifier="A2" match-max="1" match-group="cause">Cause B</qti-gap-text>
+          <h3 data-for-match-group="cause">Condition</h3>
+          <p>Fill in <qti-gap identifier="G1" match-group="cause"></qti-gap>.</p>
+        </qti-gap-match-interaction>
+      `);
+
+      const sections = container.querySelectorAll('.cutie-gap-match-bank');
+      expect(sections.length).toBe(1);
+      expect(sections[0]!.querySelector('h3')!.textContent).toBe('Condition');
+      expect(sections[0]!.querySelectorAll('.cutie-gap-text').length).toBe(2);
+    });
+
+    it('drops a heading whose group has no choices', () => {
+      const container = transformToContainer(`
+        <qti-gap-match-interaction response-identifier="R1">
+          <qti-gap-text identifier="A1" match-max="1">Choice A</qti-gap-text>
+          <h3 data-for-match-group="unused">Unused</h3>
+          <p>Fill in <qti-gap identifier="G1"></qti-gap>.</p>
+        </qti-gap-match-interaction>
+      `);
+
+      expect(container.querySelector('h3')).toBeNull();
+      expect(container.querySelector('.cutie-gap-match-choices--multi-tray')).toBeNull();
+    });
+
+    it('keeps a heading without the data attribute as ordinary content', () => {
+      const container = transformToContainer(`
+        <qti-gap-match-interaction response-identifier="R1">
+          <qti-gap-text identifier="A1" match-max="1">Choice A</qti-gap-text>
+          <h3>Instructions</h3>
+          <p>Fill in <qti-gap identifier="G1"></qti-gap>.</p>
+        </qti-gap-match-interaction>
+      `);
+
+      expect(container.querySelector('.cutie-gap-match-content h3')!.textContent).toBe('Instructions');
     });
   });
 

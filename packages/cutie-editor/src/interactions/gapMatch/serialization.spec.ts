@@ -185,4 +185,54 @@ describe('Gap Match Interaction', () => {
       expect(result.xml).toContain('<qti-value>Su G2</qti-value>');
     });
   });
+
+  describe('match-group headings', () => {
+    const headingsXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+                     identifier="headings" title="Headings" adaptive="false" time-dependent="false">
+  <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="directedPair"/>
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/>
+  <qti-item-body>
+    <qti-gap-match-interaction response-identifier="RESPONSE">
+      <qti-gap-text identifier="C" match-max="1" match-group="cause">bleeding</qti-gap-text>
+      <qti-gap-text identifier="E" match-max="1" match-group="effect">platelet count</qti-gap-text>
+      <h3 data-for-match-group="cause">Condition</h3>
+      <p>At risk for <qti-gap identifier="G1" match-group="cause"/> as evidenced by <qti-gap identifier="G2" match-group="effect"/>.</p>
+    </qti-gap-match-interaction>
+  </qti-item-body>
+</qti-assessment-item>`;
+
+    const findInteraction = (nodes: any[]) =>
+      nodes.find((n) => 'type' in n && n.type === 'qti-gap-match-interaction');
+
+    it('parses headings into match groups, not content', () => {
+      const interaction = findInteraction(parseXmlToSlate(headingsXml));
+
+      expect(interaction.matchGroups).toEqual([{ identifier: 'cause', heading: 'Condition' }]);
+      const content = interaction.children.find((c: any) => c.type === 'gap-match-content');
+      expect(JSON.stringify(content)).not.toContain('Condition');
+    });
+
+    it('round-trips headings after the choices', () => {
+      const parsed = parseXmlToSlate(headingsXml);
+      const result = serializeSlateToQti(parsed, headingsXml);
+
+      expect(result.xml).toMatch(
+        /platelet count<\/qti-gap-text>\s*<h3 data-for-match-group="cause">Condition<\/h3>\s*<p>/
+      );
+    });
+
+    it('serializes only groups that have a heading', () => {
+      const parsed = parseXmlToSlate(headingsXml);
+      const interaction = findInteraction(parsed);
+      interaction.matchGroups = [
+        { identifier: 'cause', heading: 'Condition' },
+        { identifier: 'effect', heading: '  ' },
+      ];
+      const result = serializeSlateToQti(parsed, headingsXml);
+
+      expect(result.xml).toContain('data-for-match-group="cause"');
+      expect(result.xml).not.toContain('data-for-match-group="effect"');
+    });
+  });
 });

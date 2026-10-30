@@ -33,6 +33,8 @@ import {
   updateIdentifier,
 } from '../../utils/responseDeclaration.js';
 import { generateChoiceId, insertGapOrChoiceAtSelection } from './insertion.js';
+import { findGapMatchInteraction, getMatchGroups } from './matchGroups.js';
+import { MatchGroupSelect, MatchGroupsSection } from './MatchGroupsSection.js';
 
 interface GapMatchPropertiesPanelProps {
   element: QtiGapMatchInteraction;
@@ -294,6 +296,8 @@ export function GapMatchPropertiesPanel({
         </p>
       </div>
 
+      <MatchGroupsSection element={element} path={path} />
+
       <ToggleableFormSection
         label="Set correct answers"
         enabled={hasCorrectAnswer}
@@ -430,6 +434,7 @@ export function GapTextPropertiesPanel({
 
   // Get interaction path for generating new IDs
   const interactionPath = parentPath.slice(0, -1);
+  const matchGroups = getMatchGroups(Node.get(editor, interactionPath) as QtiGapMatchInteraction);
 
   const handleAttributeChange = (key: string, value: string) => {
     const newAttrs = { ...attrs };
@@ -495,6 +500,12 @@ export function GapTextPropertiesPanel({
         value={attrs['match-max'] || '1'}
         onChange={(val) => handleAttributeChange('match-max', val)}
         min="0"
+      />
+
+      <MatchGroupSelect
+        groups={matchGroups}
+        value={attrs['match-group']}
+        onChange={(val) => handleAttributeChange('match-group', val)}
       />
 
       <PropertyCheckbox
@@ -627,6 +638,7 @@ export function GapImgPropertiesPanel({
 
   // Get interaction path for generating new IDs
   const interactionPath = parentPath.slice(0, -1);
+  const matchGroups = getMatchGroups(Node.get(editor, interactionPath) as QtiGapMatchInteraction);
 
   const handleAttributeChange = (key: string, value: string) => {
     const newAttrs = { ...attrs };
@@ -692,6 +704,12 @@ export function GapImgPropertiesPanel({
         value={attrs['match-max'] || '1'}
         onChange={(val) => handleAttributeChange('match-max', val)}
         min="0"
+      />
+
+      <MatchGroupSelect
+        groups={matchGroups}
+        value={attrs['match-group']}
+        onChange={(val) => handleAttributeChange('match-group', val)}
       />
 
       <PropertyCheckbox
@@ -760,6 +778,8 @@ export function GapPropertiesPanel({
   const editor = useSlate();
   useStyle('gap-panel-actions', GAP_PANEL_ACTIONS_STYLES);
   const attrs = element.attributes;
+  const found = findGapMatchInteraction(editor, path);
+  const matchGroups = found ? getMatchGroups(found.interaction) : [];
 
   const handleAttributeChange = (key: string, value: string) => {
     const newAttrs = { ...attrs };
@@ -786,6 +806,12 @@ export function GapPropertiesPanel({
         value={attrs.identifier}
         onChange={(val) => handleAttributeChange('identifier', val)}
         required
+      />
+
+      <MatchGroupSelect
+        groups={matchGroups}
+        value={attrs['match-group']}
+        onChange={(val) => handleAttributeChange('match-group', val)}
       />
 
       <div className="gap-panel-actions">

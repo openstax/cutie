@@ -3971,3 +3971,88 @@ describe('all-or-nothing across interactions', () => {
     ).toBe(0);
   });
 });
+
+describe('gap-match dyad all-or-nothing', () => {
+  // Gap-match variant of the dyad: a single gap-match interaction holds both gaps
+  // (cause + effect) in one shared sentence, scored from a single
+  // multiple/directedPair RESPONSE (match-group scoping — not modeled in this
+  // synthetic fixture — keeps cause/effect words restricted to their own gap in
+  // the real example item).
+  const dyadItemXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+                     identifier="gap-match-rationale-dyad">
+  <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="directedPair">
+    <qti-correct-response>
+      <qti-value>cause_correct GC</qti-value>
+      <qti-value>effect_correct GE</qti-value>
+    </qti-correct-response>
+  </qti-response-declaration>
+
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value><qti-value>0</qti-value></qti-default-value>
+  </qti-outcome-declaration>
+  <qti-outcome-declaration identifier="MAXSCORE" cardinality="single" base-type="float">
+    <qti-default-value><qti-value>1</qti-value></qti-default-value>
+  </qti-outcome-declaration>
+
+  <qti-item-body/>
+
+  <qti-response-processing>
+    <qti-response-condition>
+      <qti-response-if>
+        <qti-match>
+          <qti-variable identifier="RESPONSE"/>
+          <qti-correct identifier="RESPONSE"/>
+        </qti-match>
+        <qti-set-outcome-value identifier="SCORE">
+          <qti-base-value base-type="float">1</qti-base-value>
+        </qti-set-outcome-value>
+      </qti-response-if>
+      <qti-response-else>
+        <qti-set-outcome-value identifier="SCORE">
+          <qti-base-value base-type="float">0</qti-base-value>
+        </qti-set-outcome-value>
+      </qti-response-else>
+    </qti-response-condition>
+  </qti-response-processing>
+</qti-assessment-item>`;
+
+  const scoreDyad = (submission: Record<string, string[]>): number => {
+    const itemDoc = parser.parseFromString(dyadItemXml, 'text/xml');
+    const currentState: AttemptState = {
+      variables: { SCORE: 0 },
+      completionStatus: 'not_attempted',
+      options: resolveDeliveryOptions(),
+      triesAllowed: 1,
+      triesUsed: 0,
+      triesRemaining: 1,
+      score: null,
+    };
+    const newState = processResponse(itemDoc, submission, currentState);
+    return newState.variables.SCORE as number;
+  };
+
+  test('awards full credit (1) when both cause and effect gaps are correct', () => {
+    expect(
+      scoreDyad({ RESPONSE: ['cause_correct GC', 'effect_correct GE'] })
+    ).toBe(1);
+  });
+
+  test('awards no credit when the effect gap is wrong', () => {
+    expect(
+      scoreDyad({ RESPONSE: ['cause_correct GC', 'effect_wrong GE'] })
+    ).toBe(0);
+  });
+
+  test('awards no credit when the cause gap is wrong', () => {
+    expect(
+      scoreDyad({ RESPONSE: ['cause_wrong GC', 'effect_correct GE'] })
+    ).toBe(0);
+  });
+
+  test('awards no credit when both gaps are wrong', () => {
+    expect(
+      scoreDyad({ RESPONSE: ['cause_wrong GC', 'effect_wrong GE'] })
+    ).toBe(0);
+  });
+});

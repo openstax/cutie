@@ -31,15 +31,18 @@ const incorrectSubmissions: Record<string, Submission> = {
   'nclex-drop-down-table': { RESPONSE: 'declined', RESPONSE_2: 'noChange', RESPONSE_3: 'improved', RESPONSE_4: 'improved' },
   'nclex-drag-and-drop-cloze': { RESPONSE: ['droplet G1', 'positivePressure G2', 'surgicalMask G3'] },
   'nclex-drag-and-drop-rationale': { RESPONSE: ['bleeding G1', 'whiteCells G2'] },
+  'nclex-drag-and-drop-rationale-triad': { RESPONSE: ['hyperglycemia G1', 'glucose G2', 'tremors G3'] },
   'nclex-highlight-passage': { RESPONSE: ['pain', 'leftCalf'] },
   'nclex-highlight-table': { RESPONSE: ['bloodPressure', 'glucose'] },
   'nclex-bowtie': { RESPONSE: ['ambulate actions', 'enoxaparin actions', 'sepsis condition', 'bowelSounds parameters', 'temperature parameters'] },
 };
 
-/* mapped text entries: forgiving word forms, case-sensitive symbols */
+/* other responses that earn full credit: mapped text entries with forgiving
+ * word forms (case-sensitive symbols), and effects in either order */
 const acceptedVariants: Record<string, Submission[]> = {
   'text-entry': [{ RESPONSE: 'Newtons' }, { RESPONSE: 'N' }],
   'text-entry-multiple': [{ RESPONSE: 'Hydrogen', RESPONSE_2: 'OXYGEN' }, { RESPONSE: 'H', RESPONSE_2: 'O' }],
+  'nclex-drag-and-drop-rationale-triad': [{ RESPONSE: ['hypoglycemia G1', 'tremors G2', 'glucose G3'] }],
 };
 
 /* responses that earn part of the maximum score */
@@ -54,6 +57,11 @@ const partialCredit: Record<string, { submission: Submission; raw: number }[]> =
     { submission: { RESPONSE: 'excessFluid', RESPONSE_2: 'crackles', RESPONSE_3: 'heartRate' }, raw: 1 },
     { submission: { RESPONSE: 'excessFluid', RESPONSE_2: 'temperature', RESPONSE_3: 'weightGain' }, raw: 1 },
     { submission: { RESPONSE: 'excessFluid', RESPONSE_2: 'temperature', RESPONSE_3: 'heartRate' }, raw: 0 },
+  ],
+  'nclex-drag-and-drop-rationale-triad': [
+    { submission: { RESPONSE: ['hypoglycemia G1', 'glucose G2', 'bloodPressure G3'] }, raw: 1 },
+    { submission: { RESPONSE: ['hypoglycemia G1', 'respiratoryRate G2', 'tremors G3'] }, raw: 1 },
+    { submission: { RESPONSE: ['hypoglycemia G1', 'respiratoryRate G2', 'mucousMembranes G3'] }, raw: 0 },
   ],
 };
 

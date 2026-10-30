@@ -211,6 +211,19 @@ export interface QtiGapMatchInteraction {
     shuffle?: string;
   } & ElementAttributes;
   responseDeclaration: XmlNode;
+  /**
+   * Match-groups the author declared, each with an optional word-bank heading.
+   * Serialized as headings inside the interaction (see matchGroups.ts).
+   */
+  matchGroups?: MatchGroup[];
+}
+
+/**
+ * A gap-match match-group and the heading shown over its word bank
+ */
+export interface MatchGroup {
+  identifier: string;
+  heading: string;
 }
 
 /**
