@@ -1,10 +1,11 @@
 # NCLEX samples: remaining work
 
 The [Assignable NCLEX Epic & PRD](https://docs.google.com/document/d/1iqb1fXxcNIFB-OOv2WqlhhGo_7yxg2Rw4eez7AQEfzc/edit)
-lists 14 question types. `packages/cutie-samples/src/nclex/` has canonical samples for 10 of them:
+lists 14 question types. `packages/cutie-samples/src/nclex/` has canonical samples for 11 of them:
 
 - Multiple Response: Select All That Apply
 - Multiple Response: Select N
+- Multiple Response: Grouping
 - Drop-Down: Cloze
 - Drop-Down: Rationale (dyad and triad)
 - Drop-Down: Table
@@ -14,8 +15,7 @@ lists 14 question types. `packages/cutie-samples/src/nclex/` has canonical sampl
 - Text Highlight: Table
 - Bowtie
 
-This document covers the client bug found while writing them and the samples that still need
-to be made.
+This document covers the samples that still need to be made.
 
 A sample is only added when its type can be represented correctly. That means its response
 processing passes the editor classifier (not `custom`), the client renders its interactions,
@@ -29,35 +29,7 @@ and it matches the PRD's format and scoring rule. An approximation is worse than
   (1 cause, 2 effects) is worth 2 points, earns nothing unless the cause is correct, and earns
   1 point for each correct effect.
 
-## 1. Fixed: drop-downs in table cells were labelled "blank"
-
-**Issue:** an inline choice (or text entry) interaction that was the only content of a table
-cell got the accessible name "blank", which didn't say what was being asked.
-
-**Fix:** an inline interaction with no text in its cell is now labelled by the cell's row
-header, then its column header (for example "Temperature Status"), or by the headers its cell
-names in a `headers` attribute. Text in the cell still takes priority. Tables with spanned
-cells keep the "blank" fallback. See
-`packages/cutie-client/src/transformer/handlers/tableHeaderLabel.ts` and the test flow
-`docs/test-flows/inline-table-labels.md`.
-
-## 2. Samples not made
-
-### Multiple Response: Grouping
-
-**Requirements:** a table where each row is a category (such as a body system) and holds a
-select-all-that-apply group of 2 to 4 options. Each row is its own `qti-choice-interaction`
-with a `multiple` response. Scored +/- per group (minimum 0 per group), summed.
-
-**Why not made:** an earlier attempt deferred this sample, citing an accessibility problem
-with choice interactions in table cells that it tied to the inline-in-table labelling bug
-(section 1). That bug is resolved, but it's unclear why choice-in-table was ever related to
-it: choice interactions are labelled separately from inline interactions. There's also no clear
-problem with a choice interaction in a table cell, which QTI v3 allows. A version with stacked
-groups and prompts was also written and removed, because it isn't the NCLEX format.
-
-**Needed:** check the table format for any real blockers, then write the sample. Scoring
-already works (summed `qti-map-response`, classified as `sumScores`).
+## Samples not made
 
 ### Drag-and-Drop: Rationale (triad)
 

@@ -6,6 +6,7 @@ import { dropDownCloze } from './drop-down-cloze.js';
 import { dropDownRationaleTriad } from './drop-down-rationale-triad.js';
 import { dropDownRationale } from './drop-down-rationale.js';
 import { dropDownTable } from './drop-down-table.js';
+import { grouping } from './grouping.js';
 import { highlightPassage } from './highlight-passage.js';
 import { highlightTable } from './highlight-table.js';
 import { selectAll } from './select-all.js';
@@ -28,6 +29,7 @@ the same interaction scores differently.`,
   samples: [
     selectAll,
     selectN,
+    grouping,
     dropDownCloze,
     dropDownRationale,
     dropDownRationaleTriad,

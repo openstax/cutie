@@ -1,3 +1,4 @@
+// spell-checker: ignore fullwidth
 import { ERROR_DISPLAY_STYLES } from '../errors/errorDisplay.js';
 import type { StyleManager } from '../transformer/types.js';
 
@@ -111,6 +112,11 @@ const BASE_STYLES = `
       grid-column: 1 / -1;
     }
   }
+
+  /*
+   * QTI Vocab §1.1.4.3 Full Width: https://www.imsglobal.org/spec/qti/v3p0/vocab
+   */
+  .qti-fullwidth { width: 100%; }
 `;
 
 export function registerBaseStyles(styleManager: StyleManager): void {

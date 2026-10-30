@@ -24,6 +24,7 @@ const incorrectSubmissions: Record<string, Submission> = {
   formula: { RESPONSE: '2x+3' },
   'nclex-select-all': { RESPONSE: ['choiceD', 'choiceE'] },
   'nclex-select-n': { RESPONSE: ['choiceD', 'choiceE', 'choiceF'] },
+  'nclex-grouping': { RESPONSE: ['choiceB'], RESPONSE_2: ['choiceC'], RESPONSE_3: ['choiceB', 'choiceC'] },
   'nclex-drop-down-cloze': { RESPONSE: 'giveInsulin', RESPONSE_2: 'proteinSnack', RESPONSE_3: 'oneHour' },
   'nclex-drop-down-rationale': { RESPONSE: 'aspiration', RESPONSE_2: 'rightWeakness' },
   'nclex-drop-down-rationale-triad': { RESPONSE: 'deficientFluid', RESPONSE_2: 'crackles', RESPONSE_3: 'weightGain' },
@@ -43,6 +44,12 @@ const acceptedVariants: Record<string, Submission[]> = {
 
 /* responses that earn part of the maximum score */
 const partialCredit: Record<string, { submission: Submission; raw: number }[]> = {
+  /* each group's score is floored at 0 on its own, so a group with more
+   * incorrect than correct selections doesn't take points from the others */
+  'nclex-grouping': [
+    { submission: { RESPONSE: ['choiceA', 'choiceB'], RESPONSE_2: ['choiceA', 'choiceB'], RESPONSE_3: ['choiceB', 'choiceC'] }, raw: 2 },
+    { submission: { RESPONSE: ['choiceA'], RESPONSE_2: ['choiceA', 'choiceC'], RESPONSE_3: ['choiceA'] }, raw: 2 },
+  ],
   'nclex-drop-down-rationale-triad': [
     { submission: { RESPONSE: 'excessFluid', RESPONSE_2: 'crackles', RESPONSE_3: 'heartRate' }, raw: 1 },
     { submission: { RESPONSE: 'excessFluid', RESPONSE_2: 'temperature', RESPONSE_3: 'weightGain' }, raw: 1 },
