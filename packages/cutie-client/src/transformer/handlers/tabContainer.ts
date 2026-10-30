@@ -8,7 +8,7 @@ const TAB_CONTAINER_CLASS = 'cutie-tab-container';
 const TAB_CONTAINER_SELECTOR = `[class~="${TAB_CONTAINER_CLASS}"]`;
 const TABLIST_LABEL_ATTRIBUTES = ['aria-label', 'aria-labelledby'];
 const MODE_ATTRIBUTES = ['role', 'aria-selected', 'aria-expanded', 'tabindex'];
-const SECTION_TEXT_ATTRIBUTES = ['lang', 'xml:lang', 'dir'];
+const SECTION_TEXT_ATTRIBUTES = ['lang', 'dir'];
 
 let idCounter = 0;
 
