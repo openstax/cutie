@@ -33,3 +33,19 @@ export function getFirstChildElement(element: Element): Element | null {
   }
   return null;
 }
+
+/**
+ * Find the closest ancestor element with the given local name
+ *
+ * @param element - Element to start from (not itself a candidate)
+ * @param localName - Local name of the ancestor to find
+ * @returns The ancestor, or null if there's none
+ */
+export function findAncestor(element: Element, localName: string): Element | null {
+  for (let node = element.parentNode; node; node = node.parentNode) {
+    if (node.nodeType === 1 && (node as Element).localName === localName) {
+      return node as Element;
+    }
+  }
+  return null;
+}

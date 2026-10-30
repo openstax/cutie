@@ -1,6 +1,6 @@
 // spell-checker: ignore colspan
 import { beforeEach, describe, expect, it } from 'vitest';
-import { annotateInlineInteractions } from './inlineInteractionAnnotator.js';
+import { labelInlineInteractions } from './inlineInteractions.js';
 
 let idCounter = 0;
 const testIdGenerator = () => `s${++idCounter}`;
@@ -22,7 +22,7 @@ function normalizeHtml(html: string): string {
 }
 
 
-describe('annotateInlineInteractions', () => {
+describe('labelInlineInteractions', () => {
   beforeEach(() => {
     resetIds();
   });
@@ -33,7 +33,7 @@ describe('annotateInlineInteractions', () => {
         '<p>The year was <input class="cutie-text-entry-interaction"/>.</p>'
       );
 
-      const result = annotateInlineInteractions(fragment, testIdGenerator);
+      const result = labelInlineInteractions(fragment, testIdGenerator);
       expect(result).toBe(true);
 
       const p = fragment.querySelector('p')!;
@@ -69,7 +69,7 @@ describe('annotateInlineInteractions', () => {
         '<p>The year was <span class="wrap"><input class="cutie-text-entry-interaction"/><span aria-hidden="true" class="hidden">Incorrect. 1066</span></span>.</p>'
       );
 
-      annotateInlineInteractions(fragment, testIdGenerator);
+      labelInlineInteractions(fragment, testIdGenerator);
 
       const input = fragment.querySelector('input')!;
       const labelText = input.getAttribute('aria-labelledby')!.split(' ')
@@ -90,7 +90,7 @@ describe('annotateInlineInteractions', () => {
         '<p>The year was <input class="cutie-text-entry-interaction"/> and the city was <input class="cutie-text-entry-interaction"/>.</p>'
       );
 
-      annotateInlineInteractions(fragment, testIdGenerator);
+      labelInlineInteractions(fragment, testIdGenerator);
 
       const p = fragment.querySelector('p')!;
       const inputs = p.querySelectorAll('input');
@@ -137,7 +137,7 @@ describe('annotateInlineInteractions', () => {
         '<p>The <strong>Declaration of Independence</strong> was signed in <input class="cutie-text-entry-interaction"/>.</p>'
       );
 
-      annotateInlineInteractions(fragment, testIdGenerator);
+      labelInlineInteractions(fragment, testIdGenerator);
 
       const p = fragment.querySelector('p')!;
 
@@ -160,7 +160,7 @@ describe('annotateInlineInteractions', () => {
         '<p>The <strong>color is <input class="cutie-text-entry-interaction"/> and bright</strong>.</p>'
       );
 
-      annotateInlineInteractions(fragment, testIdGenerator);
+      labelInlineInteractions(fragment, testIdGenerator);
 
       const p = fragment.querySelector('p')!;
       const strong = p.querySelector('strong')!;
@@ -206,7 +206,7 @@ describe('annotateInlineInteractions', () => {
         '<p>First sentence. Second sentence has <input class="cutie-text-entry-interaction"/> in it.</p>'
       );
 
-      annotateInlineInteractions(fragment, testIdGenerator);
+      labelInlineInteractions(fragment, testIdGenerator);
 
       const p = fragment.querySelector('p')!;
       const input = p.querySelector('input')!;
@@ -239,7 +239,7 @@ describe('annotateInlineInteractions', () => {
         '<p><em>First sent. Second sent</em> has <input class="cutie-text-entry-interaction"/>.</p>'
       );
 
-      annotateInlineInteractions(fragment, testIdGenerator);
+      labelInlineInteractions(fragment, testIdGenerator);
 
       const p = fragment.querySelector('p')!;
       const em = p.querySelector('em')!;
@@ -282,7 +282,7 @@ describe('annotateInlineInteractions', () => {
         '<p>Solve <math><mi>x</mi><mo>+</mo><mn>2</mn></math> = <input class="cutie-text-entry-interaction"/>.</p>'
       );
 
-      annotateInlineInteractions(fragment, testIdGenerator);
+      labelInlineInteractions(fragment, testIdGenerator);
 
       const p = fragment.querySelector('p')!;
 
@@ -303,7 +303,7 @@ describe('annotateInlineInteractions', () => {
         '<p>Choose <select class="cutie-inline-choice-interaction"><option>A</option></select> and type <input class="cutie-text-entry-interaction"/>.</p>'
       );
 
-      annotateInlineInteractions(fragment, testIdGenerator);
+      labelInlineInteractions(fragment, testIdGenerator);
 
       const p = fragment.querySelector('p')!;
       const select = p.querySelector('select')!;
@@ -334,7 +334,7 @@ describe('annotateInlineInteractions', () => {
         '<p>The year was <input class="cutie-text-entry-interaction"/>. The city was <input class="cutie-text-entry-interaction"/>, Pennsylvania.</p>'
       );
 
-      annotateInlineInteractions(fragment, testIdGenerator);
+      labelInlineInteractions(fragment, testIdGenerator);
 
       const p = fragment.querySelector('p')!;
       const inputs = p.querySelectorAll('input');
@@ -387,7 +387,7 @@ describe('annotateInlineInteractions', () => {
         '<p>Year <input class="cutie-text-entry-interaction"/>. City <input class="cutie-text-entry-interaction"/>. Count <input class="cutie-text-entry-interaction"/> total.</p>'
       );
 
-      annotateInlineInteractions(fragment, testIdGenerator);
+      labelInlineInteractions(fragment, testIdGenerator);
 
       const inputs = fragment.querySelectorAll('input');
       const labelledBy1 = inputs[0]!.getAttribute('aria-labelledby')!.split(' ');
@@ -415,7 +415,7 @@ describe('annotateInlineInteractions', () => {
   describe('Edge cases', () => {
     it('returns false when no interactions are found', () => {
       const fragment = fragmentFromHtml('<p>Just some text.</p>');
-      const result = annotateInlineInteractions(fragment, testIdGenerator);
+      const result = labelInlineInteractions(fragment, testIdGenerator);
       expect(result).toBe(false);
     });
 
@@ -424,7 +424,7 @@ describe('annotateInlineInteractions', () => {
         '<p><input class="cutie-text-entry-interaction"/></p>'
       );
 
-      annotateInlineInteractions(fragment, testIdGenerator);
+      labelInlineInteractions(fragment, testIdGenerator);
 
       const input = fragment.querySelector('input')!;
       expect(input.getAttribute('aria-label')).toBe('blank');
@@ -437,7 +437,7 @@ describe('annotateInlineInteractions', () => {
         '<p><input class="cutie-text-entry-interaction"/><input class="cutie-text-entry-interaction"/></p>'
       );
 
-      annotateInlineInteractions(fragment, testIdGenerator);
+      labelInlineInteractions(fragment, testIdGenerator);
 
       const inputs = fragment.querySelectorAll('input');
       expect(inputs[0]!.getAttribute('aria-label')).toBe('blank 1 of 2');
@@ -449,7 +449,7 @@ describe('annotateInlineInteractions', () => {
         '<p>Text <input class="cutie-text-entry-interaction" aria-labelledby="existing"/> more.</p>'
       );
 
-      const result = annotateInlineInteractions(fragment, testIdGenerator);
+      const result = labelInlineInteractions(fragment, testIdGenerator);
       expect(result).toBe(false);
 
       const input = fragment.querySelector('input')!;
@@ -462,7 +462,7 @@ describe('annotateInlineInteractions', () => {
         '<p>Before <input class="cutie-text-entry-interaction" aria-labelledby="existing"/> after <input class="cutie-text-entry-interaction"/>.</p>'
       );
 
-      annotateInlineInteractions(fragment, testIdGenerator);
+      labelInlineInteractions(fragment, testIdGenerator);
 
       const p = fragment.querySelector('p')!;
       const inputs = p.querySelectorAll('input');
@@ -482,7 +482,7 @@ describe('annotateInlineInteractions', () => {
         '<p>Before break<br/>after break has <input class="cutie-text-entry-interaction"/>.</p>'
       );
 
-      annotateInlineInteractions(fragment, testIdGenerator);
+      labelInlineInteractions(fragment, testIdGenerator);
 
       const p = fragment.querySelector('p')!;
       const input = p.querySelector('input')!;
@@ -510,7 +510,7 @@ describe('annotateInlineInteractions', () => {
         '<p>   <input class="cutie-text-entry-interaction"/>   </p>'
       );
 
-      annotateInlineInteractions(fragment, testIdGenerator);
+      labelInlineInteractions(fragment, testIdGenerator);
 
       const p = fragment.querySelector('p')!;
       const input = p.querySelector('input')!;
@@ -530,7 +530,7 @@ describe('annotateInlineInteractions', () => {
         '<p><input class="cutie-text-entry-interaction"/> first. second. third.</p>'
       );
 
-      annotateInlineInteractions(fragment, testIdGenerator);
+      labelInlineInteractions(fragment, testIdGenerator);
 
       const p = fragment.querySelector('p')!;
       const input = p.querySelector('input')!;
@@ -556,7 +556,7 @@ describe('annotateInlineInteractions', () => {
         '<p><input class="cutie-text-entry-interaction"/> was the year.</p>'
       );
 
-      annotateInlineInteractions(fragment, testIdGenerator);
+      labelInlineInteractions(fragment, testIdGenerator);
 
       const input = fragment.querySelector('input')!;
       const labelledBy = input.getAttribute('aria-labelledby')!.split(' ');
@@ -571,7 +571,7 @@ describe('annotateInlineInteractions', () => {
         '<p>The year was <input class="cutie-text-entry-interaction"/></p>'
       );
 
-      annotateInlineInteractions(fragment, testIdGenerator);
+      labelInlineInteractions(fragment, testIdGenerator);
 
       const input = fragment.querySelector('input')!;
       const labelledBy = input.getAttribute('aria-labelledby')!.split(' ');
@@ -586,7 +586,7 @@ describe('annotateInlineInteractions', () => {
         '<p>First <input class="cutie-text-entry-interaction"/>.</p><p>Second <input class="cutie-text-entry-interaction"/>.</p>'
       );
 
-      annotateInlineInteractions(fragment, testIdGenerator);
+      labelInlineInteractions(fragment, testIdGenerator);
 
       const inputs = fragment.querySelectorAll('input');
       expect(inputs.length).toBe(2);
@@ -605,7 +605,7 @@ describe('annotateInlineInteractions', () => {
         '<p>Look at <img alt="diagram" src="x.png"/> then answer <input class="cutie-text-entry-interaction"/>.</p>'
       );
 
-      annotateInlineInteractions(fragment, testIdGenerator);
+      labelInlineInteractions(fragment, testIdGenerator);
 
       const p = fragment.querySelector('p')!;
       const input = p.querySelector('input')!;
@@ -639,7 +639,7 @@ describe('block elements beside an interaction', () => {
       '<h2>Vitals</h2> Enter the dose <input class="cutie-text-entry-interaction"/>'
     );
 
-    annotateInlineInteractions(fragment, testIdGenerator);
+    labelInlineInteractions(fragment, testIdGenerator);
 
     expect(labelText(fragment, fragment.querySelector('input')!)).toBe('Enter the dose');
     expect(fragment.querySelector('h2')!.parentNode).toBe(fragment);
@@ -650,7 +650,7 @@ describe('block elements beside an interaction', () => {
       '<div><h2>Vitals</h2> Enter the dose <input class="cutie-text-entry-interaction"/></div>'
     );
 
-    annotateInlineInteractions(fragment, testIdGenerator);
+    labelInlineInteractions(fragment, testIdGenerator);
 
     expect(labelText(fragment, fragment.querySelector('input')!)).toBe('Enter the dose');
     expect(fragment.querySelector('h2')!.parentElement!.tagName).toBe('DIV');
@@ -661,7 +661,7 @@ describe('block elements beside an interaction', () => {
       '<h3>Dose: <input class="cutie-text-entry-interaction"/></h3>'
     );
 
-    annotateInlineInteractions(fragment, testIdGenerator);
+    labelInlineInteractions(fragment, testIdGenerator);
 
     expect(labelText(fragment, fragment.querySelector('input')!)).toBe('Dose:');
   });
@@ -671,7 +671,7 @@ describe('block elements beside an interaction', () => {
       '<div>Dose <input class="cutie-text-entry-interaction"/><ul><li>Note</li></ul></div>'
     );
 
-    annotateInlineInteractions(fragment, testIdGenerator);
+    labelInlineInteractions(fragment, testIdGenerator);
 
     expect(labelText(fragment, fragment.querySelector('input')!)).toBe('Dose');
     expect(fragment.querySelector('ul')!.parentElement!.tagName).toBe('DIV');
@@ -682,7 +682,7 @@ describe('block elements beside an interaction', () => {
       'Dose <input class="cutie-text-entry-interaction"/><table><tr><td>Weight</td></tr></table>'
     );
 
-    annotateInlineInteractions(fragment, testIdGenerator);
+    labelInlineInteractions(fragment, testIdGenerator);
 
     expect(labelText(fragment, fragment.querySelector('input')!)).toBe('Dose');
     expect(fragment.querySelector('table')!.parentNode).toBe(fragment);
@@ -693,7 +693,7 @@ describe('block elements beside an interaction', () => {
       '<div>Dose <input class="cutie-text-entry-interaction"/> mg<h2>Next</h2>Rate <input class="cutie-text-entry-interaction"/> per min</div>'
     );
 
-    annotateInlineInteractions(fragment, testIdGenerator);
+    labelInlineInteractions(fragment, testIdGenerator);
 
     const [first, second] = Array.from(fragment.querySelectorAll('input'));
     expect(labelText(fragment, first!)).toBe('Dose mg');
@@ -705,7 +705,7 @@ describe('block elements beside an interaction', () => {
       'Dose <input class="cutie-text-entry-interaction"/> mg<p>Aside</p>Rate <input class="cutie-text-entry-interaction"/> per min'
     );
 
-    annotateInlineInteractions(fragment, testIdGenerator);
+    labelInlineInteractions(fragment, testIdGenerator);
 
     const [first, second] = Array.from(fragment.querySelectorAll('input'));
     expect(labelText(fragment, first!)).toBe('Dose mg');
@@ -717,7 +717,7 @@ describe('block elements beside an interaction', () => {
       '<div><video src="clip.mp4">Fallback text</video> Rate <input class="cutie-text-entry-interaction"/></div>'
     );
 
-    annotateInlineInteractions(fragment, testIdGenerator);
+    labelInlineInteractions(fragment, testIdGenerator);
 
     expect(labelText(fragment, fragment.querySelector('input')!)).toBe('Rate');
     expect(fragment.querySelector('video')!.parentElement!.tagName).toBe('DIV');
@@ -739,7 +739,7 @@ describe('interactions in table cells', () => {
 
   function annotateTable(html: string): DocumentFragment {
     const fragment = fragmentFromHtml(html);
-    annotateInlineInteractions(fragment, testIdGenerator);
+    labelInlineInteractions(fragment, testIdGenerator);
     return fragment;
   }
 

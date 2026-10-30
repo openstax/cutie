@@ -71,7 +71,7 @@ ${variants.map(v => responseDecl(v.rid)).join('')}
 ${variants.map(v => buildBowtie(v.rid, v.cls, v.label)).join('\n    <hr/>\n')}
   </qti-item-body>
 
-  <qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>
+  <qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct.xml"/>
 </qti-assessment-item>`;
 
 export const interactionTypes: string[] = ['match'];

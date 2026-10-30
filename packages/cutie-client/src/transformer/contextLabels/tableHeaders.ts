@@ -1,8 +1,8 @@
 /**
- * Table Header Label
+ * Table Headers
  *
- * Finds the header cells for the table cell an inline interaction sits in, so
- * an interaction with no text of its own can be labelled by its row and column
+ * Finds the header cells for the table cell an interaction sits in, so an
+ * interaction with no label of its own can be labelled by its row and column
  * headers. QTI v3 table cells (TDH) carry the HTML `headers` and `scope`
  * attributes this relies on.
  *
@@ -86,4 +86,19 @@ export function findTableHeaders(interaction: Element): Element[] {
   if (rowIndex === -1) return [];
 
   return [...rowHeaders(row, columnIndex), ...columnHeaders(rows, rowIndex, columnIndex)];
+}
+
+/**
+ * Labels `element` with aria-labelledby referencing the headers of the table
+ * cell it's in, giving those headers IDs where they have none. Returns false,
+ * leaving `element` unchanged, when there are no headers to label it with.
+ */
+export function labelByTableHeaders(element: Element, generateId: () => string): boolean {
+  const headers = findTableHeaders(element);
+  if (headers.length === 0) return false;
+  for (const header of headers) {
+    if (!header.id) header.id = generateId();
+  }
+  element.setAttribute('aria-labelledby', headers.map((header) => header.id).join(' '));
+  return true;
 }

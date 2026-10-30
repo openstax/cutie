@@ -13,8 +13,9 @@ import { matchSerializers } from '../interactions/match/index.js';
 import { textEntrySerializers } from '../interactions/textEntry/index.js';
 import { elementNeedsSpacers } from '../plugins/withQtiInteractions.js';
 import type { DocumentMetadata, ElementConfig, ResponseProcessingConfig, ResponseProcessingMode, SerializationResult, SlateElement, SlateText, TextAlign, ValidationError } from '../types.js';
+import { applyMaximumScore } from '../utils/maximumScore.js';
 import { isPlainParagraph } from '../utils/paragraph.js';
-import { generateResponseProcessingXml } from '../utils/responseProcessingGenerator.js';
+import { type GeneratedResponseProcessing, generateResponseProcessingXml } from '../utils/responseProcessingGenerator.js';
 import { formatXmlDom } from './formatXmlDom.js';
 import { domToXmlNode, type XmlNode, xmlNodeToDom } from './xmlNode.js';
 import { createXmlDocument, createXmlElement } from './xmlUtils.js';
@@ -24,7 +25,7 @@ const QTI_NAMESPACE = 'http://www.imsglobal.org/xsd/imsqtiasi_v3p0';
 /**
  * Internal result type that includes response declarations and processing config
  */
-interface InternalSerializationResult extends SerializationResult {
+interface InternalSerializationResult extends Omit<SerializationResult, 'calculatedMaximumScore'> {
   responseDeclarations: Map<string, XmlNode>;
   outcomeDeclarations: Map<string, XmlNode>;
   responseProcessingConfig?: ResponseProcessingConfig;
@@ -728,6 +729,8 @@ function updateResponseDeclarations(
  * previous save couldn't be undone.
  *
  * - SCORE follows the scoring mode (see applyScoringMode)
+ * - MAXSCORE and SCORE's normal-maximum declare the maximum score (see
+ *   applyMaximumScore)
  * - FEEDBACK is declared when feedback elements are used, and dropped when they
  *   aren't unless it has a default value (custom mode keeps it as loaded)
  * - intermediate score variables generated for sumScores replace loaded ones
@@ -738,6 +741,8 @@ function updateResponseDeclarations(
  * @param config - The response processing config
  * @param feedbackIdentifiersUsed - Feedback identifiers used by feedback elements
  * @param generated - Intermediate score variables generated for sumScores mode
+ * @param declaredMaximumScore - The maximum score generated response
+ *   processing declares, for the modes that manage it
  * @param doc - The XML document
  */
 function updateOutcomeDeclarations(
@@ -746,6 +751,7 @@ function updateOutcomeDeclarations(
   config: ResponseProcessingConfig | undefined,
   feedbackIdentifiersUsed: Set<string>,
   generated: Map<string, XmlNode>,
+  declaredMaximumScore: GeneratedResponseProcessing['declaredMaximumScore'],
   doc: Document
 ): void {
   const existing = Array.from(assessmentItem.querySelectorAll('qti-outcome-declaration'));
@@ -763,9 +769,7 @@ function updateOutcomeDeclarations(
     const identifier = node.attributes['identifier'];
     const declaration = xmlNodeToDom(generated.get(identifier) ?? node, doc);
 
-    if (identifier === 'SCORE') {
-      applyScoringMode(declaration, mode, doc);
-    } else if (identifier === 'FEEDBACK' && manageFeedback) {
+    if (identifier === 'FEEDBACK' && manageFeedback) {
       if (feedbackUsed) {
         // Cardinality "multiple" for the accumulation pattern we generate
         declaration.setAttribute('cardinality', 'multiple');
@@ -790,9 +794,14 @@ function updateOutcomeDeclarations(
     value.textContent = '0';
     defaultValue.appendChild(value);
     score.appendChild(defaultValue);
-    applyScoringMode(score, mode, doc);
     declarations.unshift(score);
   }
+
+  const score = declarations.find((declaration) => declaration.getAttribute('identifier') === 'SCORE');
+  if (score) {
+    applyScoringMode(score, mode, doc);
+  }
+  applyMaximumScore(declarations, mode, declaredMaximumScore, doc);
 
   if (!declared.has('FEEDBACK') && manageFeedback && feedbackUsed) {
     const feedback = createXmlElement(doc, 'qti-outcome-declaration');
@@ -817,9 +826,8 @@ function updateOutcomeDeclarations(
 /**
  * Set a SCORE declaration (as loaded) up for the scoring mode.
  *
- * - manual: external-scored="human", with a normal-maximum (1.0 if none) so
- *   delivery knows the points available, and no default value so it has no
- *   score until graded
+ * - manual: external-scored="human", and no default value, since a person sets
+ *   it when grading (its points are declared by applyMaximumScore)
  * - allCorrect/sumScores: generated response processing sets SCORE, so a SCORE
  *   loaded as externally scored loses external-scored and the normal-maximum
  *   that described the external points, and gets a default value of 0
@@ -832,9 +840,6 @@ function applyScoringMode(
 ): void {
   if (mode === 'manual') {
     score.setAttribute('external-scored', 'human');
-    if (!score.hasAttribute('normal-maximum')) {
-      score.setAttribute('normal-maximum', '1.0');
-    }
     score.querySelector('qti-default-value')?.remove();
   } else if ((mode === 'allCorrect' || mode === 'sumScores') && score.hasAttribute('external-scored')) {
     score.removeAttribute('external-scored');
@@ -851,6 +856,8 @@ function applyScoringMode(
 
 /**
  * Update or replace the response processing element in the assessment item
+ *
+ * @returns What was generated, or undefined without a config
  */
 function updateResponseProcessing(
   assessmentItem: Element,
@@ -861,7 +868,7 @@ function updateResponseProcessing(
   feedbackIdentifiersUsed: Set<string>,
   responseConfigs: Map<string, ElementConfig>,
   doc: Document
-): void {
+): GeneratedResponseProcessing | undefined {
   // Remove existing response processing
   const existingRP = assessmentItem.querySelector('qti-response-processing');
   if (existingRP) {
@@ -870,7 +877,7 @@ function updateResponseProcessing(
 
   // Generate new response processing if we have a config
   if (config) {
-    const newRP = generateResponseProcessingXml(
+    const generated = generateResponseProcessingXml(
       config,
       responseIdentifiers,
       responseDeclarations,
@@ -880,10 +887,12 @@ function updateResponseProcessing(
       responseConfigs
     );
 
-    if (newRP) {
-      insertAssessmentItemChild(assessmentItem, newRP);
+    if (generated.responseProcessing) {
+      insertAssessmentItemChild(assessmentItem, generated.responseProcessing);
     }
+    return generated;
   }
+  return undefined;
 }
 
 /**
@@ -963,6 +972,7 @@ export function serializeSlateToQti(
     return {
       xml: originalQtiXml,
       responseIdentifiers: [],
+      calculatedMaximumScore: null,
       errors: [{
         type: 'invalid-xml',
         message: 'Invalid QTI XML structure - no qti-assessment-item found',
@@ -976,6 +986,7 @@ export function serializeSlateToQti(
     return {
       xml: originalQtiXml,
       responseIdentifiers: [],
+      calculatedMaximumScore: null,
       errors: [{
         type: 'invalid-xml',
         message: 'Invalid QTI XML structure - no qti-item-body found',
@@ -989,9 +1000,20 @@ export function serializeSlateToQti(
   // Update response declarations using collected data from serialization
   updateResponseDeclarations(assessmentItem, itemBodyResult.responseDeclarations, doc);
 
+  // Parse the new item-body (before response processing, which infers the
+  // maximum score from the interactions)
+  const newItemBodyDoc = parser.parseFromString(itemBodyResult.xml, 'application/xml');
+  const newItemBody = newItemBodyDoc.documentElement;
+
+  // Replace the old item-body with the new one
+  const imported = doc.importNode(newItemBody, true);
+  // Remove xmlns attribute - it's inherited from the parent qti-assessment-item
+  imported.removeAttribute('xmlns');
+  assessmentItem.replaceChild(imported, oldItemBody);
+
   // Update response processing based on the mode
   // This may populate outcomeDeclarations with intermediate score variables
-  updateResponseProcessing(
+  const generated = updateResponseProcessing(
     assessmentItem,
     itemBodyResult.responseProcessingConfig,
     itemBodyResult.responseIdentifiers,
@@ -1009,21 +1031,12 @@ export function serializeSlateToQti(
     itemBodyResult.responseProcessingConfig,
     itemBodyResult.feedbackIdentifiersUsed,
     itemBodyResult.outcomeDeclarations,
+    generated?.declaredMaximumScore,
     doc
   );
 
   // Update modal feedback elements (inserted outside qti-item-body, before response-processing)
   updateModalFeedback(assessmentItem, itemBodyResult.modalFeedbackElements, doc);
-
-  // Parse the new item-body
-  const newItemBodyDoc = parser.parseFromString(itemBodyResult.xml, 'application/xml');
-  const newItemBody = newItemBodyDoc.documentElement;
-
-  // Replace the old item-body with the new one
-  const imported = doc.importNode(newItemBody, true);
-  // Remove xmlns attribute - it's inherited from the parent qti-assessment-item
-  imported.removeAttribute('xmlns');
-  assessmentItem.replaceChild(imported, oldItemBody);
 
   // Pretty-print the DOM before serializing
   formatXmlDom(doc.documentElement);
@@ -1036,5 +1049,6 @@ export function serializeSlateToQti(
     xml: fullXml,
     responseIdentifiers: itemBodyResult.responseIdentifiers,
     errors: itemBodyResult.errors,
+    calculatedMaximumScore: generated?.calculatedMaximumScore ?? null,
   };
 }

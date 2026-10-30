@@ -3,7 +3,7 @@ import { beginAttempt, submitResponse } from '@openstax/cutie-core';
 import { createQtiEditor } from '@openstax/cutie-editor/editor/createQtiEditor';
 import { serializeSlateToQti } from '@openstax/cutie-editor/serialization/slateToXml';
 import { parseXmlToSlate } from '@openstax/cutie-editor/serialization/xmlToSlate';
-import { classifyResponseProcessing } from '@openstax/cutie-editor/utils/responseProcessingClassifier';
+import type { DocumentMetadata } from '@openstax/cutie-editor/types';
 import { describe, expect, it } from 'vitest';
 import type { Sample } from './types.js';
 import { samples } from './index.js';
@@ -24,8 +24,10 @@ const incorrectSubmissions: Record<string, Submission> = {
   formula: { RESPONSE: '2x+3' },
   'nclex-select-all': { RESPONSE: ['choiceD', 'choiceE'] },
   'nclex-select-n': { RESPONSE: ['choiceD', 'choiceE', 'choiceF'] },
+  'nclex-grouping': { RESPONSE: ['choiceB'], RESPONSE_2: ['choiceC'], RESPONSE_3: ['choiceB', 'choiceC'] },
   'nclex-drop-down-cloze': { RESPONSE: 'giveInsulin', RESPONSE_2: 'proteinSnack', RESPONSE_3: 'oneHour' },
   'nclex-drop-down-rationale': { RESPONSE: 'aspiration', RESPONSE_2: 'rightWeakness' },
+  'nclex-drop-down-rationale-triad': { RESPONSE: 'deficientFluid', RESPONSE_2: 'crackles', RESPONSE_3: 'weightGain' },
   'nclex-drop-down-table': { RESPONSE: 'declined', RESPONSE_2: 'noChange', RESPONSE_3: 'improved', RESPONSE_4: 'improved' },
   'nclex-drag-and-drop-cloze': { RESPONSE: ['droplet G1', 'positivePressure G2', 'surgicalMask G3'] },
   'nclex-drag-and-drop-rationale': { RESPONSE: ['bleeding G1', 'whiteCells G2'] },
@@ -38,6 +40,21 @@ const incorrectSubmissions: Record<string, Submission> = {
 const acceptedVariants: Record<string, Submission[]> = {
   'text-entry': [{ RESPONSE: 'Newtons' }, { RESPONSE: 'N' }],
   'text-entry-multiple': [{ RESPONSE: 'Hydrogen', RESPONSE_2: 'OXYGEN' }, { RESPONSE: 'H', RESPONSE_2: 'O' }],
+};
+
+/* responses that earn part of the maximum score */
+const partialCredit: Record<string, { submission: Submission; raw: number }[]> = {
+  /* each group's score is floored at 0 on its own, so a group with more
+   * incorrect than correct selections doesn't take points from the others */
+  'nclex-grouping': [
+    { submission: { RESPONSE: ['choiceA', 'choiceB'], RESPONSE_2: ['choiceA', 'choiceB'], RESPONSE_3: ['choiceB', 'choiceC'] }, raw: 2 },
+    { submission: { RESPONSE: ['choiceA'], RESPONSE_2: ['choiceA', 'choiceC'], RESPONSE_3: ['choiceA'] }, raw: 2 },
+  ],
+  'nclex-drop-down-rationale-triad': [
+    { submission: { RESPONSE: 'excessFluid', RESPONSE_2: 'crackles', RESPONSE_3: 'heartRate' }, raw: 1 },
+    { submission: { RESPONSE: 'excessFluid', RESPONSE_2: 'temperature', RESPONSE_3: 'weightGain' }, raw: 1 },
+    { submission: { RESPONSE: 'excessFluid', RESPONSE_2: 'temperature', RESPONSE_3: 'heartRate' }, raw: 0 },
+  ],
 };
 
 const rejectedVariants: Record<string, Submission[]> = {
@@ -149,7 +166,8 @@ describe.each(samples)('$id sample', (sample) => {
   });
 
   it('uses response processing the editor can manage', () => {
-    expect(classifyResponseProcessing(doc).mode).not.toBe('custom');
+    const [metadata] = parseXmlToSlate(sample.item);
+    expect((metadata as DocumentMetadata).responseProcessing.mode).not.toBe('custom');
   });
 
   it('round-trips through the editor unchanged', () => {
@@ -256,6 +274,11 @@ describe.each(samples)('$id sample', (sample) => {
   it.each(rejectedVariants[sample.id] ?? [])('scores the rejected variant %j as incorrect', async (submission) => {
     const { state } = await submitAndListFeedback(sample, submission);
     expect(state.score?.raw).toBe(0);
+  });
+
+  it.each(partialCredit[sample.id] ?? [])('scores the partly correct response $submission as $raw', async ({ submission, raw }) => {
+    const { state } = await submitAndListFeedback(sample, submission);
+    expect(state.score?.raw).toBe(raw);
   });
 
   it('scores an incorrect response as incorrect', async () => {

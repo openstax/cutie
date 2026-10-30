@@ -6,7 +6,7 @@ examples:
   - Inline Choice (Drop-down)
   - Inline Choice - Per-Drop-down Feedback
   - Inline Choice - Rationale (Dyad)
-  - Inline Choice - Rationale (Triad)
+  - "Drop-Down: Rationale (Triad)"
 ---
 
 # Inline Choice Interaction
@@ -124,32 +124,30 @@ The correct answers are: event = **warm front**, reading = **a rising temperatur
 
 ## Rationale Scoring: Cause Gate & Partial Credit (Triad)
 
-**Setup:** Load "Inline Choice - Rationale (Triad)" from the Supported Examples group. This is a
+**Setup:** Load "Drop-Down: Rationale (Triad)" from the NCLEX Samples group. This is a
 Drop-down: Rationale triad (1 cause + 2 effects) worth 2 points: the cause must be correct
 for any credit, with partial credit (1 point) for a single correct effect.
 
-The correct answers are: event = **cold front**, reading 1 = **a falling temperature**,
-reading 2 = **gusting winds**.
+The correct answers are: cause = **excess fluid volume**, first finding = **crackles in both
+lung bases**, second finding = **a weight gain of 2.3 kg (5 lb) in 2 days**.
 
 1. Observe the rendered item.
-   - [ ] A sentence displays three dropdowns: an event, then two readings
-   - [ ] The event dropdown shows placeholder "Choose event…"
-   - [ ] Both reading dropdowns show placeholder "Choose reading…"
+   - [ ] A sentence displays three dropdowns: a cause, then two findings
    - [ ] All three dropdowns show a required indicator (`*`)
 
-2. Select **cold front**, **a falling temperature**, and **gusting winds**, then click "Submit".
+2. Select **excess fluid volume**, **crackles in both lung bases**, and **a weight gain of
+   2.3 kg (5 lb) in 2 days**, then click "Submit".
    - [ ] Score displayed is **2 / 2**
-   - [ ] Correct-style feedback appears for the event and both readings
+   - [ ] The worked solution appears below the sentence
 
-3. Reset. Select **cold front** and **a falling temperature**, but the wrong second reading
-   (e.g. calm winds), then click "Submit".
+3. Reset. Select **excess fluid volume** and **crackles in both lung bases**, but the wrong
+   second finding (e.g. a regular heart rate of 82/min), then click "Submit".
    - [ ] Score displayed is **1 / 2** (partial credit)
-   - [ ] Reading 2 shows incorrect-style feedback; event and reading 1 show correct
 
-4. Reset. Select the wrong event (e.g. warm front) but both correct readings, then click
-   "Submit".
-   - [ ] Score displayed is **0 / 2** (cause gate — no credit without the correct event)
-   - [ ] Event shows incorrect-style feedback
+4. Reset. Select the wrong cause (e.g. deficient fluid volume) but both correct findings, then
+   click "Submit".
+   - [ ] Score displayed is **0 / 2** (cause gate — no credit without the correct cause)
+   - [ ] The worked solution appears below the sentence
 
 5. After any submission.
    - [ ] All three dropdowns become disabled

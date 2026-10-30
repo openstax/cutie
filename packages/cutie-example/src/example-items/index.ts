@@ -39,7 +39,6 @@ import * as inlineFeedback from './inline-feedback.js';
 import * as blockFeedback from './block-feedback.js';
 import * as choiceMultipleStandard from './standard-choice-multiple-wrong-choice-feedback.js';
 import * as inlineChoiceRationaleDyad from './standard-inline-choice-rationale-dyad.js';
-import * as inlineChoiceRationaleTriad from './standard-inline-choice-rationale-triad.js';
 import * as gapMatchRationaleDyad from './standard-gap-match-rationale-dyad.js';
 import * as gapMatchRationaleTriad from './standard-gap-match-rationale-triad.js';
 import * as textEntryPartialStandard from './standard-text-entry-partial.js';
@@ -136,7 +135,6 @@ export const standardExamples = [
   textEntryMulti,
   inlineChoiceMulti,
   inlineChoiceRationaleDyad,
-  inlineChoiceRationaleTriad,
   gapMatchRationaleDyad,
   gapMatchRationaleTriad,
   textEntryPartialStandard,

@@ -1,5 +1,5 @@
 import type { XmlNode } from '../serialization/xmlNode.js';
-import { findChild, findChildren } from '../serialization/xmlNode.js';
+import { domToXmlNode, findChild, findChildren } from '../serialization/xmlNode.js';
 
 // Re-export for convenience
 export { findChild, findChildren } from '../serialization/xmlNode.js';
@@ -237,4 +237,22 @@ export function updateMapping(
   result = updateMappingMetadata(result, metadata);
   result = setMapEntries(result, entries);
   return result;
+}
+
+/**
+ * A response's declaration in an item document, as delivery reads it
+ */
+export function getResponseDeclaration(doc: Document, identifier: string): XmlNode | undefined {
+  const declaration = Array.from(doc.getElementsByTagName('qti-response-declaration'))
+    .find((element) => element.getAttribute('identifier') === identifier);
+  return declaration ? domToXmlNode(declaration) : undefined;
+}
+
+/**
+ * Whether a response's declaration in an item document has a qti-mapping, as
+ * delivery reads it
+ */
+export function isMappedResponse(doc: Document, identifier: string): boolean {
+  const declaration = getResponseDeclaration(doc, identifier);
+  return declaration !== undefined && hasMapping(declaration);
 }

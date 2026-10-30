@@ -1,8 +1,8 @@
 // spell-checker: ignore Roselli
 /**
- * Inline Interaction Annotator
+ * Inline Interaction Labels
  *
- * Annotates inline interactions (textEntryInteraction, inlineChoiceInteraction)
+ * Labels inline interactions (textEntryInteraction, inlineChoiceInteraction)
  * with aria-labelledby referencing spans wrapped around surrounding visible text.
  * An interaction with no surrounding text is labelled by the headers of the
  * table cell it's in, if any. This provides accessible labels per WCAG 4.1.2
@@ -16,7 +16,8 @@
  * - WCAG 3.3.2 Labels or Instructions: https://www.w3.org/WAI/WCAG21/Understanding/labels-or-instructions.html
  */
 
-import { findTableHeaders } from './tableHeaderLabel.js';
+import { defaultGenerateId } from './ids.js';
+import { labelByTableHeaders } from './tableHeaders.js';
 
 const INTERACTION_SELECTOR =
   'input.cutie-text-entry-interaction, select.cutie-inline-choice-interaction';
@@ -49,14 +50,6 @@ const INLINE_TAGS = new Set([
 ]);
 
 const ATOMIC_TAGS = new Set(['math', 'img', 'svg', 'picture', 'canvas', 'iframe']);
-
-/** Module-level counter for default ID generation */
-let idCounter = 0;
-
-/** Default ID generator for production use */
-export function defaultGenerateId(): string {
-  return `cutie-ctx-${++idCounter}`;
-}
 
 function isInteraction(node: Node): node is HTMLElement {
   if (node.nodeType !== Node.ELEMENT_NODE) return false;
@@ -440,7 +433,7 @@ function unwrapSpan(span: HTMLElement): void {
  * referencing spans wrapped around surrounding text. Mutates fragment in place.
  * Returns true if annotations were made, false if no interactions found.
  */
-export function annotateInlineInteractions(
+export function labelInlineInteractions(
   fragment: DocumentFragment,
   generateId: () => string = defaultGenerateId
 ): boolean {
@@ -512,12 +505,7 @@ export function annotateInlineInteractions(
       }
 
       // No surrounding text: label from the table headers of the cell it's in
-      const headers = findTableHeaders(el);
-      if (headers.length > 0) {
-        for (const header of headers) {
-          if (!header.id) header.id = generateId();
-        }
-        el.setAttribute('aria-labelledby', headers.map((header) => header.id).join(' '));
+      if (labelByTableHeaders(el, generateId)) {
         annotated = true;
       } else {
         // Fallback: no surrounding text or headers — no cutie-sr-only spans created,

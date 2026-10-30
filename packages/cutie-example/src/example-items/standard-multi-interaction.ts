@@ -185,13 +185,13 @@ adaptive="false" time-dependent="false" xml:lang="en">
       </qti-response-else>
     </qti-response-condition>
 
-    <!-- Feedback for RESPONSE2: mapped response uses qti-gt(qti-map-response, 0) -->
+    <!-- Feedback for RESPONSE2: mapped response is correct when it scores its maximum mapped value -->
     <qti-response-condition>
       <qti-response-if>
-        <qti-gt>
+        <qti-equal>
           <qti-map-response identifier="RESPONSE2"/>
-          <qti-base-value base-type="float">0</qti-base-value>
-        </qti-gt>
+          <qti-base-value base-type="float">1</qti-base-value>
+        </qti-equal>
         <qti-set-outcome-value identifier="FEEDBACK">
           <qti-multiple>
             <qti-variable identifier="FEEDBACK"/>

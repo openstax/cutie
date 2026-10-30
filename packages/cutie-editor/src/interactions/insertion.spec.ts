@@ -37,4 +37,27 @@ describe('interaction insertion', () => {
     const interaction = findInteraction(editor, type) as Element & { attributes: Record<string, unknown> };
     expect('shuffle' in interaction.attributes).toBe(false);
   });
+
+  it('does not reuse the response identifier of an interaction it passes through', () => {
+    const editor = createTestEditor();
+    editor.children = [
+      {
+        type: 'qti-unknown',
+        originalTagName: 'qti-associate-interaction',
+        attributes: { 'response-identifier': 'RESPONSE' },
+        children: [{ text: '' }],
+        isVoid: true,
+        responseDeclarations: {
+          RESPONSE: { tagName: 'qti-response-declaration', attributes: { identifier: 'RESPONSE' }, children: [] },
+        },
+      },
+      { type: 'paragraph', children: [{ text: '' }], attributes: {} },
+    ] as Descendant[];
+    editor.selection = { anchor: { path: [1, 0], offset: 0 }, focus: { path: [1, 0], offset: 0 } };
+
+    insertChoiceInteraction(editor);
+
+    const choice = findInteraction(editor, 'qti-choice-interaction') as Element & { attributes: Record<string, string> };
+    expect(choice.attributes['response-identifier']).not.toBe('RESPONSE');
+  });
 });

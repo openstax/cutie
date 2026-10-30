@@ -3,6 +3,30 @@ import { describe, expect, test } from 'vitest';
 import { buildScore, extractStandardOutcomes } from './scoreUtils.js';
 
 describe('buildScore', () => {
+  test('rounds away floating point noise, so a full score scales to 1', () => {
+    const score = buildScore(0.1 + 0.2, 0.3);
+
+    expect(score.raw).toBe(0.3);
+    expect(score.scaled).toBe(1);
+  });
+
+  test.each([
+    ['floating point noise', 0.1 + 0.2],
+    ['a repeating decimal', 1 / 3],
+  ])('gives a full score with %s equal raw and max, scaled to 1', (_name, value) => {
+    const score = buildScore(value, value);
+
+    expect(score.raw).toBe(score.max);
+    expect(score.scaled).toBe(1);
+  });
+
+  test('keeps a full score smaller than the rounding of floating point noise', () => {
+    const score = buildScore(1e-10, 1e-10);
+
+    expect(score.raw).toBe(1e-10);
+    expect(score.scaled).toBe(1);
+  });
+
   test('builds score with correct scaled value', () => {
     const score = buildScore(5, 10);
 
@@ -133,6 +157,13 @@ describe('extractStandardOutcomes', () => {
           </qti-mapping>
         </qti-response-declaration>
         <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/>
+        <qti-item-body>
+          <qti-choice-interaction response-identifier="RESPONSE" max-choices="0">
+            <qti-simple-choice identifier="A">A</qti-simple-choice>
+            <qti-simple-choice identifier="B">B</qti-simple-choice>
+            <qti-simple-choice identifier="C">C</qti-simple-choice>
+          </qti-choice-interaction>
+        </qti-item-body>
       </qti-assessment-item>`;
 
     const doc = parser.parseFromString(xml, 'application/xml');

@@ -12,8 +12,9 @@ import { inlineChoiceParsers } from '../interactions/inlineChoice/index.js';
 import { matchParsers } from '../interactions/match/index.js';
 import { textEntryParsers } from '../interactions/textEntry/index.js';
 import { isElementInline } from '../plugins/withQtiInteractions.js';
-import type { DocumentMetadata, ElementAttributes, SlateElement, SlateText, TextAlign } from '../types.js';
+import type { DocumentMetadata, ElementAttributes, ResponseProcessingConfig, SlateElement, SlateText, TextAlign } from '../types.js';
 import { classifyResponseProcessing, getScoredResponseIdentifiers } from '../utils/responseProcessingClassifier.js';
+import { serializeSlateToQti } from './slateToXml.js';
 import { domToXmlNode, type XmlNode } from './xmlNode.js';
 import { isBlockTag, isOpaqueTag, isQtiElement, isTextNode, isVoidTag, normalizeTagName, parseXml, serializeElement } from './xmlUtils.js';
 
@@ -114,17 +115,6 @@ export function parseXmlToSlate(xml: string): Descendant[] {
     scoredResponseIdentifiers: getScoredResponseIdentifiers(doc),
   };
 
-  // Classify response processing to determine mode
-  const responseProcessing = classifyResponseProcessing(doc);
-
-  // Create document metadata node
-  const metadataNode: DocumentMetadata = {
-    type: 'document-metadata',
-    children: [{ text: '' }],
-    responseProcessing,
-    outcomeDeclarations: Array.from(doc.querySelectorAll('qti-outcome-declaration')).map(domToXmlNode),
-  };
-
   // Convert children of qti-item-body to Slate nodes
   const contentNodes = convertNodesToSlate(Array.from(itemBody.childNodes), true, context);
 
@@ -149,8 +139,25 @@ export function parseXmlToSlate(xml: string): Descendant[] {
     }
   }
 
-  // Return metadata node at [0] followed by content nodes and modal feedback
-  return [metadataNode, ...contentNodes, ...modalFeedbackNodes];
+  const outcomeDeclarations = Array.from(doc.querySelectorAll('qti-outcome-declaration')).map(domToXmlNode);
+  const withResponseProcessing = (responseProcessing: ResponseProcessingConfig): Descendant[] => {
+    const metadataNode: DocumentMetadata = {
+      type: 'document-metadata',
+      children: [{ text: '' }],
+      responseProcessing,
+      outcomeDeclarations,
+    };
+    return [metadataNode, ...contentNodes, ...modalFeedbackNodes];
+  };
+
+  // Classify response processing by saving the item in each managed mode
+  const responseProcessing = classifyResponseProcessing(
+    doc,
+    (config) => serializeSlateToQti(withResponseProcessing(config), xml)
+  );
+
+  // Metadata node at [0] followed by content nodes and modal feedback
+  return withResponseProcessing(responseProcessing);
 }
 
 /**

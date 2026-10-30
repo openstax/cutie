@@ -12,7 +12,7 @@ import { feedbackInlinePropertiesPanels } from '../elements/feedback/feedbackInl
 import { feedbackBlockPropertiesPanels } from '../elements/feedback/feedbackBlock/index.js';
 import { modalFeedbackPropertiesPanels } from '../elements/feedback/modalFeedback/index.js';
 import { ResponseProcessingPanel } from './ResponseProcessingPanel.js';
-import type { SlateElement, ElementAttributes, XmlNode, ResponseProcessingConfig, ResponseProcessingMode } from '../types.js';
+import type { SlateElement, ElementAttributes, XmlNode, ResponseProcessingConfig, ResponseProcessingMode, ResponseProcessingSettings } from '../types.js';
 
 interface PropertiesPanelProps {
   selectedElement: SlateElement | null;
@@ -22,6 +22,8 @@ interface PropertiesPanelProps {
   interactionCount?: number;
   hasFeedbackElements?: boolean;
   onResponseProcessingModeChange?: (mode: ResponseProcessingMode) => void;
+  onResponseProcessingSettingsChange?: (settings: ResponseProcessingSettings) => void;
+  calculatedMaximumScore?: number | null;
 }
 
 // Single contact point per interaction: spread all properties panel objects
@@ -51,23 +53,29 @@ export function PropertiesPanel({
   interactionCount = 0,
   hasFeedbackElements = false,
   onResponseProcessingModeChange,
+  onResponseProcessingSettingsChange,
+  calculatedMaximumScore = null,
 }: PropertiesPanelProps): React.JSX.Element {
   useStyle('properties-panel', PROPERTIES_PANEL_STYLES);
   useStyle('properties-panel-forms', PROPERTIES_PANEL_FORM_STYLES);
 
+  const responseProcessingPanel = responseProcessingConfig && onResponseProcessingModeChange && (
+    <div className="properties-panel">
+      <ResponseProcessingPanel
+        config={responseProcessingConfig}
+        interactionCount={interactionCount}
+        hasFeedbackElements={hasFeedbackElements}
+        onModeChange={onResponseProcessingModeChange}
+        onSettingsChange={onResponseProcessingSettingsChange}
+        calculatedMaximumScore={calculatedMaximumScore}
+      />
+    </div>
+  );
+
   if (!selectedElement || !selectedPath) {
     // Show response processing panel in empty state
-    if (responseProcessingConfig && onResponseProcessingModeChange) {
-      return (
-        <div className="properties-panel">
-          <ResponseProcessingPanel
-            config={responseProcessingConfig}
-            interactionCount={interactionCount}
-            hasFeedbackElements={hasFeedbackElements}
-            onModeChange={onResponseProcessingModeChange}
-          />
-        </div>
-      );
+    if (responseProcessingPanel) {
+      return responseProcessingPanel;
     }
 
     return (
@@ -100,17 +108,8 @@ export function PropertiesPanel({
   }
 
   // No specific panel for this element, show response processing
-  if (responseProcessingConfig && onResponseProcessingModeChange) {
-    return (
-      <div className="properties-panel">
-        <ResponseProcessingPanel
-          config={responseProcessingConfig}
-          interactionCount={interactionCount}
-          hasFeedbackElements={hasFeedbackElements}
-          onModeChange={onResponseProcessingModeChange}
-        />
-      </div>
-    );
+  if (responseProcessingPanel) {
+    return responseProcessingPanel;
   }
 
   return (
