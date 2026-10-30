@@ -62,16 +62,23 @@ function splitSections(element: Element): TabSection[] | null {
 
   for (const node of Array.from(element.childNodes)) {
     if (isBlank(node)) continue;
-    if (node.nodeType !== Node.ELEMENT_NODE || (node as Element).localName.toLowerCase() !== 'section') {
+    if (node.nodeType !== Node.ELEMENT_NODE ||
+        (node as Element).localName.toLowerCase() !== 'section') {
       return null;
     }
 
     const nodes = Array.from(node.childNodes);
     const start = nodes.findIndex((child) => !isBlank(child));
     const heading = nodes[start];
-    if (!heading || heading.nodeType !== Node.ELEMENT_NODE || !isHeading(heading as Element)) return null;
+    if (!heading || heading.nodeType !== Node.ELEMENT_NODE || !isHeading(heading as Element)) {
+      return null;
+    }
 
-    sections.push({ section: node as Element, heading: heading as Element, content: nodes.slice(start + 1) });
+    sections.push({
+      section: node as Element,
+      heading: heading as Element,
+      content: nodes.slice(start + 1)
+    });
   }
 
   return sections.length > 0 ? sections : null;
@@ -122,7 +129,11 @@ class TabContainerHandler implements ElementHandler {
       // presentation role in tabs mode, putting a heading in the tablist.
       const heading = document.createElement(section.heading.localName.toLowerCase());
       heading.className = 'cutie-tab-heading';
-      copyAttributes(section.section, heading, (name) => SECTION_TEXT_ATTRIBUTES.includes(name));
+      copyAttributes(
+        section.section,
+        heading,
+        (name) => SECTION_TEXT_ATTRIBUTES.includes(name)
+      );
       copyAttributes(section.heading, heading, (name) => !isAria(name));
       const button = document.createElement('button');
       button.type = 'button';
@@ -156,18 +167,26 @@ class TabContainerHandler implements ElementHandler {
       return { heading, button, panel };
     });
 
-    const tabs = new Map(sections.map((section) => [section.button.id, section.button as HTMLElement]));
-    const indexOf = (button: HTMLElement): number => sections.findIndex((s) => s.button === button);
+    const tabs = new Map(
+      sections.map((section) => [section.button.id, section.button as HTMLElement])
+    );
+    const indexOf = (
+      button: HTMLElement): number => sections.findIndex((s) => s.button === button
+    );
     const stateKey = `tab-container:${Array.from(
       element.ownerDocument.querySelectorAll(TAB_CONTAINER_SELECTOR)
     ).indexOf(element)}`;
 
     const saved = context.state?.get(stateKey);
-    const isSection = (i: unknown): i is number => Number.isInteger(i) && (i as number) >= 0 && (i as number) < sections.length;
+    const isSection = (i: unknown): i is number =>
+      Number.isInteger(i) &&
+      (i as number) >= 0 &&
+      (i as number) < sections.length;
     let open = Array.isArray(saved) ? saved.filter(isSection) : [0];
 
     // jsdom and other environments without matchMedia get tabs
-    const media = typeof window.matchMedia === 'function' ? window.matchMedia(NARROW_MEDIA_QUERY) : null;
+    const media = typeof window.matchMedia === 'function' ?
+      window.matchMedia(NARROW_MEDIA_QUERY) : null;
     let mode: Mode = media?.matches ? 'accordion' : 'tabs';
 
     // Sets roles and places panels for the current mode. Runs only on the first
