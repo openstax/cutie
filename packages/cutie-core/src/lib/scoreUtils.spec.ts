@@ -10,6 +10,13 @@ describe('buildScore', () => {
     expect(score.scaled).toBe(1);
   });
 
+  test('keeps a full score smaller than the rounding of floating point noise', () => {
+    const score = buildScore(1e-10, 1e-10);
+
+    expect(score.raw).toBe(1e-10);
+    expect(score.scaled).toBe(1);
+  });
+
   test('builds score with correct scaled value', () => {
     const score = buildScore(5, 10);
 

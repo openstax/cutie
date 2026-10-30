@@ -933,13 +933,15 @@ describe('XML Round-trip Tests', () => {
       expect(item.querySelector('qti-response-processing qti-min')).toBeNull();
     });
 
-    it('should keep a MAXSCORE of 0 as the maximum score', () => {
-      const item = roundTrip(choiceItem(
+    it('should keep a MAXSCORE that differs from the calculated maximum without capping the score', () => {
+      const input = choiceItem(
         `<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/>${maxScoreDeclaration('0')}`
-      ));
+      );
+      const item = roundTrip(input);
 
+      expect((parseXmlToSlate(input)[0] as DocumentMetadata).responseProcessing?.mode).toBe('custom');
       expect(declaration(item, 'MAXSCORE')?.querySelector('qti-value')?.textContent).toBe('0');
-      expect(item.querySelector('qti-response-processing qti-min > qti-base-value')?.textContent).toBe('0');
+      expect(item.querySelector('qti-response-processing qti-min')).toBeNull();
     });
 
     it('should remove a SCORE normal-maximum when the maximum score is 0', () => {

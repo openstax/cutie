@@ -28,6 +28,10 @@ describe('canMappingBeNegative', () => {
     expect(canMappingBeNegative(mappedItem('single', 'lower-bound="0"', '-1'), 'RESPONSE')).toBe(true);
   });
 
+  test('single cardinality with a negative upper-bound', () => {
+    expect(canMappingBeNegative(mappedItem('single', 'upper-bound="-1"', '1'), 'RESPONSE')).toBe(true);
+  });
+
   test('a response without a mapping', () => {
     expect(canMappingBeNegative(mappedItem('single', '', '1'), 'UNMAPPED')).toBe(false);
   });

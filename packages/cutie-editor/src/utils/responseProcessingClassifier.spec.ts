@@ -818,9 +818,9 @@ describe('responseProcessingClassifier', () => {
           .toEqual({ mode: 'sumScores', scoreOffset: -2 });
       });
 
-      it('should keep a MAXSCORE that differs from inference as the maximum score', () => {
-        expect(classify(withMaxScore('4', offsetSum)))
-          .toEqual({ mode: 'sumScores', scoreOffset: -2, maximumScore: 4 });
+      it('should keep a MAXSCORE that differs from inference without a cap as custom', () => {
+        expect(classify(withMaxScore('4', offsetSum)).mode).toBe('custom');
+        expect(classify(withMaxScore('0.5', floored(offsetSum))).mode).toBe('custom');
       });
 
       it('should accept a MAXSCORE matching the cap', () => {

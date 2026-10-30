@@ -2,11 +2,13 @@ import type { Score } from '../types.js';
 import { deriveMaxScore } from './deriveMaxScore.js';
 
 /**
- * Round a score to remove floating point noise (0.1 + 0.2 is 0.3, not
- * 0.30000000000000004), so scores compare and print as authored
+ * Round a score to 12 significant digits to remove floating point noise (0.1 +
+ * 0.2 is 0.3, not 0.30000000000000004), so scores compare and print as
+ * authored. Significant digits keep small scores, which a fixed number of
+ * decimal places would round away.
  */
 export function roundScore(score: number): number {
-  return Math.round(score * 1e9) / 1e9;
+  return Number(score.toPrecision(12));
 }
 
 /**

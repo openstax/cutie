@@ -369,12 +369,17 @@ export function getMaxAreaMappedValue(areaMapping: AreaMapping, cardinality: str
  * maximum is only known from the upper bound (null without one).
  */
 export function getMaxSelectedAreasMappedValue(areaMapping: AreaMapping, maxPoints: number): number | null {
+  const values = areaMapping.entries.map((entry) => entry.mappedValue);
   if (maxPoints === 0) {
-    return getMaxMapped(areaMapping.entries.map((entry) => entry.mappedValue), areaMapping, 'multiple');
+    return getMaxMapped(values, areaMapping, 'multiple');
   }
 
-  const outsidePoints = areaMapping.defaultValue > 0 ? Array(maxPoints).fill(areaMapping.defaultValue) : [];
-  return sumBestValues([...areaMapping.entries.map((entry) => entry.mappedValue), ...outsidePoints], maxPoints, areaMapping);
+  // Each point goes to the best area left, or outside every area for the default
+  const best = values.filter((value) => value > 0 && value > areaMapping.defaultValue)
+    .sort((a, b) => b - a)
+    .slice(0, maxPoints);
+  const outside = areaMapping.defaultValue > 0 ? (maxPoints - best.length) * areaMapping.defaultValue : 0;
+  return applyMappingBounds(best.reduce((sum, value) => sum + value, outside), areaMapping);
 }
 
 /**
@@ -383,14 +388,14 @@ export function getMaxSelectedAreasMappedValue(areaMapping: AreaMapping, maxPoin
  * stops, or a negative upper-bound. A response without a mapping can't.
  *
  * The spec defines the bounds for mapping a container, so for a single
- * response they aren't relied on: any negative entry or default counts.
+ * response a lower-bound isn't relied on: any negative entry or default counts.
  */
 export function canMappingBeNegative(itemDoc: Document, identifier: string): boolean {
   const mapping = getResponseMapping(itemDoc, identifier) ?? getAreaMapping(itemDoc, identifier);
   if (!mapping) return false;
   const hasNegative = mapping.defaultValue < 0 || mapping.entries.some((entry) => entry.mappedValue < 0);
-  if (getResponseCardinality(itemDoc, identifier) === 'single') return hasNegative;
   if (mapping.upperBound !== null && mapping.upperBound < 0) return true;
+  if (getResponseCardinality(itemDoc, identifier) === 'single') return hasNegative;
   if (mapping.lowerBound !== null && mapping.lowerBound >= 0) return false;
   return hasNegative;
 }

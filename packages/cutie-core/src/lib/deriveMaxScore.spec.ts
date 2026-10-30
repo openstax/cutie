@@ -406,6 +406,30 @@ describe('deriveMaxScore', () => {
       expect(deriveMaxScore(itemDoc, {})).toBe(4);
     });
 
+    test.each([
+      ['2', 5],
+      ['3', 6],
+      ['4294967296', 4294967299],
+    ])('fills points beyond the best areas with a positive default, with max-choices %s', (maxChoices, expected) => {
+      const itemDoc = parseXML(`
+        <qti-assessment-item>
+          <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="point">
+            <qti-area-mapping default-value="1">
+              <qti-area-map-entry shape="circle" coords="100,100,10" mapped-value="2"/>
+              <qti-area-map-entry shape="circle" coords="200,200,10" mapped-value="3"/>
+              <qti-area-map-entry shape="circle" coords="300,300,10" mapped-value="0.5"/>
+            </qti-area-mapping>
+          </qti-response-declaration>
+          <qti-item-body>
+            <qti-select-point-interaction response-identifier="RESPONSE" max-choices="${maxChoices}"/>
+          </qti-item-body>
+          <qti-response-processing template="map_response_point"/>
+        </qti-assessment-item>
+      `);
+
+      expect(deriveMaxScore(itemDoc, {})).toBe(expected);
+    });
+
     test('makes no guess when an area mapping and a mapping are both present', () => {
       const itemDoc = parseXML(`
         <qti-assessment-item>
