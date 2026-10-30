@@ -76,12 +76,12 @@ adaptive="false" time-dependent="false" xml:lang="en">
       </qti-response-else>
     </qti-response-condition>
 
-    <!-- Correct feedback when score is 1 -->
+    <!-- Correct feedback -->
     <qti-response-condition>
       <qti-response-if>
         <qti-match>
-          <qti-variable identifier="SCORE"/>
-          <qti-base-value base-type="float">1</qti-base-value>
+          <qti-variable identifier="RESPONSE"/>
+          <qti-correct identifier="RESPONSE"/>
         </qti-match>
         <qti-set-outcome-value identifier="FEEDBACK">
           <qti-multiple>

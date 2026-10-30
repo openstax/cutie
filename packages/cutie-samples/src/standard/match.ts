@@ -4,7 +4,6 @@ import {
   allOrNothingMatch,
   correctResponse,
   outcomes,
-  pairMappingAlternative,
   responseProcessingOrder,
   shuffle,
   workedSolution,
@@ -27,9 +26,7 @@ sources, or extra targets can act as distractors.
 - ${allOrNothingMatch} The response must contain exactly the correct set of pairs.
 - ${responseProcessingOrder}
 - ${correctResponse}
-- ${outcomes}
-
-${pairMappingAlternative}`;
+- ${outcomes}`;
 
 const item = `<?xml version="1.0" encoding="UTF-8"?>
 <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"

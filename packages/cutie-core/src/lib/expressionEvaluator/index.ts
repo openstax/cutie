@@ -10,6 +10,8 @@ import {
   evaluateDivide,
   evaluateIntegerDivide,
   evaluateIntegerModulus,
+  evaluateMax,
+  evaluateMin,
   evaluatePower,
   evaluateProduct,
   evaluateRound,
@@ -120,6 +122,10 @@ export function evaluateExpression(
       return evaluateRound(element, itemDoc, variables, subEvaluate);
     case 'qti-power':
       return evaluatePower(element, itemDoc, variables, subEvaluate);
+    case 'qti-min':
+      return evaluateMin(element, itemDoc, variables, subEvaluate);
+    case 'qti-max':
+      return evaluateMax(element, itemDoc, variables, subEvaluate);
 
     // Logical operators
     case 'qti-and':

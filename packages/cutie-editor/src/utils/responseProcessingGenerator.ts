@@ -1,7 +1,9 @@
+import { canMappingBeNegative, inferExpressionMaxScore, inferResponseMaxScore } from '@openstax/cutie-core';
 import { xmlNodeToDom } from '../serialization/xmlNode.js';
 import type { ElementConfig, ResponseProcessingConfig, XmlNode } from '../types.js';
 import { ITEM_COMPLETED_FEEDBACK_ID, parseFeedbackIdentifier } from './feedbackIdentifiers.js';
-import { getMaxMappedValue, hasMapping } from './mappingDeclaration.js';
+import { getMaxMappedValue, getResponseDeclaration, isMappedResponse } from './mappingDeclaration.js';
+import { effectiveMaximumScore } from './maximumScore.js';
 
 /**
  * QTI namespace URI
@@ -11,10 +13,29 @@ const QTI_NAMESPACE = 'http://www.imsglobal.org/xsd/imsqtiasi_v3p0';
 /**
  * Standard template URLs
  */
-const TEMPLATES = {
-  matchCorrect: 'https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml',
-  mapResponse: 'https://www.imsglobal.org/question/qti_v3p0/rptemplates/map_response.xml',
+export const TEMPLATES = {
+  matchCorrect: 'https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct.xml',
+  mapResponse: 'https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/map_response.xml',
 } as const;
+
+/**
+ * Generated response processing, with what it tells us about the item's score
+ */
+export interface GeneratedResponseProcessing {
+  /** The generated qti-response-processing element, or null if none is needed */
+  responseProcessing: Element | null;
+  /**
+   * For the modes that manage it, the item's maximum score, declared as MAXSCORE
+   * (value null: not known, so no MAXSCORE). Absent for the other modes, which
+   * leave MAXSCORE as loaded.
+   */
+  declaredMaximumScore?: { value: number | null };
+  /**
+   * For sumScores: the maximum score calculated from the responses, ignoring
+   * any maximum set by the author, or null when it can't be calculated
+   */
+  calculatedMaximumScore?: number | null;
+}
 
 /**
  * Generate response processing XML from mode configuration.
@@ -23,9 +44,10 @@ const TEMPLATES = {
  * @param responseIdentifiers - List of response identifiers in the item
  * @param responseDeclarations - Map of response identifier to XmlNode declarations
  * @param outcomeDeclarations - Map to populate with intermediate score outcome declarations
- * @param doc - The XML document to create elements in
+ * @param doc - The item document, with its response declarations and item body
+ *   up to date (the maximum score is inferred from them)
  * @param feedbackIdentifiersUsed - Set of feedback identifiers used by feedback elements
- * @returns The generated qti-response-processing element, or null if none needed
+ * @returns The generated response processing and the item's maximum score
  */
 export function generateResponseProcessingXml(
   config: ResponseProcessingConfig,
@@ -35,24 +57,33 @@ export function generateResponseProcessingXml(
   doc: Document,
   feedbackIdentifiersUsed?: Set<string>,
   responseConfigs?: Map<string, ElementConfig>
-): Element | null {
-  // No interactions -> no response processing needed (unless we have feedback)
+): GeneratedResponseProcessing {
+  // Custom response processing is kept as loaded, whatever the item's interactions
+  if (config.mode === 'custom') {
+    return { responseProcessing: generateCustomXml(config, doc) };
+  }
+
+  // No interactions -> no response processing needed (unless we have feedback),
+  // so SCORE isn't set and has no known maximum
   if (responseIdentifiers.length === 0 && (!feedbackIdentifiersUsed || feedbackIdentifiersUsed.size === 0)) {
-    return null;
+    return config.mode === 'allCorrect' || config.mode === 'sumScores'
+      ? { responseProcessing: null, declaredMaximumScore: { value: null }, calculatedMaximumScore: null }
+      : { responseProcessing: null };
   }
 
   switch (config.mode) {
-    case 'custom':
-      return generateCustomXml(config, doc);
     case 'allCorrect':
-      return generateAllCorrectXml(responseIdentifiers, responseDeclarations, doc, feedbackIdentifiersUsed, responseConfigs);
+      return {
+        responseProcessing: generateAllCorrectXml(responseIdentifiers, responseDeclarations, doc, feedbackIdentifiersUsed, responseConfigs),
+        declaredMaximumScore: { value: responseIdentifiers.length > 0 ? 1 : null },
+      };
     case 'sumScores':
-      return generateSumScoresXml(responseIdentifiers, responseDeclarations, outcomeDeclarations, doc, feedbackIdentifiersUsed, responseConfigs);
+      return generateSumScoresXml(config, responseIdentifiers, responseDeclarations, outcomeDeclarations, doc, feedbackIdentifiersUsed, responseConfigs);
     case 'manual':
       // SCORE is set by a person, not by response processing
-      return null;
+      return { responseProcessing: null };
     default:
-      return null;
+      return { responseProcessing: null };
   }
 }
 
@@ -83,10 +114,7 @@ function generateAllCorrectXml(
   const hasFeedback = feedbackIdentifiersUsed && feedbackIdentifiersUsed.size > 0;
 
   // Check if any response has a mapping
-  const anyHasMapping = responseIdentifiers.some(id => {
-    const decl = responseDeclarations.get(id);
-    return decl && hasMapping(decl);
-  });
+  const anyHasMapping = responseIdentifiers.some((id) => isMappedResponse(doc, id));
 
   // Template shortcut: only when no mapping, no feedback, and single RESPONSE
   if (responseIdentifiers.length === 1 && responseIdentifiers[0] === 'RESPONSE' && !hasFeedback && !anyHasMapping) {
@@ -112,12 +140,12 @@ function generateAllCorrectXml(
     }
 
     // Set score to 1
-    responseIf.appendChild(createSetScoreElement('1', doc));
+    responseIf.appendChild(createSetScoreElement(1, doc));
     condition.appendChild(responseIf);
 
     // Response else - set score to 0
     const responseElse = doc.createElementNS(QTI_NAMESPACE, 'qti-response-else');
-    responseElse.appendChild(createSetScoreElement('0', doc));
+    responseElse.appendChild(createSetScoreElement(0, doc));
     condition.appendChild(responseElse);
 
     responseProcessing.appendChild(condition);
@@ -174,48 +202,49 @@ function createOutcomeDeclaration(identifier: string): XmlNode {
  *
  * For single interaction with mapping: use map_response template (unless feedback is used)
  * For single interaction without mapping: use match_correct template (1 if correct, 0 otherwise)
- * For multiple interactions: generate inline qti-sum pattern
+ * For multiple interactions: generate inline qti-sum pattern (see appendSumScoreRule)
+ *
+ * A score offset, a maximum score set by the author, or a floor (scores never
+ * go below 0) rules out the templates. Without responses, SCORE isn't set.
+ *
+ * Whether responses are mapped, and their maximum scores, are read from the
+ * response declarations in doc, as cutie-core reads them in delivery.
  */
 function generateSumScoresXml(
+  config: ResponseProcessingConfig,
   responseIdentifiers: string[],
   responseDeclarations: Map<string, XmlNode>,
   outcomeDeclarations: Map<string, XmlNode>,
   doc: Document,
   feedbackIdentifiersUsed?: Set<string>,
   responseConfigs?: Map<string, ElementConfig>
-): Element {
+): GeneratedResponseProcessing {
   const responseProcessing = doc.createElementNS(QTI_NAMESPACE, 'qti-response-processing');
   const hasFeedback = feedbackIdentifiersUsed && feedbackIdentifiersUsed.size > 0;
+  const { scoreOffset = 0, maximumScore } = config;
+  const floored = canSumBeNegative(scoreOffset, maximumScore, responseIdentifiers, doc);
+  const needsInlineRule = scoreOffset !== 0 || maximumScore !== undefined || floored;
 
-  // Single interaction with standard identifier and no feedback: use template
+  // Single interaction with standard identifier, no feedback and a plain sum: use template
   // Both match_correct and map_response templates require identifier to be exactly "RESPONSE"
-  if (responseIdentifiers.length === 1 && responseIdentifiers[0] === 'RESPONSE' && !hasFeedback) {
+  if (responseIdentifiers.length === 1 && responseIdentifiers[0] === 'RESPONSE' && !hasFeedback && !needsInlineRule) {
     const id = responseIdentifiers[0];
-    const decl = responseDeclarations.get(id);
-    const hasMappingDefined = decl && hasMapping(decl);
 
-    if (hasMappingDefined) {
+    if (isMappedResponse(doc, id)) {
+      // The template sets SCORE to the mapped response
       responseProcessing.setAttribute('template', TEMPLATES.mapResponse);
-    } else {
-      // No mapping -> use match_correct (1 if correct, 0 if not)
-      responseProcessing.setAttribute('template', TEMPLATES.matchCorrect);
+      const calculatedMaximumScore = effectiveMaximumScore(undefined, inferResponseMaxScore(doc, id), false);
+      return { responseProcessing, declaredMaximumScore: { value: calculatedMaximumScore }, calculatedMaximumScore };
     }
-    return responseProcessing;
+
+    // No mapping -> use match_correct (1 if correct, 0 if not)
+    responseProcessing.setAttribute('template', TEMPLATES.matchCorrect);
+    return { responseProcessing, declaredMaximumScore: { value: 1 }, calculatedMaximumScore: 1 };
   }
 
   // Multiple interactions or has feedback: generate inline pattern
-  // First, determine which responses have mappings and which don't
-  const withMapping: string[] = [];
-  const withoutMapping: string[] = [];
-
-  for (const id of responseIdentifiers) {
-    const decl = responseDeclarations.get(id);
-    if (decl && hasMapping(decl)) {
-      withMapping.push(id);
-    } else {
-      withoutMapping.push(id);
-    }
-  }
+  const withMapping = responseIdentifiers.filter((id) => isMappedResponse(doc, id));
+  const withoutMapping = responseIdentifiers.filter((id) => !withMapping.includes(id));
 
   // For responses without mapping, we need to create intermediate score variables
   // and condition blocks to set them
@@ -227,35 +256,10 @@ function generateSumScoresXml(
     responseProcessing.appendChild(createScoreConditionForUnmapped(id, doc));
   }
 
-  // Now create the sum that adds all scores together
-  // <qti-set-outcome-value identifier="SCORE">
-  //   <qti-sum>
-  //     <qti-map-response identifier="RESP1"/>  (for mapped)
-  //     <qti-variable identifier="RESP2_SCORE"/>  (for unmapped)
-  //   </qti-sum>
-  // </qti-set-outcome-value>
-
-  const setScore = doc.createElementNS(QTI_NAMESPACE, 'qti-set-outcome-value');
-  setScore.setAttribute('identifier', 'SCORE');
-
-  const sum = doc.createElementNS(QTI_NAMESPACE, 'qti-sum');
-
-  // Add map-response for responses with mapping
-  for (const id of withMapping) {
-    const mapResponse = doc.createElementNS(QTI_NAMESPACE, 'qti-map-response');
-    mapResponse.setAttribute('identifier', id);
-    sum.appendChild(mapResponse);
-  }
-
-  // Add variable references for responses without mapping
-  for (const id of withoutMapping) {
-    const variable = doc.createElementNS(QTI_NAMESPACE, 'qti-variable');
-    variable.setAttribute('identifier', `${id}_SCORE`);
-    sum.appendChild(variable);
-  }
-
-  setScore.appendChild(sum);
-  responseProcessing.appendChild(setScore);
+  const hasScoreRule = responseIdentifiers.length > 0;
+  const inferredMaximumScore = hasScoreRule
+    ? appendSumScoreRule(responseProcessing, withMapping, withoutMapping, config, floored, doc)
+    : null;
 
   // Generate feedback processing rules if feedback elements are used
   if (hasFeedback) {
@@ -272,7 +276,129 @@ function generateSumScoresXml(
     }
   }
 
-  return responseProcessing;
+  return {
+    responseProcessing,
+    declaredMaximumScore: {
+      value: hasScoreRule ? effectiveMaximumScore(maximumScore, inferredMaximumScore, floored) : null,
+    },
+    calculatedMaximumScore: effectiveMaximumScore(undefined, inferredMaximumScore, floored),
+  };
+}
+
+/**
+ * Append the rule that sets SCORE to the sum of the response scores:
+ *
+ * <qti-set-outcome-value identifier="SCORE">
+ *   <qti-max>                                    (when floored)
+ *     <qti-base-value base-type="float">0</qti-base-value>
+ *     <qti-min>                                  (with a maximum score set by the author)
+ *       <qti-base-value base-type="float">{maximumScore}</qti-base-value>
+ *       <qti-sum>
+ *         <qti-base-value base-type="float">{scoreOffset}</qti-base-value>  (with an offset)
+ *         <qti-map-response identifier="RESP1"/>  (for mapped)
+ *         <qti-variable identifier="RESP2_SCORE"/>  (for unmapped)
+ *       </qti-sum>
+ *     </qti-min>
+ *   </qti-max>
+ * </qti-set-outcome-value>
+ *
+ * The rule is appended after the conditions that set the intermediate scores,
+ * where cutie-core finds them when inferring the sum's maximum.
+ *
+ * @returns The maximum the sum can reach, inferred by cutie-core (so delivery
+ *   agrees), or null when it can't be inferred
+ */
+function appendSumScoreRule(
+  responseProcessing: Element,
+  withMapping: string[],
+  withoutMapping: string[],
+  config: ResponseProcessingConfig,
+  floored: boolean,
+  doc: Document
+): number | null {
+  const setScore = doc.createElementNS(QTI_NAMESPACE, 'qti-set-outcome-value');
+  setScore.setAttribute('identifier', 'SCORE');
+
+  const sum = doc.createElementNS(QTI_NAMESPACE, 'qti-sum');
+  if (config.scoreOffset) {
+    sum.appendChild(createFloatBaseValue(config.scoreOffset, doc));
+  }
+  for (const id of withMapping) {
+    sum.appendChild(createMapResponse(id, doc));
+  }
+  for (const id of withoutMapping) {
+    sum.appendChild(createVariable(`${id}_SCORE`, doc));
+  }
+
+  setScore.appendChild(sum);
+  responseProcessing.appendChild(setScore);
+
+  // The intermediate scores are declared afresh with a default of 0 on save
+  const inferredMaximumScore = inferExpressionMaxScore(doc, sum, { ignoreOutcomeDefaults: true });
+  if (config.maximumScore !== undefined) {
+    wrapScoreExpression(setScore, 'qti-min', config.maximumScore, doc);
+  }
+  if (floored) {
+    wrapScoreExpression(setScore, 'qti-max', 0, doc);
+  }
+  return inferredMaximumScore;
+}
+
+/**
+ * Whether the total score could be negative, so it needs a floor at 0: a
+ * negative offset or maximum score, or a response whose mapping can award a
+ * negative value (unmapped responses score 0 or 1). This errs on the side of
+ * yes, since flooring a score that can't go negative changes nothing.
+ */
+function canSumBeNegative(
+  offset: number,
+  maximumScore: number | undefined,
+  responseIdentifiers: string[],
+  doc: Document
+): boolean {
+  return offset < 0
+    || (maximumScore !== undefined && maximumScore < 0)
+    || responseIdentifiers.some((id) => canMappingBeNegative(doc, id));
+}
+
+/**
+ * Wrap the expression a qti-set-outcome-value assigns in a qti-min or qti-max
+ * with a constant: <{operator}><qti-base-value>{value}</qti-base-value>{expression}</{operator}>
+ */
+function wrapScoreExpression(setter: Element, operator: 'qti-min' | 'qti-max', value: number, doc: Document): void {
+  const expression = setter.firstElementChild!;
+  const wrapper = doc.createElementNS(QTI_NAMESPACE, operator);
+  setter.replaceChild(wrapper, expression);
+  wrapper.appendChild(createFloatBaseValue(value, doc));
+  wrapper.appendChild(expression);
+}
+
+/**
+ * Create a qti-variable reference
+ */
+function createVariable(identifier: string, doc: Document): Element {
+  const variable = doc.createElementNS(QTI_NAMESPACE, 'qti-variable');
+  variable.setAttribute('identifier', identifier);
+  return variable;
+}
+
+/**
+ * Create a qti-map-response for a response
+ */
+function createMapResponse(identifier: string, doc: Document): Element {
+  const mapResponse = doc.createElementNS(QTI_NAMESPACE, 'qti-map-response');
+  mapResponse.setAttribute('identifier', identifier);
+  return mapResponse;
+}
+
+/**
+ * Create a float qti-base-value
+ */
+function createFloatBaseValue(value: number, doc: Document): Element {
+  const baseValue = doc.createElementNS(QTI_NAMESPACE, 'qti-base-value');
+  baseValue.setAttribute('base-type', 'float');
+  baseValue.textContent = String(value);
+  return baseValue;
 }
 
 /**
@@ -295,8 +421,8 @@ function createCorrectnessCheckForId(
   }
 
   // Default: if mapping exists, use qti-equal(qti-map-response, maxValue)
-  if (decl && hasMapping(decl)) {
-    const maxValue = getMaxMappedValue(decl);
+  if (isMappedResponse(doc, id)) {
+    const maxValue = getMaxMappedValue(getResponseDeclaration(doc, id)!);
     if (maxValue !== null) {
       return createMapResponseEqualElement(id, maxValue, doc);
     }
@@ -334,32 +460,26 @@ export function createMatchElement(identifier: string, doc: Document): Element {
  */
 export function createMapResponseEqualElement(identifier: string, value: number, doc: Document): Element {
   const equal = doc.createElementNS(QTI_NAMESPACE, 'qti-equal');
-
-  const mapResponse = doc.createElementNS(QTI_NAMESPACE, 'qti-map-response');
-  mapResponse.setAttribute('identifier', identifier);
-  equal.appendChild(mapResponse);
-
-  const baseValue = doc.createElementNS(QTI_NAMESPACE, 'qti-base-value');
-  baseValue.setAttribute('base-type', 'float');
-  baseValue.textContent = String(value);
-  equal.appendChild(baseValue);
-
+  equal.appendChild(createMapResponse(identifier, doc));
+  equal.appendChild(createFloatBaseValue(value, doc));
   return equal;
 }
 
 /**
  * Create a qti-set-outcome-value element for SCORE
  */
-function createSetScoreElement(value: string, doc: Document): Element {
-  const setScore = doc.createElementNS(QTI_NAMESPACE, 'qti-set-outcome-value');
-  setScore.setAttribute('identifier', 'SCORE');
+function createSetScoreElement(value: number, doc: Document): Element {
+  return createSetOutcomeElement('SCORE', value, doc);
+}
 
-  const baseValue = doc.createElementNS(QTI_NAMESPACE, 'qti-base-value');
-  baseValue.setAttribute('base-type', 'float');
-  baseValue.textContent = value;
-  setScore.appendChild(baseValue);
-
-  return setScore;
+/**
+ * Create a qti-set-outcome-value element setting an outcome to a float
+ */
+function createSetOutcomeElement(identifier: string, value: number, doc: Document): Element {
+  const setOutcome = doc.createElementNS(QTI_NAMESPACE, 'qti-set-outcome-value');
+  setOutcome.setAttribute('identifier', identifier);
+  setOutcome.appendChild(createFloatBaseValue(value, doc));
+  return setOutcome;
 }
 
 /**
@@ -385,30 +505,13 @@ function createSetScoreElement(value: string, doc: Document): Element {
 function createScoreConditionForUnmapped(identifier: string, doc: Document): Element {
   const condition = doc.createElementNS(QTI_NAMESPACE, 'qti-response-condition');
 
-  // Response if
   const responseIf = doc.createElementNS(QTI_NAMESPACE, 'qti-response-if');
   responseIf.appendChild(createMatchElement(identifier, doc));
-
-  const setScore1 = doc.createElementNS(QTI_NAMESPACE, 'qti-set-outcome-value');
-  setScore1.setAttribute('identifier', `${identifier}_SCORE`);
-  const baseValue1 = doc.createElementNS(QTI_NAMESPACE, 'qti-base-value');
-  baseValue1.setAttribute('base-type', 'float');
-  baseValue1.textContent = '1';
-  setScore1.appendChild(baseValue1);
-  responseIf.appendChild(setScore1);
-
+  responseIf.appendChild(createSetOutcomeElement(`${identifier}_SCORE`, 1, doc));
   condition.appendChild(responseIf);
 
-  // Response else
   const responseElse = doc.createElementNS(QTI_NAMESPACE, 'qti-response-else');
-  const setScore0 = doc.createElementNS(QTI_NAMESPACE, 'qti-set-outcome-value');
-  setScore0.setAttribute('identifier', `${identifier}_SCORE`);
-  const baseValue0 = doc.createElementNS(QTI_NAMESPACE, 'qti-base-value');
-  baseValue0.setAttribute('base-type', 'float');
-  baseValue0.textContent = '0';
-  setScore0.appendChild(baseValue0);
-  responseElse.appendChild(setScore0);
-
+  responseElse.appendChild(createSetOutcomeElement(`${identifier}_SCORE`, 0, doc));
   condition.appendChild(responseElse);
 
   return condition;
@@ -588,16 +691,8 @@ function createFeedbackCorrectIncorrectCondition(
  */
 export function createMapResponseGtZeroElement(identifier: string, doc: Document): Element {
   const gt = doc.createElementNS(QTI_NAMESPACE, 'qti-gt');
-
-  const mapResponse = doc.createElementNS(QTI_NAMESPACE, 'qti-map-response');
-  mapResponse.setAttribute('identifier', identifier);
-  gt.appendChild(mapResponse);
-
-  const baseValue = doc.createElementNS(QTI_NAMESPACE, 'qti-base-value');
-  baseValue.setAttribute('base-type', 'float');
-  baseValue.textContent = '0';
-  gt.appendChild(baseValue);
-
+  gt.appendChild(createMapResponse(identifier, doc));
+  gt.appendChild(createFloatBaseValue(0, doc));
   return gt;
 }
 

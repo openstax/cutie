@@ -359,7 +359,7 @@ describe('XML Round-trip Tests', () => {
     </qti-choice-interaction>
     <p><qti-end-attempt-interaction response-identifier="END_ATTEMPT" title="Done"/></p>
   </qti-item-body>
-  <qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>
+  <qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct.xml"/>
 </qti-assessment-item>`;
 
       const item = parseXml(serializeSlateToQti(parseXmlToSlate(input), input).xml).documentElement;
@@ -396,7 +396,9 @@ describe('XML Round-trip Tests', () => {
         .filter(name => name.endsWith('-declaration'));
 
       expect(item.querySelector('qti-response-declaration[identifier="R1"] qti-map-entry')).not.toBeNull();
-      expect(declarations).toEqual(['qti-response-declaration', 'qti-outcome-declaration']);
+      // SCORE, and MAXSCORE from the hottext mapping
+      expect(declarations).toEqual(['qti-response-declaration', 'qti-outcome-declaration', 'qti-outcome-declaration']);
+      expect(item.querySelector('qti-outcome-declaration[identifier="MAXSCORE"] qti-value')?.textContent).toBe('1');
       expect(item.querySelector('qti-response-processing qti-sum > qti-map-response[identifier="R1"]')).not.toBeNull();
     });
   });
@@ -672,8 +674,8 @@ describe('XML Round-trip Tests', () => {
     it('should keep CDATA content in outcome declarations and body text', () => {
       const input = `<?xml version="1.0" encoding="UTF-8"?>
 <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test-item" title="Test Item">
-  <qti-outcome-declaration identifier="MAXSCORE" cardinality="single" base-type="float">
-    <qti-default-value><qti-value><![CDATA[5]]></qti-value></qti-default-value>
+  <qti-outcome-declaration identifier="LEVEL" cardinality="single" base-type="string">
+    <qti-default-value><qti-value><![CDATA[a < b]]></qti-value></qti-default-value>
   </qti-outcome-declaration>
   <qti-item-body>
     <p><![CDATA[Is a < b?]]></p>
@@ -681,7 +683,7 @@ describe('XML Round-trip Tests', () => {
 </qti-assessment-item>`;
       const item = parseXml(serializeSlateToQti(parseXmlToSlate(input), input).xml);
 
-      expect(item.querySelector('qti-outcome-declaration[identifier="MAXSCORE"] qti-value')?.textContent).toBe('5');
+      expect(item.querySelector('qti-outcome-declaration[identifier="LEVEL"] qti-value')?.textContent).toBe('a < b');
       expect(item.querySelector('qti-item-body p')?.textContent).toBe('Is a < b?');
     });
   });
@@ -740,7 +742,7 @@ describe('XML Round-trip Tests', () => {
     it('should mark SCORE as human-scored when switching to manual', () => {
       const item = roundTrip(extendedTextItem(
         '<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"><qti-default-value><qti-value>0</qti-value></qti-default-value></qti-outcome-declaration>',
-        '<qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>'
+        '<qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct.xml"/>'
       ), 'manual');
       const score = item.querySelector('qti-outcome-declaration[identifier="SCORE"]')!;
 
@@ -846,6 +848,186 @@ describe('XML Round-trip Tests', () => {
       expect(score.hasAttribute('external-scored')).toBe(false);
       expect(score.hasAttribute('normal-maximum')).toBe(false);
       expect(score.querySelector('qti-default-value qti-value')?.textContent).toBe('0');
+    });
+  });
+
+  describe('maximum score declarations', () => {
+    // A choice worth 2 points, scored with the map_response template
+    const choiceItem = (outcomeDeclarations: string) => `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test-item" title="Test Item">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier">
+    <qti-correct-response><qti-value>A</qti-value></qti-correct-response>
+    <qti-mapping default-value="0"><qti-map-entry map-key="A" mapped-value="2"/></qti-mapping>
+  </qti-response-declaration>
+  ${outcomeDeclarations}
+  <qti-item-body>
+    <qti-choice-interaction response-identifier="RESPONSE" max-choices="1">
+      <qti-simple-choice identifier="A">A</qti-simple-choice>
+      <qti-simple-choice identifier="B">B</qti-simple-choice>
+    </qti-choice-interaction>
+  </qti-item-body>
+  <qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/map_response.xml"/>
+</qti-assessment-item>`;
+
+    /** Serialize an item, optionally switching its scoring mode first */
+    const roundTrip = (input: string, mode?: ResponseProcessingMode) => {
+      const nodes = parseXmlToSlate(input);
+      if (mode) {
+        (nodes[0] as DocumentMetadata).responseProcessing = { mode };
+      }
+      return parseXml(serializeSlateToQti(nodes, input).xml).documentElement;
+    };
+    const declaration = (item: Element, identifier: string) =>
+      item.querySelector(`qti-outcome-declaration[identifier="${identifier}"]`);
+
+    it('should declare the calculated maximum as a float MAXSCORE after SCORE', () => {
+      const item = roundTrip(choiceItem('<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/>'));
+      const identifiers = Array.from(item.querySelectorAll('qti-outcome-declaration')).map((d) => d.getAttribute('identifier'));
+
+      expect(identifiers).toEqual(['SCORE', 'MAXSCORE']);
+      expect(declaration(item, 'MAXSCORE')?.getAttribute('base-type')).toBe('float');
+      expect(declaration(item, 'MAXSCORE')?.querySelector('qti-value')?.textContent).toBe('2');
+    });
+
+    it('should make a loaded MAXSCORE a float, with its default before any lookup table', () => {
+      const item = roundTrip(choiceItem(`
+        <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/>
+        <qti-outcome-declaration identifier="MAXSCORE" cardinality="single" base-type="integer">
+          <qti-match-table><qti-match-table-entry source-value="1" target-value="1"/></qti-match-table>
+        </qti-outcome-declaration>`), 'allCorrect');
+      const maxScore = declaration(item, 'MAXSCORE')!;
+
+      expect(maxScore.getAttribute('base-type')).toBe('float');
+      expect(Array.from(maxScore.children).map((child) => child.localName)).toEqual(['qti-default-value', 'qti-match-table']);
+      expect(maxScore.querySelector('qti-value')?.textContent).toBe('1');
+    });
+
+    const maxScoreDeclaration = (value: string) => `
+      <qti-outcome-declaration identifier="MAXSCORE" cardinality="single" base-type="float">
+        <qti-default-value><qti-value>${value}</qti-value></qti-default-value>
+      </qti-outcome-declaration>`;
+
+    it('should update a SCORE normal-maximum to the maximum score, but never add one', () => {
+      const withNormalMaximum = roundTrip(choiceItem(
+        `<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float" normal-maximum="10"/>${maxScoreDeclaration('2')}`
+      ));
+      const withoutNormalMaximum = roundTrip(choiceItem('<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/>'));
+
+      expect(declaration(withNormalMaximum, 'SCORE')?.getAttribute('normal-maximum')).toBe('2');
+      expect(declaration(withoutNormalMaximum, 'SCORE')?.hasAttribute('normal-maximum')).toBe(false);
+    });
+
+    it('should keep a SCORE normal-maximum that already matches as written', () => {
+      const item = roundTrip(choiceItem(
+        `<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float" normal-maximum="2.0"/>${maxScoreDeclaration('2')}`
+      ));
+
+      expect(declaration(item, 'SCORE')?.getAttribute('normal-maximum')).toBe('2.0');
+    });
+
+    it('should not read a SCORE normal-maximum as the maximum score', () => {
+      const item = roundTrip(choiceItem('<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float" normal-maximum="5"/>'));
+
+      expect(declaration(item, 'SCORE')?.getAttribute('normal-maximum')).toBe('2');
+      expect(declaration(item, 'MAXSCORE')?.querySelector('qti-value')?.textContent).toBe('2');
+      expect(item.querySelector('qti-response-processing qti-min')).toBeNull();
+    });
+
+    it('should keep a MAXSCORE that differs from the calculated maximum without capping the score', () => {
+      const input = choiceItem(
+        `<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/>${maxScoreDeclaration('0')}`
+      );
+      const item = roundTrip(input);
+
+      expect((parseXmlToSlate(input)[0] as DocumentMetadata).responseProcessing?.mode).toBe('custom');
+      expect(declaration(item, 'MAXSCORE')?.querySelector('qti-value')?.textContent).toBe('0');
+      expect(item.querySelector('qti-response-processing qti-min')).toBeNull();
+    });
+
+    it('should remove a SCORE normal-maximum when the maximum score is 0', () => {
+      const nodes = parseXmlToSlate(choiceItem(
+        '<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float" normal-maximum="2"/>'
+      ));
+      (nodes[0] as DocumentMetadata).responseProcessing = { mode: 'sumScores', maximumScore: 0 };
+      const item = parseXml(serializeSlateToQti(nodes, choiceItem('')).xml).documentElement;
+
+      expect(declaration(item, 'SCORE')?.hasAttribute('normal-maximum')).toBe(false);
+      expect(declaration(item, 'MAXSCORE')?.querySelector('qti-value')?.textContent).toBe('0');
+    });
+
+    it('should give a manually graded item the points its MAXSCORE declares', () => {
+      const item = roundTrip(choiceItem(
+        `<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/>${maxScoreDeclaration('3')}`
+      ), 'manual');
+
+      expect(declaration(item, 'SCORE')?.getAttribute('normal-maximum')).toBe('3');
+      expect(declaration(item, 'MAXSCORE')?.querySelector('qti-value')?.textContent).toBe('3');
+    });
+
+    it('should not count a previous intermediate score default in the maximum score', () => {
+      // Two unmapped responses, each scored 0 or 1, with a stale RESPONSE_A_SCORE default of 5
+      const input = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="test-item" title="Test Item">
+  <qti-response-declaration identifier="RESPONSE_A" cardinality="single" base-type="identifier">
+    <qti-correct-response><qti-value>A</qti-value></qti-correct-response>
+  </qti-response-declaration>
+  <qti-response-declaration identifier="RESPONSE_B" cardinality="single" base-type="identifier">
+    <qti-correct-response><qti-value>B</qti-value></qti-correct-response>
+  </qti-response-declaration>
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/>
+  <qti-outcome-declaration identifier="RESPONSE_A_SCORE" cardinality="single" base-type="float">
+    <qti-default-value><qti-value>5</qti-value></qti-default-value>
+  </qti-outcome-declaration>
+  <qti-item-body>
+    <qti-choice-interaction response-identifier="RESPONSE_A" max-choices="1">
+      <qti-simple-choice identifier="A">A</qti-simple-choice>
+    </qti-choice-interaction>
+    <qti-choice-interaction response-identifier="RESPONSE_B" max-choices="1">
+      <qti-simple-choice identifier="B">B</qti-simple-choice>
+    </qti-choice-interaction>
+  </qti-item-body>
+</qti-assessment-item>`;
+      const nodes = parseXmlToSlate(input);
+      (nodes[0] as DocumentMetadata).responseProcessing = { mode: 'sumScores' };
+      const item = parseXml(serializeSlateToQti(nodes, input).xml).documentElement;
+
+      expect(declaration(item, 'MAXSCORE')?.querySelector('qti-value')?.textContent).toBe('2');
+    });
+
+    it('should give a manually graded item points when its normal-maximum is not positive', () => {
+      const item = roundTrip(choiceItem(`
+        <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float" external-scored="human" normal-maximum="0"/>
+        <qti-outcome-declaration identifier="MAXSCORE" cardinality="single" base-type="integer">
+          <qti-default-value><qti-value>3</qti-value></qti-default-value>
+        </qti-outcome-declaration>`), 'manual');
+
+      expect(declaration(item, 'SCORE')?.getAttribute('normal-maximum')).toBe('3');
+      expect(declaration(item, 'MAXSCORE')?.getAttribute('base-type')).toBe('float');
+    });
+
+    it('should remove MAXSCORE when the item has no interactions left', () => {
+      const input = choiceItem(`<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/>${maxScoreDeclaration('2')}`);
+      // Delete the interaction in the editor
+      const nodes = parseXmlToSlate(input).filter(
+        (node) => !('type' in node && node.type === 'qti-choice-interaction')
+      );
+      const item = parseXml(serializeSlateToQti(nodes, input).xml).documentElement;
+
+      expect(declaration(item, 'MAXSCORE')).toBeNull();
+    });
+
+    it('should update a MAXSCORE to the points of a manually graded item, but never add one', () => {
+      const withMaxScore = roundTrip(choiceItem(`
+        <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float" external-scored="human" normal-maximum="5"/>
+        <qti-outcome-declaration identifier="MAXSCORE" cardinality="single" base-type="float">
+          <qti-default-value><qti-value>2</qti-value></qti-default-value>
+        </qti-outcome-declaration>`), 'manual');
+      const withoutMaxScore = roundTrip(choiceItem(
+        '<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float" external-scored="human" normal-maximum="5"/>'
+      ), 'manual');
+
+      expect(declaration(withMaxScore, 'MAXSCORE')?.querySelector('qti-value')?.textContent).toBe('5');
+      expect(declaration(withoutMaxScore, 'MAXSCORE')).toBeNull();
     });
   });
 });

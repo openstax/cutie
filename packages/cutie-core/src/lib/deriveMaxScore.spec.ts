@@ -1,6 +1,7 @@
+/* spell-checker: ignore hottext */
 import { DOMParser } from '@xmldom/xmldom';
 import { describe, expect, test } from 'vitest';
-import { deriveMaxScore } from './deriveMaxScore.js';
+import { deriveMaxScore, inferExpressionMaxScore, inferMaxScore, inferResponseMaxScore } from './deriveMaxScore.js';
 
 describe('deriveMaxScore', () => {
   // Helper to create Document from XML string
@@ -71,6 +72,24 @@ describe('deriveMaxScore', () => {
 
       const result = deriveMaxScore(itemDoc, variables);
       expect(result).toBe(10);
+    });
+  });
+
+  describe('Declared maximums that are not usable', () => {
+    const scoreItem = (normalMaximum: string) => new DOMParser().parseFromString(`
+      <qti-assessment-item>
+        <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float" normal-maximum="${normalMaximum}"/>
+      </qti-assessment-item>
+    `, 'text/xml');
+
+    test('ignores a MAXSCORE that is not a finite number', () => {
+      expect(deriveMaxScore(scoreItem('3'), { MAXSCORE: NaN })).toBe(3);
+      expect(deriveMaxScore(scoreItem('3'), { MAXSCORE: Infinity })).toBe(3);
+    });
+
+    test('ignores a normal-maximum that is not positive', () => {
+      expect(deriveMaxScore(scoreItem('-1'), {})).toBeNull();
+      expect(deriveMaxScore(scoreItem('0'), {})).toBeNull();
     });
   });
 
@@ -263,6 +282,12 @@ describe('deriveMaxScore', () => {
               <qti-map-entry map-key="B" mapped-value="1"/>
             </qti-mapping>
           </qti-response-declaration>
+          <qti-item-body>
+            <qti-choice-interaction response-identifier="RESPONSE" max-choices="0">
+              <qti-simple-choice identifier="A">A</qti-simple-choice>
+              <qti-simple-choice identifier="B">B</qti-simple-choice>
+            </qti-choice-interaction>
+          </qti-item-body>
         </qti-assessment-item>
       `);
 
@@ -297,6 +322,13 @@ describe('deriveMaxScore', () => {
               <qti-map-entry map-key="C" mapped-value="-1"/>
             </qti-mapping>
           </qti-response-declaration>
+          <qti-item-body>
+            <qti-choice-interaction response-identifier="RESPONSE" max-choices="0">
+              <qti-simple-choice identifier="A">A</qti-simple-choice>
+              <qti-simple-choice identifier="B">B</qti-simple-choice>
+              <qti-simple-choice identifier="C">C</qti-simple-choice>
+            </qti-choice-interaction>
+          </qti-item-body>
         </qti-assessment-item>
       `);
 
@@ -345,6 +377,9 @@ describe('deriveMaxScore', () => {
               <qti-area-map-entry shape="circle" coords="300,300,10" mapped-value="-1"/>
             </qti-area-mapping>
           </qti-response-declaration>
+          <qti-item-body>
+            <qti-select-point-interaction response-identifier="RESPONSE" max-choices="0"/>
+          </qti-item-body>
           <qti-response-processing template="map_response_point"/>
         </qti-assessment-item>
       `);
@@ -361,11 +396,38 @@ describe('deriveMaxScore', () => {
               <qti-area-map-entry shape="circle" coords="200,200,10" mapped-value="3"/>
             </qti-area-mapping>
           </qti-response-declaration>
+          <qti-item-body>
+            <qti-select-point-interaction response-identifier="RESPONSE" max-choices="0"/>
+          </qti-item-body>
           <qti-response-processing template="map_response_point"/>
         </qti-assessment-item>
       `);
 
       expect(deriveMaxScore(itemDoc, {})).toBe(4);
+    });
+
+    test.each([
+      ['2', 5],
+      ['3', 6],
+      ['4294967296', 4294967299],
+    ])('fills points beyond the best areas with a positive default, with max-choices %s', (maxChoices, expected) => {
+      const itemDoc = parseXML(`
+        <qti-assessment-item>
+          <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="point">
+            <qti-area-mapping default-value="1">
+              <qti-area-map-entry shape="circle" coords="100,100,10" mapped-value="2"/>
+              <qti-area-map-entry shape="circle" coords="200,200,10" mapped-value="3"/>
+              <qti-area-map-entry shape="circle" coords="300,300,10" mapped-value="0.5"/>
+            </qti-area-mapping>
+          </qti-response-declaration>
+          <qti-item-body>
+            <qti-select-point-interaction response-identifier="RESPONSE" max-choices="${maxChoices}"/>
+          </qti-item-body>
+          <qti-response-processing template="map_response_point"/>
+        </qti-assessment-item>
+      `);
+
+      expect(deriveMaxScore(itemDoc, {})).toBe(expected);
     });
 
     test('makes no guess when an area mapping and a mapping are both present', () => {
@@ -456,7 +518,7 @@ describe('deriveMaxScore', () => {
               <qti-map-entry map-key="york" mapped-value="0.5"/>
             </qti-mapping>
           </qti-response-declaration>
-          <qti-response-processing template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/map_response.xml"/>
+          <qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/map_response.xml"/>
         </qti-assessment-item>
       `);
 
@@ -481,6 +543,12 @@ describe('deriveMaxScore', () => {
               <qti-map-entry map-key="B" mapped-value="2"/>
             </qti-mapping>
           </qti-response-declaration>
+          <qti-item-body>
+            <qti-choice-interaction response-identifier="RESPONSE" max-choices="0">
+              <qti-simple-choice identifier="A">A</qti-simple-choice>
+              <qti-simple-choice identifier="B">B</qti-simple-choice>
+            </qti-choice-interaction>
+          </qti-item-body>
         </qti-assessment-item>
       `);
 
@@ -507,18 +575,27 @@ describe('deriveMaxScore', () => {
       expect(deriveMaxScore(itemDoc, { SCORE: 0 })).toBeNull();
     });
 
-    test('uses the upper-bound for multiple cardinality with a positive default', () => {
+    test('maps unmapped choices to a positive default', () => {
       const itemDoc = parseXML(`
         <qti-assessment-item>
-          <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="string">
+          <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="identifier">
             <qti-mapping default-value="0.5" upper-bound="4">
               <qti-map-entry map-key="A" mapped-value="1"/>
             </qti-mapping>
           </qti-response-declaration>
+          <qti-item-body>
+            <qti-choice-interaction response-identifier="RESPONSE" max-choices="0">
+              <qti-simple-choice identifier="A">A</qti-simple-choice>
+              <qti-simple-choice identifier="B">B</qti-simple-choice>
+              <qti-simple-choice identifier="C">C</qti-simple-choice>
+              <qti-simple-choice identifier="D">D</qti-simple-choice>
+            </qti-choice-interaction>
+          </qti-item-body>
         </qti-assessment-item>
       `);
 
-      expect(deriveMaxScore(itemDoc, { SCORE: 0 })).toBe(4);
+      // A (1) plus B, C and D at the default (0.5 each)
+      expect(deriveMaxScore(itemDoc, { SCORE: 0 })).toBe(2.5);
     });
 
     test('should return sum of positive mapped values for multiple cardinality with lower-bound', () => {
@@ -534,6 +611,13 @@ describe('deriveMaxScore', () => {
               <qti-map-entry map-key="C" mapped-value="1"/>
             </qti-mapping>
           </qti-response-declaration>
+          <qti-item-body>
+            <qti-choice-interaction response-identifier="RESPONSE" max-choices="0">
+              <qti-simple-choice identifier="A">A</qti-simple-choice>
+              <qti-simple-choice identifier="B">B</qti-simple-choice>
+              <qti-simple-choice identifier="C">C</qti-simple-choice>
+            </qti-choice-interaction>
+          </qti-item-body>
         </qti-assessment-item>
       `);
 
@@ -675,6 +759,371 @@ describe('deriveMaxScore', () => {
 
       const result = deriveMaxScore(itemDoc, variables);
       expect(result).toBeNull();
+    });
+  });
+
+  describe('Choice max-choices', () => {
+    const selectItem = (maxChoices: string) => parseXML(`
+      <qti-assessment-item>
+        <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="identifier">
+          <qti-mapping default-value="-1" lower-bound="0">
+            <qti-map-entry map-key="A" mapped-value="1"/>
+            <qti-map-entry map-key="B" mapped-value="2"/>
+            <qti-map-entry map-key="C" mapped-value="3"/>
+          </qti-mapping>
+        </qti-response-declaration>
+        <qti-item-body>
+          <qti-choice-interaction response-identifier="RESPONSE" max-choices="${maxChoices}">
+            <qti-simple-choice identifier="A">A</qti-simple-choice>
+            <qti-simple-choice identifier="B">B</qti-simple-choice>
+            <qti-simple-choice identifier="C">C</qti-simple-choice>
+            <qti-simple-choice identifier="D">D</qti-simple-choice>
+          </qti-choice-interaction>
+        </qti-item-body>
+      </qti-assessment-item>
+    `);
+
+    test('sums the best max-choices positive values', () => {
+      expect(deriveMaxScore(selectItem('2'), {})).toBe(5);
+    });
+
+    test('sums every positive value when max-choices is 0 or allows them all', () => {
+      expect(deriveMaxScore(selectItem('0'), {})).toBe(6);
+      expect(deriveMaxScore(selectItem('4'), {})).toBe(6);
+    });
+  });
+
+  describe('Hottext max-choices', () => {
+    test('sums the best max-choices positive values', () => {
+      const itemDoc = parseXML(`
+        <qti-assessment-item>
+          <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="identifier">
+            <qti-mapping default-value="-1" lower-bound="0">
+              <qti-map-entry map-key="H1" mapped-value="1"/>
+              <qti-map-entry map-key="H2" mapped-value="1"/>
+              <qti-map-entry map-key="H3" mapped-value="1"/>
+            </qti-mapping>
+          </qti-response-declaration>
+          <qti-item-body>
+            <qti-hottext-interaction response-identifier="RESPONSE" max-choices="2">
+              <p>
+                <qti-hottext identifier="H1">one</qti-hottext>
+                <qti-hottext identifier="H2">two</qti-hottext>
+                <qti-hottext identifier="H3">three</qti-hottext>
+                <qti-hottext identifier="H4">four</qti-hottext>
+              </p>
+            </qti-hottext-interaction>
+          </qti-item-body>
+        </qti-assessment-item>
+      `);
+
+      expect(deriveMaxScore(itemDoc, {})).toBe(2);
+    });
+  });
+
+  describe('Select point max-choices', () => {
+    const selectPointItem = (maxChoices: string, defaultValue = '0') => parseXML(`
+      <qti-assessment-item>
+        <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="point">
+          <qti-area-mapping default-value="${defaultValue}">
+            <qti-area-map-entry shape="circle" coords="100,100,10" mapped-value="1"/>
+            <qti-area-map-entry shape="circle" coords="200,200,10" mapped-value="1"/>
+          </qti-area-mapping>
+        </qti-response-declaration>
+        <qti-item-body>
+          <qti-select-point-interaction response-identifier="RESPONSE" max-choices="${maxChoices}"/>
+        </qti-item-body>
+        <qti-response-processing template="map_response_point"/>
+      </qti-assessment-item>
+    `);
+
+    test('sums the best max-choices areas', () => {
+      expect(inferResponseMaxScore(selectPointItem('1'), 'RESPONSE')).toBe(1);
+      expect(inferResponseMaxScore(selectPointItem('0'), 'RESPONSE')).toBe(2);
+    });
+
+    test('counts points outside the areas at a positive default', () => {
+      expect(inferResponseMaxScore(selectPointItem('3', '0.5'), 'RESPONSE')).toBe(2.5);
+    });
+
+    test('has no limit without max-choices, the select point default', () => {
+      const itemDoc = selectPointItem('1');
+      itemDoc.getElementsByTagName('qti-select-point-interaction')[0].removeAttribute('max-choices');
+      expect(inferResponseMaxScore(itemDoc, 'RESPONSE')).toBe(2);
+    });
+
+    test('falls back to the default for a negative max-choices', () => {
+      expect(inferResponseMaxScore(selectPointItem('-1', '0.5'), 'RESPONSE')).toBeNull();
+      expect(inferResponseMaxScore(selectPointItem('-1'), 'RESPONSE')).toBe(2);
+    });
+  });
+
+  describe('Multiple cardinality outside choice interactions', () => {
+    test('makes no guess for a gap match mapping', () => {
+      const itemDoc = parseXML(`
+        <qti-assessment-item>
+          <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="directedPair">
+            <qti-mapping default-value="0">
+              <qti-map-entry map-key="W G1" mapped-value="1"/>
+              <qti-map-entry map-key="W G2" mapped-value="1"/>
+            </qti-mapping>
+          </qti-response-declaration>
+          <qti-item-body>
+            <qti-gap-match-interaction response-identifier="RESPONSE">
+              <qti-gap-text identifier="W" match-max="1">winter</qti-gap-text>
+              <p><qti-gap identifier="G1"/> <qti-gap identifier="G2"/></p>
+            </qti-gap-match-interaction>
+          </qti-item-body>
+        </qti-assessment-item>
+      `);
+
+      expect(deriveMaxScore(itemDoc, {})).toBeNull();
+    });
+
+    test('makes no guess when the response has no interaction', () => {
+      const itemDoc = parseXML(`
+        <qti-assessment-item>
+          <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="identifier">
+            <qti-mapping><qti-map-entry map-key="A" mapped-value="1"/></qti-mapping>
+          </qti-response-declaration>
+        </qti-assessment-item>
+      `);
+
+      expect(deriveMaxScore(itemDoc, {})).toBeNull();
+    });
+  });
+
+  describe('Score expressions', () => {
+    // SCORE = max(0, min(CAP, -2 + map(A) + map(B) + map(C))), with A worth 2 and B and C worth 1
+    const offsetItem = (scoreAttributes: string, cap: string | null) => parseXML(`
+      <qti-assessment-item>
+        <qti-response-declaration identifier="A" cardinality="single" base-type="identifier">
+          <qti-mapping><qti-map-entry map-key="a" mapped-value="2"/></qti-mapping>
+        </qti-response-declaration>
+        <qti-response-declaration identifier="B" cardinality="single" base-type="identifier">
+          <qti-mapping><qti-map-entry map-key="b" mapped-value="1"/></qti-mapping>
+        </qti-response-declaration>
+        <qti-response-declaration identifier="C" cardinality="single" base-type="identifier">
+          <qti-mapping><qti-map-entry map-key="c" mapped-value="1"/></qti-mapping>
+        </qti-response-declaration>
+        <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float" ${scoreAttributes}/>
+        <qti-response-processing>
+          <qti-set-outcome-value identifier="SCORE">
+            <qti-max>
+              <qti-base-value base-type="float">0</qti-base-value>
+              ${cap === null ? '' : `<qti-min><qti-base-value base-type="float">${cap}</qti-base-value>`}
+                <qti-sum>
+                  <qti-base-value base-type="float">-2</qti-base-value>
+                  <qti-map-response identifier="A"/>
+                  <qti-map-response identifier="B"/>
+                  <qti-map-response identifier="C"/>
+                </qti-sum>
+              ${cap === null ? '' : '</qti-min>'}
+            </qti-max>
+          </qti-set-outcome-value>
+        </qti-response-processing>
+      </qti-assessment-item>
+    `);
+
+    test('adds the offset to the mapped maximums and applies the floor', () => {
+      expect(deriveMaxScore(offsetItem('', null), {})).toBe(2);
+    });
+
+    test('applies a qti-min cap', () => {
+      expect(deriveMaxScore(offsetItem('', '1'), {})).toBe(1);
+    });
+
+    test('prefers a declared normal-maximum', () => {
+      expect(deriveMaxScore(offsetItem('normal-maximum="5"', null), {})).toBe(5);
+    });
+
+    test('inferMaxScore ignores a declared normal-maximum', () => {
+      expect(inferMaxScore(offsetItem('normal-maximum="5"', null))).toBe(2);
+    });
+
+    test('inferExpressionMaxScore infers from the given expression only', () => {
+      const itemDoc = offsetItem('', '1');
+      const sum = itemDoc.getElementsByTagName('qti-sum')[0];
+
+      expect(inferExpressionMaxScore(itemDoc, sum)).toBe(2);
+    });
+
+    test('reads intermediate scores from the expression\'s own response processing', () => {
+      // Response processing that isn't part of the item yet, as an editor builds it
+      const itemDoc = parseXML('<qti-assessment-item/>');
+      const responseProcessing = parseXML(`
+        <qti-response-processing>
+          <qti-response-condition>
+            <qti-response-if>
+              <qti-match><qti-variable identifier="A"/><qti-correct identifier="A"/></qti-match>
+              <qti-set-outcome-value identifier="A_SCORE">
+                <qti-base-value base-type="float">1</qti-base-value>
+              </qti-set-outcome-value>
+            </qti-response-if>
+          </qti-response-condition>
+          <qti-set-outcome-value identifier="SCORE">
+            <qti-sum>
+              <qti-base-value base-type="float">1</qti-base-value>
+              <qti-variable identifier="A_SCORE"/>
+            </qti-sum>
+          </qti-set-outcome-value>
+        </qti-response-processing>
+      `);
+      const sum = responseProcessing.getElementsByTagName('qti-sum')[0];
+
+      expect(inferExpressionMaxScore(itemDoc, sum)).toBe(2);
+    });
+
+    test('makes no guess when any part of the expression is unknown', () => {
+      const itemDoc = parseXML(`
+        <qti-assessment-item>
+          <qti-response-declaration identifier="A" cardinality="single" base-type="identifier">
+            <qti-mapping><qti-map-entry map-key="a" mapped-value="2"/></qti-mapping>
+          </qti-response-declaration>
+          <qti-response-processing>
+            <qti-set-outcome-value identifier="SCORE">
+              <qti-sum>
+                <qti-map-response identifier="A"/>
+                <qti-product>
+                  <qti-base-value base-type="float">2</qti-base-value>
+                  <qti-base-value base-type="float">2</qti-base-value>
+                </qti-product>
+              </qti-sum>
+            </qti-set-outcome-value>
+          </qti-response-processing>
+        </qti-assessment-item>
+      `);
+
+      expect(deriveMaxScore(itemDoc, {})).toBeNull();
+    });
+  });
+
+  describe('Outcome variables in score expressions', () => {
+    // SCORE = sum(map(A), B_SCORE), with A worth 3
+    const variableItem = (bScoreDeclaration: string, bScoreRules: string) => parseXML(`
+      <qti-assessment-item>
+        <qti-response-declaration identifier="A" cardinality="single" base-type="identifier">
+          <qti-mapping><qti-map-entry map-key="a" mapped-value="3"/></qti-mapping>
+        </qti-response-declaration>
+        ${bScoreDeclaration}
+        <qti-response-processing>
+          ${bScoreRules}
+          <qti-set-outcome-value identifier="SCORE">
+            <qti-sum>
+              <qti-map-response identifier="A"/>
+              <qti-variable identifier="B_SCORE"/>
+            </qti-sum>
+          </qti-set-outcome-value>
+        </qti-response-processing>
+      </qti-assessment-item>
+    `);
+    const conditional = (ifValue: string, elseValue: string) => `
+      <qti-response-condition>
+        <qti-response-if>
+          <qti-match><qti-variable identifier="B"/><qti-correct identifier="B"/></qti-match>
+          <qti-set-outcome-value identifier="B_SCORE">${ifValue}</qti-set-outcome-value>
+        </qti-response-if>
+        <qti-response-else>
+          <qti-set-outcome-value identifier="B_SCORE">${elseValue}</qti-set-outcome-value>
+        </qti-response-else>
+      </qti-response-condition>`;
+    const float = (value: string) => `<qti-base-value base-type="float">${value}</qti-base-value>`;
+
+    test('takes the largest constant assigned, integer or float', () => {
+      expect(inferMaxScore(variableItem('', conditional('<qti-base-value base-type="integer">2</qti-base-value>', float('0'))))).toBe(5);
+    });
+
+    test('counts the declared default when assignments only lower it', () => {
+      const declaration = `
+        <qti-outcome-declaration identifier="B_SCORE" cardinality="single" base-type="float">
+          <qti-default-value><qti-value>1</qti-value></qti-default-value>
+        </qti-outcome-declaration>`;
+      expect(inferMaxScore(variableItem(declaration, conditional(float('-1'), float('0'))))).toBe(4);
+    });
+
+    test('can ignore declared defaults, for outcomes about to be declared again', () => {
+      const declaration = `
+        <qti-outcome-declaration identifier="B_SCORE" cardinality="single" base-type="float">
+          <qti-default-value><qti-value>5</qti-value></qti-default-value>
+        </qti-outcome-declaration>`;
+      const itemDoc = variableItem(declaration, conditional(float('1'), float('0')));
+      const sum = itemDoc.getElementsByTagName('qti-sum')[0];
+
+      expect(inferExpressionMaxScore(itemDoc, sum)).toBe(8);
+      expect(inferExpressionMaxScore(itemDoc, sum, { ignoreOutcomeDefaults: true })).toBe(4);
+    });
+
+    test('makes no guess when the outcome is also set by a lookup table', () => {
+      const lookup = `
+        <qti-lookup-outcome-value identifier="B_SCORE">
+          <qti-variable identifier="B"/>
+        </qti-lookup-outcome-value>`;
+      expect(inferMaxScore(variableItem('', lookup + conditional(float('1'), float('0'))))).toBeNull();
+    });
+
+    test('makes no guess when an assignment is not a constant', () => {
+      expect(inferMaxScore(variableItem('', conditional('<qti-map-response identifier="A"/>', float('0'))))).toBeNull();
+      expect(inferMaxScore(variableItem('', conditional(`<qti-product>${float('0.5')}${float('3')}</qti-product>`, float('0'))))).toBeNull();
+    });
+  });
+
+  describe('Conditionally set scores', () => {
+    test('infers a sum of outcome variables with the same rules as score expressions', () => {
+      // SCORE is set in a condition, so the sum of variables strategy applies. Two
+      // mappings, so no single mapping is relied on instead.
+      const itemDoc = parseXML(`
+        <qti-assessment-item>
+          <qti-response-declaration identifier="A" cardinality="single" base-type="identifier">
+            <qti-mapping><qti-map-entry map-key="a" mapped-value="1"/></qti-mapping>
+          </qti-response-declaration>
+          <qti-response-declaration identifier="B" cardinality="single" base-type="identifier">
+            <qti-mapping><qti-map-entry map-key="b" mapped-value="1"/></qti-mapping>
+          </qti-response-declaration>
+          <qti-response-processing>
+            <qti-set-outcome-value identifier="A_SCORE">
+              <qti-product>
+                <qti-base-value base-type="float">0.5</qti-base-value>
+                <qti-base-value base-type="float">4</qti-base-value>
+              </qti-product>
+            </qti-set-outcome-value>
+            <qti-response-condition>
+              <qti-response-if>
+                <qti-is-null><qti-variable identifier="A"/></qti-is-null>
+                <qti-set-outcome-value identifier="SCORE">
+                  <qti-base-value base-type="float">0</qti-base-value>
+                </qti-set-outcome-value>
+              </qti-response-if>
+              <qti-response-else>
+                <qti-set-outcome-value identifier="SCORE">
+                  <qti-sum><qti-variable identifier="A_SCORE"/></qti-sum>
+                </qti-set-outcome-value>
+              </qti-response-else>
+            </qti-response-condition>
+          </qti-response-processing>
+        </qti-assessment-item>
+      `);
+
+      // A_SCORE isn't set to a constant, so the 4 inside qti-product isn't its maximum
+      expect(inferMaxScore(itemDoc)).toBeNull();
+    });
+  });
+
+  describe('Constant scores', () => {
+    test('makes no guess from a mapping when SCORE is set to a constant', () => {
+      const itemDoc = parseXML(`
+        <qti-assessment-item>
+          <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier">
+            <qti-mapping><qti-map-entry map-key="A" mapped-value="3"/></qti-mapping>
+          </qti-response-declaration>
+          <qti-response-processing>
+            <qti-set-outcome-value identifier="SCORE">
+              <qti-base-value base-type="float">1</qti-base-value>
+            </qti-set-outcome-value>
+          </qti-response-processing>
+        </qti-assessment-item>
+      `);
+
+      expect(deriveMaxScore(itemDoc, {})).toBeNull();
     });
   });
 });

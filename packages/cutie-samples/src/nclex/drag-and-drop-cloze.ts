@@ -5,7 +5,7 @@ import {
   workedSolution,
 } from '../standard/conventions.js';
 import type { Sample } from '../types.js';
-import { clinicalScenario, maxScore, sumMapResponses, zeroOneMappedScoring } from './conventions.js';
+import { cappedSumMapResponses, clinicalScenario, maxScore, zeroOneMappedScoring } from './conventions.js';
 
 const description = `\
 NCLEX drag-and-drop cloze: \`qti-gap-match-interaction\` with a \`qti-prompt\`, a \
@@ -22,7 +22,7 @@ before submitting.
 - ${workedSolution}
 - ${zeroOneMappedScoring} The map keys are the correct "option gap" pairs, and \
 \`upper-bound\` is the number of gaps.
-- ${sumMapResponses}
+- ${cappedSumMapResponses}
 - ${responseProcessingOrder}
 - ${correctResponse}
 - ${outcomes}
@@ -86,9 +86,12 @@ adaptive="false" time-dependent="false" xml:lang="en">
 
   <qti-response-processing>
     <qti-set-outcome-value identifier="SCORE">
-      <qti-sum>
-        <qti-map-response identifier="RESPONSE"/>
-      </qti-sum>
+      <qti-min>
+        <qti-base-value base-type="float">3</qti-base-value>
+        <qti-sum>
+          <qti-map-response identifier="RESPONSE"/>
+        </qti-sum>
+      </qti-min>
     </qti-set-outcome-value>
     <qti-set-outcome-value identifier="FEEDBACK">
       <qti-multiple>

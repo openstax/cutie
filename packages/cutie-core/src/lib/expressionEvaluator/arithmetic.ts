@@ -58,6 +58,62 @@ export function evaluateProduct(
 }
 
 /**
+ * Collect the numeric operands of qti-min / qti-max, flattening multiple and
+ * ordered containers. Returns null when any sub-expression is NULL (including
+ * an empty container) or not numeric, since the operator's result is then NULL.
+ */
+function collectNumericOperands(
+  element: Element,
+  itemDoc: Document,
+  variables: Record<string, unknown>,
+  subEvaluate: SubEvaluate
+): number[] | null {
+  const numbers: number[] = [];
+
+  for (const child of getChildElements(element)) {
+    const value = subEvaluate(child, itemDoc, variables);
+    const values = Array.isArray(value) ? value : [value];
+    if (values.length === 0) {
+      return null;
+    }
+    for (const v of values) {
+      if (typeof v !== 'number') {
+        return null;
+      }
+      numbers.push(v);
+    }
+  }
+
+  return numbers.length > 0 ? numbers : null;
+}
+
+/**
+ * Evaluate qti-min element
+ */
+export function evaluateMin(
+  element: Element,
+  itemDoc: Document,
+  variables: Record<string, unknown>,
+  subEvaluate: SubEvaluate
+): number | null {
+  const numbers = collectNumericOperands(element, itemDoc, variables, subEvaluate);
+  return numbers === null ? null : Math.min(...numbers);
+}
+
+/**
+ * Evaluate qti-max element
+ */
+export function evaluateMax(
+  element: Element,
+  itemDoc: Document,
+  variables: Record<string, unknown>,
+  subEvaluate: SubEvaluate
+): number | null {
+  const numbers = collectNumericOperands(element, itemDoc, variables, subEvaluate);
+  return numbers === null ? null : Math.max(...numbers);
+}
+
+/**
  * Evaluate qti-subtract element
  */
 export function evaluateSubtract(

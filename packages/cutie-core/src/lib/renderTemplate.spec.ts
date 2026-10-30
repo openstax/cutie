@@ -107,7 +107,7 @@ const minimalItemXml = `<?xml version="1.0" encoding="UTF-8"?>
     </qti-item-body>
 
     <qti-response-processing
-    template="https://www.imsglobal.org/question/qti_v3p0/rptemplates/match_correct.xml"/>
+    template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct.xml"/>
   </qti-assessment-item>
 `;
 

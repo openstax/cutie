@@ -45,13 +45,6 @@ export const allOrNothingMultiple = `\
 Score the whole item all-or-nothing: \`SCORE\` is 1 only when every interaction \
 is correct, using \`qti-and\` over each response's correctness check.`;
 
-export const pairMappingAlternative = `\
-**Alternative (partial credit):** when partially correct responses should earn \
-credit, add a \`qti-mapping\` to the response declaration that assigns a value to \
-each correct pair (and optionally a negative value to incorrect pairs) with \
-\`lower-bound="0"\`, and set \`SCORE\` from \`qti-map-response\`. The worked \
-solution is unchanged.`;
-
 export const responseRequired = `\
 Add \`pattern-mask=".+"\` with \`data-patternmask-message="Response required"\` \
 so an empty response cannot be submitted, and set \`expected-length\` to roughly \
