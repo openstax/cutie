@@ -1,4 +1,4 @@
-// cspell:ignore distractors Prospero
+// cspell:ignore distractors Prospero overlines unstub
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ItemStateImpl } from '../../../state/itemState.js';
 import { announce } from '../../../utils/liveRegion.js';
@@ -1013,5 +1013,365 @@ describe('matchInteraction evaluation', () => {
     // New slots go before the key
     expect(column(container, 'R').querySelector('.cutie-match-slots')!.lastElementChild!
       .classList.contains('cutie-correct-answer')).toBe(true);
+  });
+});
+
+describe('matchInteraction tabular (qti-match-tabular)', () => {
+  let itemState: ItemStateImpl;
+
+  beforeEach(() => {
+    itemState = new ItemStateImpl();
+  });
+
+  // Mounted, so a click on an input changes it as in a browser
+  afterEach(() => {
+    document.body.replaceChildren();
+    vi.unstubAllGlobals();
+  });
+
+  const tabular = (
+    { rowMax = '1', colMax = '0', classes = '', attrs = '', rowGroups = {}, ids = ['F1', 'F2', 'F3'] }:
+    {
+      rowMax?: string; colMax?: string; classes?: string; attrs?: string;
+      rowGroups?: Record<string, string>; ids?: string[];
+    } = {}
+  ) => `
+    <qti-match-interaction response-identifier="R1" class="qti-match-tabular ${classes}" ${attrs}>
+      <qti-prompt>Classify each finding</qti-prompt>
+      <qti-simple-match-set>
+        <qti-simple-associable-choice identifier="${ids[0]}" match-max="${rowMax}" ${rowGroups.F1 ? `match-group="${rowGroups.F1}"` : ''}>Fever</qti-simple-associable-choice>
+        <qti-simple-associable-choice identifier="${ids[1]}" match-max="${rowMax}">Cough</qti-simple-associable-choice>
+        <qti-simple-associable-choice identifier="${ids[2]}" match-max="${rowMax}">Rash</qti-simple-associable-choice>
+      </qti-simple-match-set>
+      <qti-simple-match-set>
+        <qti-simple-associable-choice identifier="IND" match-max="${colMax}">Indicated</qti-simple-associable-choice>
+        <qti-simple-associable-choice identifier="NOT" match-max="${colMax}">Not indicated</qti-simple-associable-choice>
+      </qti-simple-match-set>
+    </qti-match-interaction>
+  `;
+
+  const render = (interaction: string, declaration = ''): HTMLElement => {
+    const doc = createQtiDocument(`
+      <qti-response-declaration identifier="R1" cardinality="multiple" base-type="directedPair">
+        ${declaration}
+      </qti-response-declaration>
+      ${interaction}
+    `);
+    const container = document.createElement('div');
+    container.appendChild(transformInteraction(doc, itemState));
+    document.body.appendChild(container);
+    return container;
+  };
+
+  const cell = (container: HTMLElement, sourceId: string, targetId: string) =>
+    container.querySelector<HTMLInputElement>(`.cutie-match-table input[value="${sourceId} ${targetId}"]`)!;
+  const response = () => itemState.collectAll().responses.R1;
+  const idsText = (container: HTMLElement, input: HTMLInputElement, attribute: string) =>
+    (input.getAttribute(attribute) ?? '').split(' ').filter(Boolean)
+      .map((id) => container.querySelector(`[id="${id}"]`)!.textContent!.trim())
+      .join(' ');
+  const nameOf = (container: HTMLElement, input: HTMLInputElement) => idsText(container, input, 'aria-labelledby');
+  const descriptionOf = (container: HTMLElement, input: HTMLInputElement) => idsText(container, input, 'aria-describedby');
+  const unavailable = (input: HTMLInputElement) => input.getAttribute('aria-disabled') === 'true';
+
+  describe('rendering', () => {
+    it('draws a table with a row per source and a column per target', () => {
+      const container = render(tabular());
+      const table = container.querySelector('.cutie-match-table')!;
+      expect(container.querySelector('.cutie-match-bank')).toBeNull();
+      expect(container.querySelector('.cutie-match-interaction--tabular')).not.toBeNull();
+
+      const columnHeaders = Array.from(table.querySelectorAll('thead th[scope="col"]'), (th) => th.textContent);
+      expect(columnHeaders).toEqual(['Indicated', 'Not indicated']);
+      const rowHeaders = Array.from(table.querySelectorAll('tbody th[scope="row"]'), (th) => th.textContent);
+      expect(rowHeaders).toEqual(['Fever', 'Cough', 'Rash']);
+      expect(table.querySelectorAll('tbody input')).toHaveLength(6);
+    });
+
+    it('names each input by its row and column headers', () => {
+      const container = render(tabular());
+      expect(nameOf(container, cell(container, 'F2', 'NOT'))).toBe('Cough Not indicated');
+    });
+
+    it('makes a row with a match-max of 1 a radio group', () => {
+      const container = render(tabular());
+      const inputs = [cell(container, 'F1', 'IND'), cell(container, 'F1', 'NOT')];
+      expect(inputs.map((input) => input.type)).toEqual(['radio', 'radio']);
+      expect(inputs[0].name).toBe(inputs[1].name);
+      expect(inputs[0].name).not.toBe(cell(container, 'F2', 'IND').name);
+    });
+
+    it('makes any other row checkboxes', () => {
+      const container = render(tabular({ rowMax: '0' }));
+      expect(cell(container, 'F1', 'IND').type).toBe('checkbox');
+    });
+
+    it('leaves the top-left cell empty without data-first-column-header', () => {
+      const container = render(tabular());
+      const corner = container.querySelector('thead tr')!.firstElementChild!;
+      expect(corner.tagName).toBe('TD');
+      expect(corner.textContent).toBe('');
+    });
+
+    it('puts data-first-column-header in the top-left header cell', () => {
+      const container = render(tabular({ attrs: 'data-first-column-header="Finding"' }));
+      const corner = container.querySelector('thead tr')!.firstElementChild!;
+      expect(corner.tagName).toBe('TH');
+      expect(corner.getAttribute('scope')).toBe('col');
+      expect(corner.textContent).toBe('Finding');
+    });
+
+    it('keeps the column headers naming the inputs under qti-header-hidden', () => {
+      const container = render(tabular({ classes: 'qti-header-hidden' }));
+      expect(container.querySelector('.cutie-match-interaction.qti-header-hidden')).not.toBeNull();
+      expect(nameOf(container, cell(container, 'F1', 'IND'))).toBe('Fever Indicated');
+    });
+
+    it('warns about identifiers shared by more than one choice', () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      render(tabular({ ids: ['F1', 'F1', 'IND'] }));
+      expect(warn).toHaveBeenCalledWith('qti-match-interaction has more than one choice with identifier "F1"');
+      expect(warn).toHaveBeenCalledWith('qti-match-interaction has more than one choice with identifier "IND"');
+      warn.mockRestore();
+    });
+  });
+
+  describe('responding', () => {
+    it('replaces a radio row\'s pair when another cell is chosen', () => {
+      const container = render(tabular());
+      cell(container, 'F1', 'IND').click();
+      cell(container, 'F2', 'NOT').click();
+      expect(response()).toEqual(['F1 IND', 'F2 NOT']);
+
+      cell(container, 'F1', 'NOT').click();
+      expect(response()).toEqual(['F2 NOT', 'F1 NOT']);
+      expect(cell(container, 'F1', 'IND').checked).toBe(false);
+    });
+
+    it('toggles checkbox pairs', () => {
+      const container = render(tabular({ rowMax: '0' }));
+      cell(container, 'F1', 'IND').click();
+      cell(container, 'F1', 'NOT').click();
+      expect(response()).toEqual(['F1 IND', 'F1 NOT']);
+
+      cell(container, 'F1', 'IND').click();
+      expect(response()).toEqual(['F1 NOT']);
+    });
+
+    it('reports each edit once', () => {
+      const container = render(tabular());
+      const notify = vi.spyOn(itemState, 'notifyResponseChange');
+      cell(container, 'F1', 'IND').click();
+      cell(container, 'F1', 'NOT').click();
+      expect(notify).toHaveBeenCalledTimes(2);
+      expect(notify).toHaveBeenCalledWith('R1');
+    });
+
+    it('restores the default response, however its values are spaced', () => {
+      const container = render(
+        tabular(),
+        '<qti-default-value><qti-value> F1  NOT </qti-value><qti-value>F3 IND</qti-value></qti-default-value>'
+      );
+      expect(cell(container, 'F1', 'NOT').checked).toBe(true);
+      expect(cell(container, 'F3', 'IND').checked).toBe(true);
+      expect(response()).toEqual(['F1 NOT', 'F3 IND']);
+    });
+  });
+
+  describe('association limits', () => {
+    it('makes the rest of a column unavailable once its match-max is used', () => {
+      const container = render(tabular({ colMax: '1' }));
+      cell(container, 'F1', 'IND').click();
+      expect(unavailable(cell(container, 'F2', 'IND'))).toBe(true);
+      expect(unavailable(cell(container, 'F3', 'IND'))).toBe(true);
+      expect(unavailable(cell(container, 'F2', 'NOT'))).toBe(false);
+
+      // Moving the row to the other column frees the first
+      cell(container, 'F1', 'NOT').click();
+      expect(unavailable(cell(container, 'F2', 'IND'))).toBe(false);
+      expect(unavailable(cell(container, 'F2', 'NOT'))).toBe(true);
+    });
+
+    it('keeps an unavailable cell focusable, described by why it is unavailable', () => {
+      const container = render(tabular({ colMax: '1' }));
+      cell(container, 'F1', 'IND').click();
+      const blocked = cell(container, 'F2', 'IND');
+      expect(blocked.disabled).toBe(false);
+      expect(descriptionOf(container, blocked)).toBe('Indicated already has its maximum number of matches.');
+
+      cell(container, 'F1', 'NOT').click();
+      expect(blocked.hasAttribute('aria-describedby')).toBe(false);
+    });
+
+    it('refuses a click on an unavailable cell, and announces why', () => {
+      const container = render(tabular({ colMax: '1' }));
+      cell(container, 'F1', 'IND').click();
+      const notify = vi.spyOn(itemState, 'notifyResponseChange');
+      vi.mocked(announce).mockClear();
+
+      cell(container, 'F2', 'IND').click();
+      expect(cell(container, 'F2', 'IND').checked).toBe(false);
+      expect(response()).toEqual(['F1 IND']);
+      expect(notify).not.toHaveBeenCalled();
+      expect(announce).toHaveBeenCalledWith(expect.anything(), 'Indicated already has its maximum number of matches.');
+    });
+
+    it('lets a radio row switch columns at max-associations', () => {
+      const container = render(tabular({ attrs: 'max-associations="1"' }));
+      cell(container, 'F1', 'IND').click();
+      expect(unavailable(cell(container, 'F1', 'NOT'))).toBe(false);
+      expect(descriptionOf(container, cell(container, 'F2', 'IND'))).toBe('The maximum number of matches has been made.');
+
+      cell(container, 'F1', 'NOT').click();
+      expect(response()).toEqual(['F1 NOT']);
+    });
+
+    it('makes unchosen checkboxes unavailable at max-associations', () => {
+      const container = render(tabular({ rowMax: '0', attrs: 'max-associations="2"' }));
+      cell(container, 'F1', 'IND').click();
+      cell(container, 'F1', 'NOT').click();
+      expect(unavailable(cell(container, 'F2', 'IND'))).toBe(true);
+      // A chosen cell can still be unchosen
+      expect(unavailable(cell(container, 'F1', 'IND'))).toBe(false);
+
+      cell(container, 'F1', 'IND').click();
+      expect(unavailable(cell(container, 'F2', 'IND'))).toBe(false);
+    });
+
+    it('makes the rest of a checkbox row unavailable once its match-max is used', () => {
+      // A third column, so a row with a match-max of 2 can fill up
+      const container = render(tabular({ rowMax: '2' }).replace(
+        '</qti-simple-match-set>\n    </qti-match-interaction>',
+        '<qti-simple-associable-choice identifier="UNK" match-max="0">Unknown</qti-simple-associable-choice>'
+          + '</qti-simple-match-set>\n    </qti-match-interaction>'
+      ));
+      cell(container, 'F1', 'IND').click();
+      cell(container, 'F1', 'NOT').click();
+      expect(descriptionOf(container, cell(container, 'F1', 'UNK'))).toBe('Fever already has its maximum number of matches.');
+    });
+
+    it('makes cells match-group excludes unavailable', () => {
+      const container = render(tabular({ rowGroups: { F1: 'IND' } }));
+      expect(unavailable(cell(container, 'F1', 'IND'))).toBe(false);
+      expect(descriptionOf(container, cell(container, 'F1', 'NOT'))).toBe('Fever can\'t be matched with Not indicated.');
+    });
+  });
+
+  describe('interaction state', () => {
+    it('natively disables every cell, and restores the limits when enabled', () => {
+      const container = render(tabular({ colMax: '1' }));
+      cell(container, 'F1', 'IND').click();
+
+      for (const state of ['disabled', 'readonly'] as const) {
+        itemState.setInteractionState(state);
+        const inputs = Array.from(container.querySelectorAll<HTMLInputElement>('.cutie-match-table input'));
+        expect(inputs.every((input) => input.disabled && !unavailable(input))).toBe(true);
+        expect(container.querySelector('.cutie-match-interaction--disabled')).not.toBeNull();
+      }
+
+      itemState.setInteractionState('enabled');
+      expect(cell(container, 'F1', 'IND').disabled).toBe(false);
+      expect(unavailable(cell(container, 'F2', 'IND'))).toBe(true);
+      expect(container.querySelector('.cutie-match-interaction--disabled')).toBeNull();
+    });
+  });
+
+  describe('scrolling', () => {
+    // jsdom has no layout: the observer is stubbed and the table's width set by hand
+    const observe = () => {
+      let callback: () => void = () => {};
+      vi.stubGlobal('ResizeObserver', class {
+        constructor(cb: () => void) { callback = cb; }
+        observe() {}
+        disconnect() {}
+      });
+      return (scrollWidth: number) => {
+        const scroller = document.querySelector<HTMLElement>('.cutie-match-table-scroll')!;
+        Object.defineProperty(scroller, 'scrollWidth', { configurable: true, value: scrollWidth });
+        Object.defineProperty(scroller, 'clientWidth', { configurable: true, value: 300 });
+        callback();
+        return scroller;
+      };
+    };
+
+    it('makes an overflowing table a named region in the tab order', () => {
+      const resize = observe();
+      render(tabular());
+      const scroller = resize(500);
+      expect(scroller.getAttribute('tabindex')).toBe('0');
+      expect(scroller.getAttribute('role')).toBe('region');
+      expect(scroller.getAttribute('aria-labelledby')).toBe('prompt-R1');
+    });
+
+    it('leaves a table that fits out of the tab order', () => {
+      const resize = observe();
+      render(tabular());
+      resize(500);
+      const scroller = resize(300);
+      expect(scroller.hasAttribute('tabindex')).toBe(false);
+      expect(scroller.hasAttribute('role')).toBe(false);
+    });
+  });
+
+  describe('evaluation', () => {
+    const correctResponse = `
+      <qti-correct-response><qti-value>F1 IND</qti-value><qti-value>F2 NOT</qti-value></qti-correct-response>`;
+    const overlineIn = (container: HTMLElement, sourceId: string, targetId: string) =>
+      cell(container, sourceId, targetId).closest('.cutie-match-cell')!
+        .querySelector('.cutie-match-cell-overline')!;
+
+    it('marks correct cells and selected incorrect cells with the standard overlines', () => {
+      const container = render(
+        tabular({ attrs: 'data-cutie-evaluation="incorrect"' }),
+        `<qti-default-value><qti-value>F1 NOT</qti-value></qti-default-value>${correctResponse}`
+      );
+      expect(overlineIn(container, 'F1', 'IND').textContent).toBe('Correct answer');
+      expect(overlineIn(container, 'F2', 'NOT').textContent).toBe('Correct answer');
+      expect(overlineIn(container, 'F1', 'NOT').textContent).toBe('Incorrect answer');
+      expect(overlineIn(container, 'F3', 'IND').textContent).toBe('');
+    });
+
+    it('gives every cell the overline slot, so the inputs stay level', () => {
+      const container = render(tabular({ attrs: 'data-cutie-evaluation="incorrect"' }), correctResponse);
+      expect(container.querySelectorAll('.cutie-match-cell-overline')).toHaveLength(6);
+      expect(container.querySelector('.cutie-match-table--evaluated')).not.toBeNull();
+    });
+
+    it('puts the overline first in the input\'s name, and hides it from being read twice', () => {
+      const container = render(tabular({ attrs: 'data-cutie-evaluation="incorrect"' }), correctResponse);
+      expect(nameOf(container, cell(container, 'F1', 'IND'))).toBe('Correct answer Fever Indicated');
+      expect(nameOf(container, cell(container, 'F1', 'NOT'))).toBe('Fever Not indicated');
+      expect(overlineIn(container, 'F1', 'IND').firstElementChild!.getAttribute('aria-hidden')).toBe('true');
+    });
+
+    it('gives each overline its own id, whatever the identifiers', () => {
+      // "A-B C" and "A B-C" would share an id built from the pair
+      const container = render(
+        tabular({ attrs: 'data-cutie-evaluation="incorrect"', ids: ['A-B', 'A', 'F3'] })
+          .replace('identifier="IND"', 'identifier="C"').replace('identifier="NOT"', 'identifier="B-C"'),
+        '<qti-correct-response><qti-value>A-B C</qti-value><qti-value>A B-C</qti-value></qti-correct-response>'
+      );
+      const ids = Array.from(container.querySelectorAll('.cutie-correct-answer-overline'), (mark) => mark.id);
+      expect(new Set(ids).size).toBe(2);
+    });
+
+    it('removes the incorrect-answer marks, and their place in the names, once the response is edited', () => {
+      const container = render(
+        tabular({ attrs: 'data-cutie-evaluation="incorrect"' }),
+        `<qti-default-value><qti-value>F1 NOT</qti-value></qti-default-value>${correctResponse}`
+      );
+      expect(nameOf(container, cell(container, 'F1', 'NOT'))).toBe('Incorrect answer Fever Not indicated');
+
+      cell(container, 'F3', 'IND').click();
+      expect(container.querySelector('.cutie-correct-answer-overline--incorrect')).toBeNull();
+      expect(nameOf(container, cell(container, 'F1', 'NOT'))).toBe('Fever Not indicated');
+      expect(overlineIn(container, 'F1', 'IND').textContent).toBe('Correct answer');
+    });
+
+    it('draws nothing without a verdict or correct response', () => {
+      const container = render(tabular());
+      expect(container.querySelector('.cutie-match-cell-overline')).toBeNull();
+      expect(container.querySelector('.cutie-match-table--evaluated')).toBeNull();
+    });
   });
 });

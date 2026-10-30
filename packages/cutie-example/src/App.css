@@ -395,6 +395,8 @@ h2 {
 .item-card {
   padding: 2rem;
   margin: auto;
+  /* As a flex item, shrink to the item area: wide content (a table) scrolls within the item */
+  min-width: 0;
   border-radius: 8px;
   border: 1px solid #ddd;
   background: #fff;
