@@ -190,8 +190,7 @@ class TabContainerHandler implements ElementHandler {
     let mode: Mode = media?.matches ? 'accordion' : 'tabs';
 
     // Sets roles and places panels for the current mode. Runs only on the first
-    // render and when the mode changes, because moving a panel reloads its
-    // iframes and drops focus.
+    // render and when the mode changes, because moving a panel drops focus from it.
     const layout = (): void => {
       list.removeAttribute('role');
       for (const name of TABLIST_LABEL_ATTRIBUTES) list.removeAttribute(name);
