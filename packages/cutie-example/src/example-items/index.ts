@@ -61,6 +61,7 @@ import * as variantExtendedTextPattern from './variant-extended-text-pattern.js'
 import * as variantGapMatchLayout from './variant-gap-match-layout.js';
 import * as variantBowtieLayout from './variant-bowtie-layout.js';
 import * as variantMatchTabularLayout from './variant-match-tabular-layout.js';
+import * as variantTrendTabs from './variant-trend-tabs.js';
 
 /* these examples are copied exactly from examples in the spec
  * documents, they are used for verification that cutie works
@@ -124,6 +125,7 @@ export const variantExamples = [
   variantMatchTabularLayout,
   hottextHighlightFindings,
   hottextHighlightTable,
+  variantTrendTabs,
 ];
 
 /* these examples were made for each interaction type to show editor-supported
