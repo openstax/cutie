@@ -44,8 +44,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
   <qti-outcome-declaration identifier="FEEDBACK" cardinality="multiple" base-type="identifier"/>
 
   <qti-item-body>
-    <p>A weather station records a gradual change in conditions. Drag each word into its
-      matching blank below.</p>
+    <p>A weather station records a gradual change in conditions.</p>
 
     <qti-gap-match-interaction response-identifier="RESPONSE" shuffle="false" min-associations="2" max-associations="2">
       <qti-prompt>Drag the event and the reading into their blanks.</qti-prompt>
