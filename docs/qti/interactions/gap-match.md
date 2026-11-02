@@ -81,17 +81,8 @@ Note: gap-match is entirely **advanced** cert (Q6 is Level 2).
 | data-max-selections-message | :x: | custom message when max-associations violated |
 | data-min-selections-message | :x: | custom message when min-associations violated |
 
-### word bank headings — cutie extension
+### data attributes — spec extensions
 
-QTI has no vocabulary for labeling a match-group, so cutie uses an ordinary heading in the interaction's content (block content, after the choices), tied to its group by a custom data attribute (spec §2.2.2's extension point):
-
-```xml
-<qti-gap-text identifier="warm_front" match-max="1" match-group="cause">warm front</qti-gap-text>
-<h3 data-for-match-group="cause">Event</h3>
-```
-
-| attribute | on | cutie | notes |
-|---|---|---|---|
-| data-for-match-group | h1–h6 | :white_check_mark: | names the match-group whose word bank the heading titles; the bank's listbox is labelled by it (aria-labelledby). A heading for a group with no choices is dropped. Other delivery systems show it as plain content. |
-
-When choices span 2+ match-groups, or any group has a heading, cutie gives each group its own word bank; otherwise all choices share one bank. The banks are ordered by where their gaps first appear in the content (a group with no gap comes last), so `shuffle` mixes the options within each bank without reordering the banks. The editor writes these headings as `h3` with plain text.
+| attribute | cutie | notes |
+|---|---|---|
+| data-for-match-group | :white_check_mark: | on an h1–h6 heading in the interaction: titles that match-group's word bank. See [Word Bank Headings](../../../README.md#word-bank-headings-data-for-match-group) |
