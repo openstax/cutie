@@ -72,8 +72,10 @@ function sectionPanels(container: HTMLElement): HTMLElement[] {
   return Array.from(container.querySelectorAll<HTMLElement>('.cutie-tabpanel'));
 }
 
-function press(target: HTMLElement, key: string): void {
-  target.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+function press(target: HTMLElement, key: string, modifiers: KeyboardEventInit = {}): KeyboardEvent {
+  const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...modifiers });
+  target.dispatchEvent(event);
+  return event;
 }
 
 /** Count the elements inserted or removed anywhere in `container` during `action`. */
@@ -254,6 +256,20 @@ describe('tabContainer', () => {
     expect(document.activeElement).toBe(all[0]);
     expect(panels(container)[0]!.hidden).toBe(false);
   });
+
+  it.each([{ altKey: true }, { ctrlKey: true }, { metaKey: true }])(
+    'leaves arrow keys with %o to the browser',
+    (modifiers) => {
+      const container = render(RECORD);
+      const all = tabs(container);
+      all[0]!.focus();
+
+      const event = press(all[0]!, 'ArrowLeft', modifiers);
+      expect(event.defaultPrevented).toBe(false);
+      expect(document.activeElement).toBe(all[0]);
+      expect(all[0]!.getAttribute('aria-selected')).toBe('true');
+    }
+  );
 
   it('leaves panels in place when the selection changes', () => {
     const container = render(RECORD);

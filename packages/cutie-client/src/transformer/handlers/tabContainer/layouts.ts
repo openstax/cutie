@@ -94,6 +94,9 @@ export class TabsLayout implements Layout {
   // Selection follows focus (automatic activation): panels are already in the
   // DOM, so showing one is instant.
   handleKeydown(event: KeyboardEvent, index: number): void {
+    // Leave modified keys to the browser, e.g. Alt+ArrowLeft for back
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
+
     const count = this.sections.length;
     const target = new Map([
       ['ArrowRight', (index + 1) % count],
