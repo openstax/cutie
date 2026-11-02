@@ -2,7 +2,13 @@
 import { NARROW_MEDIA_QUERY } from '../../../styles/breakpoints.js';
 
 export const TAB_CONTAINER_STYLES = `
+  /*
+   * A grid, so in tabs mode every panel shares one cell (see below). In an
+   * accordion the tablist is the only child, so the grid changes nothing.
+   */
   .cutie-tab-container {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
     margin: 1em 0;
   }
 
@@ -31,6 +37,20 @@ export const TAB_CONTAINER_STYLES = `
 
   .cutie-tab-container .cutie-tabpanel > :last-child {
     margin-bottom: 0;
+  }
+
+  /*
+   * Tabs reserve the tallest panel's height, so switching doesn't move the
+   * page. Unselected panels stay in layout but invisible, which also keeps
+   * them out of the accessibility tree and tab order.
+   */
+  .cutie-tab-container .cutie-tabpanel[role="tabpanel"] {
+    grid-area: 2 / 1;
+  }
+
+  .cutie-tab-container .cutie-tabpanel[role="tabpanel"][hidden] {
+    display: block;
+    visibility: hidden;
   }
 
   .cutie-tab-container .cutie-tab:focus-visible,
@@ -149,16 +169,10 @@ export const TAB_CONTAINER_STYLES = `
       position: absolute;
       inset: 0;
       margin: 0;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .qti-layout-row > [class*="qti-layout-col"]:not(:only-child) > .cutie-tab-container:only-child .cutie-tablist {
-      flex: none;
+      grid-template-rows: auto minmax(0, 1fr);
     }
 
     .qti-layout-row > [class*="qti-layout-col"]:not(:only-child) > .cutie-tab-container:only-child .cutie-tabpanel {
-      flex: 1 1 auto;
       min-height: 0;
       overflow: auto;
     }
