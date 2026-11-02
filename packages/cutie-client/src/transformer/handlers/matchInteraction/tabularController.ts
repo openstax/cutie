@@ -38,6 +38,9 @@ export class TabularMatchController implements MatchView {
   // Each cell, by its "sourceId targetId" pair
   private cells = new Map<string, Cell>();
 
+  // Whether each source's row is a radio group, once asked (see isRadioRow)
+  private radioRows = new Map<string, boolean>();
+
   constructor(
     responseIdentifier: string,
     context: TransformContext,
@@ -99,14 +102,19 @@ export class TabularMatchController implements MatchView {
    * max-associations can't be reached. A checked radio can't be unchecked, so
    * otherwise the row could be left unable to switch, or hold the pair another
    * row needs; such a row is checkboxes. Call after every source and target
-   * is registered.
+   * is registered: the answer depends only on the choices, so it's kept.
    */
   isRadioRow(sourceId: string): boolean {
-    return this.model.matchMax(sourceId) === 1
-      && this.model.maxAssociationsNeverReached()
-      && this.model.targetIds.every(
-        (targetId) => !this.model.groupsAllow(sourceId, targetId) || this.model.neverFills(targetId)
-      );
+    let radio = this.radioRows.get(sourceId);
+    if (radio === undefined) {
+      radio = this.model.matchMax(sourceId) === 1
+        && this.model.maxAssociationsNeverReached()
+        && this.model.targetIds.every(
+          (targetId) => !this.model.groupsAllow(sourceId, targetId) || this.model.neverFills(targetId)
+        );
+      this.radioRows.set(sourceId, radio);
+    }
+    return radio;
   }
 
   /**

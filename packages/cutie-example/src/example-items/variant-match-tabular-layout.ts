@@ -1,6 +1,8 @@
 // cspell:ignore COPD
 // Variant test: match interaction tabular layout vocabulary
-// Visual verification of qti-match-tabular, qti-header-hidden and data-first-column-header
+// Visual verification of qti-match-tabular, qti-header-hidden and data-first-column-header.
+// Not scored here: SCORE is externally scored, so the item has no response
+// processing and gives no verdict, but still shows its correct-answer key
 
 export const name = "Match Tabular Layout";
 
@@ -34,7 +36,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
     </qti-correct-response>
   </qti-response-declaration>
 
-  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float" external-scored="externalMachine">
     <qti-default-value><qti-value>0</qti-value></qti-default-value>
   </qti-outcome-declaration>
 
@@ -86,8 +88,6 @@ adaptive="false" time-dependent="false" xml:lang="en">
     </qti-match-interaction>
 
   </qti-item-body>
-
-  <qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct.xml"/>
 </qti-assessment-item>`;
 
 export const interactionTypes: string[] = ['match'];
