@@ -435,7 +435,7 @@ describe('tabContainer', () => {
       expect(countMoves(container, () => buttons(container)[0]!.click())).toBe(0);
     });
 
-    it('ignores tab keys', () => {
+    it('ignores arrow keys', () => {
       stubViewport(true);
       const container = render(RECORD);
       const [first] = buttons(container);
