@@ -1,4 +1,3 @@
-// cspell:ignore subgrid
 import { createMissingAttributeError } from '../../../errors/errorDisplay.js';
 import {
   type ConstraintMessage,
@@ -10,84 +9,17 @@ import {
   clearConstraintVerdict,
   clearEvaluated,
   clearVerdictOnEdit,
-  cloneLabel,
-  createCorrectAnswer,
   getVerdictText,
   markEvaluated,
   parseDirectedPair,
   readEvaluation,
 } from '../evaluation/index.js';
 import { getDefaultValue } from '../responseUtils.js';
-import { MatchController } from './controller.js';
+import { type MatchChoice, readMatchSet, warnDuplicateIdentifiers } from './choices.js';
+import { createColumns } from './columnsPresentation.js';
+import type { DirectedPair } from './presentation.js';
 import { MATCH_INTERACTION_STYLES } from './styles.js';
-
-type DirectedPair = NonNullable<ReturnType<typeof parseDirectedPair>>;
-
-const getAssociableChoices = (matchSet: Element): Element[] =>
-  Array.from(matchSet.children).filter(
-    (child) => child.tagName.toLowerCase() === 'qti-simple-associable-choice'
-  );
-
-const getMatchGroups = (choice: Element): string[] =>
-  (choice.getAttribute('match-group') ?? '').split(/\s+/).filter(Boolean);
-
-/**
- * A choice's plain-text name, used for announcements and accessible labels: its
- * text, with each image's alt text in its place, so an image that identifies
- * the choice isn't lost beside text of its own.
- */
-const getChoiceText = (choice: Element): string => {
-  const parts: string[] = [];
-  const walk = (node: Node): void => {
-    if (node.nodeType === Node.TEXT_NODE) {
-      parts.push(node.textContent ?? '');
-    } else if (node instanceof Element && node.tagName.toLowerCase() === 'img') {
-      parts.push(` ${node.getAttribute('alt') ?? ''} `);
-    } else {
-      node.childNodes.forEach(walk);
-    }
-  };
-  choice.childNodes.forEach(walk);
-  return parts.join('').replace(/\s+/g, ' ').trim();
-};
-
-const parseCount = (choice: Element, attribute: string, fallback: number): number => {
-  const parsed = parseInt(choice.getAttribute(attribute) ?? String(fallback), 10);
-  return isNaN(parsed) ? fallback : parsed;
-};
-
-const getMatchMax = (choice: Element): number => parseCount(choice, 'match-max', 1);
-const getMatchMin = (choice: Element): number => parseCount(choice, 'match-min', 0);
-
-/**
- * Plan one word bank per target column, or return null to bank every source
- * together. Per-column banks are used when the sources' match-groups partition
- * them into the target columns: every source names exactly one target
- * identifier, and every target is named by at least one source.
- */
-function planColumnBanks(
-  sourceChoices: Element[],
-  targetChoices: Element[]
-): Map<string, Element[]> | null {
-  const banks = new Map<string, Element[]>();
-  for (const target of targetChoices) {
-    const targetId = target.getAttribute('identifier');
-    if (targetId) banks.set(targetId, []);
-  }
-
-  for (const source of sourceChoices) {
-    const groups = getMatchGroups(source);
-    const bank = groups.length === 1 ? banks.get(groups[0]) : undefined;
-    if (!bank) return null;
-    bank.push(source);
-  }
-
-  for (const bank of banks.values()) {
-    if (bank.length === 0) return null;
-  }
-
-  return banks;
-}
+import { createTable } from './tabularPresentation.js';
 
 /**
  * A sentence of the constraint text, with the minimum it asks for: of the
@@ -103,7 +35,7 @@ interface ConstraintSentence {
  * The constraint sentences: the interaction's min/max-associations, then the
  * match-min of each choice that has one.
  */
-function buildConstraintSentences(min: number, max: number, choices: Element[]): ConstraintSentence[] {
+function buildConstraintSentences(min: number, max: number, choices: MatchChoice[]): ConstraintSentence[] {
   const plural = (n: number) => `${n} match${n === 1 ? '' : 'es'}`;
   const sentences: ConstraintSentence[] = [];
 
@@ -113,15 +45,13 @@ function buildConstraintSentences(min: number, max: number, choices: Element[]):
     sentences.push({ text: `Make at least ${plural(min)}.`, min });
   }
 
-  for (const choice of choices) {
-    const choiceId = choice.getAttribute('identifier');
-    const matchMin = getMatchMin(choice);
-    if (!choiceId || matchMin <= 0) continue;
-    const exact = matchMin === getMatchMax(choice);
+  for (const { choice } of choices) {
+    if (choice.matchMin <= 0) continue;
+    const exact = choice.matchMin === choice.matchMax;
     sentences.push({
-      text: `Make ${exact ? '' : 'at least '}${plural(matchMin)} for ${getChoiceText(choice)}.`,
-      min: matchMin,
-      choiceId,
+      text: `Make ${exact ? '' : 'at least '}${plural(choice.matchMin)} for ${choice.content}.`,
+      min: choice.matchMin,
+      choiceId: choice.id,
     });
   }
 
@@ -137,8 +67,10 @@ const joinSentences = (sentences: ConstraintSentence[]): string | null =>
  * Sources are drawn in word banks and each target as a column: a header over
  * slots that sources are placed into. When the sources' match-groups partition
  * them by target, each column gets its own bank (a "bowtie"); otherwise every
- * source shares one bank. The interaction stays a plain two-set directedPair
- * match — only the presentation is derived from the choices.
+ * source shares one bank. With qti-match-tabular, the interaction is drawn as
+ * a table instead: a row per source, a column per target, and an input per
+ * cell. The interaction stays a plain two-set directedPair match — only the
+ * presentation is derived from the class and the choices.
  *
  * QTI Structure:
  * - qti-match-interaction[response-identifier, shuffle?, max-associations?]
@@ -208,48 +140,23 @@ export class MatchInteractionHandler implements ElementHandler {
       container.setAttribute('aria-label', 'Match interaction');
     }
 
-    // Create the controller
-    const controller = new MatchController(
-      responseIdentifier,
-      context,
-      container,
-      maxAssociations
-    );
-
     // Note: choices are pre-shuffled by the server in renderTemplate.
-    const sourceChoices = getAssociableChoices(matchSets[0]);
-    const targetChoices = getAssociableChoices(matchSets[1]);
-    const columnBanks = planColumnBanks(sourceChoices, targetChoices);
+    const sources = readMatchSet(matchSets[0]);
+    const targets = readMatchSet(matchSets[1]);
+    warnDuplicateIdentifiers([...sources, ...targets]);
 
-    // Pass through QTI shared vocabulary (qti-choices-*) so CSS can position
-    // the bank(s) relative to the target columns.
+    // Pass through QTI shared vocabulary (qti-match-tabular, qti-header-hidden,
+    // qti-choices-*) so CSS can lay out the table or position the bank(s)
+    // relative to the target columns.
     const sourceClasses = element.getAttribute('class');
     if (sourceClasses) {
       container.classList.add(...sourceClasses.split(/\s+/).filter(Boolean));
     }
-    container.classList.add(
-      columnBanks ? 'cutie-match-interaction--column-banks' : 'cutie-match-interaction--shared-bank'
-    );
 
-    // The bank(s) come before the target slots in the DOM because the QTI
-    // vocabulary asks for choices to be presented before targets to assistive
-    // technology; qti-choices-* only repositions them visually.
-    const body = document.createElement('div');
-    body.className = 'cutie-match-body';
-    if (!columnBanks) {
-      body.appendChild(this.createBank(sourceChoices, { label: 'Available choices' }, controller, context));
-    }
-
-    const columnsRow = document.createElement('div');
-    columnsRow.className = 'cutie-match-columns';
-    for (const target of targetChoices) {
-      const column = this.createColumn(
-        target, columnBanks, controller, context, responseIdentifier
-      );
-      if (column) columnsRow.appendChild(column);
-    }
-    body.appendChild(columnsRow);
-    container.appendChild(body);
+    const presentation = (container.classList.contains('qti-match-tabular') ? createTable : createColumns)({
+      element, container, context, responseIdentifier, maxAssociations, sources, targets,
+    });
+    const { controller } = presentation;
 
     // Evaluation of a finished attempt when the delivery options show one,
     // or the last try's verdict on a fresh try
@@ -261,7 +168,7 @@ export class MatchInteractionHandler implements ElementHandler {
     let constraint: ConstraintMessage | undefined;
     const verdict = evaluation?.verdict ?? null;
     const constraintSentences = buildConstraintSentences(
-      minAssociations, maxAssociations, [...sourceChoices, ...targetChoices]
+      minAssociations, maxAssociations, [...sources, ...targets]
     );
     const associationText = joinSentences(constraintSentences);
     const constraintText = verdict ? getVerdictText(verdict) : associationText;
@@ -292,17 +199,19 @@ export class MatchInteractionHandler implements ElementHandler {
       controller.initializeFromDefaults(defaults);
     }
 
-    // Draw the evaluation: the status rail and each column's correct answer.
-    // The verdict is in the constraint text.
+    // Draw the evaluation: the status rail and the correct answer. The verdict
+    // is in the constraint text.
     if (evaluation) {
       const pairs = evaluation.correctResponse
         .map(parseDirectedPair)
         .filter((pair): pair is DirectedPair => pair !== null);
-      this.drawKey(container, pairs, controller, responseIdentifier);
+      presentation.drawKey(pairs);
       markEvaluated(container, evaluation.verdict);
     }
     clearVerdictOnEdit(context, responseIdentifier, evaluation, () => {
       clearEvaluated(container);
+      // Marks that describe the response go with the verdict
+      presentation.clearResponseMarks();
       clearConstraintVerdict(constraint, container, associationText);
     });
 
@@ -346,181 +255,5 @@ export class MatchInteractionHandler implements ElementHandler {
 
     fragment.appendChild(container);
     return fragment;
-  }
-
-  /**
-   * Create a word bank (a listbox) of source choices, named either by a
-   * referenced element (aria-labelledby — e.g. its column's header) or a
-   * literal string, and register its sources with the controller.
-   */
-  private createBank(
-    sources: Element[],
-    naming: { label: string } | { labelledBy: string },
-    controller: MatchController,
-    context: TransformContext
-  ): HTMLElement {
-    const bank = document.createElement('div');
-    bank.className = 'cutie-match-bank';
-    bank.setAttribute('role', 'listbox');
-    if ('labelledBy' in naming) {
-      bank.setAttribute('aria-labelledby', naming.labelledBy);
-    } else {
-      bank.setAttribute('aria-label', naming.label);
-    }
-
-    for (const source of sources) {
-      const choice = this.createSourceChoice(source, controller, context);
-      if (choice) bank.appendChild(choice);
-    }
-
-    controller.registerBank(bank);
-    return bank;
-  }
-
-  /**
-   * Create a source choice and register it with the controller. The
-   * controller seeds its tabindex once every bank is built.
-   */
-  private createSourceChoice(
-    choiceElement: Element,
-    controller: MatchController,
-    context: TransformContext
-  ): HTMLElement | null {
-    const identifier = choiceElement.getAttribute('identifier');
-    if (!identifier) {
-      console.warn('qti-simple-associable-choice missing identifier, skipping');
-      return null;
-    }
-
-    const matchMax = getMatchMax(choiceElement);
-    const content = getChoiceText(choiceElement);
-
-    const choiceDiv = document.createElement('div');
-    choiceDiv.className = 'cutie-match-choice';
-    choiceDiv.setAttribute('role', 'option');
-    choiceDiv.setAttribute('aria-selected', 'false');
-    choiceDiv.setAttribute('data-identifier', identifier);
-    choiceDiv.setAttribute('data-match-max', String(matchMax));
-    choiceDiv.setAttribute('tabindex', '-1');
-    choiceDiv.setAttribute('draggable', 'true');
-
-    // Label — use transformChildren for rich content (HTML/MathML)
-    const labelSpan = document.createElement('span');
-    labelSpan.className = 'cutie-match-choice-label';
-    if (context.transformChildren) {
-      labelSpan.appendChild(context.transformChildren(choiceElement));
-    } else {
-      labelSpan.textContent = content;
-    }
-    choiceDiv.appendChild(labelSpan);
-
-    controller.registerSource(
-      identifier, choiceDiv, getMatchMin(choiceElement), matchMax, content, getMatchGroups(choiceElement)
-    );
-
-    return choiceDiv;
-  }
-
-  /**
-   * Create a target column: its own bank of sources when the banks are per
-   * column, then a plain header over the slots the controller draws.
-   */
-  private createColumn(
-    target: Element,
-    columnBanks: Map<string, Element[]> | null,
-    controller: MatchController,
-    context: TransformContext,
-    responseIdentifier: string
-  ): HTMLElement | null {
-    const targetId = target.getAttribute('identifier');
-    if (!targetId) {
-      console.warn('qti-simple-associable-choice missing identifier, skipping');
-      return null;
-    }
-
-    const targetContent = getChoiceText(target);
-
-    const column = document.createElement('div');
-    column.className = 'cutie-match-column';
-    column.setAttribute('data-target-id', targetId);
-
-    // Header + slots share the target grid area so qti-choices-* positioning
-    // places them together opposite the bank.
-    const targetArea = document.createElement('div');
-    targetArea.className = 'cutie-match-target';
-
-    const header = document.createElement('div');
-    header.className = 'cutie-match-target-header';
-    const labelId = `cutie-match-label-${responseIdentifier}-${targetId}`;
-    header.id = labelId;
-    if (context.transformChildren) {
-      header.appendChild(context.transformChildren(target));
-    } else {
-      header.textContent = targetContent;
-    }
-    targetArea.appendChild(header);
-
-    const slots = document.createElement('div');
-    slots.className = 'cutie-match-slots';
-    slots.setAttribute('role', 'group');
-    slots.setAttribute('aria-labelledby', labelId);
-    targetArea.appendChild(slots);
-
-    controller.registerTarget(
-      targetId, header, slots, getMatchMin(target), getMatchMax(target), targetContent, getMatchGroups(target)
-    );
-
-    const bankSources = columnBanks?.get(targetId);
-    if (bankSources) {
-      const bank = this.createBank(bankSources, { labelledBy: labelId }, controller, context);
-      bank.setAttribute('data-target-id', targetId);
-      column.appendChild(bank);
-    }
-    column.appendChild(targetArea);
-
-    return column;
-  }
-
-  /**
-   * The correct-answer key: under each column's slots, the sources that belong
-   * there, by their displayed labels — like the per-gap key of a gap match.
-   * Every slot of the column is described by the key.
-   */
-  private drawKey(
-    container: HTMLElement,
-    pairs: DirectedPair[],
-    controller: MatchController,
-    responseIdentifier: string
-  ): void {
-    const choices = new Map<string, HTMLElement>();
-    for (const choice of container.querySelectorAll<HTMLElement>('.cutie-match-choice')) {
-      const id = choice.getAttribute('data-identifier');
-      if (id) choices.set(id, choice);
-    }
-
-    const correctByTarget = new Map<string, string[]>();
-    for (const { source, target } of pairs) {
-      correctByTarget.set(target, [...(correctByTarget.get(target) ?? []), source]);
-    }
-
-    for (const column of container.querySelectorAll<HTMLElement>('.cutie-match-column')) {
-      const targetId = column.getAttribute('data-target-id');
-      const sourceIds = targetId ? correctByTarget.get(targetId) : undefined;
-      const slots = column.querySelector<HTMLElement>('.cutie-match-slots');
-      if (!targetId || !sourceIds || !slots) continue;
-
-      const content = document.createDocumentFragment();
-      sourceIds.forEach((id, index) => {
-        if (index > 0) content.append(', ');
-        const label = choices.get(id)?.querySelector('.cutie-match-choice-label');
-        content.append(label ? cloneLabel(label) : id);
-      });
-
-      const answer = createCorrectAnswer(content);
-      answer.id = `evaluation-${responseIdentifier}-${targetId}`;
-      // Inside the slots' grid row: the column's subgrid has no row of its own for it
-      slots.append(answer);
-      controller.describeTarget(targetId, answer.id);
-    }
   }
 }

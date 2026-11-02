@@ -369,4 +369,143 @@ export const MATCH_INTERACTION_STYLES = `
   .cutie-match-slots > .cutie-correct-answer {
     margin-top: 0.25em;
   }
+
+  /*
+   * Tabular layout (qti-match-tabular): a row per source, a column per target,
+   * and an input in each cell. A table wider than the item scrolls within it.
+   *
+   * The overline slot of an evaluated table: the "correct answer" overline's
+   * 1.125em line box, and a gap above the input.
+   */
+  .cutie-match-table-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .cutie-match-table-scroll:focus-visible {
+    outline: var(--cutie-focus-ring);
+    outline-offset: var(--cutie-focus-ring-offset);
+  }
+
+  .cutie-match-table {
+    --cutie-match-overline-height: 1.125em;
+    --cutie-match-overline-gap: 0.25em;
+    --cutie-match-cell-padding: 0.5em 0.75em;
+    border-collapse: collapse;
+    color: var(--cutie-text);
+  }
+
+  .cutie-match-table th,
+  .cutie-match-table td {
+    padding: var(--cutie-match-cell-padding);
+    border: 1px solid var(--cutie-border);
+    vertical-align: middle;
+  }
+
+  .cutie-match-table thead th {
+    background-color: var(--cutie-bg-alt);
+    font-weight: 700;
+    text-align: center;
+  }
+
+  /* The empty top-left cell, without data-first-column-header, has no box. */
+  .cutie-match-table thead td {
+    border-top-color: transparent;
+    border-left-color: transparent;
+  }
+
+  /* The row headers, and the data-first-column-header over them */
+  .cutie-match-table tbody th,
+  .cutie-match-table thead .cutie-match-table-corner {
+    text-align: start;
+  }
+
+  .cutie-match-table tbody th {
+    font-weight: 600;
+  }
+
+  /* The cell's label carries its padding, so the whole cell is clickable. */
+  .cutie-match-table tbody td {
+    padding: 0;
+  }
+
+  .cutie-match-table tbody td:has(input:enabled:not([aria-disabled="true"])):hover {
+    background-color: var(--cutie-bg-alt);
+  }
+
+  .cutie-match-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: var(--cutie-match-cell-padding);
+    cursor: pointer;
+  }
+
+  .cutie-match-cell input {
+    width: 1.25em;
+    height: 1.25em;
+    margin: 0;
+    accent-color: var(--cutie-primary);
+    cursor: pointer;
+  }
+
+  .cutie-match-cell input:focus-visible {
+    outline: var(--cutie-focus-ring);
+    outline-offset: var(--cutie-focus-ring-offset);
+  }
+
+  /*
+   * A cell the association rules exclude (aria-disabled, still focusable), as
+   * opposed to every cell of a disabled interaction (natively disabled).
+   */
+  .cutie-match-cell:has(input[aria-disabled="true"]),
+  .cutie-match-cell input[aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+
+  .cutie-match-cell input[aria-disabled="true"] {
+    opacity: 0.4;
+  }
+
+  .cutie-match-interaction--disabled .cutie-match-cell,
+  .cutie-match-interaction--disabled .cutie-match-cell input {
+    cursor: default;
+  }
+
+  /*
+   * An evaluated table gives every cell the overline's slot above its input,
+   * filled or not, so the inputs stay level across a row: the slot's line box
+   * is the overline's, so filling it changes nothing. The row headers drop by
+   * the same amount, so each stays level with its row's inputs.
+   */
+  .cutie-match-cell-overline {
+    height: var(--cutie-match-overline-height);
+    margin-bottom: var(--cutie-match-overline-gap);
+    line-height: 1.125;
+    white-space: nowrap;
+  }
+
+  .cutie-match-table--evaluated tbody th {
+    padding-top: calc(0.5em + var(--cutie-match-overline-height) + var(--cutie-match-overline-gap));
+  }
+
+  /*
+   * qti-header-hidden: the column headers are hidden visually, but still name
+   * each cell's input for assistive technology.
+   */
+  .qti-header-hidden .cutie-match-table thead th,
+  .qti-header-hidden .cutie-match-table thead td {
+    position: relative;
+    padding: 0;
+    border: 0;
+  }
+
+  .qti-header-hidden .cutie-match-table thead .cutie-match-table-header-content {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
 `;

@@ -67,3 +67,12 @@ A wrong cause leaves at most 1 + 1 - 2 = 0 points, and the correct cause leaves 
 export const maxScore = `\
 Set the \`MAXSCORE\` default to the most the item can award: one point for \
 each correct option, blank, or pair.`;
+
+export const matrixTable = `\
+Use a \`qti-match-interaction\` with \`class="qti-match-tabular"\`, shown as a \
+table with a row for each choice of the first \`qti-simple-match-set\`, a column \
+for each choice of the second, and a radio button or checkbox in each cell. The \
+response is a \`multiple\` cardinality \`directedPair\` of "row column" \
+identifiers. Set \`data-first-column-header\` to the header of the row labels, \
+such as "Assessment finding". The \`qti-prompt\` starts with "For each" and asks \
+the question for every row, so the rows are named on their own.`;
