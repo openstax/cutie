@@ -37,7 +37,13 @@ export class TabContainerController {
       Number.isInteger(i) &&
       (i as number) >= 0 &&
       (i as number) < sections.length;
-    this.open = Array.isArray(saved) ? saved.filter(isSection) : [0];
+
+    if (Array.isArray(saved)) {
+      const filtered = saved.filter(isSection);
+      this.open = filtered.length > 0 ? filtered : (saved.length === 0 ? [] : [0]);
+    } else {
+      this.open = [0];
+    }
 
     // jsdom and other environments without matchMedia get tabs
     this.media = typeof window.matchMedia === 'function' ?
