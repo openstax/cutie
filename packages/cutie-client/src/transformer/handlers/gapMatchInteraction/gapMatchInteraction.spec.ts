@@ -555,6 +555,25 @@ describe('gapMatchInteraction', () => {
       expect(gaps.length).toBe(3);
     });
 
+    it('orders the banks by their gaps in the content, not by the shuffled choices', () => {
+      const container = transformToContainer(`
+        <qti-gap-match-interaction response-identifier="R1">
+          <qti-gap-text identifier="B1" match-max="1" match-group="effect">Effect A</qti-gap-text>
+          <qti-gap-text identifier="A1" match-max="1" match-group="cause">Cause A</qti-gap-text>
+          <qti-gap-text identifier="U1" match-max="1" match-group="unused">Unused</qti-gap-text>
+          <qti-gap-text identifier="B2" match-max="1" match-group="effect">Effect B</qti-gap-text>
+          <p>A <qti-gap identifier="GC" match-group="cause"></qti-gap>,
+             evidenced by <qti-gap identifier="GE" match-group="effect"></qti-gap>.</p>
+        </qti-gap-match-interaction>
+      `);
+
+      const groups = Array.from(container.querySelectorAll('.cutie-gap-match-choices--group'));
+      expect(groups.map((group) => group.getAttribute('data-match-group'))).toEqual(['cause', 'effect', 'unused']);
+      expect(Array.from(groups[1]!.querySelectorAll('.cutie-gap-text')).map((el) =>
+        el.getAttribute('data-identifier')
+      )).toEqual(['B1', 'B2']);
+    });
+
     it('treats ungrouped choices as their own bucket when mixed with a grouped choice', () => {
       const container = transformToContainer(MIXED_QTI);
 

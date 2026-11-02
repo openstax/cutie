@@ -94,4 +94,4 @@ QTI has no vocabulary for labeling a match-group, so cutie uses an ordinary head
 |---|---|---|---|
 | data-for-match-group | h1–h6 | :white_check_mark: | names the match-group whose word bank the heading titles; the bank's listbox is labelled by it (aria-labelledby). A heading for a group with no choices is dropped. Other delivery systems show it as plain content. |
 
-When choices span 2+ match-groups, or any group has a heading, cutie gives each group its own word bank; otherwise all choices share one bank. The editor writes these headings as `h3` with plain text.
+When choices span 2+ match-groups, or any group has a heading, cutie gives each group its own word bank; otherwise all choices share one bank. The banks are ordered by where their gaps first appear in the content (a group with no gap comes last), so `shuffle` mixes the options within each bank without reordering the banks. The editor writes these headings as `h3` with plain text.

@@ -151,7 +151,16 @@ export class GapMatchInteractionHandler implements ElementHandler {
     // the functional restriction. Choices bucket by their first match-group;
     // ungrouped choices form their own bucket.
     const groupKey = (choice: ChoiceData): string => choice.matchGroups[0] ?? '';
-    const groupKeys = [...new Set(choices.map(groupKey))];
+    // Banks follow the order their gaps appear in the content, so shuffled
+    // choices don't reorder them; a group with no gap follows, in choice order
+    const choiceGroupKeys = new Set(choices.map(groupKey));
+    const gapGroupKeys = Array.from(element.querySelectorAll('qti-gap')).flatMap((gap) => {
+      const matchGroups = (gap.getAttribute('match-group') ?? '').split(/\s+/).filter(Boolean);
+      return matchGroups.length ? matchGroups : [''];
+    });
+    const groupKeys = [
+      ...new Set([...gapGroupKeys.filter((key) => choiceGroupKeys.has(key)), ...choiceGroupKeys]),
+    ];
     const choiceBanks: HTMLElement[] = [];
     const bankForGroup = new Map<string, HTMLElement>();
 
