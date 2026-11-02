@@ -1117,6 +1117,17 @@ describe('matchInteraction tabular (qti-match-tabular)', () => {
       expect(cell(container, 'F1', 'IND').type).toBe('radio');
     });
 
+    it('makes a row checkboxes when max-associations can be reached', () => {
+      // A checked radio couldn't give the only allowed match to another row
+      const container = render(tabular({ attrs: 'max-associations="2"' }));
+      expect(cell(container, 'F1', 'IND').type).toBe('checkbox');
+    });
+
+    it('keeps a row a radio group when max-associations allows every row a match', () => {
+      const container = render(tabular({ attrs: 'max-associations="3"' }));
+      expect(cell(container, 'F1', 'IND').type).toBe('radio');
+    });
+
     it('ignores columns match-group excludes from the row', () => {
       // NOT can't fill, and F1 may only choose it
       const container = render(tabular({ rowGroups: { F1: 'NOT' } }).replace(
@@ -1248,14 +1259,14 @@ describe('matchInteraction tabular (qti-match-tabular)', () => {
       expect(response()).toEqual(['F1 NOT', 'F2 IND']);
     });
 
-    it('lets a radio row switch columns at max-associations', () => {
+    it('lets the only allowed match move to another row at max-associations', () => {
       const container = render(tabular({ attrs: 'max-associations="1"' }));
       cell(container, 'F1', 'IND').click();
-      expect(unavailable(cell(container, 'F1', 'NOT'))).toBe(false);
       expect(descriptionOf(container, cell(container, 'F2', 'IND'))).toBe('The maximum number of matches has been made.');
 
-      cell(container, 'F1', 'NOT').click();
-      expect(response()).toEqual(['F1 NOT']);
+      cell(container, 'F1', 'IND').click();
+      cell(container, 'F2', 'NOT').click();
+      expect(response()).toEqual(['F2 NOT']);
     });
 
     it('makes unchosen checkboxes unavailable at max-associations', () => {

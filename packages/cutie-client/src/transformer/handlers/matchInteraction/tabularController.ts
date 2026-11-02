@@ -19,7 +19,8 @@ interface Cell {
  * Each source is a row and each target a column; each cell is a native input
  * for its row→column pair. A row whose source has a match-max of 1 is a radio
  * group, so choosing a cell replaces the row's pair, unless a column it may
- * choose can fill up; any other row is a set of checkboxes.
+ * choose can fill up or max-associations can be reached; any other row is a
+ * set of checkboxes.
  *
  * A cell the association rules exclude (match-group, a full row or column,
  * max-associations) stays focusable but is aria-disabled, described by the
@@ -93,15 +94,19 @@ export class TabularMatchController implements MatchView {
   }
 
   /**
-   * Whether a source's row is a radio group: one pair at most, and no column
-   * it may choose can fill up. A checked radio can't be unchecked, so a full
-   * column could leave the row unable to switch; such a row is checkboxes.
-   * Call after every source and target is registered.
+   * Whether a source's row is a radio group: one pair at most, and no limit
+   * but its own can block it — no column it may choose can fill up, and
+   * max-associations can't be reached. A checked radio can't be unchecked, so
+   * otherwise the row could be left unable to switch, or hold the pair another
+   * row needs; such a row is checkboxes. Call after every source and target
+   * is registered.
    */
   isRadioRow(sourceId: string): boolean {
-    return this.model.matchMax(sourceId) === 1 && this.model.targetIds.every(
-      (targetId) => !this.model.groupsAllow(sourceId, targetId) || this.model.neverFills(targetId)
-    );
+    return this.model.matchMax(sourceId) === 1
+      && this.model.maxAssociationsNeverReached()
+      && this.model.targetIds.every(
+        (targetId) => !this.model.groupsAllow(sourceId, targetId) || this.model.neverFills(targetId)
+      );
   }
 
   /**

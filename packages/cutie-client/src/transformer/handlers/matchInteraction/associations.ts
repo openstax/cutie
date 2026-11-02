@@ -127,6 +127,21 @@ export class MatchAssociations {
     return matchMax === 0 || matchMax >= this.allowedSourceCount(targetId);
   }
 
+  /**
+   * Whether max-associations can never be reached: it's unlimited, or at
+   * least the most associations the sources can make, each up to its
+   * match-max and the targets allowed to pair with it.
+   */
+  maxAssociationsNeverReached(): boolean {
+    if (this.maxAssociations === 0) return true;
+    const most = this.sources.reduce((total, sourceId) => {
+      const matchMax = this.matchMax(sourceId);
+      const allowedTargets = this.targets.filter((targetId) => this.groupsAllow(sourceId, targetId)).length;
+      return total + (matchMax > 0 ? Math.min(matchMax, allowedTargets) : allowedTargets);
+    }, 0);
+    return this.maxAssociations >= most;
+  }
+
   private allowedSourceCount(targetId: string): number {
     return this.sources.filter((sourceId) => this.groupsAllow(sourceId, targetId)).length;
   }
