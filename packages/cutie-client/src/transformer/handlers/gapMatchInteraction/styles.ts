@@ -302,10 +302,12 @@ export const GAP_MATCH_INTERACTION_STYLES = `
     background-color: transparent;
   }
 
+  /* A zero basis shares the row equally whatever the options' length, so long
+   * options wrap inside their bank instead of pushing it onto its own line */
   .cutie-gap-match-bank {
     display: flex;
     flex-direction: column;
-    flex: 1 1 auto;
+    flex: 1 1 0;
     min-width: 10em;
   }
 
@@ -329,6 +331,7 @@ export const GAP_MATCH_INTERACTION_STYLES = `
     }
 
     .cutie-gap-match-bank {
+      flex: 0 0 auto;
       min-width: unset;
       width: 100%;
     }
