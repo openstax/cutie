@@ -19,8 +19,9 @@ the three columns in the order Actions, Condition, Parameters. The response is a
 condition options, 5 action options, and 5 parameter options.
 
 - ${clinicalScenario}
-- ${clientRecord} Don't place the record beside the bowtie in a layout \
-column; the bowtie needs the full width.
+- ${clientRecord}
+- Place the client record after the scenario and before the bowtie, at full \
+width.
 - Use the prompt "Complete the diagram by dragging from the choices below to \
 specify what condition the client is most likely experiencing, 2 actions the nurse \
 should take to address that condition, and 2 parameters the nurse should monitor \

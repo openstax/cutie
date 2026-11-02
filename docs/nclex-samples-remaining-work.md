@@ -2,7 +2,7 @@
 # NCLEX samples: remaining work
 
 The [Assignable NCLEX Epic & PRD](https://docs.google.com/document/d/1iqb1fXxcNIFB-OOv2WqlhhGo_7yxg2Rw4eez7AQEfzc/edit)
-lists 14 question types. `packages/cutie-samples/src/nclex/` has canonical samples for 12 of them:
+lists 14 question types. `packages/cutie-samples/src/nclex/` has canonical samples for 13 of them:
 
 - Multiple Response: Select All That Apply
 - Multiple Response: Select N
@@ -16,6 +16,7 @@ lists 14 question types. `packages/cutie-samples/src/nclex/` has canonical sampl
 - Text Highlight: Passage
 - Text Highlight: Table
 - Bowtie
+- Trend
 
 This document covers the samples that still need to be made.
 
@@ -91,17 +92,3 @@ each column in response processing would make it `custom` to the editor classifi
 **Needed:** a standard scoring pattern for a sum of per-group floored mapped scores within one
 response, supported by cutie-core and recognized by the editor classifier, so the per-column
 scores can be authored and edited. No Jira ticket yet.
-
-### Trend
-
-**Requirements:** case information over several time points (nurses' notes, vital signs, lab
-results) shown in tabs, with the question built from one of the other types, usually
-drop-downs or multiple response. Scoring follows the type used.
-
-**Why not made:** the client has no tabbed presentation of case information. CORE-2690 covers
-this, but there's no branch for it yet. The PRD's draft suggests custom JS and CSS that falls back to stacked headings in
-other systems.
-
-**Needed:** decide how tabbed case information is represented within strict QTI v3 before
-building it, then implement the client support. The same tabbed layout is needed for bowtie and
-the NCLEX two-panel layout generally.

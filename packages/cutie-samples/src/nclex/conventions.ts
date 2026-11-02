@@ -6,10 +6,10 @@ Start with a short clinical scenario that gives the client's situation and the \
 data the question depends on. Refer to the person receiving care as "the client".`;
 
 export const clientRecord = `\
-When the client's data has more than one part, such as notes, vital signs, and \
-laboratory results, put it in a client record after the scenario and before the \
-interactions: a \`div\` with class \`cutie-tab-container\` and an \`aria-label\` \
-such as "Client record", which is shown as tabs. Each tab is a \`section\` that \
+A client record holds the client's data when it has more than one part, such as \
+notes, vital signs, and laboratory results. It is a \`div\` with class \
+\`cutie-tab-container\` and an \`aria-label\` such as "Client record", which is \
+shown as tabs. Each tab is a \`section\` that \
 starts with an \`h3\` naming it, using NCLEX record names such as "Nurses' Notes", \
 "Vital Signs", "Laboratory Results", "History and Physical", or "Medications". \
 Present values that changed over time in a table with a column for each time point.`;

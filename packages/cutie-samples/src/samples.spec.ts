@@ -34,6 +34,7 @@ const incorrectSubmissions: Record<string, Submission> = {
   'nclex-drag-and-drop-rationale': { RESPONSE: ['bleeding G1', 'whiteCells G2'] },
   'nclex-highlight-passage': { RESPONSE: ['pain', 'leftCalf'] },
   'nclex-highlight-table': { RESPONSE: ['bloodPressure', 'glucose'] },
+  'nclex-trend': { RESPONSE: ['choiceE', 'choiceF', 'choiceG'] },
   'nclex-bowtie': { RESPONSE: ['ambulate actions', 'enoxaparin actions', 'sepsis condition', 'bowelSounds parameters', 'temperature parameters'] },
 };
 

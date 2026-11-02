@@ -12,6 +12,7 @@ import { highlightTable } from './highlight-table.js';
 import { matrixMultipleChoice } from './matrix-multiple-choice.js';
 import { selectAll } from './select-all.js';
 import { selectN } from './select-n.js';
+import { trend } from './trend.js';
 
 export const nclex: SampleGroup = {
   id: 'nclex',
@@ -41,5 +42,6 @@ the same interaction scores differently.`,
     highlightPassage,
     highlightTable,
     bowtie,
+    trend,
   ],
 };
