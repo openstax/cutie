@@ -1106,6 +1106,26 @@ describe('matchInteraction tabular (qti-match-tabular)', () => {
       expect(cell(container, 'F1', 'IND').type).toBe('checkbox');
     });
 
+    it('makes a row checkboxes when a column it may choose can fill up', () => {
+      // A checked radio can't be unchecked, so a full column could stop the row switching
+      const container = render(tabular({ colMax: '1' }));
+      expect(cell(container, 'F1', 'IND').type).toBe('checkbox');
+    });
+
+    it('keeps a row a radio group when every column it may choose can hold every row', () => {
+      const container = render(tabular({ colMax: '3' }));
+      expect(cell(container, 'F1', 'IND').type).toBe('radio');
+    });
+
+    it('ignores columns match-group excludes from the row', () => {
+      // NOT can't fill, and F1 may only choose it
+      const container = render(tabular({ rowGroups: { F1: 'NOT' } }).replace(
+        'identifier="IND" match-max="0"', 'identifier="IND" match-max="1"'
+      ));
+      expect(cell(container, 'F1', 'NOT').type).toBe('radio');
+      expect(cell(container, 'F2', 'NOT').type).toBe('checkbox');
+    });
+
     it('leaves the top-left cell empty without data-first-column-header', () => {
       const container = render(tabular());
       const corner = container.querySelector('thead tr')!.firstElementChild!;
@@ -1186,10 +1206,9 @@ describe('matchInteraction tabular (qti-match-tabular)', () => {
       expect(unavailable(cell(container, 'F3', 'IND'))).toBe(true);
       expect(unavailable(cell(container, 'F2', 'NOT'))).toBe(false);
 
-      // Moving the row to the other column frees the first
-      cell(container, 'F1', 'NOT').click();
+      // Unchecking the row's cell frees the column
+      cell(container, 'F1', 'IND').click();
       expect(unavailable(cell(container, 'F2', 'IND'))).toBe(false);
-      expect(unavailable(cell(container, 'F2', 'NOT'))).toBe(true);
     });
 
     it('keeps an unavailable cell focusable, described by why it is unavailable', () => {
@@ -1199,7 +1218,7 @@ describe('matchInteraction tabular (qti-match-tabular)', () => {
       expect(blocked.disabled).toBe(false);
       expect(descriptionOf(container, blocked)).toBe('Indicated already has its maximum number of matches.');
 
-      cell(container, 'F1', 'NOT').click();
+      cell(container, 'F1', 'IND').click();
       expect(blocked.hasAttribute('aria-describedby')).toBe(false);
     });
 
@@ -1214,6 +1233,19 @@ describe('matchInteraction tabular (qti-match-tabular)', () => {
       expect(response()).toEqual(['F1 IND']);
       expect(notify).not.toHaveBeenCalled();
       expect(announce).toHaveBeenCalledWith(expect.anything(), 'Indicated already has its maximum number of matches.');
+    });
+
+    it('lets every row be corrected after its columns fill', () => {
+      const container = render(tabular({ colMax: '1' }));
+      cell(container, 'F1', 'IND').click();
+      cell(container, 'F2', 'NOT').click();
+
+      // Swap the two rows' answers
+      cell(container, 'F1', 'IND').click();
+      cell(container, 'F2', 'NOT').click();
+      cell(container, 'F1', 'NOT').click();
+      cell(container, 'F2', 'IND').click();
+      expect(response()).toEqual(['F1 NOT', 'F2 IND']);
     });
 
     it('lets a radio row switch columns at max-associations', () => {

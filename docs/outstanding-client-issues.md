@@ -85,3 +85,21 @@ review, or preview) should keep native `disabled`, so the controls stay out of t
 This applies to every interaction, so it should be one convention rather than a change to a
 single interaction. The tabular match interaction already uses `aria-disabled` with a reason for
 cells the association rules exclude, while the interaction is enabled.
+
+## Generated names and ids aren't unique across mounted items
+
+**Issue:** handlers build radio group names and element ids from the response identifier and
+choice identifiers alone, such as `choice-${responseIdentifier}` for a single-choice
+interaction's radios (`choiceInteraction.ts`), `match-${responseIdentifier}-${sourceId}` for a
+tabular match row (`tabularPresentation.ts`), and ids like `cutie-match-label-…` and
+`evaluation-…` referenced by `aria-labelledby` and `aria-describedby`. Nearly every item uses
+`RESPONSE`, so two items mounted in the same document produce the same names and ids.
+
+**Impact:** radios with the same name and form owner are one native radio group, so choosing an
+option in one item unchecks the other item's option without its handler knowing; the displayed
+and collected responses disagree. Duplicate ids make assistive technology announce another
+item's labels and descriptions. The client currently works only with one item per document.
+
+**Possible direction:** give each mount a unique prefix, created by `mountItem` and carried on
+`TransformContext`, and build every generated name and id from it, rather than fixing one
+interaction at a time. Add a spec that mounts two items with the same identifiers side by side.

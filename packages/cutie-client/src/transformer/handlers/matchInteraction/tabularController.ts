@@ -18,8 +18,8 @@ interface Cell {
  *
  * Each source is a row and each target a column; each cell is a native input
  * for its row→column pair. A row whose source has a match-max of 1 is a radio
- * group, so choosing a cell replaces the row's pair; any other row is a set of
- * checkboxes.
+ * group, so choosing a cell replaces the row's pair, unless a column it may
+ * choose can fill up; any other row is a set of checkboxes.
  *
  * A cell the association rules exclude (match-group, a full row or column,
  * max-associations) stays focusable but is aria-disabled, described by the
@@ -92,9 +92,16 @@ export class TabularMatchController implements MatchView {
     this.syncCells();
   }
 
-  /** Whether a source's row is a radio group: one pair at most. */
+  /**
+   * Whether a source's row is a radio group: one pair at most, and no column
+   * it may choose can fill up. A checked radio can't be unchecked, so a full
+   * column could leave the row unable to switch; such a row is checkboxes.
+   * Call after every source and target is registered.
+   */
   isRadioRow(sourceId: string): boolean {
-    return this.model.matchMax(sourceId) === 1;
+    return this.model.matchMax(sourceId) === 1 && this.model.targetIds.every(
+      (targetId) => !this.model.groupsAllow(sourceId, targetId) || this.model.neverFills(targetId)
+    );
   }
 
   /**

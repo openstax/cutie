@@ -52,12 +52,16 @@ export function createTable(input: PresentationInput): MatchPresentation {
   }
   table.createTHead().appendChild(headerRow);
 
+  // Every choice is registered before any row is drawn: whether a row is a
+  // radio group depends on all of them
+  for (const source of sources) {
+    controller.registerSource(source.choice);
+  }
+
   const tbody = table.createTBody();
   let cellIndex = 0;
   for (const source of sources) {
     const sourceId = source.choice.id;
-    controller.registerSource(source.choice);
-
     const row = tbody.insertRow();
     row.appendChild(createHeader(renderChoiceContent(source, context), 'row', labelId(sourceId)));
     for (const target of targets) {

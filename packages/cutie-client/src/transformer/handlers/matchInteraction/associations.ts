@@ -111,12 +111,24 @@ export class MatchAssociations {
    */
   capacity(targetId: string): number {
     const matchMax = this.matchMax(targetId);
-    const allowedSources = this.sources.filter((sourceId) => this.groupsAllow(sourceId, targetId)).length;
     return Math.min(
       matchMax > 0 ? matchMax : Infinity,
       this.maxAssociations > 0 ? this.maxAssociations : Infinity,
-      allowedSources
+      this.allowedSourceCount(targetId)
     );
+  }
+
+  /**
+   * Whether a target's match-max can never be reached: it's unlimited, or it
+   * can hold every source allowed to pair with it.
+   */
+  neverFills(targetId: string): boolean {
+    const matchMax = this.matchMax(targetId);
+    return matchMax === 0 || matchMax >= this.allowedSourceCount(targetId);
+  }
+
+  private allowedSourceCount(targetId: string): number {
+    return this.sources.filter((sourceId) => this.groupsAllow(sourceId, targetId)).length;
   }
 
   has(sourceId: string, targetId: string): boolean {

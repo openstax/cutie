@@ -82,6 +82,16 @@ describe('MatchAssociations', () => {
     expect(build(1, undefined, [choice('T1', unlimited)]).capacity('T1')).toBe(1);
   });
 
+  it('knows a target never fills when its match-max holds every source allowed to pair with it', () => {
+    expect(build(0, undefined, [choice('T1', { matchMax: 0 })]).neverFills('T1')).toBe(true);
+    expect(build(0, undefined, [choice('T1', { matchMax: 2 })]).neverFills('T1')).toBe(true);
+    expect(build(0, undefined, [choice('T1', { matchMax: 1 })]).neverFills('T1')).toBe(false);
+    // Only S1 may pair with T1
+    expect(build(0, undefined, [choice('T1', { matchMax: 1, matchGroups: ['S1'] })]).neverFills('T1')).toBe(true);
+    // max-associations doesn't fill a target
+    expect(build(1, undefined, [choice('T1', { matchMax: 0 })]).neverFills('T1')).toBe(true);
+  });
+
   it('exhausts a source when it is full or paired with every target it may take', () => {
     const model = build(0, [choice('S1', { matchMax: 0, matchGroups: ['T1'] })]);
     expect(model.isSourceExhausted('S1')).toBe(false);
