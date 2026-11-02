@@ -16,10 +16,6 @@ interface TabSection {
   content: Node[];
 }
 
-function hasClassToken(element: Element, token: string): boolean {
-  return (element.getAttribute('class') ?? '').split(/\s+/).includes(token);
-}
-
 function isHeading(element: Element): boolean {
   return /^h[1-6]$/.test(element.localName.toLowerCase());
 }
@@ -28,7 +24,7 @@ function isHeading(element: Element): boolean {
 function copyAttributes(from: Element, to: HTMLElement, include: (name: string) => boolean = () => true): void {
   for (const attr of Array.from(from.attributes)) {
     if (!include(attr.name)) continue;
-    if (attr.name === 'class') to.classList.add(...attr.value.split(/\s+/).filter(Boolean));
+    if (attr.name === 'class') to.classList.add(...from.classList);
     else to.setAttribute(attr.name, attr.value);
   }
 }
@@ -86,7 +82,7 @@ function splitSections(element: Element): TabSection[] | null {
  */
 export class TabContainerHandler implements ElementHandler {
   canHandle(element: Element): boolean {
-    return hasClassToken(element, TAB_CONTAINER_CLASS) && splitSections(element) !== null;
+    return element.classList.contains(TAB_CONTAINER_CLASS) && splitSections(element) !== null;
   }
 
   transform(element: Element, context: TransformContext): DocumentFragment {
