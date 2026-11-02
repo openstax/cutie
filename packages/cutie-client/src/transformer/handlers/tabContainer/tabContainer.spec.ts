@@ -1,8 +1,8 @@
 /* spell-checker: ignore tablist tabpanel unstub viewports Signos vitales Presión */
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { parseQtiXml } from '../../parser/xmlParser.js';
-import { ItemStateImpl } from '../../state/itemState.js';
-import { createTransformContext, transformChildren } from '../elementTransformer.js';
+import { parseQtiXml } from '../../../parser/xmlParser.js';
+import { ItemStateImpl } from '../../../state/itemState.js';
+import { createTransformContext, transformChildren } from '../../elementTransformer.js';
 
 function render(
   bodyXml: string,

@@ -21,7 +21,7 @@ import './contentBody.js'; // priority 50 - transparent container for feedback c
 import './unsupported.js';
 
 // Presentational stimulus containers (priority 900)
-import './tabContainer.js';
+import './tabContainer/index.js';
 
 // Generic HTML/XHTML passthrough (priority 1000)
 import './htmlPassthrough.js';
