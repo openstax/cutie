@@ -1,4 +1,4 @@
-/* spell-checker: ignore tablist tabpanel unstub viewports Signos vitales Presión */
+/* spell-checker: ignore tablist tabpanel unstub Signos vitales Presión */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { parseQtiXml } from '../../../parser/xmlParser.js';
 import { ItemStateImpl } from '../../../state/itemState.js';
@@ -20,20 +20,36 @@ function render(
   return container;
 }
 
-/** Stub the viewport media query; `setNarrow` fires its change listeners. */
-function stubViewport(narrow: boolean) {
-  const listeners = new Set<() => void>();
-  const media = {
-    matches: narrow,
-    addEventListener: (_type: string, listener: () => void) => listeners.add(listener),
-    removeEventListener: (_type: string, listener: () => void) => listeners.delete(listener),
-  };
-  vi.stubGlobal('matchMedia', () => media);
+/**
+ * Stub the space a tab container has. jsdom has no layout, so the sentinel's
+ * width (set by a container query in a browser) and the resize observer
+ * watching it are stubbed; `setNarrow` resizes the sentinel and notifies.
+ */
+function stubSpace(narrow: boolean) {
+  const observers = new Set<() => void>();
+  let width = narrow ? 1 : 0;
+  vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockImplementation(function (this: HTMLElement) {
+    return this.classList.contains('cutie-tab-sentinel') ? width : 0;
+  });
+  vi.stubGlobal('ResizeObserver', class {
+    private callback: () => void;
+    constructor(callback: () => void) {
+      this.callback = callback;
+    }
+    observe() {
+      observers.add(this.callback);
+      // A real observer reports the first size once the element is laid out
+      this.callback();
+    }
+    disconnect() {
+      observers.delete(this.callback);
+    }
+  });
   return {
-    listeners,
+    observers,
     setNarrow(value: boolean) {
-      media.matches = value;
-      for (const listener of listeners) listener();
+      width = value ? 1 : 0;
+      for (const callback of observers) callback();
     },
   };
 }
@@ -91,6 +107,7 @@ function countMoves(container: HTMLElement, action: () => void): number {
 describe('tabContainer', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
 
   it('makes a tab of each section, labeled by its first heading', () => {
@@ -354,9 +371,9 @@ describe('tabContainer', () => {
     expect(tablist.nextElementSibling).toBe(panels(container)[0]);
   });
 
-  describe('on narrow viewports', () => {
+  describe('in narrow space', () => {
     it('renders an accordion of headings, buttons, and regions', () => {
-      stubViewport(true);
+      stubSpace(true);
       const container = render(`
         <div class="cutie-tab-container" aria-label="Client record">
           <section>
@@ -390,31 +407,31 @@ describe('tabContainer', () => {
     });
 
     it('leaves an unlabeled accordion without a group role', () => {
-      stubViewport(true);
+      stubSpace(true);
       const container = render(RECORD);
 
       expect(container.querySelector('.cutie-tablist')!.hasAttribute('role')).toBe(false);
     });
 
     it('moves the label between the group and the tablist across the breakpoint', () => {
-      const viewport = stubViewport(true);
+      const space = stubSpace(true);
       const container = render(`
         <div class="cutie-tab-container" aria-label="Client record">
           <section><h3>Notes</h3><p>Text</p></section>
         </div>`);
       const list = container.querySelector('.cutie-tablist')!;
 
-      viewport.setNarrow(false);
+      space.setNarrow(false);
       expect(list.getAttribute('role')).toBe('tablist');
       expect(list.getAttribute('aria-label')).toBe('Client record');
 
-      viewport.setNarrow(true);
+      space.setNarrow(true);
       expect(list.getAttribute('role')).toBe('group');
       expect(list.getAttribute('aria-label')).toBe('Client record');
     });
 
     it('opens several sections and closes an open one on click', () => {
-      stubViewport(true);
+      stubSpace(true);
       const container = render(RECORD);
       const [first, second, third] = buttons(container);
 
@@ -428,7 +445,7 @@ describe('tabContainer', () => {
     });
 
     it('leaves panels in place when a section opens or closes', () => {
-      stubViewport(true);
+      stubSpace(true);
       const container = render(RECORD);
 
       expect(countMoves(container, () => buttons(container)[1]!.click())).toBe(0);
@@ -436,7 +453,7 @@ describe('tabContainer', () => {
     });
 
     it('ignores arrow keys', () => {
-      stubViewport(true);
+      stubSpace(true);
       const container = render(RECORD);
       const [first] = buttons(container);
       first!.focus();
@@ -446,7 +463,7 @@ describe('tabContainer', () => {
     });
 
     it('restores the open sections on re-render', () => {
-      stubViewport(true);
+      stubSpace(true);
       const state = new Map<string, unknown>();
       buttons(render(RECORD, state))[2]!.click();
 
@@ -457,19 +474,19 @@ describe('tabContainer', () => {
 
   describe('crossing the breakpoint', () => {
     it('selects the most recently opened section when widening', () => {
-      const viewport = stubViewport(true);
+      const space = stubSpace(true);
       const container = render(RECORD);
       buttons(container)[2]!.click();
       buttons(container)[1]!.click();
       document.body.focus();
 
-      viewport.setNarrow(false);
+      space.setNarrow(false);
       expect(tabs(container)[1]!.getAttribute('aria-selected')).toBe('true');
       expect(panels(container).map((p) => p.hidden)).toEqual([true, false, true]);
     });
 
     it('selects the section holding focus and keeps focus when widening', () => {
-      const viewport = stubViewport(true);
+      const space = stubSpace(true);
       const container = render(`
         <div class="cutie-tab-container">
           <section>
@@ -489,19 +506,19 @@ describe('tabContainer', () => {
       const link = container.querySelector('a')!;
       link.focus();
 
-      viewport.setNarrow(false);
+      space.setNarrow(false);
       expect(tabs(container)[1]!.getAttribute('aria-selected')).toBe('true');
       expect(document.activeElement).toBe(link);
     });
 
     it('opens the focused tab panel and moves focus to its button when narrowing', () => {
-      const viewport = stubViewport(false);
+      const space = stubSpace(false);
       const container = render(RECORD);
       tabs(container)[1]!.click();
       const panel = panels(container)[1]!;
       panel.focus();
 
-      viewport.setNarrow(true);
+      space.setNarrow(true);
       const button = buttons(container)[1]!;
       expect(button.getAttribute('aria-expanded')).toBe('true');
       expect(panel.hidden).toBe(false);
@@ -509,26 +526,26 @@ describe('tabContainer', () => {
     });
 
     it('keeps focus on a tab that becomes an accordion button', () => {
-      const viewport = stubViewport(false);
+      const space = stubSpace(false);
       const container = render(RECORD);
       const tab = tabs(container)[2]!;
       tab.click();
       tab.focus();
 
-      viewport.setNarrow(true);
+      space.setNarrow(true);
       expect(document.activeElement).toBe(tab);
       expect(tab.getAttribute('aria-expanded')).toBe('true');
       expect(tab.hasAttribute('tabindex')).toBe(false);
     });
 
     it('stops listening when the render is cleaned up', () => {
-      const viewport = stubViewport(false);
+      const space = stubSpace(false);
       const cleanups: Array<() => void> = [];
       render(RECORD, new Map(), (callback) => cleanups.push(callback));
 
-      expect(viewport.listeners.size).toBe(1);
+      expect(space.observers.size).toBe(1);
       for (const cleanup of cleanups) cleanup();
-      expect(viewport.listeners.size).toBe(0);
+      expect(space.observers.size).toBe(0);
     });
   });
 

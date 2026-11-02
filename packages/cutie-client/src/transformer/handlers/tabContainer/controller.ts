@@ -1,19 +1,20 @@
-/* spell-checker: ignore viewports */
-import { NARROW_MEDIA_QUERY } from '../../../styles/breakpoints.js';
 import type { TransformContext } from '../../types.js';
 import { AccordionLayout, type Layout, type RenderedSection, TabsLayout } from './layouts.js';
 
 /**
  * Controller for a tab container's open sections and layout.
  *
- * Shows tabs on wide viewports and an accordion on narrow ones, switching when
- * the viewport crosses the breakpoint. The open sections are saved to state.
+ * Shows tabs in wide space and an accordion in narrow space, switching when the
+ * space crosses the breakpoint. The breakpoint is a container query, which has
+ * no change event, so a sentinel the query resizes signals it: a resize
+ * observer fires when the query flips, whether the space or the root font size
+ * changed. The open sections are saved to state.
  */
 export class TabContainerController {
   private context: TransformContext;
   private sections: RenderedSection[];
   private stateKey: string;
-  private media: MediaQueryList | null;
+  private sentinel: HTMLElement;
   private tabs: TabsLayout;
   private accordion: AccordionLayout;
 
@@ -23,6 +24,7 @@ export class TabContainerController {
 
   constructor(
     list: HTMLElement,
+    sentinel: HTMLElement,
     labels: Attr[],
     sections: RenderedSection[],
     stateKey: string,
@@ -31,6 +33,7 @@ export class TabContainerController {
     this.context = context;
     this.sections = sections;
     this.stateKey = stateKey;
+    this.sentinel = sentinel;
 
     const saved = context.state?.get(stateKey);
     const isSection = (i: unknown): i is number =>
@@ -45,20 +48,22 @@ export class TabContainerController {
       this.open = [0];
     }
 
-    // jsdom and other environments without matchMedia get tabs
-    this.media = typeof window.matchMedia === 'function' ?
-      window.matchMedia(NARROW_MEDIA_QUERY) : null;
     this.tabs = new TabsLayout(list, labels, sections, (index) => this.activate(index));
     this.accordion = new AccordionLayout(list, labels, sections);
-    this.layout = this.currentLayout();
+    // Tabs until the sentinel is laid out: the first observation comes after
+    // the item is attached, before it's painted
+    this.layout = this.tabs;
 
     sections.forEach(({ button }, i) => {
       button.addEventListener('click', () => this.activate(i));
       button.addEventListener('keydown', (event) => this.layout.handleKeydown?.(event, i));
     });
 
-    this.media?.addEventListener('change', this.onMediaChange);
-    this.context.onCleanup?.(() => this.media?.removeEventListener('change', this.onMediaChange));
+    // jsdom and other environments without ResizeObserver get tabs
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(this.onResize);
+    observer.observe(sentinel);
+    this.context.onCleanup?.(() => observer.disconnect());
   }
 
   initialize(): void {
@@ -66,8 +71,9 @@ export class TabContainerController {
     this.render();
   }
 
+  /** The sentinel has width only while the space is narrow (see styles) */
   private currentLayout(): Layout {
-    return this.media?.matches ? this.accordion : this.tabs;
+    return this.sentinel.offsetWidth > 0 ? this.accordion : this.tabs;
   }
 
   private activate(index: number): void {
@@ -84,12 +90,15 @@ export class TabContainerController {
 
   // The section holding focus stays open across a layout change. Moving its
   // panel drops focus, so restore it.
-  private onMediaChange = (): void => {
+  private onResize = (): void => {
+    const layout = this.currentLayout();
+    if (layout === this.layout) return;
+
     const active = document.activeElement as HTMLElement | null;
     const index = this.sections.findIndex((s) => s.button === active || s.panel.contains(active));
     if (index >= 0) this.open = [...this.open.filter((o) => o !== index), index];
 
-    this.layout = this.currentLayout();
+    this.layout = layout;
     this.layout.apply();
     this.render();
 

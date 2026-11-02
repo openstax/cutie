@@ -1,4 +1,4 @@
-/* spell-checker: ignore tablist tabpanel viewports */
+/* spell-checker: ignore tablist tabpanel */
 import type { ElementHandler, TransformContext } from '../../types.js';
 import { TabContainerController } from './controller.js';
 import { type RenderedSection, TABLIST_LABEL_ATTRIBUTES } from './layouts.js';
@@ -73,7 +73,7 @@ function splitSections(element: Element): TabSection[] | null {
 /**
  * Handler for `<div class="cutie-tab-container">` holding `<section>`s
  *
- * Renders tabs on wide viewports and an accordion on narrow ones, from one set
+ * Renders tabs in wide space and an accordion in narrow space, from one set
  * of elements: each section is a heading wrapping a button, plus a panel.
  * Switching layouts changes their roles and moves the panels.
  *
@@ -96,6 +96,10 @@ export class TabContainerHandler implements ElementHandler {
     const list = document.createElement('div');
     list.className = 'cutie-tablist';
     container.appendChild(list);
+    const sentinel = document.createElement('div');
+    sentinel.className = 'cutie-tab-sentinel';
+    sentinel.setAttribute('aria-hidden', 'true');
+    container.appendChild(sentinel);
 
     // The container has no role, so an authored label names the tablist instead,
     // or in an accordion, the group of section buttons.
@@ -156,7 +160,7 @@ export class TabContainerHandler implements ElementHandler {
     const stateKey = `tab-container:${Array.from(
       element.ownerDocument.querySelectorAll(TAB_CONTAINER_SELECTOR)
     ).indexOf(element)}`;
-    new TabContainerController(list, labels, sections, stateKey, context).initialize();
+    new TabContainerController(list, sentinel, labels, sections, stateKey, context).initialize();
 
     fragment.appendChild(container);
     return fragment;

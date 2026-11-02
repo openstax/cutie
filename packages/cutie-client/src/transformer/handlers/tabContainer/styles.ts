@@ -1,5 +1,8 @@
 /* spell-checker: ignore tablist tabpanel */
-import { NARROW_MEDIA_QUERY } from '../../../styles/breakpoints.js';
+import { CONTENT_CONTAINER } from '../../../styles/breakpoints.js';
+
+/** Space below which a tab container shows an accordion instead of tabs */
+const TABS_MIN_WIDTH = '40rem';
 
 export const TAB_CONTAINER_STYLES = `
   /*
@@ -10,6 +13,25 @@ export const TAB_CONTAINER_STYLES = `
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     margin: 1em 0;
+  }
+
+  /*
+   * Signals the layout to the controller: it has width only while the space
+   * is narrow, and a resize observer watches it. Out of flow and invisible.
+   */
+  .cutie-tab-container .cutie-tab-sentinel {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  @container ${CONTENT_CONTAINER} (width < ${TABS_MIN_WIDTH}) {
+    .cutie-tab-container .cutie-tab-sentinel {
+      width: 1px;
+    }
   }
 
   .cutie-tab-container .cutie-tab-heading {
@@ -151,30 +173,5 @@ export const TAB_CONTAINER_STYLES = `
 
   .cutie-tab-container .cutie-tabpanel[role="region"] {
     border-top: none;
-  }
-
-  /*
-   * A record that is the sole content of a layout column beside other columns
-   * takes the row's height from its siblings, and the active panel scrolls.
-   * Off when the row stacks to one column (see baseStyles).
-   */
-  @media not all and ${NARROW_MEDIA_QUERY} {
-    .qti-layout-row > [class*="qti-layout-col"]:not(:only-child):has(> .cutie-tab-container:only-child) {
-      position: relative;
-      align-self: stretch;
-      min-height: 20em;
-    }
-
-    .qti-layout-row > [class*="qti-layout-col"]:not(:only-child) > .cutie-tab-container:only-child {
-      position: absolute;
-      inset: 0;
-      margin: 0;
-      grid-template-rows: auto minmax(0, 1fr);
-    }
-
-    .qti-layout-row > [class*="qti-layout-col"]:not(:only-child) > .cutie-tab-container:only-child .cutie-tabpanel {
-      min-height: 0;
-      overflow: auto;
-    }
   }
 `;
