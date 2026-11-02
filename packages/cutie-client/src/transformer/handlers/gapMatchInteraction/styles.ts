@@ -1,3 +1,8 @@
+import { CONTENT_CONTAINER } from '../../../styles/breakpoints.js';
+
+/** Space below which per-group word banks stack instead of sitting side by side */
+const BANKS_MIN_WIDTH = '37.5rem';
+
 export const GAP_STYLES = `
   /*
    * Gaps are sized to the widest choice they accept (--cutie-gap-fill-width,
@@ -324,8 +329,8 @@ export const GAP_MATCH_INTERACTION_STYLES = `
     margin-bottom: 0;
   }
 
-  /* Mobile: stack word banks vertically instead of side by side */
-  @media (max-width: 600px) {
+  /* Narrow space: stack word banks vertically instead of side by side */
+  @container ${CONTENT_CONTAINER} (width < ${BANKS_MIN_WIDTH}) {
     .cutie-gap-match-choices--multi-tray {
       flex-direction: column;
     }
