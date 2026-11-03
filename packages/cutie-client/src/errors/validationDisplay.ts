@@ -91,11 +91,23 @@ export interface ConstraintMessage {
   setText: (text: string) => void;
 }
 
+/**
+ * A constraint message that can also show a momentary notice: a message about
+ * something that just happened (e.g. a refused selection) rather than the
+ * state of the response. The notice shows in error style over whatever the
+ * message held, which clearNotice restores. Setting the text or error state
+ * directly replaces the notice, so there is nothing to restore.
+ */
+export interface NoticeConstraintMessage extends ConstraintMessage {
+  showNotice: (text: string) => void;
+  clearNotice: () => void;
+}
+
 export function createConstraintMessage(
   id: string,
   text: string,
   styleManager?: StyleManager
-): ConstraintMessage {
+): NoticeConstraintMessage {
   if (styleManager && !styleManager.hasStyle(VALIDATION_DISPLAY_STYLE_ID)) {
     styleManager.addStyle(VALIDATION_DISPLAY_STYLE_ID, VALIDATION_DISPLAY_STYLES);
   }
@@ -123,7 +135,7 @@ export function createConstraintMessage(
   textSpan.textContent = text;
   container.appendChild(textSpan);
 
-  const setError = (isError: boolean) => {
+  const applyError = (isError: boolean) => {
     if (isError) {
       container.classList.add(CONSTRAINT_ERROR_CLASS);
     } else {
@@ -131,11 +143,36 @@ export function createConstraintMessage(
     }
   };
 
+  // What the message held before the current notice, while one shows
+  let beforeNotice: { text: string; isError: boolean } | undefined;
+
+  const setError = (isError: boolean) => {
+    beforeNotice = undefined;
+    applyError(isError);
+  };
+
   const setText = (newText: string) => {
+    beforeNotice = undefined;
     textSpan.textContent = newText;
   };
 
-  return { element: container, setError, setText };
+  const showNotice = (noticeText: string) => {
+    beforeNotice ??= {
+      text: textSpan.textContent ?? '',
+      isError: container.classList.contains(CONSTRAINT_ERROR_CLASS),
+    };
+    textSpan.textContent = noticeText;
+    applyError(true);
+  };
+
+  const clearNotice = () => {
+    if (!beforeNotice) return;
+    textSpan.textContent = beforeNotice.text;
+    applyError(beforeNotice.isError);
+    beforeNotice = undefined;
+  };
+
+  return { element: container, setError, setText, showNotice, clearNotice };
 }
 
 /**

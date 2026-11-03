@@ -3,9 +3,10 @@ import {
   createMissingAttributeError,
 } from '../../errors/errorDisplay.js';
 import {
-  type ConstraintMessage,
   createConstraintMessage,
+  type NoticeConstraintMessage,
 } from '../../errors/validationDisplay.js';
+import { addAriaDescribedBy, removeAriaDescribedBy } from '../../utils/aria.js';
 import { announce } from '../../utils/liveRegion.js';
 import { initializeRovingTabindex, updateRovingTabindex } from '../../utils/rovingTabindex.js';
 import { registry } from '../registry.js';
@@ -43,6 +44,57 @@ function buildConstraintText(minChoices: number, maxChoices: number, isSingleSel
     return `Select up to ${maxChoices} choice${maxChoices === 1 ? '' : 's'}.`;
   }
   return null;
+}
+
+/**
+ * Cap a multi-select at max-choices, the way a match table caps its cells.
+ * Once max-choices are checked, each unchecked choice stays focusable but is
+ * aria-disabled, described by the reason, and its click is cancelled so it
+ * never becomes checked. While the interaction is disabled, its inputs are
+ * natively disabled instead.
+ *
+ * A refused click shows the reason as a notice in the constraint message, and
+ * announces it, since the constraint isn't a live region. The notice is about
+ * that click, not the response, so the next change clears it.
+ *
+ * Returns a sync function to call whenever the inputs' disabled state changes.
+ */
+function capSelections(
+  inputs: HTMLInputElement[],
+  maxChoices: number,
+  reason: HTMLElement,
+  constraint: NoticeConstraintMessage | undefined,
+  context: TransformContext,
+): () => void {
+  const sync = () => {
+    const full = inputs.filter((input) => input.checked).length >= maxChoices;
+    for (const input of inputs) {
+      if (full && !input.checked && !input.disabled) {
+        input.setAttribute('aria-disabled', 'true');
+        addAriaDescribedBy(input, reason.id);
+      } else {
+        input.removeAttribute('aria-disabled');
+        removeAriaDescribedBy(input, reason.id);
+      }
+    }
+  };
+
+  for (const input of inputs) {
+    input.addEventListener('click', (e) => {
+      if (input.getAttribute('aria-disabled') !== 'true') return;
+      e.preventDefault();
+      const msg = reason.textContent ?? '';
+      constraint?.showNotice(msg);
+      announce(context, msg, 'assertive');
+    });
+    input.addEventListener('change', () => {
+      constraint?.clearNotice();
+      sync();
+    });
+  }
+
+  sync();
+  return sync;
 }
 
 /**
@@ -199,7 +251,7 @@ class ChoiceInteractionHandler implements ElementHandler {
     // Add constraint text if applicable. A finished attempt with a verdict
     // describes the response in its place, so it is announced with the
     // fieldset; the status rail is the visual verdict.
-    let constraint: ConstraintMessage | undefined;
+    let constraint: NoticeConstraintMessage | undefined;
     const minSelectionsMessage = element.getAttribute('data-min-selections-message');
     const maxSelectionsMessage = element.getAttribute('data-max-selections-message');
     const verdict = evaluation?.verdict ?? null;
@@ -276,6 +328,18 @@ class ChoiceInteractionHandler implements ElementHandler {
           if (input.checked) updateRovingTabindex(radioMap, input);
         });
       });
+    }
+
+    // Cap a multi-select at max-choices
+    let syncCap: (() => void) | undefined;
+    if (!isSingleSelect && maxChoices > 0) {
+      const reason = document.createElement('span');
+      reason.id = `cutie-choice-max-reason-${responseIdentifier}`;
+      reason.hidden = true;
+      reason.textContent = maxSelectionsMessage ?? 'The maximum number of choices has been selected.';
+      container.appendChild(reason);
+
+      syncCap = capSelections(inputElements, maxChoices, reason, constraint, context);
     }
 
     // Register response accessor with itemState
@@ -359,6 +423,7 @@ class ChoiceInteractionHandler implements ElementHandler {
         inputElements.forEach((input) => {
           input.disabled = !isEnabled;
         });
+        syncCap?.();
       };
 
       context.itemState.addObserver(updateInteractionState);
@@ -489,6 +554,20 @@ const CHOICE_INTERACTION_STYLES = `
 
   .cutie-choice-interaction .cutie-simple-choice:has(input:disabled) .cutie-simple-choice-content {
     cursor: not-allowed;
+  }
+
+  /*
+   * A choice refused by max-choices (aria-disabled, still focusable), as
+   * opposed to every choice of a disabled interaction (natively disabled).
+   */
+  .cutie-choice-interaction .cutie-simple-choice:has(input[aria-disabled="true"]),
+  .cutie-choice-interaction .cutie-simple-choice:has(input[aria-disabled="true"]) input,
+  .cutie-choice-interaction .cutie-simple-choice:has(input[aria-disabled="true"]) .cutie-simple-choice-content {
+    cursor: not-allowed;
+  }
+
+  .cutie-choice-interaction .cutie-simple-choice:has(input[aria-disabled="true"]) input {
+    opacity: 0.4;
   }
 
   /* Block content (e.g. <p>) lines up with the input like bare text does.

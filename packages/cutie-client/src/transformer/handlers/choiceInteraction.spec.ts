@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, onTestFinished } from 'vitest';
 import { ItemStateImpl } from '../../state/itemState.js';
 import { registry } from '../registry.js';
 import type { TransformContext } from '../types.js';
@@ -832,28 +832,145 @@ describe('choiceInteraction validation', () => {
   });
 
   describe('over-selection behavior', () => {
-    it('does not disable inputs when max-choices is reached', () => {
+    const renderCapped = (attrs = '') => {
       const doc = createQtiDocument(`
+        <qti-choice-interaction response-identifier="R1" max-choices="2" ${attrs}>
+          <qti-simple-choice identifier="A">A</qti-simple-choice>
+          <qti-simple-choice identifier="B">B</qti-simple-choice>
+          <qti-simple-choice identifier="C">C</qti-simple-choice>
+        </qti-choice-interaction>
+      `);
+      // Connected, so a click fires change (inputs that aren't connected don't)
+      const container = document.createElement('div');
+      document.body.appendChild(container);
+      onTestFinished(() => container.remove());
+      container.appendChild(transformInteraction(doc, itemState));
+      const inputs = Array.from(container.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'));
+      return { container, inputs };
+    };
+
+    it('aria-disables unchecked choices, keeping them focusable, once max-choices is reached', () => {
+      const { inputs } = renderCapped();
+
+      inputs[0]!.click();
+      expect(inputs[2]!.hasAttribute('aria-disabled')).toBe(false);
+
+      inputs[1]!.click();
+      expect(inputs[2]!.getAttribute('aria-disabled')).toBe('true');
+      expect(inputs[2]!.disabled).toBe(false);
+      expect(inputs[0]!.hasAttribute('aria-disabled')).toBe(false);
+      expect(inputs[1]!.hasAttribute('aria-disabled')).toBe(false);
+    });
+
+    it('describes a refused choice with the reason', () => {
+      const { container, inputs } = renderCapped();
+
+      inputs[0]!.click();
+      inputs[1]!.click();
+
+      const reasonId = inputs[2]!.getAttribute('aria-describedby')!;
+      const reason = container.querySelector(`#${reasonId}`)!;
+      expect(reason.textContent).toBe('The maximum number of choices has been selected.');
+    });
+
+    it('refuses a click on a capped choice and shows why in the constraint text', () => {
+      const { container, inputs } = renderCapped();
+      const constraintEl = container.querySelector('.cutie-constraint-text')!;
+
+      inputs[0]!.click();
+      inputs[1]!.click();
+      inputs[2]!.click();
+
+      expect(inputs[2]!.checked).toBe(false);
+      expect(constraintEl.textContent).toBe('The maximum number of choices has been selected.');
+      expect(constraintEl.classList.contains('cutie-constraint-error')).toBe(true);
+      expect(itemState.collectAll().valid).toBe(true);
+    });
+
+    it('uses data-max-selections-message for a refused choice', () => {
+      const { container, inputs } = renderCapped('data-max-selections-message="Pick two at most"');
+      const constraintEl = container.querySelector('.cutie-constraint-text')!;
+
+      inputs[0]!.click();
+      inputs[1]!.click();
+      inputs[2]!.click();
+
+      expect(constraintEl.textContent).toBe('Pick two at most');
+      const reason = container.querySelector(`#${inputs[2]!.getAttribute('aria-describedby')!}`)!;
+      expect(reason.textContent).toBe('Pick two at most');
+    });
+
+    it('clears the refused notice on the next change, even while the response is invalid', () => {
+      const doc = createQtiDocument(`
+        <qti-choice-interaction response-identifier="R1" max-choices="2" min-choices="2">
+          <qti-simple-choice identifier="A">A</qti-simple-choice>
+          <qti-simple-choice identifier="B">B</qti-simple-choice>
+          <qti-simple-choice identifier="C">C</qti-simple-choice>
+        </qti-choice-interaction>
+      `);
+      const container = document.createElement('div');
+      document.body.appendChild(container);
+      onTestFinished(() => container.remove());
+      container.appendChild(transformInteraction(doc, itemState));
+      const inputs = container.querySelectorAll<HTMLInputElement>('input[type="checkbox"]');
+      const constraintEl = container.querySelector('.cutie-constraint-text')!;
+
+      inputs[0]!.click();
+      inputs[1]!.click();
+      inputs[2]!.click();
+      expect(constraintEl.textContent).toBe('The maximum number of choices has been selected.');
+
+      // Under min-choices now, but no submit has flagged it
+      inputs[1]!.click();
+      expect(constraintEl.textContent).toBe('Select 2 choices.');
+      expect(constraintEl.classList.contains('cutie-constraint-error')).toBe(false);
+    });
+
+    it('frees the capped choices and restores the hint once a choice is unchecked', () => {
+      const { container, inputs } = renderCapped();
+      const constraintEl = container.querySelector('.cutie-constraint-text')!;
+
+      inputs[0]!.click();
+      inputs[1]!.click();
+      inputs[2]!.click();
+      inputs[1]!.click();
+
+      expect(inputs[2]!.hasAttribute('aria-disabled')).toBe(false);
+      expect(inputs[2]!.hasAttribute('aria-describedby')).toBe(false);
+      expect(constraintEl.classList.contains('cutie-constraint-error')).toBe(false);
+      expect(constraintEl.textContent).toBe('Select up to 2 choices.');
+    });
+
+    it('drops aria-disabled while the interaction is disabled, and restores it after', () => {
+      const { inputs } = renderCapped();
+
+      inputs[0]!.click();
+      inputs[1]!.click();
+
+      itemState.setInteractionState('disabled');
+      expect(inputs[2]!.disabled).toBe(true);
+      expect(inputs[2]!.hasAttribute('aria-disabled')).toBe(false);
+
+      itemState.setInteractionState('enabled');
+      expect(inputs[2]!.getAttribute('aria-disabled')).toBe('true');
+    });
+
+    it('caps a choice preselected from the default value', () => {
+      const doc = createQtiDocument(`
+        <qti-response-declaration identifier="R1" cardinality="multiple" base-type="identifier">
+          <qti-default-value><qti-value>A</qti-value><qti-value>B</qti-value></qti-default-value>
+        </qti-response-declaration>
         <qti-choice-interaction response-identifier="R1" max-choices="2">
           <qti-simple-choice identifier="A">A</qti-simple-choice>
           <qti-simple-choice identifier="B">B</qti-simple-choice>
           <qti-simple-choice identifier="C">C</qti-simple-choice>
         </qti-choice-interaction>
       `);
-
-      const fragment = transformInteraction(doc, itemState);
       const container = document.createElement('div');
-      container.appendChild(fragment);
-
+      container.appendChild(transformInteraction(doc, itemState));
       const inputs = container.querySelectorAll<HTMLInputElement>('input[type="checkbox"]');
 
-      // Select two (at max)
-      inputs[0]!.checked = true;
-      inputs[1]!.checked = true;
-      inputs[1]!.dispatchEvent(new Event('change', { bubbles: true }));
-
-      // Third input should still be enabled — over-selection is allowed
-      expect(inputs[2]!.disabled).toBe(false);
+      expect(inputs[2]!.getAttribute('aria-disabled')).toBe('true');
     });
 
     it('shows max error in real-time when over-selecting', () => {
