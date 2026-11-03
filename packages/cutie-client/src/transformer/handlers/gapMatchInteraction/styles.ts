@@ -1,3 +1,8 @@
+import { CONTENT_CONTAINER } from '../../../styles/breakpoints.js';
+
+/** Space below which per-group word banks stack instead of sitting side by side */
+const BANKS_MIN_WIDTH = '37.5rem';
+
 export const GAP_STYLES = `
   /*
    * Gaps are sized to the widest choice they accept (--cutie-gap-fill-width,
@@ -283,5 +288,57 @@ export const GAP_MATCH_INTERACTION_STYLES = `
   .cutie-gap-match-interaction.qti-choices-left > .cutie-constraint-text,
   .cutie-gap-match-interaction.qti-choices-right > .cutie-constraint-text {
     grid-area: constraint;
+  }
+
+  /*
+   * Per-group word banks: when the choices span 2+ match-groups, or a group
+   * has an authored heading, each group gets its own section (optional
+   * heading over a bordered bank) inside a row. The row keeps the base
+   * .cutie-gap-match-choices class so the qti-choices-* rules above position
+   * it like a single bank; --multi-tray strips its own box chrome since each
+   * bank inside draws its own border.
+   */
+  .cutie-gap-match-choices--multi-tray {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1em;
+    padding: 0;
+    border: none;
+    background-color: transparent;
+  }
+
+  /* A zero basis shares the row equally whatever the options' length, so long
+   * options wrap inside their bank instead of pushing it onto its own line */
+  .cutie-gap-match-bank {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0;
+    min-width: 10em;
+  }
+
+  .cutie-gap-match-bank-heading {
+    margin: 0 0 0.5em;
+    font-size: 1em;
+    font-weight: 600;
+  }
+
+  /* Fill the section so banks in a row share a height */
+  .cutie-gap-match-choices--group {
+    flex: 1 1 auto;
+    align-content: flex-start;
+    margin-bottom: 0;
+  }
+
+  /* Narrow space: stack word banks vertically instead of side by side */
+  @container ${CONTENT_CONTAINER} (width < ${BANKS_MIN_WIDTH}) {
+    .cutie-gap-match-choices--multi-tray {
+      flex-direction: column;
+    }
+
+    .cutie-gap-match-bank {
+      flex: 0 0 auto;
+      min-width: unset;
+      width: 100%;
+    }
   }
 `;

@@ -53,6 +53,15 @@ This is the triad form: one cause and two effects, worth 2 points. There is no \
 credit unless the cause is correct; with the correct cause, each correct effect \
 earns 1 point.`;
 
+export const rationaleWordBanks = `\
+Put the cause and effect options in two word banks. Set \
+\`match-group="cause"\` on each cause option and on the cause gap, and \
+\`match-group="effect"\` on each effect option and on each effect gap, so each \
+blank only accepts options from its own bank. Title each bank with an \`h3\` \
+placed after the options and before the sentence, tied to its group by \
+\`data-for-match-group\`, such as \`<h3 data-for-match-group="cause">Risk</h3>\`. \
+Name what the blanks hold, not the answer.`;
+
 export const rationaleTriadScoring = `\
 Score the triad as a sum of mapped responses with a score offset. Give each \
 response declaration a \`qti-mapping\` with \`default-value="0"\`, mapping the \

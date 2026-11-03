@@ -144,6 +144,44 @@ implies the response is required — empty input fails validation without needin
 The two attributes pair well together with `qti-counter-up` to give learners a clear picture
 of the acceptable response length range.
 
+### Word Bank Headings (`data-for-match-group`)
+
+When a gap-match interaction's choices are split into match-groups (for example, causes and
+effects in a rationale sentence), cutie gives each group its own word bank. QTI has no way to
+label a match-group, so learners and screen readers can't tell the banks apart.
+
+**Solution**: Cutie lets an author title a group's word bank with an ordinary heading inside the
+interaction, tied to its group by a custom data attribute (the spec's extension point for
+behavior beyond QTI). Place the headings after the choices and before the content:
+
+```xml
+<qti-gap-match-interaction response-identifier="RESPONSE" shuffle="true" min-associations="2">
+  <qti-gap-text identifier="bleeding" match-max="1" match-group="cause">bleeding</qti-gap-text>
+  <qti-gap-text identifier="platelets" match-max="1" match-group="effect">platelet count</qti-gap-text>
+  <h3 data-for-match-group="cause">Risk</h3>
+  <h3 data-for-match-group="effect">Finding</h3>
+  <p>The client is at highest risk for <qti-gap identifier="G1" match-group="cause"/>
+    as evidenced by the <qti-gap identifier="G2" match-group="effect"/>.</p>
+</qti-gap-match-interaction>
+```
+
+| Attribute | Element | Description |
+|-----------|---------|-------------|
+| `data-for-match-group` | `h1`–`h6` inside `qti-gap-match-interaction` | The match-group whose word bank the heading titles |
+
+`cutie-editor` sets headings in the interaction's "Match groups" section and saves them as
+plain-text `h3` elements. `cutie-core` passes them through unchanged. `cutie-client` moves each
+heading above its group's word bank and uses it to name the bank for screen readers
+(`aria-labelledby`); a heading whose group has no choices is dropped.
+
+**Word bank layout**: when the choices span two or more match-groups, or a group has a heading,
+each group gets its own word bank; otherwise all choices share one. Banks are ordered by where
+their gaps first appear in the content (a group with no gap comes last), so `shuffle` mixes the
+options within each bank without reordering the banks. A bank without a heading is named by
+position ("Word bank 1", "Word bank 2", …).
+
+Other delivery systems show these headings as ordinary content above the sentence.
+
 ## Delivery Extensions
 
 QTI puts delivery controls such as `show-feedback`, `show-solution` and `max-attempts` on

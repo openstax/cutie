@@ -80,3 +80,9 @@ Note: gap-match is entirely **advanced** cert (Q6 is Level 2).
 |---|---|---|
 | data-max-selections-message | :x: | custom message when max-associations violated |
 | data-min-selections-message | :x: | custom message when min-associations violated |
+
+### data attributes — spec extensions
+
+| attribute | cutie | notes |
+|---|---|---|
+| data-for-match-group | :white_check_mark: | on an h1–h6 heading in the interaction: titles that match-group's word bank. See [Word Bank Headings](../../../README.md#word-bank-headings-data-for-match-group) |
