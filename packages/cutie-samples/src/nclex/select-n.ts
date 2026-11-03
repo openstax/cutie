@@ -17,8 +17,8 @@ such as "Select the 3 findings that require immediate follow-up." Use 5 to 10 \
 options.
 
 - ${clinicalScenario}
-- Set \`min-choices="1"\` and \`max-choices\` to the number named in the prompt, so \
-the learner can't select more than that.
+- Set both \`min-choices\` and \`max-choices\` to the number named in the prompt, so \
+the learner selects exactly that many.
 - ${shuffle}
 - ${choiceText}
 - Every choice ends with its own \`qti-feedback-block\` with identifier \
@@ -70,7 +70,7 @@ adaptive="false" time-dependent="false" xml:lang="en">
 
   <qti-item-body>
     <p>A client returned to the surgical unit 2 hours ago after an open bowel resection. The nurse completes a focused assessment.</p>
-    <qti-choice-interaction response-identifier="RESPONSE" shuffle="true" min-choices="1" max-choices="3">
+    <qti-choice-interaction response-identifier="RESPONSE" shuffle="true" min-choices="3" max-choices="3">
       <qti-prompt>Select the 3 findings that require immediate follow-up.</qti-prompt>
       <qti-simple-choice identifier="choiceA">
         <p>Heart rate 122 beats/min</p>

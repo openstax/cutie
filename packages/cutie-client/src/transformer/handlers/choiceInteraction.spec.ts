@@ -83,6 +83,25 @@ describe('choiceInteraction validation', () => {
       expect(constraintEl!.textContent).toBe('Select at least 2 choices.');
     });
 
+    it('renders "Select N" text for multi-select when min-choices equals max-choices', () => {
+      const doc = createQtiDocument(`
+        <qti-choice-interaction response-identifier="R1" max-choices="3" min-choices="3">
+          <qti-simple-choice identifier="A">A</qti-simple-choice>
+          <qti-simple-choice identifier="B">B</qti-simple-choice>
+          <qti-simple-choice identifier="C">C</qti-simple-choice>
+          <qti-simple-choice identifier="D">D</qti-simple-choice>
+        </qti-choice-interaction>
+      `);
+
+      const fragment = transformInteraction(doc, itemState);
+      const container = document.createElement('div');
+      container.appendChild(fragment);
+
+      const constraintEl = container.querySelector('.cutie-constraint-text');
+      expect(constraintEl).not.toBeNull();
+      expect(constraintEl!.textContent).toBe('Select 3 choices.');
+    });
+
     it('renders "Select up to N" text for multi-select with max-only (no min-choices)', () => {
       const doc = createQtiDocument(`
         <qti-choice-interaction response-identifier="R1" max-choices="2">

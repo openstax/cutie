@@ -217,7 +217,7 @@ describe.each(samples)('$id sample', (sample) => {
 
   it('requires a selection in choice interactions', () => {
     for (const interaction of body.querySelectorAll('qti-choice-interaction')) {
-      expect(interaction.getAttribute('min-choices')).toBe('1');
+      expect(Number(interaction.getAttribute('min-choices')), interaction.outerHTML).toBeGreaterThanOrEqual(1);
     }
   });
 

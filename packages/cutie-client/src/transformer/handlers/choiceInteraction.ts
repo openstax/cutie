@@ -30,7 +30,10 @@ function buildConstraintText(minChoices: number, maxChoices: number, isSingleSel
   if (isSingleSelect) {
     return minChoices > 0 ? 'Select an answer.' : null;
   }
-  if (minChoices > 0 && maxChoices > 0 && minChoices !== maxChoices) {
+  if (minChoices > 0 && minChoices === maxChoices) {
+    return `Select ${minChoices} choice${minChoices === 1 ? '' : 's'}.`;
+  }
+  if (minChoices > 0 && maxChoices > 0) {
     return `Select between ${minChoices} and ${maxChoices} choices.`;
   }
   if (minChoices > 0) {

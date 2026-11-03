@@ -401,6 +401,16 @@ describe('hottextInteraction', () => {
       expect(constraint!.textContent).toBe('Select between 2 and 3 items.');
     });
 
+    it('renders exact text when min equals max', () => {
+      const doc = createQtiDocument(
+        `<qti-hottext-interaction response-identifier="RESPONSE" max-choices="2" min-choices="2">${passage}</qti-hottext-interaction>`,
+        MULTI_DECL
+      );
+      const container = render(doc, itemState);
+      const constraint = container.querySelector('.cutie-constraint-text');
+      expect(constraint!.textContent).toBe('Select 2 items.');
+    });
+
     it('renders "up to" text for max only', () => {
       const doc = createQtiDocument(
         `<qti-hottext-interaction response-identifier="RESPONSE" max-choices="2">${passage}</qti-hottext-interaction>`,
