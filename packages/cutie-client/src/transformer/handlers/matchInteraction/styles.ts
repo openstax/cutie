@@ -1,4 +1,23 @@
 // cspell:ignore subgrid
+import { CONTENT_CONTAINER } from '../../../styles/breakpoints.js';
+
+/*
+ * The room the side-by-side layouts need, in rem so the container query
+ * breakpoints are plain numbers. A layout stacks once it would squeeze a
+ * column or bank below its minimum width.
+ */
+const COLUMN_MIN_WIDTH_REM = 15;
+const COLUMN_GAP_REM = 2;
+const BANK_MIN_WIDTH_REM = 11;
+/** The share of the row a shared bank beside the columns takes */
+const SIDE_BANK_SHARE = 0.3;
+const SIDE_GAP_REM = 1;
+
+const rem = (width: number) => `${Number(width.toFixed(3))}rem`;
+
+/** Per-column banks beside their targets: a bank and a target per row, whatever the column count */
+const COLUMN_BANKS_SIDE_MIN_WIDTH = rem(BANK_MIN_WIDTH_REM + SIDE_GAP_REM + COLUMN_MIN_WIDTH_REM);
+
 export const MATCH_INTERACTION_STYLES = `
   .cutie-match-interaction {
     margin: 1em 0;
@@ -86,10 +105,14 @@ export const MATCH_INTERACTION_STYLES = `
    * interaction's qti-choices-* class only changes visual placement, so
    * screen-reader order stays stable.
    */
+  /*
+   * Stacked by default; the columns stand side by side, all of them or none,
+   * while there is room (see matchColumnStyles).
+   */
   .cutie-match-columns {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(11em, 1fr));
-    gap: 1.5em 2em;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.5em ${COLUMN_GAP_REM}rem;
   }
 
   /*
@@ -241,7 +264,7 @@ export const MATCH_INTERACTION_STYLES = `
   .cutie-match-body {
     display: flex;
     flex-direction: column;
-    gap: 1em;
+    gap: ${SIDE_GAP_REM}rem;
   }
 
   .cutie-match-body > .cutie-match-bank {
@@ -266,7 +289,8 @@ export const MATCH_INTERACTION_STYLES = `
 
   .cutie-match-interaction--shared-bank.qti-choices-left .cutie-match-body > .cutie-match-bank,
   .cutie-match-interaction--shared-bank.qti-choices-right .cutie-match-body > .cutie-match-bank {
-    flex: 0 1 30%;
+    flex: 0 1 ${SIDE_BANK_SHARE * 100}%;
+    min-width: ${BANK_MIN_WIDTH_REM}rem;
     flex-direction: column;
     align-items: stretch;
   }
@@ -295,7 +319,7 @@ export const MATCH_INTERACTION_STYLES = `
   .cutie-match-interaction--column-banks.qti-choices-left .cutie-match-columns,
   .cutie-match-interaction--column-banks.qti-choices-right .cutie-match-columns {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 2.5em 1em;
+    gap: 2.5em ${SIDE_GAP_REM}rem;
   }
 
   .cutie-match-interaction--column-banks.qti-choices-left .cutie-match-column,
@@ -327,17 +351,8 @@ export const MATCH_INTERACTION_STYLES = `
     grid-column: 2;
   }
 
-  /* Mobile: stack columns and drop the side-by-side target/bank placement. */
-  @media (max-width: 600px) {
-    .cutie-match-columns {
-      grid-template-columns: 1fr;
-    }
-
-    .cutie-match-interaction--shared-bank.qti-choices-left .cutie-match-body,
-    .cutie-match-interaction--shared-bank.qti-choices-right .cutie-match-body {
-      flex-direction: column;
-    }
-
+  /* Per-column banks beside their targets: without room for both, each bank goes above its target. */
+  @container ${CONTENT_CONTAINER} (width < ${COLUMN_BANKS_SIDE_MIN_WIDTH}) {
     .cutie-match-interaction--column-banks.qti-choices-left .cutie-match-columns,
     .cutie-match-interaction--column-banks.qti-choices-right .cutie-match-columns {
       grid-template-columns: 1fr;
@@ -509,3 +524,47 @@ export const MATCH_INTERACTION_STYLES = `
     white-space: nowrap;
   }
 `;
+
+/** Style id of the column layout for interactions with this many columns */
+export const matchColumnStylesId = (count: number) => `cutie-match-interaction-columns-${count}`;
+
+/**
+ * The column layout of interactions with this many target columns, selected by
+ * data-match-columns on the interaction. The columns stand side by side while
+ * every one gets its minimum width, and stack otherwise, so they never wrap
+ * part way. A shared bank beside the columns (qti-choices-left / -right) also
+ * needs its own share of the row, and moves above the columns without it.
+ *
+ * The columns rule is wrapped in :where() so it stays below the per-column
+ * bank side layout, whose columns are rows whatever the count.
+ */
+export function matchColumnStyles(count: number): string {
+  const columnsWidth = count * COLUMN_MIN_WIDTH_REM + (count - 1) * COLUMN_GAP_REM;
+  // The bank takes its share of the row, but never less than its minimum
+  const besideWidth = Math.max(
+    columnsWidth + SIDE_GAP_REM + BANK_MIN_WIDTH_REM,
+    (columnsWidth + SIDE_GAP_REM) / (1 - SIDE_BANK_SHARE)
+  );
+  const interaction = `.cutie-match-interaction[data-match-columns="${count}"]`;
+  const sharedBeside = ['left', 'right']
+    .map((side) => `.cutie-match-interaction--shared-bank.qti-choices-${side}[data-match-columns="${count}"] .cutie-match-body`)
+    .join(',\n    ');
+
+  return `
+  :where(${interaction}) .cutie-match-columns {
+    grid-template-columns: repeat(${count}, minmax(0, 1fr));
+  }
+
+  @container ${CONTENT_CONTAINER} (width < ${rem(columnsWidth)}) {
+    :where(${interaction}) .cutie-match-columns {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  @container ${CONTENT_CONTAINER} (width < ${rem(besideWidth)}) {
+    ${sharedBeside} {
+      flex-direction: column;
+    }
+  }
+`;
+}

@@ -4,6 +4,7 @@ import { cloneLabel, createCorrectAnswer } from '../evaluation/index.js';
 import { choiceLabelId, type MatchChoice, renderChoiceContent } from './choices.js';
 import { MatchController } from './controller.js';
 import type { DirectedPair, MatchPresentation, PresentationInput } from './presentation.js';
+import { matchColumnStyles, matchColumnStylesId } from './styles.js';
 
 /**
  * Plan one word bank per target column, or return null to bank every source
@@ -44,6 +45,9 @@ export function createColumns(input: PresentationInput): MatchPresentation {
   container.classList.add(
     columnBanks ? 'cutie-match-interaction--column-banks' : 'cutie-match-interaction--shared-bank'
   );
+  // The room the layout needs depends on the column count (see matchColumnStyles)
+  container.setAttribute('data-match-columns', String(targets.length));
+  context.styleManager?.addStyle(matchColumnStylesId(targets.length), matchColumnStyles(targets.length));
 
   // The bank(s) come before the target slots in the DOM because the QTI
   // vocabulary asks for choices to be presented before targets to assistive

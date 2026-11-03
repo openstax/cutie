@@ -505,6 +505,21 @@ describe('matchInteraction', () => {
       expect(container.querySelector('.cutie-match-interaction')!.classList.contains('qti-choices-left')).toBe(true);
     });
 
+    it('registers the column layout for its column count', () => {
+      const addStyle = vi.fn();
+      const doc = createQtiDocument(SHARED_BANK_QTI);
+      const fragment = transformInteraction(doc, new ItemStateImpl(), {
+        styleManager: { addStyle, hasStyle: () => false },
+      });
+
+      const interaction = fragment.querySelector('.cutie-match-interaction')!;
+      expect(interaction.getAttribute('data-match-columns')).toBe('3');
+      const [, css] = addStyle.mock.calls.find(([id]) => id === 'cutie-match-interaction-columns-3')!;
+      // Three 15rem columns and two 2rem gaps
+      expect(css).toContain('(width < 49rem)');
+      expect(css).toContain('grid-template-columns: repeat(3, minmax(0, 1fr))');
+    });
+
     it('returns a picked-up source when the bank background is clicked', () => {
       const container = render(SHARED_BANK_QTI);
       place(container, 'C', 'R');
