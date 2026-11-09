@@ -9,7 +9,7 @@ import { announce } from '../../utils/liveRegion.js';
 import { registry } from '../registry.js';
 import type { ElementHandler, InteractionState, ResponseAccessorOptions, TransformContext } from '../types.js';
 import { parseInputWidth } from '../vocabUtils.js';
-import { clearInlineVerdict, clearVerdictOnEdit, readEvaluation, wrapInlineEvaluation } from './evaluation/index.js';
+import { readEvaluation, wrapInlineEvaluation } from './evaluation/index.js';
 import { getDefaultValue } from './responseUtils.js';
 
 /**
@@ -127,19 +127,16 @@ class InlineChoiceInteractionHandler implements ElementHandler {
       select.setAttribute('aria-describedby', constraintId);
     }
 
-    // Evaluation of a finished attempt or a fresh try: the verdict icon and
-    // the correct answer (the choice's displayed text) above the select, describing it
+    // The correct answer of a finished attempt (the choice's displayed text),
+    // above the select, describing it
     let placed: HTMLElement = select;
     const evaluation = readEvaluation(element, responseIdentifier, context.styleManager);
     if (evaluation) {
       const correctText = evaluation.correctResponse
         .map((id) => Array.from(select.options).find((option) => option.value === id)?.textContent ?? id)
         .join(', ');
-      placed = wrapInlineEvaluation(select, `evaluation-${responseIdentifier}`, evaluation, correctText || null);
+      placed = wrapInlineEvaluation(select, `evaluation-${responseIdentifier}`, correctText);
     }
-    clearVerdictOnEdit(context, responseIdentifier, evaluation, () =>
-      clearInlineVerdict(select, `evaluation-${responseIdentifier}`)
-    );
 
     // Register response accessor with itemState if available
     if (context.itemState) {
@@ -171,7 +168,7 @@ class InlineChoiceInteractionHandler implements ElementHandler {
           select.removeAttribute('aria-invalid');
           indicator?.setError(false);
         }
-        context.itemState?.notifyResponseChange(responseIdentifier);
+        context.itemState?.notifyResponseChange();
       });
 
       // Observe interaction enabled state to enable/disable select

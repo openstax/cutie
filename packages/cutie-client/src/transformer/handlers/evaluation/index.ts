@@ -1,28 +1,21 @@
 /**
- * Shared helpers for drawing the evaluation (verdict and correct response)
- * cutie-core adds to the template of a finished attempt, or of a fresh try.
+ * Shared helpers for drawing the evaluation cutie-core adds to the template of
+ * a finished attempt: the item's verdict and each interaction's correct response.
  */
 export {
-  announceItemVerdict,
-  clearConstraintVerdict,
-  clearEvaluated,
-  clearInlineVerdict,
-  clearVerdictOnEdit,
   cloneLabel,
   createCorrectAnswer,
   createCorrectAnswerOverline,
+  createEvaluationSummary,
   createIncorrectAnswerOverline,
   createSrText,
-  createEvaluationSummary,
-  createVerdictMark,
   type EvaluationSummaryOptions,
   getVerdict,
-  getVerdictText,
   type InteractionEvaluation,
-  markEvaluated,
   parseDirectedPair,
   readEvaluation,
   registerEvaluationStyles,
   type Verdict,
   wrapInlineEvaluation,
 } from './evaluationDisplay.js';
+export { createItemVerdict } from './itemVerdict.js';

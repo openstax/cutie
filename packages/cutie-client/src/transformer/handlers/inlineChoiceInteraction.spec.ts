@@ -568,36 +568,26 @@ describe('inlineChoiceInteraction evaluation', () => {
     return container;
   }
 
-  it('renders nothing when there is no verdict or correct response', () => {
+  it('renders nothing when there is no correct response', () => {
     const container = render('', '<qti-default-value><qti-value>LYON</qti-value></qti-default-value>');
     expect(container.querySelector('.cutie-correct-answer-overline')).toBeNull();
-    expect(container.querySelector('select')!.classList.contains('cutie-evaluated')).toBe(false);
+    expect(container.querySelector('.cutie-inline-evaluation')).toBeNull();
   });
 
-  it('shows the verdict icon above the select, describing it', () => {
+  it('shows the correct choice above the select by its displayed text, describing it', () => {
     const container = render(
-      'data-cutie-evaluation="correct"',
-      '<qti-default-value><qti-value>PARIS</qti-value></qti-default-value>',
+      '',
+      `<qti-default-value><qti-value>LYON</qti-value></qti-default-value>
+       <qti-correct-response><qti-value>PARIS</qti-value></qti-correct-response>`,
     );
     const select = container.querySelector('select')!;
     expect(select.parentElement!.classList.contains('cutie-inline-evaluation')).toBe(true);
     const overline = container.querySelector('.cutie-correct-answer-overline')!;
-    expect(overline.querySelector('.cutie-feedback-icon--correct')).not.toBeNull();
     expect(overline.getAttribute('aria-hidden')).toBe('true');
     expect(select.getAttribute('aria-describedby')).toContain(overline.id);
-    expect(select.classList.contains('cutie-evaluated--correct')).toBe(true);
-    expect(select.value).toBe('PARIS');
-  });
-
-  it('shows the correct choice by its displayed text, not its identifier', () => {
-    const container = render(
-      'data-cutie-evaluation="incorrect"',
-      `<qti-default-value><qti-value>LYON</qti-value></qti-default-value>
-       <qti-correct-response><qti-value>PARIS</qti-value></qti-correct-response>`,
-    );
-    const overline = container.querySelector('.cutie-correct-answer-overline')!;
-    expect(overline.querySelector('.cutie-feedback-icon--incorrect')).not.toBeNull();
-    expect(overline.textContent).toBe('Incorrect. Correct answer: Paris');
-    expect(container.querySelector('select')!.value).toBe('LYON');
+    // The correct answer only: nothing says whether the response matches it
+    expect(overline.textContent).toBe('Correct answer: Paris');
+    expect(overline.querySelector('.cutie-feedback-icon')).toBeNull();
+    expect(select.value).toBe('LYON');
   });
 });

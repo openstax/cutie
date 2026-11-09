@@ -351,20 +351,18 @@ describe('formulaInteraction evaluation', () => {
     return container;
   }
 
-  it('renders nothing when there is no verdict or correct response', async () => {
+  it('renders nothing when there is no correct response', async () => {
     const container = render('', '');
     await waitForMathField();
     expect(container.querySelector('.cutie-evaluation')).toBeNull();
   });
 
-  it('describes the verdict in the constraint text and shows the correct LaTeX in a math-span, linked to the math field', async () => {
+  it('shows the correct LaTeX in a math-span, linked to the math field', async () => {
     const container = render(
-      'data-cutie-evaluation="incorrect"',
+      '',
       '<qti-correct-response><qti-value>\\frac{1}{2}</qti-value></qti-correct-response>',
     );
     await waitForMathField();
-    expect(container.querySelector('.cutie-verdict')).toBeNull();
-    expect(container.querySelector('#constraint-R1')!.textContent).toBe('Incorrect response');
     const summary = container.querySelector('.cutie-evaluation')!;
     expect(summary.querySelector('math-span')!.textContent).toBe('\\frac{1}{2}');
     expect(container.querySelector('math-field')!.getAttribute('aria-describedby')).toContain(summary.id);

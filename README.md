@@ -1,4 +1,4 @@
-<!-- spell-checker: ignore hotspots -->
+<!-- spell-checker: ignore hotspots hottext -->
 
 # Project Cutie
 
@@ -193,7 +193,7 @@ Every operation returns an `AttemptResult`:
 | `showEvaluation` | `'none'`, `'correctness'`, `'correctResponse'` | `'none'` | What the learner is told about how their response was judged, once terminal |
 | `shuffleOverride` | `'none'`, `'shuffle'`, `'never'` | `'none'` | Override the item's `shuffle` attributes |
 | `maxTries` | positive integer, `'smart'` | `1` | How many tries the learner gets |
-| `adaptiveRetryMessage` | `string` | `"That wasn't quite right. Tries remaining: {n}"` | Leads an adaptive item on a fresh try |
+| `retryMessage` | `string` | `"That wasn't quite right. Tries remaining: {n}"` | Leads an item on a fresh try |
 
 Scoring is the same under every option. `maxTries` is the only option that changes the lifecycle.
 
@@ -210,21 +210,22 @@ no part.
 Once the attempt is terminal, cutie-core can tell the client how the response was judged. Each level includes
 the one before it:
 
-- **`'correctness'`**: a verdict, `correct`, `incorrect` or `partial`, as `data-cutie-evaluation` on each interaction
-  whose response can be judged. It comes from that interaction's response declaration, using the same
-  comparisons response processing uses: a mapping with a known maximum (full credit, none, or between), else
-  the correct response (a match or not). Verdicts are per interaction, never per choice.
+- **`'correctness'`**: a verdict on the item as a whole, `correct`, `incorrect` or `partial`, as
+  `data-cutie-evaluation` on `qti-item-body`. It goes by the score when the item's maximum is known. Otherwise
+  each response the variant shows is judged against its own declaration, using the same comparisons response
+  processing uses (a mapping with a known maximum, else the correct response), and the item is only correct
+  when every one of them was judged correct.
 - **`'correctResponse'`**: also a `qti-correct-response` in each response declaration that has one, holding
   this attempt's value (including one set by `qti-set-correct-response`).
 
-The response as a whole also gets a verdict, as `data-cutie-evaluation` on `qti-item-body`: by the score when the
-item's maximum is known, otherwise from the verdicts of the interactions the variant shows. It is only
-correct when every one of those responses was judged correct.
+Interactions get no verdict of their own: response processing can combine responses (an NCLEX rationale
+item scores nothing unless the cause is right), so a response judged on its own can mislead.
 
-`cutie-client` draws a verdict as a colored status rail with text or an icon (never color alone), and the
-correct response alongside the learner's response, per interaction type. The item-level verdict is announced
-to screen readers on renders after the first ("Response is correct"), and each interaction's verdict is read
-with it. A verdict clears once the learner edits that response.
+`cutie-client` draws the item's verdict as a feedback block leading the item, with an icon and text (never
+color alone), announced to screen readers on renders after the first. It draws the correct response alongside
+the learner's response, per interaction type. Interactions that mark options (choice, hottext, match tables)
+mark the correct options, and the selected options that aren't; inline interactions (inline choice, text
+entry, gap match) show the correct answer above each blank, without saying whether the response matches it.
 
 ### Multiple tries
 
@@ -247,27 +248,30 @@ item's rules (e.g. a hint after the second submission) start over too.
     Template variables and shuffle orders carry over, so it is the same variant.
   - `score` stays the last try's until the fresh try ends, including through an adaptive item's steps. There
     is no penalty per try.
-  - A **non-adaptive** item keeps the learner's responses, with each interaction's verdict and the item's, whatever
-    `showEvaluation` says.
-  - An **adaptive** item starts over, led by `adaptiveRetryMessage` (`{n}` replaced by the tries remaining),
-    which `cutie-client` draws as a feedback block and announces.
+  - The item is led by `retryMessage` (`{n}` replaced by the tries remaining), in a `div` whose
+    `data-cutie-retry` holds the last try's verdict on the item as a whole, whatever `showEvaluation` says.
+    `cutie-client` draws it as a feedback block and announces it. No interaction is marked, so the learner
+    learns how close the try came without learning which responses to change.
+  - A **non-adaptive** item keeps the learner's responses; an **adaptive** item starts over.
 - Feedback and evaluation wait for the attempt to be terminal, then follow `showFeedback` and
   `showEvaluation`.
-- **`'smart'`** is resolved when the attempt begins. Each guessable interaction allows half the options this
-  variant shows (after template conditionals), rounded down, and at least one. The item allows the fewest any
-  interaction does:
+- **`'smart'`** is resolved when the attempt begins. A try is judged for the item as a whole, so the options
+  counted are those of every guessable interaction this variant shows (after template conditionals), pooled.
+  The item allows half of them, rounded down, at least one and at most four:
 
   | Interaction | Options counted |
   |---|---|
   | choice, order | `qti-simple-choice` |
   | inline choice | `qti-inline-choice` |
   | hotspot | `qti-hotspot-choice` |
-  | gap match | `qti-gap-text`, `qti-gap-img` |
-  | match | the target set (second `qti-simple-match-set`) |
-  | text entry | sets no limit |
+  | hottext | `qti-hottext` |
+  | gap match | every pairing of a `qti-gap-text` or `qti-gap-img` with a `qti-gap` |
+  | match | every pairing of a choice in the first `qti-simple-match-set` with one in the second |
+  | text entry, formula entry | none |
 
-  Any other interaction, an externally scored item (`external-scored` by a human or machine), or an item
-  nothing limits gets one try.
+  A pairing counts when each side's `match-group` (if any) lists the other, so a bowtie option counts once,
+  for its own column. Any other interaction (an essay, for one), an externally scored item (`external-scored`
+  by a human or machine), or an item with no options gets one try.
 
 ### Shuffle override (`shuffleOverride`)
 

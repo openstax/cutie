@@ -651,16 +651,15 @@ describe('textEntryInteraction evaluation', () => {
     return container;
   }
 
-  it('renders nothing when there is no verdict or correct response', () => {
+  it('renders nothing when there is no correct response', () => {
     const container = render('', '<qti-default-value><qti-value>york</qti-value></qti-default-value>');
     expect(container.querySelector('.cutie-correct-answer-overline')).toBeNull();
     expect(container.querySelector('.cutie-inline-evaluation')).toBeNull();
-    expect(container.querySelector('input')!.classList.contains('cutie-evaluated')).toBe(false);
   });
 
-  it('shows the verdict icon and correct answer above the input, describing it', () => {
+  it('shows the correct answer above the input, describing it', () => {
     const container = render(
-      'data-cutie-evaluation="incorrect"',
+      '',
       `<qti-default-value><qti-value>york</qti-value></qti-default-value>
        <qti-correct-response><qti-value>York</qti-value></qti-correct-response>`,
     );
@@ -669,37 +668,21 @@ describe('textEntryInteraction evaluation', () => {
     expect(wrapper.classList.contains('cutie-inline-evaluation')).toBe(true);
 
     const overline = wrapper.querySelector('.cutie-correct-answer-overline')!;
-    const icon = overline.querySelector('.cutie-feedback-icon--incorrect') as HTMLElement;
-    expect(icon.title).toBe('Incorrect');
-    // Visible: the icon and the value; hidden text completes the description
-    expect(overline.textContent).toBe('Incorrect. Correct answer: York');
+    // Visible: the value; hidden text completes the description. Nothing says
+    // whether the response matches it.
+    expect(overline.textContent).toBe('Correct answer: York');
+    expect(overline.querySelector('.cutie-feedback-icon')).toBeNull();
     expect(overline.getAttribute('aria-hidden')).toBe('true');
     expect(input.getAttribute('aria-describedby')).toContain(overline.id);
-
-    expect(input.classList.contains('cutie-evaluated--incorrect')).toBe(true);
     expect(input.value).toBe('york');
-  });
-
-  it('shows only the verdict icon when no correct response is sent', () => {
-    const container = render('data-cutie-evaluation="correct"', '');
-    const overline = container.querySelector('.cutie-correct-answer-overline')!;
-    expect(overline.querySelector('.cutie-feedback-icon--correct')).not.toBeNull();
-    expect(overline.textContent).toBe('Correct. ');
-  });
-
-  it('shows the correct answer without a verdict when the response could not be judged', () => {
-    const container = render('', '<qti-correct-response><qti-value>York</qti-value></qti-correct-response>');
-    const overline = container.querySelector('.cutie-correct-answer-overline')!;
-    expect(overline.querySelector('.cutie-feedback-icon')).toBeNull();
-    expect(overline.textContent).toBe('Correct answer: York');
   });
 
   it('joins multiple correct values', () => {
     const container = render(
-      'data-cutie-evaluation="correct"',
+      '',
       '<qti-correct-response><qti-value>a</qti-value><qti-value>b</qti-value></qti-correct-response>',
       'multiple',
     );
-    expect(container.querySelector('.cutie-correct-answer-overline')!.textContent).toBe('Correct. Correct answer: a, b');
+    expect(container.querySelector('.cutie-correct-answer-overline')!.textContent).toBe('Correct answer: a, b');
   });
 });

@@ -1,10 +1,9 @@
 /* spell-checker: ignore inlines */
 import { AttemptState, FeedbackIdentity, ProcessingOptions } from '../types.js';
 import { createValueContainer } from '../utils/valueContainer.js';
-import { isAdaptive } from './adaptive.js';
 import { finishContent, removeReservedMarkup } from './content.js';
 import { canEvaluate } from './deliveryOptions.js';
-import { evaluateResponse, ResponseEvaluation } from './evaluateResponses.js';
+import { ResponseEvaluation } from './evaluateResponses.js';
 import { getCorrectResponse } from './responseDeclarations.js';
 import { inlineDockedStimuli } from './stimulus.js';
 import { evaluateTry } from './tries.js';
@@ -50,8 +49,8 @@ export async function renderTemplate(
  *    - Hidden feedback that shouldn't be visible yet
  * 5. Injects current response values as qti-default-value elements
  * 6. Once the attempt can be evaluated, adds the evaluation its delivery options allow
- *    (see applyEvaluation); at the start of a fresh try, the last try's verdict
- *    (see applyRetryVerdict)
+ *    (see applyEvaluation); at the start of a fresh try, the retry message with
+ *    the last try's verdict (see applyRetryVerdict)
  *
  * The result depends only on the item and the state, so rendering the same
  * state again produces the same document.
@@ -101,7 +100,7 @@ export function buildTemplateDocument(itemDoc: Document, state: AttemptState): D
   if (canEvaluate(state)) {
     applyEvaluation(root, itemDoc, state);
   } else if (state.retryVerdict && state.variables.numAttempts === 0) {
-    applyRetryVerdict(root, itemDoc, state, state.retryVerdict);
+    applyRetryVerdict(root, state, state.retryVerdict);
   }
 
   // Step 7: Clean up empty text nodes and normalize whitespace
@@ -251,12 +250,12 @@ function removeWithheldFeedback(root: Element, withheld: FeedbackIdentity[]): vo
  * template of an attempt that can be evaluated (see canEvaluate):
  *
  * - `'correctness'`: a data-cutie-evaluation attribute ("correct", "incorrect" or
- *   "partial") on each interaction whose response can be judged
- *   (see evaluateResponse), and on the item body for the attempt as a whole
- *   (see evaluateTry)
+ *   "partial") on the item body, judging the attempt as a whole (see evaluateTry)
  * - `'correctResponse'`: the verdict, plus a qti-correct-response holding this
  *   attempt's correct value in each response declaration that has one
  *
+ * The verdict judges the item, never a single interaction: response processing
+ * can combine responses, so a response judged on its own can mislead.
  * Nothing else about how responses are judged (mappings, the correct response
  * under `'correctness'`) reaches the template.
  */
@@ -264,7 +263,6 @@ function applyEvaluation(root: Element, itemDoc: Document, state: AttemptState):
   const { showEvaluation } = state.options;
   if (showEvaluation === 'none') return;
 
-  markInteractionVerdicts(root, itemDoc, state);
   markItemVerdict(root, evaluateTry(itemDoc, state));
 
   if (showEvaluation === 'correctResponse') {
@@ -293,25 +291,13 @@ function addCorrectResponses(root: Element, itemDoc: Document): void {
 /**
  * Shows the verdict of the try that fell short at the start of the fresh try
  * that follows it (before its first submission), whatever showEvaluation
- * allows once the attempt is terminal:
+ * allows once the attempt is terminal: the retryMessage leads the item body,
+ * in an element with data-cutie-retry set to the verdict.
  *
- * - a non-adaptive item keeps the learner's responses, so each interaction gets
- *   its data-cutie-evaluation, and the item body the try's, as under `'correctness'`
- * - an adaptive item starts over, so a message leads the item body instead:
- *   the adaptiveRetryMessage, in an element with data-cutie-retry set to the verdict
+ * Only the item as a whole is judged, so the learner learns how close the try
+ * came without learning which responses to change.
  */
-function applyRetryVerdict(
-  root: Element,
-  itemDoc: Document,
-  state: AttemptState,
-  verdict: 'incorrect' | 'partial'
-): void {
-  if (!isAdaptive(itemDoc)) {
-    markInteractionVerdicts(root, itemDoc, state);
-    markItemVerdict(root, verdict);
-    return;
-  }
-
+function applyRetryVerdict(root: Element, state: AttemptState, verdict: 'incorrect' | 'partial'): void {
   const itemBody = root.getElementsByTagName('qti-item-body')[0];
   if (!itemBody) return;
 
@@ -319,7 +305,7 @@ function applyRetryVerdict(
   message.setAttribute('data-cutie-retry', verdict);
   message.appendChild(
     itemBody.ownerDocument.createTextNode(
-      state.options.adaptiveRetryMessage.split('{n}').join(String(state.triesRemaining))
+      state.options.retryMessage.split('{n}').join(String(state.triesRemaining))
     )
   );
   itemBody.insertBefore(message, itemBody.firstChild);
@@ -334,42 +320,11 @@ function markPreview(root: Element): void {
 
 /**
  * Adds a data-cutie-evaluation attribute to the item body for the response as a
- * whole, when it can be judged: the one clients announce, where each
- * interaction's is read with the interaction.
+ * whole, when it can be judged.
  */
 function markItemVerdict(root: Element, verdict: ResponseEvaluation | null): void {
   const itemBody = root.getElementsByTagName('qti-item-body')[0];
   if (itemBody && verdict) itemBody.setAttribute('data-cutie-evaluation', verdict);
-}
-
-/**
- * Adds a data-cutie-evaluation attribute ("correct", "incorrect" or "partial") to
- * each interaction whose response can be judged (see evaluateResponse)
- */
-function markInteractionVerdicts(root: Element, itemDoc: Document, state: AttemptState): void {
-  const itemBody = root.getElementsByTagName('qti-item-body')[0];
-  if (!itemBody) return;
-
-  for (const declaration of Array.from(root.getElementsByTagName('qti-response-declaration'))) {
-    const identifier = declaration.getAttribute('identifier');
-    if (!identifier) continue;
-
-    const evaluation = evaluateResponse(itemDoc, identifier, state.variables);
-    if (evaluation) {
-      for (const interaction of findInteractions(itemBody, identifier)) {
-        interaction.setAttribute('data-cutie-evaluation', evaluation);
-      }
-    }
-  }
-}
-
-/**
- * Elements in the item body bound to the given response identifier
- */
-function findInteractions(itemBody: Element, responseIdentifier: string): Element[] {
-  return Array.from(itemBody.getElementsByTagName('*')).filter(
-    (element) => element.getAttribute('response-identifier') === responseIdentifier
-  );
 }
 
 /**

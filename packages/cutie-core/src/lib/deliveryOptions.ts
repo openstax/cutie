@@ -5,7 +5,7 @@ const DEFAULT_DELIVERY_OPTIONS: Required<DeliveryOptions> = {
   showEvaluation: 'none',
   shuffleOverride: 'none',
   maxTries: 1,
-  adaptiveRetryMessage: 'That wasn\'t quite right. Tries remaining: {n}',
+  retryMessage: 'That wasn\'t quite right. Tries remaining: {n}',
 };
 
 /**
@@ -17,7 +17,7 @@ export function resolveDeliveryOptions(options?: DeliveryOptions): Required<Deli
     showEvaluation: options?.showEvaluation ?? DEFAULT_DELIVERY_OPTIONS.showEvaluation,
     shuffleOverride: options?.shuffleOverride ?? DEFAULT_DELIVERY_OPTIONS.shuffleOverride,
     maxTries: options?.maxTries ?? DEFAULT_DELIVERY_OPTIONS.maxTries,
-    adaptiveRetryMessage: options?.adaptiveRetryMessage ?? DEFAULT_DELIVERY_OPTIONS.adaptiveRetryMessage,
+    retryMessage: options?.retryMessage ?? DEFAULT_DELIVERY_OPTIONS.retryMessage,
   };
 }
 

@@ -997,20 +997,18 @@ describe('richTextInteraction evaluation', () => {
     return container;
   }
 
-  it('renders nothing when there is no verdict or correct response', async () => {
+  it('renders nothing when there is no correct response', async () => {
     const container = render('', '');
     await waitForQuill();
     expect(container.querySelector('.cutie-evaluation')).toBeNull();
   });
 
-  it('describes the verdict in the constraint text and shows the sanitized HTML correct answer, linked to the editor once loaded', async () => {
+  it('shows the sanitized HTML correct answer, linked to the editor once loaded', async () => {
     const container = render(
-      'data-cutie-evaluation="partial"',
+      '',
       '<qti-correct-response><qti-value>&lt;p&gt;&lt;strong&gt;world&lt;/strong&gt;&lt;img src=x onerror="alert(1)"&gt;&lt;/p&gt;</qti-value></qti-correct-response>',
     );
     await waitForQuill();
-    expect(container.querySelector('.cutie-verdict')).toBeNull();
-    expect(container.querySelector('#constraint-R1')!.textContent).toBe('Partially correct response');
     const summary = container.querySelector('.cutie-evaluation')!;
     const value = summary.querySelector('.cutie-correct-answer__value')!;
     expect(value.querySelector('strong')!.textContent).toBe('world');

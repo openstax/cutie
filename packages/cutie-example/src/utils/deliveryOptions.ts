@@ -12,7 +12,7 @@ export const DEFAULT_DELIVERY_OPTIONS: ResolvedDeliveryOptions = {
   showEvaluation: 'none',
   shuffleOverride: 'none',
   maxTries: 1,
-  adaptiveRetryMessage: "That wasn't quite right. Tries remaining: {n}",
+  retryMessage: "That wasn't quite right. Tries remaining: {n}",
 };
 
 /** Turns on every delivery extension: smart tries, feedback, and the correct response. */
@@ -36,9 +36,9 @@ export function loadDeliveryOptions(): ResolvedDeliveryOptions {
       showEvaluation: pick(SHOW_EVALUATION_VALUES, stored.showEvaluation, DEFAULT_DELIVERY_OPTIONS.showEvaluation),
       shuffleOverride: pick(SHUFFLE_OVERRIDE_VALUES, stored.shuffleOverride, DEFAULT_DELIVERY_OPTIONS.shuffleOverride),
       maxTries: pick(MAX_TRIES_VALUES, stored.maxTries, DEFAULT_DELIVERY_OPTIONS.maxTries),
-      adaptiveRetryMessage: typeof stored.adaptiveRetryMessage === 'string'
-        ? stored.adaptiveRetryMessage
-        : DEFAULT_DELIVERY_OPTIONS.adaptiveRetryMessage,
+      retryMessage: typeof stored.retryMessage === 'string'
+        ? stored.retryMessage
+        : DEFAULT_DELIVERY_OPTIONS.retryMessage,
     };
   } catch {
     return DEFAULT_DELIVERY_OPTIONS;

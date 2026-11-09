@@ -268,12 +268,16 @@ describe('tries', () => {
       // The last try's score stands until the next try ends
       expect(result.state.score?.raw).toBe(0);
 
-      // Feedback waits; the response stays, marked with its verdict
+      // Feedback waits; the response stays, and the retry message carries
+      // the verdict for the item as a whole, not for the interaction
       expect(feedbackIdentifiers(result.template)).toEqual([]);
       expect(defaultValueOf(result.template, 'RESPONSE')).toEqual(['B']);
-      expect(evaluationOf(result.template, 'RESPONSE')).toBe('incorrect');
-      expect(itemVerdictOf(result.template)).toBe('incorrect');
-      expect(retryMessageOf(result.template)).toBeNull();
+      expect(evaluationOf(result.template, 'RESPONSE')).toBeNull();
+      expect(itemVerdictOf(result.template)).toBeNull();
+      expect(retryMessageOf(result.template)).toEqual({
+        verdict: 'incorrect',
+        text: 'That wasn\'t quite right. Tries remaining: 1',
+      });
 
       await expectResumable(result, choiceItem);
     });
@@ -326,7 +330,7 @@ describe('tries', () => {
       const result = await submitResponse({ RESPONSE: 'A' }, retry.state, choiceItem);
 
       expect(feedbackIdentifiers(result.template)).toEqual([]);
-      expect(evaluationOf(result.template, 'RESPONSE')).toBe('correct');
+      expect(evaluationOf(result.template, 'RESPONSE')).toBeNull();
       expect(itemVerdictOf(result.template)).toBe('correct');
       expect(result.hasNewFeedback).toBe(true);
     });
@@ -337,8 +341,7 @@ describe('tries', () => {
 
       expect(result.state.completionStatus).toBe('incomplete');
       expect(result.state.retryVerdict).toBe('partial');
-      expect(evaluationOf(result.template, 'RESPONSE')).toBe('partial');
-      expect(itemVerdictOf(result.template)).toBe('partial');
+      expect(retryMessageOf(result.template)?.verdict).toBe('partial');
     });
 
     test('ends a try on every submission, even when response processing says incomplete', async () => {
@@ -475,8 +478,8 @@ describe('tries', () => {
       expect(defaultValueOf(retry.template, 'RESPONSE')).toEqual(['B']);
     });
 
-    test('uses the adaptiveRetryMessage given', async () => {
-      const begun = await begin(adaptiveItem, { maxTries: 3, adaptiveRetryMessage: '{n} left. {n}!' });
+    test('uses the retryMessage given', async () => {
+      const begun = await begin(adaptiveItem, { maxTries: 3, retryMessage: '{n} left. {n}!' });
       const hinted = await submitResponse({ RESPONSE: 'B' }, begun.state, adaptiveItem);
       const result = await submitResponse({ RESPONSE: 'B' }, hinted.state, adaptiveItem);
 
@@ -542,7 +545,7 @@ describe('tries', () => {
 
       // Unknown, so the attempt ends, without claiming the response is correct
       expect(result.state.completionStatus).toBe('completed');
-      expect(evaluationOf(result.template, 'CHOICE')).toBe('correct');
+      expect(evaluationOf(result.template, 'CHOICE')).toBeNull();
       expect(itemVerdictOf(result.template)).toBeNull();
     });
 
@@ -644,43 +647,20 @@ describe('tries', () => {
       expect(deriveSmartMaxTries(parser.parseFromString(item, 'text/xml'), {})).toBe(tries);
     });
 
-    test('takes the fewest any interaction allows', () => {
+    test('pools the options of every interaction in the item', () => {
       const item = itemWithBody(`
-        <qti-choice-interaction response-identifier="R1">${choices(6)}</qti-choice-interaction>
+        <qti-choice-interaction response-identifier="R1">${choices(3)}</qti-choice-interaction>
         <p><qti-inline-choice-interaction response-identifier="R2">
           <qti-inline-choice identifier="a">a</qti-inline-choice><qti-inline-choice identifier="b">b</qti-inline-choice>
           <qti-inline-choice identifier="c">c</qti-inline-choice><qti-inline-choice identifier="d">d</qti-inline-choice>
         </qti-inline-choice-interaction></p>`);
-      expect(deriveSmartMaxTries(parser.parseFromString(item, 'text/xml'), {})).toBe(2);
-    });
-
-    test('counts the target set of a match interaction, and the choices of a gap match', () => {
-      const match = itemWithBody(`
-        <qti-match-interaction response-identifier="R">
-          <qti-simple-match-set>
-            <qti-simple-associable-choice identifier="S1" match-max="1">1</qti-simple-associable-choice>
-            <qti-simple-associable-choice identifier="S2" match-max="1">2</qti-simple-associable-choice>
-          </qti-simple-match-set>
-          <qti-simple-match-set>
-            ${['T1', 'T2', 'T3', 'T4', 'T5', 'T6'].map((id) => `<qti-simple-associable-choice identifier="${id}" match-max="1">${id}</qti-simple-associable-choice>`).join('')}
-          </qti-simple-match-set>
-        </qti-match-interaction>`);
-      expect(deriveSmartMaxTries(parser.parseFromString(match, 'text/xml'), {})).toBe(3);
-
-      const gapMatch = itemWithBody(`
-        <qti-gap-match-interaction response-identifier="R">
-          ${['W1', 'W2', 'W3', 'W4'].map((id) => `<qti-gap-text identifier="${id}" match-max="1">${id}</qti-gap-text>`).join('')}
-          <p>A <qti-gap identifier="G1"/> and <qti-gap identifier="G2"/></p>
-        </qti-gap-match-interaction>`);
-      expect(deriveSmartMaxTries(parser.parseFromString(gapMatch, 'text/xml'), {})).toBe(2);
-    });
-
-    test('counts the hottexts of a hottext interaction', () => {
-      const item = itemWithBody(`
-        <qti-hottext-interaction response-identifier="R" max-choices="0">
-          <p>${['H1', 'H2', 'H3', 'H4', 'H5', 'H6'].map((id) => `<qti-hottext identifier="${id}">${id}</qti-hottext>`).join(' ')}</p>
-        </qti-hottext-interaction>`);
+      // 3 choices and 4 inline choices: 7 options
       expect(deriveSmartMaxTries(parser.parseFromString(item, 'text/xml'), {})).toBe(3);
+    });
+
+    test('allows at most 4 tries, however many options', () => {
+      const item = itemWithBody(`<qti-choice-interaction response-identifier="R">${choices(20)}</qti-choice-interaction>`);
+      expect(deriveSmartMaxTries(parser.parseFromString(item, 'text/xml'), {})).toBe(4);
     });
 
     test('counts only the choices this variant shows', () => {

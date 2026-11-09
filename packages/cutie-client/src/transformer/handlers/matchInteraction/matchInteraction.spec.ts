@@ -954,27 +954,15 @@ describe('matchInteraction evaluation', () => {
   const keyText = (container: HTMLElement, targetId: string) =>
     column(container, targetId).querySelector('.cutie-correct-answer')?.textContent ?? null;
 
-  it('renders nothing when there is no verdict or correct response', () => {
+  it('renders nothing when there is no correct response', () => {
     const container = render(BASIC_MATCH_QTI, '', '<qti-default-value><qti-value>S1 T1</qti-value></qti-default-value>');
     expect(container.querySelector('.cutie-correct-answer')).toBeNull();
-    expect(container.querySelector('.cutie-evaluated')).toBeNull();
-    // The rail is reserved regardless, so evaluation shifts nothing
-    expect(container.querySelector('.cutie-match-interaction')!.classList.contains('cutie-status-rail')).toBe(true);
-  });
-
-  it('describes the response in the constraint text, announced with the group', () => {
-    const container = render(BASIC_MATCH_QTI, 'data-cutie-evaluation="correct"', '');
-    const group = container.querySelector('.cutie-match-interaction')!;
-    expect(container.querySelector('.cutie-verdict')).toBeNull();
-    expect(container.querySelector('#constraint-R1')!.textContent).toBe('Correct response');
-    expect(group.getAttribute('aria-describedby')).toContain('constraint-R1');
-    expect(group.classList.contains('cutie-evaluated--correct')).toBe(true);
   });
 
   it('shows each column the sources that belong in it, by displayed labels', () => {
     const container = render(
       BASIC_MATCH_QTI,
-      'data-cutie-evaluation="partial"',
+      '',
       `<qti-default-value><qti-value>S1 T2</qti-value></qti-default-value>
        <qti-correct-response><qti-value>S1 T1</qti-value><qti-value>S2 T1</qti-value></qti-correct-response>`,
     );
@@ -988,7 +976,7 @@ describe('matchInteraction evaluation', () => {
   it('places the key under the last slot, describing every slot of the column', () => {
     const container = render(
       BOWTIE_QTI,
-      'data-cutie-evaluation="incorrect"',
+      '',
       `<qti-correct-response>
          <qti-value>ACT1 T_ACTIONS</qti-value>
          <qti-value>ACT2 T_ACTIONS</qti-value>
@@ -1015,7 +1003,7 @@ describe('matchInteraction evaluation', () => {
   it('describes slots a column grows after the key is drawn', () => {
     const container = render(
       SHARED_BANK_QTI,
-      'data-cutie-evaluation="incorrect"',
+      '',
       '<qti-correct-response><qti-value>C R</qti-value></qti-correct-response>',
     );
     place(container, 'D', 'R');
@@ -1210,7 +1198,6 @@ describe('matchInteraction tabular (qti-match-tabular)', () => {
       cell(container, 'F1', 'IND').click();
       cell(container, 'F1', 'NOT').click();
       expect(notify).toHaveBeenCalledTimes(2);
-      expect(notify).toHaveBeenCalledWith('R1');
     });
 
     it('restores the default response, however its values are spaced', () => {
@@ -1380,7 +1367,7 @@ describe('matchInteraction tabular (qti-match-tabular)', () => {
 
     it('marks correct cells and selected incorrect cells with the standard overlines', () => {
       const container = render(
-        tabular({ attrs: 'data-cutie-evaluation="incorrect"' }),
+        tabular(),
         `<qti-default-value><qti-value>F1 NOT</qti-value></qti-default-value>${correctResponse}`
       );
       expect(overlineIn(container, 'F1', 'IND').textContent).toBe('Correct answer');
@@ -1390,13 +1377,13 @@ describe('matchInteraction tabular (qti-match-tabular)', () => {
     });
 
     it('gives every cell the overline slot, so the inputs stay level', () => {
-      const container = render(tabular({ attrs: 'data-cutie-evaluation="incorrect"' }), correctResponse);
+      const container = render(tabular(), correctResponse);
       expect(container.querySelectorAll('.cutie-match-cell-overline')).toHaveLength(6);
       expect(container.querySelector('.cutie-match-table--evaluated')).not.toBeNull();
     });
 
     it('puts the overline first in the input\'s name, and hides it from being read twice', () => {
-      const container = render(tabular({ attrs: 'data-cutie-evaluation="incorrect"' }), correctResponse);
+      const container = render(tabular(), correctResponse);
       expect(nameOf(container, cell(container, 'F1', 'IND'))).toBe('Correct answer Fever Indicated');
       expect(nameOf(container, cell(container, 'F1', 'NOT'))).toBe('Fever Not indicated');
       expect(overlineIn(container, 'F1', 'IND').firstElementChild!.getAttribute('aria-hidden')).toBe('true');
@@ -1405,7 +1392,7 @@ describe('matchInteraction tabular (qti-match-tabular)', () => {
     it('gives each overline its own id, whatever the identifiers', () => {
       // "A-B C" and "A B-C" would share an id built from the pair
       const container = render(
-        tabular({ attrs: 'data-cutie-evaluation="incorrect"', ids: ['A-B', 'A', 'F3'] })
+        tabular({ ids: ['A-B', 'A', 'F3'] })
           .replace('identifier="IND"', 'identifier="C"').replace('identifier="NOT"', 'identifier="B-C"'),
         '<qti-correct-response><qti-value>A-B C</qti-value><qti-value>A B-C</qti-value></qti-correct-response>'
       );
@@ -1413,20 +1400,7 @@ describe('matchInteraction tabular (qti-match-tabular)', () => {
       expect(new Set(ids).size).toBe(2);
     });
 
-    it('removes the incorrect-answer marks, and their place in the names, once the response is edited', () => {
-      const container = render(
-        tabular({ attrs: 'data-cutie-evaluation="incorrect"' }),
-        `<qti-default-value><qti-value>F1 NOT</qti-value></qti-default-value>${correctResponse}`
-      );
-      expect(nameOf(container, cell(container, 'F1', 'NOT'))).toBe('Incorrect answer Fever Not indicated');
-
-      cell(container, 'F3', 'IND').click();
-      expect(container.querySelector('.cutie-correct-answer-overline--incorrect')).toBeNull();
-      expect(nameOf(container, cell(container, 'F1', 'NOT'))).toBe('Fever Not indicated');
-      expect(overlineIn(container, 'F1', 'IND').textContent).toBe('Correct answer');
-    });
-
-    it('draws nothing without a verdict or correct response', () => {
+    it('draws nothing without a correct response', () => {
       const container = render(tabular());
       expect(container.querySelector('.cutie-match-cell-overline')).toBeNull();
       expect(container.querySelector('.cutie-match-table--evaluated')).toBeNull();

@@ -69,8 +69,6 @@ export function createColumns(input: PresentationInput): MatchPresentation {
   return {
     controller,
     drawKey: (pairs) => drawKey(container, pairs, controller, responseIdentifier),
-    // The key only shows the correct response
-    clearResponseMarks: () => {},
   };
 }
 

@@ -122,8 +122,8 @@ function uniqueFeedback(feedback: FeedbackIdentity[]): FeedbackIdentity[] {
 
 /**
  * Whether nextDoc reveals anything priorDoc did not: a feedback element
- * (by tag, outcome-identifier and identifier), a verdict (by interaction and
- * value, so a changed verdict is new), or a correct response.
+ * (by tag, outcome-identifier and identifier), the item's verdict (by value,
+ * so a changed verdict is new), or a correct response.
  * Changes inside content that stays visible do not count.
  */
 function hasNewReveals(priorDoc: Document, nextDoc: Document): boolean {
@@ -134,12 +134,8 @@ function hasNewReveals(priorDoc: Document, nextDoc: Document): boolean {
 function collectReveals(root: Element): string[] {
   const feedback = collectVisibleFeedback(root).map((identity) => `feedback:${feedbackKey(identity)}`);
 
-  const evaluations = Array.from(root.getElementsByTagName('*'))
-    .filter((element) => element.hasAttribute('data-cutie-evaluation'))
-    .map(
-      (element) =>
-        `evaluation:${element.getAttribute('response-identifier') ?? ''}:${element.getAttribute('data-cutie-evaluation')}`
-    );
+  const verdict = root.getElementsByTagName('qti-item-body')[0]?.getAttribute('data-cutie-evaluation');
+  const evaluations = verdict ? [`evaluation:${verdict}`] : [];
 
   const correctResponses = Array.from(root.getElementsByTagName('qti-correct-response')).map(
     (element) => `correct-response:${(element.parentNode as Element | null)?.getAttribute('identifier') ?? ''}`

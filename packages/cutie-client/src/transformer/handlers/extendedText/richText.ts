@@ -3,19 +3,11 @@ import { createMissingAttributeError } from '../../../errors/errorDisplay.js';
 import { addAriaDescribedBy } from '../../../utils/aria.js';
 import { registry } from '../../registry.js';
 import type { ElementHandler, TransformContext } from '../../types.js';
-import {
-  clearEvaluated,
-  clearVerdictOnEdit,
-  createEvaluationSummary,
-  getVerdictText,
-  markEvaluated,
-  readEvaluation,
-} from '../evaluation/index.js';
+import { createEvaluationSummary, readEvaluation } from '../evaluation/index.js';
 import { getDefaultValue } from '../responseUtils.js';
 import { loadQuill } from './quillLoader.js';
 import {
   type CharacterCounter,
-  clearConstraintResultVerdict,
   createCharacterCounter,
   createConstraintElements,
   createInteractionContainer,
@@ -138,21 +130,14 @@ class RichTextInteractionHandler implements ElementHandler {
         isPreview(element),
       );
     }
-    // Evaluation of a finished attempt when the delivery options show one, or
-    // the last try's verdict on a fresh try. Its verdict takes the constraint
-    // text's place.
+    // The correct response of a finished attempt, when the delivery options show it
     const evaluation = readEvaluation(element, responseIdentifier, context.styleManager);
-    const verdictText = evaluation?.verdict ? getVerdictText(evaluation.verdict) : null;
 
-    const needsConstraint = constraints.minStrings > 0 || minCharacters !== null || maxCharacters !== null;
-    const constraintResult = needsConstraint || verdictText
-      ? createConstraintElements(
-          { minStrings: constraints.minStrings, patternMask: null, patternMessage: null, minCharacters, maxCharacters },
-          responseIdentifier,
-          context.styleManager,
-          verdictText,
-        )
-      : null;
+    const constraintResult = createConstraintElements(
+      { minStrings: constraints.minStrings, patternMask: null, patternMessage: null, minCharacters, maxCharacters },
+      responseIdentifier,
+      context.styleManager,
+    );
 
     // Wrap counter and/or constraint in a shared footer row
     const footer = createInteractionFooter(
@@ -165,20 +150,15 @@ class RichTextInteractionHandler implements ElementHandler {
     }
 
     // The correct answer (HTML, sanitized like the learner's own) below the
-    // editor; the status rail is the visual verdict. The editor root is
-    // created asynchronously, so it is linked via aria-describedby on load.
+    // editor. The editor root is created asynchronously, so it is linked via
+    // aria-describedby on load.
     let evaluationSummary: HTMLElement | null = null;
     if (evaluation) {
-      const correctAnswer = evaluation.correctResponse.length > 0
-        ? sanitizedFragment(evaluation.correctResponse.join(''))
-        : null;
       evaluationSummary = createEvaluationSummary({
         id: `evaluation-${responseIdentifier}`,
-        verdict: null,
-        correctAnswer,
+        correctAnswer: sanitizedFragment(evaluation.correctResponse.join('')),
       });
       if (evaluationSummary) container.appendChild(evaluationSummary);
-      markEvaluated(container, evaluation.verdict);
     }
 
     fragment.appendChild(container);
@@ -209,11 +189,6 @@ class RichTextInteractionHandler implements ElementHandler {
 
     // Track active editor root for aria wiring
     let activeEditorRoot: HTMLElement | null = null;
-
-    clearVerdictOnEdit(context, responseIdentifier, evaluation, () => {
-      clearEvaluated(container);
-      clearConstraintResultVerdict(constraintResult, activeEditorRoot);
-    });
 
     // Find the first violated constraint, without touching the UI.
     // Returns null when valid, otherwise the message text to display.
@@ -315,7 +290,7 @@ class RichTextInteractionHandler implements ElementHandler {
         // Report the learner edit. Registered after the default value is
         // pasted in above, so restoring qti-default-value doesn't report.
         quill.on('text-change', () => {
-          context.itemState?.notifyResponseChange(responseIdentifier);
+          context.itemState?.notifyResponseChange();
         });
 
         // Wire up aria attributes on the editor root

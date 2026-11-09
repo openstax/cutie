@@ -1,5 +1,5 @@
 // cspell:ignore overlines
-import { prependAriaLabelledBy, removeAriaLabelledBy } from '../../../utils/aria.js';
+import { prependAriaLabelledBy } from '../../../utils/aria.js';
 import type { TransformContext } from '../../types.js';
 import { createCorrectAnswerOverline, createIncorrectAnswerOverline } from '../evaluation/index.js';
 import { choiceLabelId, renderChoiceContent } from './choices.js';
@@ -95,7 +95,6 @@ export function createTable(input: PresentationInput): MatchPresentation {
   return {
     controller,
     drawKey: (pairs) => drawKey(table, pairs, responseIdentifier),
-    clearResponseMarks: () => clearIncorrectMarks(table),
   };
 }
 
@@ -168,14 +167,3 @@ function drawKey(table: HTMLTableElement, pairs: DirectedPair[], responseIdentif
   });
 }
 
-/**
- * Remove the "incorrect answer" overlines, which describe the response, and
- * their place in the inputs' names.
- */
-function clearIncorrectMarks(table: HTMLTableElement): void {
-  for (const mark of table.querySelectorAll('.cutie-correct-answer-overline--incorrect')) {
-    const input = mark.closest('.cutie-match-cell')?.querySelector('input');
-    if (input) removeAriaLabelledBy(input, mark.id);
-    mark.remove();
-  }
-}

@@ -1,51 +1,30 @@
 /**
  * Evaluation display: draws the evaluation cutie-core adds to the template
- * once an attempt is finished (see the showEvaluation delivery option), and
- * the verdict of the last try on a fresh try (see the maxTries delivery option).
+ * once an attempt is finished (see the showEvaluation delivery option).
  *
  * Nothing about correctness is computed here — the client only renders what
  * core sent:
- * - the verdict, a `data-cutie-evaluation` attribute on the interaction element
+ * - the verdict, a `data-cutie-evaluation` attribute on the item body, judging
+ *   the item as a whole (drawn by the item, see createItemVerdict)
  * - the correct response, a `qti-correct-response` in the response declaration
  *
- * Handlers read both with `readEvaluation`, build the marks with these helpers,
- * and decide where to place them. The verdict is never conveyed by color alone
- * (WCAG 1.4.1): colored marks are paired with an icon or text that carries
- * the verdict, and screen readers get the same information as text.
- *
- * A verdict describes the response it was given for, so it is cleared once the
- * learner edits that response (see clearVerdictOnEdit). The correct response
- * does not depend on the learner's response and stays.
+ * Handlers read the correct response with `readEvaluation`, build the marks
+ * with these helpers, and decide where to place them. Interactions carry no
+ * verdict of their own: response processing can combine responses, so a
+ * response judged on its own can mislead.
  */
-import type { ConstraintMessage } from '../../../errors/validationDisplay.js';
-import { addAriaDescribedBy, removeAriaDescribedBy } from '../../../utils/aria.js';
-import { announce } from '../../../utils/liveRegion.js';
-import type { StyleManager, TransformContext } from '../../types.js';
-import {
-  createFeedbackIcon,
-  FEEDBACK_ICON_STYLES,
-  type IconType,
-} from '../feedback/feedbackIcons.js';
+import { addAriaDescribedBy } from '../../../utils/aria.js';
+import type { StyleManager } from '../../types.js';
 import { getCorrectResponse, toValueList } from '../responseUtils.js';
 
 const VERDICTS = ['correct', 'incorrect', 'partial'] as const;
 
 export type Verdict = (typeof VERDICTS)[number];
 
-/**
- * Partial uses the info color with its own half-filled icon: distinct from
- * correct and incorrect, and from neutral info feedback.
- */
-const VERDICT_CONFIG: Record<Verdict, { text: string; icon: IconType }> = {
-  correct: { text: 'Correct', icon: 'correct' },
-  incorrect: { text: 'Incorrect', icon: 'incorrect' },
-  partial: { text: 'Partially correct', icon: 'partial' },
-};
-
 const CORRECT_ANSWER_LABEL = 'Correct answer:';
 
 /**
- * Read the verdict core placed on an interaction element.
+ * Read the verdict core placed on the item body.
  * Returns null when absent (the response couldn't be judged) or unrecognized.
  */
 export function getVerdict(element: Element): Verdict | null {
@@ -54,16 +33,14 @@ export function getVerdict(element: Element): Verdict | null {
 }
 
 export interface InteractionEvaluation {
-  /** Verdict from data-cutie-evaluation, or null when the response couldn't be judged */
-  verdict: Verdict | null;
-  /** Correct response values (one per qti-value); empty when not provided */
+  /** Correct response values (one per qti-value) */
   correctResponse: string[];
 }
 
 /**
- * Read the evaluation core sent for an interaction: its verdict and the
- * correct response of its declaration. Returns null when there is neither
- * (the attempt isn't finished, or the delivery options hide the evaluation).
+ * Read the evaluation core sent for an interaction: the correct response of
+ * its declaration. Returns null when there is none (the attempt isn't
+ * finished, or the delivery options hide the correct response).
  * Registers the shared evaluation styles when there is something to draw.
  */
 export function readEvaluation(
@@ -71,12 +48,11 @@ export function readEvaluation(
   responseIdentifier: string,
   styleManager?: StyleManager
 ): InteractionEvaluation | null {
-  const verdict = getVerdict(element);
   const correctResponse = toValueList(getCorrectResponse(element.ownerDocument, responseIdentifier));
-  if (!verdict && correctResponse.length === 0) return null;
+  if (correctResponse.length === 0) return null;
 
   registerEvaluationStyles(styleManager);
-  return { verdict, correctResponse };
+  return { correctResponse };
 }
 
 /**
@@ -111,76 +87,9 @@ export function cloneLabel(source: Element): DocumentFragment {
  */
 export function registerEvaluationStyles(styleManager?: StyleManager): void {
   if (!styleManager) return;
-  if (!styleManager.hasStyle('cutie-feedback-icon')) {
-    styleManager.addStyle('cutie-feedback-icon', FEEDBACK_ICON_STYLES);
-  }
   if (!styleManager.hasStyle(EVALUATION_STYLE_ID)) {
     styleManager.addStyle(EVALUATION_STYLE_ID, EVALUATION_STYLES);
   }
-}
-
-/**
- * Style an interaction's control or container with the verdict color
- * (a border; the accompanying verdict mark carries the text).
- *
- * @param inline - true for inline controls (select, input): colors their own
- *   border; otherwise a leading border is drawn on the block container
- */
-export function markEvaluated(target: HTMLElement, verdict: Verdict | null, inline = false): void {
-  if (!verdict) return;
-  target.classList.add('cutie-evaluated', `cutie-evaluated--${verdict}`);
-  if (inline) target.classList.add('cutie-evaluated--inline');
-}
-
-/**
- * Remove the verdict colors markEvaluated added.
- */
-export function clearEvaluated(target: HTMLElement): void {
-  target.classList.remove(
-    'cutie-evaluated',
-    'cutie-evaluated--inline',
-    ...VERDICTS.map((verdict) => `cutie-evaluated--${verdict}`)
-  );
-}
-
-/**
- * Call `clear` the first time the learner edits the response an interaction's
- * verdict describes, so the verdict no longer shows for a response that isn't
- * there. Does nothing when there is no verdict.
- */
-export function clearVerdictOnEdit(
-  context: TransformContext,
-  responseIdentifier: string,
-  evaluation: InteractionEvaluation | null,
-  clear: () => void
-): void {
-  if (!evaluation?.verdict || !context.itemState) return;
-
-  let cleared = false;
-  context.itemState.onResponseEdit(responseIdentifier, () => {
-    if (cleared) return;
-    cleared = true;
-    clear();
-  });
-}
-
-/**
- * Create the verdict mark: an icon plus visible text ("Correct", "Incorrect",
- * "Partially correct").
- */
-export function createVerdictMark(verdict: Verdict): HTMLSpanElement {
-  const config = VERDICT_CONFIG[verdict];
-
-  const mark = document.createElement('span');
-  mark.className = `cutie-verdict cutie-verdict--${verdict}`;
-  mark.appendChild(createFeedbackIcon(config.icon, { decorative: true }));
-
-  const text = document.createElement('span');
-  text.className = 'cutie-verdict__text';
-  text.textContent = config.text;
-  mark.appendChild(text);
-
-  return mark;
 }
 
 /**
@@ -227,60 +136,34 @@ export function createIncorrectAnswerOverline(): HTMLSpanElement {
  *   response ("CORRECT ANSWER"): plain text, so it is part of the option's
  *   accessible name.
  * - With a value, it shows the correct response for the option (e.g. the word
- *   that belongs in a gap), with a visually hidden "Correct answer:" prefix for
- *   the option to reference via aria-describedby.
- * - With a verdict, the verdict's icon comes first, titled and with visually
- *   hidden verdict text: for options that are their own interaction (an inline
- *   choice, a text entry), so each carries its own verdict.
+ *   that belongs in a gap, or in an inline choice), with a visually hidden
+ *   "Correct answer:" prefix for the option to reference via aria-describedby.
  */
-export function createCorrectAnswerOverline(value?: string, verdict?: Verdict | null): HTMLSpanElement {
+export function createCorrectAnswerOverline(value?: string): HTMLSpanElement {
   const overline = document.createElement('span');
   overline.className = 'cutie-correct-answer-overline';
-  if (value === undefined && !verdict) {
+  if (value === undefined) {
     overline.textContent = 'Correct answer';
     return overline;
   }
 
   overline.classList.add('cutie-correct-answer-overline--value');
-
-  if (verdict) {
-    // The hidden text sits inside the icon, so it (not the title, a hover
-    // tooltip) is the icon's text wherever the overline is read
-    const { icon, text } = VERDICT_CONFIG[verdict];
-    const verdictIcon = createFeedbackIcon(icon, { decorative: true });
-    verdictIcon.title = text;
-    verdictIcon.appendChild(createSrText(`${text}. `));
-    overline.appendChild(verdictIcon);
-  }
-
-  if (value !== undefined) {
-    overline.append(createSrText(`${CORRECT_ANSWER_LABEL} `), value);
-  }
+  overline.append(createSrText(`${CORRECT_ANSWER_LABEL} `), value);
   return overline;
 }
 
 /**
- * Show an inline control's evaluation (a select, an input): the verdict color
- * on the control and, in the slot the control reserves above itself, an
- * overline with the verdict icon and the correct answer. The overline is
- * hidden from the accessibility tree and describes the control, so the inline
- * annotator doesn't fold it into the control's label.
+ * Show an inline control's correct answer (a select, an input) in the slot
+ * the control reserves above itself, as gap-match shows each gap's. The
+ * overline is hidden from the accessibility tree and describes the control,
+ * so the inline annotator doesn't fold it into the control's label.
  *
  * Returns the element to place where the control would go: the control
- * wrapped with its overline, or the control itself when there is nothing to
- * show. The wrapper takes the control's own box, so wrapping shifts nothing.
+ * wrapped with its overline. The wrapper takes the control's own box, so
+ * wrapping shifts nothing.
  */
-export function wrapInlineEvaluation(
-  control: HTMLElement,
-  id: string,
-  evaluation: InteractionEvaluation,
-  correctAnswerText: string | null
-): HTMLElement {
-  if (!evaluation.verdict && correctAnswerText === null) return control;
-
-  markEvaluated(control, evaluation.verdict, true);
-
-  const overline = createCorrectAnswerOverline(correctAnswerText ?? undefined, evaluation.verdict);
+export function wrapInlineEvaluation(control: HTMLElement, id: string, correctAnswerText: string): HTMLElement {
+  const overline = createCorrectAnswerOverline(correctAnswerText);
   overline.id = id;
   overline.setAttribute('aria-hidden', 'true');
   addAriaDescribedBy(control, id);
@@ -289,44 +172,6 @@ export function wrapInlineEvaluation(
   wrapper.className = 'cutie-inline-evaluation';
   wrapper.append(control, overline);
   return wrapper;
-}
-
-/**
- * Replace the verdict text shown in a constraint message with the message's
- * own text or, when it has none, remove the message and its description of
- * the interaction.
- */
-export function clearConstraintVerdict(
-  constraint: ConstraintMessage | undefined,
-  described: Element | null,
-  text: string | null
-): void {
-  if (!constraint) return;
-
-  if (text) {
-    constraint.setText(text);
-    return;
-  }
-
-  constraint.element.remove();
-  if (described) removeAriaDescribedBy(described, constraint.element.id);
-}
-
-/**
- * Remove the verdict wrapInlineEvaluation showed on a control, keeping the
- * correct answer if there is one. With nothing left to show, the overline goes too.
- */
-export function clearInlineVerdict(control: HTMLElement, id: string): void {
-  clearEvaluated(control);
-
-  const overline = Array.from(control.parentElement?.children ?? []).find((element) => element.id === id);
-  if (!overline) return;
-
-  overline.querySelector('.cutie-feedback-icon')?.remove();
-  if (!overline.textContent) {
-    overline.remove();
-    removeAriaDescribedBy(control, id);
-  }
 }
 
 /**
@@ -339,124 +184,37 @@ export function createSrText(text: string): HTMLSpanElement {
   return span;
 }
 
-/**
- * Text describing the learner's response by its verdict ("Incorrect response"),
- * for an interaction to announce with its control.
- */
-export function getVerdictText(verdict: Verdict): string {
-  return VERDICT_RESPONSE_TEXT[verdict];
-}
-
-const VERDICT_RESPONSE_TEXT: Record<Verdict, string> = {
-  correct: 'Correct response',
-  incorrect: 'Incorrect response',
-  partial: 'Partially correct response',
-};
-
-const ITEM_VERDICT_TEXT: Record<Verdict, string> = {
-  correct: 'Response is correct',
-  incorrect: 'Response is incorrect',
-  partial: 'Response is partially correct',
-};
-
-/**
- * Announce the verdict core placed on the item body for the response as a
- * whole, on renders after the first: each is a new turn (a finished attempt,
- * or a fresh try), while the first render resumes one. Interactions' own
- * verdicts are read with them instead.
- */
-export function announceItemVerdict(itemBody: Element, context: TransformContext): void {
-  const verdict = getVerdict(itemBody);
-  if (verdict && context.state?.get('isUpdate') === true) {
-    announce(context, ITEM_VERDICT_TEXT[verdict]);
-  }
-}
-
 export interface EvaluationSummaryOptions {
   /** Id for the summary, so the interaction can reference it via aria-describedby */
   id: string;
-  verdict: Verdict | null;
-  /** Correct-answer content, when the handler shows it in the summary */
-  correctAnswer?: Node | string | null;
+  /** Correct-answer content */
+  correctAnswer: Node | string | null;
 }
 
 /**
- * Create the evaluation summary for an interaction: the verdict mark followed
- * by the correct answer, when either is present. Returns null when there is
- * nothing to show.
+ * Create the evaluation summary for an interaction with no options to mark
+ * (an extended text): its correct answer. Returns null when there is none.
  */
 export function createEvaluationSummary(options: EvaluationSummaryOptions): HTMLElement | null {
-  const { id, verdict, correctAnswer } = options;
-  const hasCorrectAnswer = correctAnswer !== undefined && correctAnswer !== null;
-  if (!verdict && !hasCorrectAnswer) return null;
+  if (options.correctAnswer === null) return null;
 
   const summary = document.createElement('div');
   summary.className = 'cutie-evaluation';
-  summary.id = id;
-
-  if (verdict) summary.appendChild(createVerdictMark(verdict));
-  if (hasCorrectAnswer) summary.appendChild(createCorrectAnswer(correctAnswer));
-
+  summary.id = options.id;
+  summary.appendChild(createCorrectAnswer(options.correctAnswer));
   return summary;
 }
 
 const EVALUATION_STYLE_ID = 'cutie-evaluation';
 
 /**
- * Verdict colors come from the feedback theme variables. Verdict text stays in
- * --cutie-text: --cutie-feedback-info only promises 3:1 (non-text) contrast,
- * so verdict colors are for icons and borders. The "Correct answer" label is
- * the exception: --cutie-feedback-correct promises 4.5:1, so it can color text.
+ * The "Correct answer" label is colored text: --cutie-feedback-correct
+ * promises 4.5:1 contrast.
  */
 const EVALUATION_STYLES = `
-  .cutie-evaluated--correct,
-  .cutie-verdict--correct {
-    --cutie-verdict-color: var(--cutie-feedback-correct);
-  }
-
-  .cutie-evaluated--incorrect,
-  .cutie-verdict--incorrect {
-    --cutie-verdict-color: var(--cutie-feedback-incorrect);
-  }
-
-  .cutie-evaluated--partial,
-  .cutie-verdict--partial {
-    --cutie-verdict-color: var(--cutie-feedback-info);
-  }
-
-  .cutie-evaluated:not(.cutie-evaluated--inline) {
-    border-inline-start: var(--cutie-status-rail-width) solid var(--cutie-verdict-color);
-    padding-inline-start: var(--cutie-status-rail-gap);
-  }
-
-  /* Color only: the control keeps its own border width, so nothing shifts */
-  .cutie-evaluated.cutie-evaluated--inline {
-    border-color: var(--cutie-verdict-color);
-  }
-
   .cutie-evaluation {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5em;
     margin-top: 0.75em;
     color: var(--cutie-text);
-  }
-
-  .cutie-verdict {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3em;
-    padding: 0.15em 0.6em;
-    border: 2px solid var(--cutie-verdict-color);
-    border-radius: 999px;
-    font-weight: 600;
-    color: var(--cutie-text);
-    background-color: var(--cutie-bg);
-  }
-
-  .cutie-verdict .cutie-feedback-icon {
-    color: var(--cutie-verdict-color);
   }
 
   .cutie-correct-answer > .cutie-correct-answer-overline {
@@ -516,24 +274,7 @@ const EVALUATION_STYLES = `
     top: calc(var(--cutie-overline-clearance) / 0.875);
     left: 50%;
     transform: translateX(-50%);
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25em;
     white-space: nowrap;
-  }
-
-  /*
-   * Center the verdict icon on the overline text. The icon's inline nudge
-   * (translateY, tuned for icons sitting in running text) would push it
-   * below center here.
-   */
-  .cutie-correct-answer-overline .cutie-feedback-icon {
-    align-self: center;
-  }
-
-  .cutie-correct-answer-overline .cutie-feedback-icon__svg {
-    display: block;
-    transform: none;
   }
 
   .cutie-evaluation-sr-only {

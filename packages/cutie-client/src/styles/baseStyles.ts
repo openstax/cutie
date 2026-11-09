@@ -54,10 +54,8 @@ const BASE_STYLES = `
     --cutie-line-height: 1.5;
     /* Size of supporting text around interactions: errors, validation messages, counters */
     --cutie-supporting-text-size: 0.85em;
-    /* Width of the colored leading border that marks feedback and evaluated interactions */
+    /* Width of the colored leading border that marks feedback */
     --cutie-status-rail-width: 0.5em;
-    /* Space between an interaction's status rail and its content */
-    --cutie-status-rail-gap: 0.75em;
     /*
      * Room reserved above an answer option (a choice's text, a gap) for its
      * correct-answer overline, so showing the overline shifts nothing.
@@ -102,16 +100,6 @@ const BASE_STYLES = `
     background-color: var(--cutie-bg-alt);
   }
   
-  /*
-   * Reserves an interaction's status rail in every state (transparent until
-   * the interaction is evaluated, see .cutie-evaluated), so coloring it once
-   * an attempt is finished shifts nothing.
-   */
-  .cutie-status-rail {
-    border-inline-start: var(--cutie-status-rail-width) solid transparent;
-    padding-inline-start: var(--cutie-status-rail-gap);
-  }
-
   /*
    * QTI Vocab §1.1.3 Layout: https://www.imsglobal.org/spec/qti/v3p0/vocab
    */

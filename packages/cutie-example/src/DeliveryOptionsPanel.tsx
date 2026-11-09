@@ -66,18 +66,18 @@ export function DeliveryOptionsPanel({ options, onChange }: DeliveryOptionsPanel
         </div>
 
         <div className="option">
-          <label htmlFor="adaptive-retry-message-input">Adaptive retry message</label>
+          <label htmlFor="retry-message-input">Retry message</label>
           <input
-            id="adaptive-retry-message-input"
+            id="retry-message-input"
             type="text"
-            key={options.adaptiveRetryMessage}
-            defaultValue={options.adaptiveRetryMessage}
+            key={options.retryMessage}
+            defaultValue={options.retryMessage}
             onBlur={(e) => {
-              if (e.target.value !== options.adaptiveRetryMessage) set('adaptiveRetryMessage', e.target.value);
+              if (e.target.value !== options.retryMessage) set('retryMessage', e.target.value);
             }}
           />
           <span className="option-help">
-            Leads an adaptive item on a fresh try; {'{n}'} is the tries remaining. Applied when the field loses focus.
+            Leads the item on a fresh try; {'{n}'} is the tries remaining. Applied when the field loses focus.
           </span>
         </div>
 

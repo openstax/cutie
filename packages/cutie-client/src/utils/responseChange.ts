@@ -3,7 +3,7 @@ import type { TransformContext } from '../transformer/types.js';
 /**
  * Wrap a learner-event listener so that, when running it changes the response
  * (as read by `readResponse`), the change is reported via
- * `itemState.notifyResponseChange(responseIdentifier)`.
+ * `itemState.notifyResponseChange()`.
  *
  * Use this for interactions whose single learner gesture can apply several
  * internal mutations (e.g. moving an association = remove + create): the
@@ -14,7 +14,6 @@ import type { TransformContext } from '../transformer/types.js';
  */
 export function reportResponseChanges<E extends Event>(
   context: TransformContext,
-  responseIdentifier: string,
   readResponse: () => unknown,
   listener: (event: E) => void,
 ): (event: E) => void {
@@ -22,7 +21,7 @@ export function reportResponseChanges<E extends Event>(
     const before = JSON.stringify(readResponse());
     listener(event);
     if (JSON.stringify(readResponse()) !== before) {
-      context.itemState?.notifyResponseChange(responseIdentifier);
+      context.itemState?.notifyResponseChange();
     }
   };
 }

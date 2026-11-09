@@ -573,10 +573,9 @@ describe('hottextInteraction', () => {
         ${correct.length ? `<qti-correct-response>${correct.map((v) => `<qti-value>${v}</qti-value>`).join('')}</qti-correct-response>` : ''}
       </qti-response-declaration>`;
 
-    const renderEvaluated = (verdict: string | null, defaults: string[], correct: string[], attrs = 'max-choices="0"', cardinality = 'multiple') => {
-      const evaluationAttr = verdict ? ` data-cutie-evaluation="${verdict}"` : '';
+    const renderEvaluated = (defaults: string[], correct: string[], attrs = 'max-choices="0"', cardinality = 'multiple') => {
       const doc = createQtiDocument(
-        `<qti-hottext-interaction response-identifier="RESPONSE" ${attrs}${evaluationAttr}>${passage}</qti-hottext-interaction>`,
+        `<qti-hottext-interaction response-identifier="RESPONSE" ${attrs}>${passage}</qti-hottext-interaction>`,
         evaluatedDecl(defaults, correct, cardinality)
       );
       return render(doc, itemState);
@@ -585,23 +584,8 @@ describe('hottextInteraction', () => {
     const button = (container: HTMLElement, identifier: string) =>
       container.querySelector<HTMLElement>(`[data-hottext-identifier="${identifier}"]`)!;
 
-    it('draws the verdict as the status rail and the constraint text', () => {
-      const container = renderEvaluated('partial', ['A'], [], 'max-choices="0" min-choices="1"');
-      const group = container.querySelector('.cutie-hottext-interaction')!;
-
-      expect(group.classList.contains('cutie-evaluated--partial')).toBe(true);
-      const constraint = container.querySelector('#constraint-RESPONSE')!;
-      expect(constraint.textContent).toBe('Partially correct response');
-      expect(group.getAttribute('aria-describedby')).toContain('constraint-RESPONSE');
-    });
-
-    it('shows the verdict text without a constraint hint', () => {
-      const container = renderEvaluated('incorrect', ['A'], [], 'max-choices="1"', 'single');
-      expect(container.querySelector('#constraint-RESPONSE')!.textContent).toBe('Incorrect response');
-    });
-
     it('marks correct answers and incorrect selections, with their meaning first in the name', () => {
-      const container = renderEvaluated('partial', ['A', 'C'], ['A', 'B']);
+      const container = renderEvaluated(['A', 'C'], ['A', 'B']);
 
       expect(button(container, 'A').classList.contains('cutie-answer-mark--correct')).toBe(true);
       expect(button(container, 'B').classList.contains('cutie-answer-mark--correct')).toBe(true);
@@ -614,24 +598,16 @@ describe('hottextInteraction', () => {
     });
 
     it('keeps the response and identifiers intact with marks drawn', () => {
-      renderEvaluated('partial', ['A', 'C'], ['A', 'B']);
+      renderEvaluated(['A', 'C'], ['A', 'B']);
       expect(itemState.collectAll().responses).toEqual({ RESPONSE: ['A', 'C'] });
     });
 
     it('draws no marks without a correct response', () => {
-      const container = renderEvaluated('incorrect', ['C'], []);
+      const container = renderEvaluated(['C'], []);
       expect(container.querySelector('.cutie-answer-mark')).toBeNull();
       expect(container.querySelector('.cutie-hottext-interaction--answers-shown')).toBeNull();
     });
 
-    it('draws nothing without an evaluation', () => {
-      const container = renderEvaluated(null, ['C'], []);
-      expect(container.querySelector('.cutie-evaluated')).toBeNull();
-      expect(container.querySelector('.cutie-answer-mark')).toBeNull();
-      expect(container.querySelector('#constraint-RESPONSE')).toBeNull();
-      // The rail is reserved regardless, so evaluation shifts nothing
-      expect(container.querySelector('.cutie-hottext-interaction')!.classList.contains('cutie-status-rail')).toBe(true);
-    });
   });
 
   describe('enabled state', () => {

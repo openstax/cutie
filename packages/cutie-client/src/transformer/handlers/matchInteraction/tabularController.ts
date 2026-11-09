@@ -77,7 +77,7 @@ export class TabularMatchController implements MatchView {
     });
 
     input.addEventListener('change', reportResponseChanges(
-      this.context, this.responseIdentifier, () => this.getResponse(), () => {
+      this.context, () => this.getResponse(), () => {
         if (input.checked) {
           this.choose(sourceId, targetId);
         } else {

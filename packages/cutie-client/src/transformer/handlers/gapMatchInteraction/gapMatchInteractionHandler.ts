@@ -7,16 +7,7 @@ import { addAriaDescribedBy } from '../../../utils/aria.js';
 import { announce } from '../../../utils/liveRegion.js';
 import type { ElementHandler, InteractionState, TransformContext } from '../../types.js';
 import { parseChoicesContainerWidth } from '../../vocabUtils.js';
-import {
-  clearConstraintVerdict,
-  clearEvaluated,
-  clearVerdictOnEdit,
-  createCorrectAnswerOverline,
-  getVerdictText,
-  markEvaluated,
-  parseDirectedPair,
-  readEvaluation,
-} from '../evaluation/index.js';
+import { createCorrectAnswerOverline, parseDirectedPair, readEvaluation } from '../evaluation/index.js';
 import { getDefaultValue } from '../responseUtils.js';
 import { GapMatchController } from './controller.js';
 import { GAP_MATCH_INTERACTION_STYLES } from './styles.js';
@@ -70,8 +61,8 @@ export class GapMatchInteractionHandler implements ElementHandler {
     const container = document.createElement('div');
     const sourceClasses = element.getAttribute('class');
     container.className = sourceClasses
-      ? `cutie-gap-match-interaction cutie-status-rail ${sourceClasses}`
-      : 'cutie-gap-match-interaction cutie-status-rail';
+      ? `cutie-gap-match-interaction ${sourceClasses}`
+      : 'cutie-gap-match-interaction';
     container.setAttribute('data-response-identifier', responseIdentifier);
     container.setAttribute('role', 'group');
 
@@ -196,17 +187,12 @@ export class GapMatchInteractionHandler implements ElementHandler {
     const minAssociations = parseInt(element.getAttribute('min-associations') ?? '0', 10) || 0;
     const maxAssociations = parseInt(element.getAttribute('max-associations') ?? '0', 10) || 0;
 
-    // Evaluation of a finished attempt when the delivery options show one,
-    // or the last try's verdict on a fresh try
+    // The correct response of a finished attempt, when the delivery options show it
     const evaluation = readEvaluation(element, responseIdentifier, context.styleManager);
 
-    // Add constraint message if min-associations > 0. A finished attempt with
-    // a verdict describes the response in its place, so it is announced with
-    // the group; the status rail is the visual verdict.
+    // Add constraint message if min-associations > 0
     let constraint: ConstraintMessage | undefined;
-    const verdict = evaluation?.verdict ?? null;
-    const associationText = buildGapMatchConstraintText(minAssociations, maxAssociations);
-    let constraintText = verdict ? getVerdictText(verdict) : associationText;
+    const constraintText = buildGapMatchConstraintText(minAssociations, maxAssociations);
     if (constraintText) {
       constraint = createConstraintMessage(
         `constraint-${responseIdentifier}`,
@@ -259,9 +245,8 @@ export class GapMatchInteractionHandler implements ElementHandler {
       controller.initializeFromDefaults(defaults);
     }
 
-    // Draw the evaluation: the status rail, and above each gap, in the slot
-    // every gap reserves for it, the choice that belongs there (described by
-    // the gap). The verdict is in the constraint text.
+    // Draw the evaluation: above each gap, in the slot every gap reserves for
+    // it, the choice that belongs there (described by the gap)
     if (evaluation) {
       const correctByGap = new Map<string, string[]>();
       for (const pair of evaluation.correctResponse.map(parseDirectedPair)) {
@@ -282,13 +267,7 @@ export class GapMatchInteractionHandler implements ElementHandler {
         gapElement.appendChild(overline);
         addAriaDescribedBy(gapElement, overline.id);
       }
-      markEvaluated(container, evaluation.verdict);
     }
-    clearVerdictOnEdit(context, responseIdentifier, evaluation, () => {
-      clearEvaluated(container);
-      clearConstraintVerdict(constraint, container, associationText);
-      constraintText = associationText;
-    });
 
     // Size gaps to their widest acceptable choice once they are in the
     // document, and again when web fonts have loaded and changed the text width
