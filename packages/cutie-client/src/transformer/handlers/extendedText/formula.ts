@@ -2,7 +2,7 @@ import { createMissingAttributeError } from '../../../errors/errorDisplay.js';
 import { addAriaDescribedBy } from '../../../utils/aria.js';
 import { registry } from '../../registry.js';
 import type { ElementHandler, TransformContext } from '../../types.js';
-import { createEvaluationSummary, readEvaluation } from '../evaluation/index.js';
+import { createCorrectAnswerSummary, readCorrectResponse } from '../evaluation/index.js';
 import { getDefaultValue } from '../responseUtils.js';
 import { loadMathLive } from './mathFieldLoader.js';
 import {
@@ -88,7 +88,7 @@ class FormulaInteractionHandler implements ElementHandler {
     container.appendChild(mathFieldWrapper);
 
     // The correct response of a finished attempt, when the delivery options show it
-    const evaluation = readEvaluation(element, responseIdentifier, context.styleManager);
+    const correctResponse = readCorrectResponse(element, responseIdentifier, context.styleManager);
 
     // Parse constraints and create constraint elements
     const constraints = parseConstraints(element);
@@ -104,16 +104,16 @@ class FormulaInteractionHandler implements ElementHandler {
     // <math-span>, which renders it once MathLive loads (and shows the raw
     // LaTeX otherwise). The math-field is created asynchronously, so it is
     // linked via aria-describedby on load.
-    let evaluationSummary: HTMLElement | null = null;
-    if (evaluation) {
+    let correctAnswerSummary: HTMLElement | null = null;
+    if (correctResponse) {
       const correctAnswer = document.createElement('math-span');
       correctAnswer.className = 'cutie-formula-correct-answer';
-      correctAnswer.textContent = evaluation.correctResponse.join(', ');
-      evaluationSummary = createEvaluationSummary({
-        id: `evaluation-${responseIdentifier}`,
+      correctAnswer.textContent = correctResponse.join(', ');
+      correctAnswerSummary = createCorrectAnswerSummary({
+        id: `correct-answer-${responseIdentifier}`,
         correctAnswer,
       });
-      if (evaluationSummary) container.appendChild(evaluationSummary);
+      if (correctAnswerSummary) container.appendChild(correctAnswerSummary);
     }
 
     fragment.appendChild(container);
@@ -147,8 +147,8 @@ class FormulaInteractionHandler implements ElementHandler {
     if (constraintResult) {
       wireConstraintDescribedBy(readOnlyResponse, constraintResult.constraint.element);
     }
-    if (evaluationSummary) {
-      addAriaDescribedBy(readOnlyResponse, evaluationSummary.id);
+    if (correctAnswerSummary) {
+      addAriaDescribedBy(readOnlyResponse, correctAnswerSummary.id);
     }
 
     // Track active input element for aria-describedby/aria-invalid
@@ -238,8 +238,8 @@ class FormulaInteractionHandler implements ElementHandler {
         if (constraintResult) {
           wireConstraintDescribedBy(mathField, constraintResult.constraint.element);
         }
-        if (evaluationSummary) {
-          addAriaDescribedBy(mathField, evaluationSummary.id);
+        if (correctAnswerSummary) {
+          addAriaDescribedBy(mathField, correctAnswerSummary.id);
         }
 
         mathFieldWrapper.appendChild(mathField);

@@ -571,7 +571,7 @@ describe('inlineChoiceInteraction evaluation', () => {
   it('renders nothing when there is no correct response', () => {
     const container = render('', '<qti-default-value><qti-value>LYON</qti-value></qti-default-value>');
     expect(container.querySelector('.cutie-correct-answer-overline')).toBeNull();
-    expect(container.querySelector('.cutie-inline-evaluation')).toBeNull();
+    expect(container.querySelector('.cutie-inline-correct-answer')).toBeNull();
   });
 
   it('shows the correct choice above the select by its displayed text, describing it', () => {
@@ -581,7 +581,7 @@ describe('inlineChoiceInteraction evaluation', () => {
        <qti-correct-response><qti-value>PARIS</qti-value></qti-correct-response>`,
     );
     const select = container.querySelector('select')!;
-    expect(select.parentElement!.classList.contains('cutie-inline-evaluation')).toBe(true);
+    expect(select.parentElement!.classList.contains('cutie-inline-correct-answer')).toBe(true);
     const overline = container.querySelector('.cutie-correct-answer-overline')!;
     expect(overline.getAttribute('aria-hidden')).toBe('true');
     expect(select.getAttribute('aria-describedby')).toContain(overline.id);

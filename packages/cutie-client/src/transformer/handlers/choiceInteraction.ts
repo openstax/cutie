@@ -11,7 +11,7 @@ import { announce } from '../../utils/liveRegion.js';
 import { initializeRovingTabindex, updateRovingTabindex } from '../../utils/rovingTabindex.js';
 import { registry } from '../registry.js';
 import type { ElementHandler, InteractionState, ResponseAccessorOptions, TransformContext } from '../types.js';
-import { createCorrectAnswerOverline, createIncorrectAnswerOverline, readEvaluation } from './evaluation/index.js';
+import { createCorrectAnswerOverline, createIncorrectAnswerOverline, readCorrectResponse } from './evaluation/index.js';
 import { getDefaultValue } from './responseUtils.js';
 
 /**
@@ -236,7 +236,7 @@ class ChoiceInteractionHandler implements ElementHandler {
     container.appendChild(choicesContainer);
 
     // The correct response of a finished attempt, when the delivery options show it
-    const evaluation = readEvaluation(element, responseIdentifier, context.styleManager);
+    const correctResponse = readCorrectResponse(element, responseIdentifier, context.styleManager);
 
     // Add constraint text if applicable
     let constraint: NoticeConstraintMessage | undefined;
@@ -272,14 +272,14 @@ class ChoiceInteractionHandler implements ElementHandler {
       }
     }
 
-    // Draw the evaluation: a "correct answer" overline on
+    // Draw the correct answer: a "correct answer" overline on
     // each correct choice, and an "incorrect answer" overline on each selected
     // choice that isn't correct, on its own line above the choice text (first
     // in the choice's content, so its name reads "Correct answer <choice>").
-    if (evaluation) {
+    if (correctResponse) {
       for (const input of inputElements) {
         const content = input.parentElement?.querySelector('.cutie-simple-choice-content');
-        if (evaluation.correctResponse.includes(input.value)) {
+        if (correctResponse.includes(input.value)) {
           content?.prepend(createCorrectAnswerOverline());
         } else if (input.checked) {
           content?.prepend(createIncorrectAnswerOverline());

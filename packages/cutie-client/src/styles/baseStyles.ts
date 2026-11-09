@@ -55,7 +55,7 @@ const BASE_STYLES = `
     /* Size of supporting text around interactions: errors, validation messages, counters */
     --cutie-supporting-text-size: 0.85em;
     /* Width of the colored leading border that marks feedback */
-    --cutie-status-rail-width: 0.5em;
+    --cutie-feedback-rail-width: 0.5em;
     /*
      * Room reserved above an answer option (a choice's text, a gap) for its
      * correct-answer overline, so showing the overline shifts nothing.

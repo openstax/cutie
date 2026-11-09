@@ -654,7 +654,7 @@ describe('textEntryInteraction evaluation', () => {
   it('renders nothing when there is no correct response', () => {
     const container = render('', '<qti-default-value><qti-value>york</qti-value></qti-default-value>');
     expect(container.querySelector('.cutie-correct-answer-overline')).toBeNull();
-    expect(container.querySelector('.cutie-inline-evaluation')).toBeNull();
+    expect(container.querySelector('.cutie-inline-correct-answer')).toBeNull();
   });
 
   it('shows the correct answer above the input, describing it', () => {
@@ -665,7 +665,7 @@ describe('textEntryInteraction evaluation', () => {
     );
     const input = container.querySelector('input')!;
     const wrapper = input.parentElement!;
-    expect(wrapper.classList.contains('cutie-inline-evaluation')).toBe(true);
+    expect(wrapper.classList.contains('cutie-inline-correct-answer')).toBe(true);
 
     const overline = wrapper.querySelector('.cutie-correct-answer-overline')!;
     // Visible: the value; hidden text completes the description. Nothing says

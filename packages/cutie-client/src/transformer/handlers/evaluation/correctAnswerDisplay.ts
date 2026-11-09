@@ -1,58 +1,39 @@
 /**
- * Evaluation display: draws the evaluation cutie-core adds to the template
- * once an attempt is finished (see the showEvaluation delivery option).
+ * Correct-answer display: draws each interaction's correct response, which
+ * cutie-core adds to the template once an attempt is finished under the
+ * `'correctResponse'` level of the showEvaluation delivery option.
  *
  * Nothing about correctness is computed here — the client only renders what
- * core sent:
- * - the verdict, a `data-cutie-evaluation` attribute on the item body, judging
- *   the item as a whole (drawn by the item, see createItemVerdict)
- * - the correct response, a `qti-correct-response` in the response declaration
+ * core sent: a `qti-correct-response` in the response declaration. This is
+ * apart from the verdict on the item as a whole (see itemVerdict.ts):
+ * interactions that mark options may mark the selected options that aren't in
+ * the correct response, but none states a verdict of its own.
  *
- * Handlers read the correct response with `readEvaluation`, build the marks
- * with these helpers, and decide where to place them. Interactions carry no
- * verdict of their own: response processing can combine responses, so a
- * response judged on its own can mislead.
+ * Handlers read the correct response with `readCorrectResponse`, build the
+ * marks with these helpers, and decide where to place them.
  */
 import { addAriaDescribedBy } from '../../../utils/aria.js';
 import type { StyleManager } from '../../types.js';
 import { getCorrectResponse, toValueList } from '../responseUtils.js';
 
-const VERDICTS = ['correct', 'incorrect', 'partial'] as const;
-
-export type Verdict = (typeof VERDICTS)[number];
-
 const CORRECT_ANSWER_LABEL = 'Correct answer:';
 
 /**
- * Read the verdict core placed on the item body.
- * Returns null when absent (the response couldn't be judged) or unrecognized.
+ * Read the correct response core sent for an interaction's declaration (one
+ * value per qti-value), or null when there is none (the attempt isn't
+ * finished, or the delivery options hide it). Registers the shared
+ * correct-answer styles when there is something to draw.
  */
-export function getVerdict(element: Element): Verdict | null {
-  const value = element.getAttribute('data-cutie-evaluation');
-  return VERDICTS.includes(value as Verdict) ? (value as Verdict) : null;
-}
-
-export interface InteractionEvaluation {
-  /** Correct response values (one per qti-value) */
-  correctResponse: string[];
-}
-
-/**
- * Read the evaluation core sent for an interaction: the correct response of
- * its declaration. Returns null when there is none (the attempt isn't
- * finished, or the delivery options hide the correct response).
- * Registers the shared evaluation styles when there is something to draw.
- */
-export function readEvaluation(
+export function readCorrectResponse(
   element: Element,
   responseIdentifier: string,
   styleManager?: StyleManager
-): InteractionEvaluation | null {
+): string[] | null {
   const correctResponse = toValueList(getCorrectResponse(element.ownerDocument, responseIdentifier));
   if (correctResponse.length === 0) return null;
 
-  registerEvaluationStyles(styleManager);
-  return { correctResponse };
+  registerCorrectAnswerStyles(styleManager);
+  return correctResponse;
 }
 
 /**
@@ -83,12 +64,12 @@ export function cloneLabel(source: Element): DocumentFragment {
 }
 
 /**
- * Register the shared evaluation styles (idempotent).
+ * Register the shared correct-answer styles (idempotent).
  */
-export function registerEvaluationStyles(styleManager?: StyleManager): void {
+export function registerCorrectAnswerStyles(styleManager?: StyleManager): void {
   if (!styleManager) return;
-  if (!styleManager.hasStyle(EVALUATION_STYLE_ID)) {
-    styleManager.addStyle(EVALUATION_STYLE_ID, EVALUATION_STYLES);
+  if (!styleManager.hasStyle(CORRECT_ANSWER_STYLE_ID)) {
+    styleManager.addStyle(CORRECT_ANSWER_STYLE_ID, EVALUATION_STYLES);
   }
 }
 
@@ -162,14 +143,14 @@ export function createCorrectAnswerOverline(value?: string): HTMLSpanElement {
  * wrapped with its overline. The wrapper takes the control's own box, so
  * wrapping shifts nothing.
  */
-export function wrapInlineEvaluation(control: HTMLElement, id: string, correctAnswerText: string): HTMLElement {
+export function wrapInlineCorrectAnswer(control: HTMLElement, id: string, correctAnswerText: string): HTMLElement {
   const overline = createCorrectAnswerOverline(correctAnswerText);
   overline.id = id;
   overline.setAttribute('aria-hidden', 'true');
   addAriaDescribedBy(control, id);
 
   const wrapper = document.createElement('span');
-  wrapper.className = 'cutie-inline-evaluation';
+  wrapper.className = 'cutie-inline-correct-answer';
   wrapper.append(control, overline);
   return wrapper;
 }
@@ -179,12 +160,12 @@ export function wrapInlineEvaluation(control: HTMLElement, id: string, correctAn
  */
 export function createSrText(text: string): HTMLSpanElement {
   const span = document.createElement('span');
-  span.className = 'cutie-evaluation-sr-only';
+  span.className = 'cutie-correct-answer-sr-only';
   span.textContent = text;
   return span;
 }
 
-export interface EvaluationSummaryOptions {
+export interface CorrectAnswerSummaryOptions {
   /** Id for the summary, so the interaction can reference it via aria-describedby */
   id: string;
   /** Correct-answer content */
@@ -192,27 +173,27 @@ export interface EvaluationSummaryOptions {
 }
 
 /**
- * Create the evaluation summary for an interaction with no options to mark
+ * Create the correct-answer summary for an interaction with no options to mark
  * (an extended text): its correct answer. Returns null when there is none.
  */
-export function createEvaluationSummary(options: EvaluationSummaryOptions): HTMLElement | null {
+export function createCorrectAnswerSummary(options: CorrectAnswerSummaryOptions): HTMLElement | null {
   if (options.correctAnswer === null) return null;
 
   const summary = document.createElement('div');
-  summary.className = 'cutie-evaluation';
+  summary.className = 'cutie-correct-answer-summary';
   summary.id = options.id;
   summary.appendChild(createCorrectAnswer(options.correctAnswer));
   return summary;
 }
 
-const EVALUATION_STYLE_ID = 'cutie-evaluation';
+const CORRECT_ANSWER_STYLE_ID = 'cutie-correct-answer-display';
 
 /**
  * The "Correct answer" label is colored text: --cutie-feedback-correct
  * promises 4.5:1 contrast.
  */
 const EVALUATION_STYLES = `
-  .cutie-evaluation {
+  .cutie-correct-answer-summary {
     margin-top: 0.75em;
     color: var(--cutie-text);
   }
@@ -256,11 +237,11 @@ const EVALUATION_STYLES = `
   }
 
   /*
-   * An inline control with its evaluation. The control reserves the overline
+   * An inline control with its correct answer. The control reserves the overline
    * slot as its top margin, so the overline sits in that margin, below the clearance,
    * centered over the control.
    */
-  .cutie-inline-evaluation {
+  .cutie-inline-correct-answer {
     position: relative;
     display: inline-block;
   }
@@ -269,7 +250,7 @@ const EVALUATION_STYLES = `
    * The clearance resolves in the overline's own (0.875em) font size, so it
    * is scaled back to the control's em
    */
-  .cutie-inline-evaluation > .cutie-correct-answer-overline {
+  .cutie-inline-correct-answer > .cutie-correct-answer-overline {
     position: absolute;
     top: calc(var(--cutie-overline-clearance) / 0.875);
     left: 50%;
@@ -277,7 +258,7 @@ const EVALUATION_STYLES = `
     white-space: nowrap;
   }
 
-  .cutie-evaluation-sr-only {
+  .cutie-correct-answer-sr-only {
     position: absolute;
     width: 1px;
     height: 1px;

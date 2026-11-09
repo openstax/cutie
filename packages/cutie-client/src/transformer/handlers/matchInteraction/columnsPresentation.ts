@@ -214,7 +214,7 @@ function drawKey(
     });
 
     const answer = createCorrectAnswer(content);
-    answer.id = `evaluation-${responseIdentifier}-${targetId}`;
+    answer.id = `correct-answer-${responseIdentifier}-${targetId}`;
     // Inside the slots' grid row: the column's subgrid has no row of its own for it
     slots.append(answer);
     controller.describeTarget(targetId, answer.id);

@@ -18,7 +18,7 @@ const stimulus = `<?xml version="1.0" encoding="UTF-8"?>
     <div class="qti-shared-stimulus-wrapper">
       <img src="images/door.png" alt="A door"/>
       <p data-cutie-evaluation="correct">It was an unbelievable night.</p>
-      <div data-cutie-retry="incorrect">Spoofed</div>
+      <p data-cutie-retry-message="Spoofed">It was very dark.</p>
     </div>
   </qti-stimulus-body>
 </qti-assessment-stimulus>`;

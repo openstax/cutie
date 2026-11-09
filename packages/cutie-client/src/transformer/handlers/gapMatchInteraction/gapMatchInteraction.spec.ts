@@ -590,7 +590,7 @@ describe('gapMatchInteraction evaluation', () => {
     for (const [gap, label] of [[gaps[0]!, 'Choice 2'], [gaps[1]!, 'Choice 1']] as const) {
       const overline = gap.querySelector('.cutie-correct-answer-overline--value')!;
       // Visible value, with a hidden prefix for the description
-      expect(overline.querySelector('.cutie-evaluation-sr-only')!.textContent).toBe('Correct answer: ');
+      expect(overline.querySelector('.cutie-correct-answer-sr-only')!.textContent).toBe('Correct answer: ');
       expect(overline.textContent).toBe(`Correct answer: ${label}`);
       expect(gap.getAttribute('aria-describedby')).toContain(overline.id);
     }

@@ -47,9 +47,12 @@ function defaultValueOf(template: string, responseIdentifier: string): string[] 
 }
 
 function retryMessageOf(template: string): { verdict: string; text: string } | null {
-  const doc = parseTemplate(template);
-  const message = Array.from(doc.getElementsByTagName('div')).find((el) => el.hasAttribute('data-cutie-retry'));
-  return message ? { verdict: message.getAttribute('data-cutie-retry') ?? '', text: message.textContent ?? '' } : null;
+  const itemBody = parseTemplate(template).getElementsByTagName('qti-item-body')[0];
+  if (!itemBody?.hasAttribute('data-cutie-retry-message')) return null;
+  return {
+    verdict: itemBody.getAttribute('data-cutie-evaluation') ?? '',
+    text: itemBody.getAttribute('data-cutie-retry-message') ?? '',
+  };
 }
 
 async function expectResumable(result: AttemptResult, itemXml: string): Promise<void> {
@@ -268,12 +271,12 @@ describe('tries', () => {
       // The last try's score stands until the next try ends
       expect(result.state.score?.raw).toBe(0);
 
-      // Feedback waits; the response stays, and the retry message carries
-      // the verdict for the item as a whole, not for the interaction
+      // Feedback waits; the response stays, and the item carries the verdict
+      // for the item as a whole, with the retry message, not the interaction
       expect(feedbackIdentifiers(result.template)).toEqual([]);
       expect(defaultValueOf(result.template, 'RESPONSE')).toEqual(['B']);
       expect(evaluationOf(result.template, 'RESPONSE')).toBeNull();
-      expect(itemVerdictOf(result.template)).toBeNull();
+      expect(itemVerdictOf(result.template)).toBe('incorrect');
       expect(retryMessageOf(result.template)).toEqual({
         verdict: 'incorrect',
         text: 'That wasn\'t quite right. Tries remaining: 1',
@@ -402,7 +405,7 @@ describe('tries', () => {
       expect(feedbackIdentifiers(result.template)).toEqual([]);
       expect(defaultValueOf(result.template, 'RESPONSE')).toEqual([]);
       expect(evaluationOf(result.template, 'RESPONSE')).toBeNull();
-      expect(itemVerdictOf(result.template)).toBeNull();
+      expect(itemVerdictOf(result.template)).toBe('partial');
       expect(retryMessageOf(result.template)).toEqual({
         verdict: 'partial',
         text: 'That wasn\'t quite right. Tries remaining: 1',
@@ -500,7 +503,7 @@ describe('tries', () => {
   describe('reserved markup', () => {
     test('authored verdicts and retry messages never reach the client', async () => {
       const item = choiceItem
-        .replace('<qti-item-body>', '<qti-item-body data-cutie-evaluation="correct"><div data-cutie-retry="incorrect">Fake</div>')
+        .replace('<qti-item-body>', '<qti-item-body data-cutie-evaluation="correct" data-cutie-retry-message="Fake">')
         .replace('<qti-choice-interaction response-identifier="RESPONSE"', '<qti-choice-interaction data-cutie-evaluation="correct" response-identifier="RESPONSE"');
       const { template } = await beginAttempt(item);
 

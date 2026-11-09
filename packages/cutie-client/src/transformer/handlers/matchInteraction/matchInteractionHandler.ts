@@ -5,7 +5,7 @@ import {
 } from '../../../errors/validationDisplay.js';
 import { announce } from '../../../utils/liveRegion.js';
 import type { ElementHandler, InteractionState, TransformContext } from '../../types.js';
-import { parseDirectedPair, readEvaluation } from '../evaluation/index.js';
+import { parseDirectedPair, readCorrectResponse } from '../evaluation/index.js';
 import { getDefaultValue } from '../responseUtils.js';
 import { type MatchChoice, readMatchSet, warnDuplicateIdentifiers } from './choices.js';
 import { createColumns } from './columnsPresentation.js';
@@ -151,7 +151,7 @@ export class MatchInteractionHandler implements ElementHandler {
     const { controller } = presentation;
 
     // The correct response of a finished attempt, when the delivery options show it
-    const evaluation = readEvaluation(element, responseIdentifier, context.styleManager);
+    const correctResponse = readCorrectResponse(element, responseIdentifier, context.styleManager);
 
     // Add constraint message for min-associations and match-min
     let constraint: ConstraintMessage | undefined;
@@ -186,9 +186,9 @@ export class MatchInteractionHandler implements ElementHandler {
       controller.initializeFromDefaults(defaults);
     }
 
-    // Draw the evaluation: the correct answer
-    if (evaluation) {
-      const pairs = evaluation.correctResponse
+    // Draw the correct answer
+    if (correctResponse) {
+      const pairs = correctResponse
         .map(parseDirectedPair)
         .filter((pair): pair is DirectedPair => pair !== null);
       presentation.drawKey(pairs);

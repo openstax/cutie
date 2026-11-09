@@ -160,7 +160,7 @@ function drawKey(table: HTMLTableElement, pairs: DirectedPair[], responseIdentif
     }
     if (!overline) return;
 
-    overline.id = `evaluation-${responseIdentifier}-cell-${index}`;
+    overline.id = `correct-answer-${responseIdentifier}-cell-${index}`;
     overline.setAttribute('aria-hidden', 'true');
     slot.appendChild(overline);
     prependAriaLabelledBy(input, overline.id);

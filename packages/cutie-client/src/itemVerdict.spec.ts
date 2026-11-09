@@ -1,6 +1,7 @@
 /* spell-checker: ignore hottext */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type MountedItem, mountItem } from './mountItem.js';
+import { getVerdict } from './transformer/handlers/evaluation/index.js';
 import { announce } from './utils/liveRegion.js';
 
 vi.mock('./utils/liveRegion.js', async (importOriginal) => {
@@ -28,6 +29,21 @@ function q<T extends HTMLElement = HTMLElement>(root: HTMLElement, selector: str
   if (!el) throw new Error(`No element matches ${selector}`);
   return el;
 }
+
+describe('getVerdict', () => {
+  it.each(['correct', 'incorrect', 'partial'])('reads data-cutie-evaluation="%s"', (value) => {
+    const el = document.createElement('qti-item-body');
+    el.setAttribute('data-cutie-evaluation', value);
+    expect(getVerdict(el)).toBe(value);
+  });
+
+  it('returns null when absent or unrecognized', () => {
+    const el = document.createElement('qti-item-body');
+    expect(getVerdict(el)).toBeNull();
+    el.setAttribute('data-cutie-evaluation', 'bogus');
+    expect(getVerdict(el)).toBeNull();
+  });
+});
 
 describe('verdicts on the item as a whole', () => {
   let container: HTMLElement;
@@ -62,11 +78,13 @@ describe('verdicts on the item as a whole', () => {
       ['partial', 'info', 'Partially correct'],
     ])('leads the item as a feedback block when %s', (verdict, feedbackType, text) => {
       mount(verdictXml(verdict));
-      const block = q(container, '.cutie-verdict-block');
+      const block = q(container, '.cutie-item-verdict');
 
       expect(container.firstElementChild).toBe(block);
       expect(block.dataset.feedbackType).toBe(feedbackType);
       expect(block.querySelector(`.cutie-feedback-icon--${verdict}`)).not.toBeNull();
+      // The text states the verdict, so the icon has no label of its own
+      expect(block.querySelector('.cutie-feedback-sr-text')).toBeNull();
       expect(block.textContent).toBe(text);
     });
 
@@ -83,45 +101,51 @@ describe('verdicts on the item as a whole', () => {
       const xml = verdictXml('incorrect').replace('<qti-item-body data-cutie-evaluation="incorrect">', '<qti-item-body>');
       const item = mount(xml);
       item.update(xml);
-      expect(container.querySelector('.cutie-verdict-block')).toBeNull();
+      expect(container.querySelector('.cutie-item-verdict')).toBeNull();
       expect(announce).not.toHaveBeenCalled();
     });
   });
 
   describe('the retry message of a fresh try', () => {
-    const RETRY_XML = itemXml(
+    const retryXml = (verdict: string) => itemXml(
       '<qti-response-declaration identifier="R1" cardinality="single" base-type="identifier"/>',
-      `<div data-cutie-retry="incorrect">That wasn't quite right. Tries remaining: 2</div>
-      <qti-choice-interaction response-identifier="R1" max-choices="1">
+      `<qti-choice-interaction response-identifier="R1" max-choices="1">
         <qti-simple-choice identifier="A">A</qti-simple-choice>
       </qti-choice-interaction>`,
+    ).replace(
+      '<qti-item-body>',
+      `<qti-item-body data-cutie-evaluation="${verdict}" data-cutie-retry-message="That wasn't quite right. Tries remaining: 2">`,
     );
 
-    it('is drawn as a verdict block', () => {
-      mount(RETRY_XML);
-      const message = q(container, '.cutie-retry-message');
+    it('leads the item in place of the verdict text, with the verdict as the icon\'s label', () => {
+      mount(retryXml('incorrect'));
+      const block = q(container, '.cutie-item-verdict');
 
-      expect(message.classList.contains('cutie-verdict-block')).toBe(true);
-      expect(message.dataset.feedbackType).toBe('incorrect');
-      expect(message.querySelector('.cutie-feedback-icon--incorrect')).not.toBeNull();
-      expect(message.textContent).toBe('That wasn\'t quite right. Tries remaining: 2');
-      expect(container.querySelector('[data-cutie-retry]')).toBeNull();
+      expect(container.firstElementChild).toBe(block);
+      expect(block.dataset.feedbackType).toBe('incorrect');
+      expect(block.querySelector('.cutie-feedback-icon--incorrect .cutie-feedback-sr-text')!.textContent).toBe('Incorrect:');
+      expect(block.querySelector('p')!.textContent).toBe('That wasn\'t quite right. Tries remaining: 2');
     });
 
-    it('uses the partial icon for a partially correct try', () => {
-      mount(RETRY_XML.replace('data-cutie-retry="incorrect"', 'data-cutie-retry="partial"'));
-      const message = q(container, '.cutie-retry-message');
+    it('tells a partially correct try apart by more than its icon', () => {
+      mount(retryXml('partial'));
+      const block = q(container, '.cutie-item-verdict');
 
-      expect(message.dataset.feedbackType).toBe('info');
-      expect(message.querySelector('.cutie-feedback-icon--partial')).not.toBeNull();
+      expect(block.dataset.feedbackType).toBe('info');
+      expect(block.querySelector('.cutie-feedback-icon--partial .cutie-feedback-sr-text')!.textContent)
+        .toBe('Partially correct:');
     });
 
-    it('is announced when it arrives, not when the attempt is resumed', () => {
-      const item = mount(RETRY_XML);
+    it('is announced with its verdict when it arrives, not when the attempt is resumed', () => {
+      const item = mount(retryXml('partial'));
       expect(announce).not.toHaveBeenCalled();
 
-      item.update(RETRY_XML);
-      expect(announce).toHaveBeenCalledWith(expect.anything(), 'That wasn\'t quite right. Tries remaining: 2');
+      item.update(retryXml('partial'));
+      expect(announce).toHaveBeenCalledTimes(1);
+      expect(announce).toHaveBeenCalledWith(
+        expect.anything(),
+        'Partially correct: That wasn\'t quite right. Tries remaining: 2',
+      );
     });
   });
 });

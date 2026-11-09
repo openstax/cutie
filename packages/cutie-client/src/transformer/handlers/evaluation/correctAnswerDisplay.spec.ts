@@ -4,33 +4,17 @@ import {
   cloneLabel,
   createCorrectAnswer,
   createCorrectAnswerOverline,
-  createEvaluationSummary,
-  getVerdict,
+  createCorrectAnswerSummary,
   parseDirectedPair,
-  readEvaluation,
-  wrapInlineEvaluation,
-} from './evaluationDisplay.js';
+  readCorrectResponse,
+  wrapInlineCorrectAnswer,
+} from './correctAnswerDisplay.js';
 
 function parse(html: string): Document {
   return new DOMParser().parseFromString(`<html><body>${html}</body></html>`, 'text/html');
 }
 
-describe('getVerdict', () => {
-  it.each(['correct', 'incorrect', 'partial'])('reads data-cutie-evaluation="%s"', (value) => {
-    const el = document.createElement('qti-item-body');
-    el.setAttribute('data-cutie-evaluation', value);
-    expect(getVerdict(el)).toBe(value);
-  });
-
-  it('returns null when absent or unrecognized', () => {
-    const el = document.createElement('qti-item-body');
-    expect(getVerdict(el)).toBeNull();
-    el.setAttribute('data-cutie-evaluation', 'bogus');
-    expect(getVerdict(el)).toBeNull();
-  });
-});
-
-describe('readEvaluation', () => {
+describe('readCorrectResponse', () => {
   it('returns null when no correct response is present', () => {
     const doc = parse(`
       <qti-response-declaration identifier="R1" cardinality="single" base-type="identifier">
@@ -39,7 +23,7 @@ describe('readEvaluation', () => {
       <qti-choice-interaction response-identifier="R1"></qti-choice-interaction>
     `);
     const el = doc.querySelector('qti-choice-interaction')!;
-    expect(readEvaluation(el, 'R1')).toBeNull();
+    expect(readCorrectResponse(el, 'R1')).toBeNull();
   });
 
   it('reads the correct response without confusing it with the default value', () => {
@@ -51,7 +35,7 @@ describe('readEvaluation', () => {
       <qti-choice-interaction response-identifier="R1"></qti-choice-interaction>
     `);
     const el = doc.querySelector('qti-choice-interaction')!;
-    expect(readEvaluation(el, 'R1')).toEqual({ correctResponse: ['A', 'C'] });
+    expect(readCorrectResponse(el, 'R1')).toEqual(['A', 'C']);
   });
 
   it('registers shared styles only when there is something to draw', () => {
@@ -61,13 +45,13 @@ describe('readEvaluation', () => {
     const styleManager = new DefaultStyleManager();
 
     const without = parse(declaration('')).querySelector('qti-choice-interaction')!;
-    readEvaluation(without, 'R1', styleManager);
-    expect(styleManager.hasStyle('cutie-evaluation')).toBe(false);
+    readCorrectResponse(without, 'R1', styleManager);
+    expect(styleManager.hasStyle('cutie-correct-answer-display')).toBe(false);
 
     const withCorrect = parse(declaration('<qti-correct-response><qti-value>A</qti-value></qti-correct-response>'))
       .querySelector('qti-choice-interaction')!;
-    readEvaluation(withCorrect, 'R1', styleManager);
-    expect(styleManager.hasStyle('cutie-evaluation')).toBe(true);
+    readCorrectResponse(withCorrect, 'R1', styleManager);
+    expect(styleManager.hasStyle('cutie-correct-answer-display')).toBe(true);
   });
 });
 
@@ -92,7 +76,7 @@ describe('createCorrectAnswer', () => {
     expect(label.classList.contains('cutie-correct-answer-overline')).toBe(true);
     expect(label.classList.contains('cutie-correct-answer-overline--value')).toBe(false);
     // The colon is visually hidden, so the text still reads naturally
-    expect(label.querySelector('.cutie-evaluation-sr-only')!.textContent).toBe(': ');
+    expect(label.querySelector('.cutie-correct-answer-sr-only')!.textContent).toBe(': ');
     expect(answer.textContent).toBe('Correct answer: Paris');
   });
 });
@@ -106,16 +90,16 @@ describe('createCorrectAnswerOverline', () => {
 
   it('shows a value with a hidden "Correct answer:" prefix', () => {
     const overline = createCorrectAnswerOverline('word B');
-    expect(overline.querySelector('.cutie-evaluation-sr-only')!.textContent).toBe('Correct answer: ');
+    expect(overline.querySelector('.cutie-correct-answer-sr-only')!.textContent).toBe('Correct answer: ');
     expect(overline.textContent).toBe('Correct answer: word B');
   });
 });
 
-describe('wrapInlineEvaluation', () => {
+describe('wrapInlineCorrectAnswer', () => {
   it('wraps the control with a hidden overline of the correct answer that describes it', () => {
     const input = document.createElement('input');
-    const wrapper = wrapInlineEvaluation(input, 'e', 'York');
-    expect(wrapper.classList.contains('cutie-inline-evaluation')).toBe(true);
+    const wrapper = wrapInlineCorrectAnswer(input, 'e', 'York');
+    expect(wrapper.classList.contains('cutie-inline-correct-answer')).toBe(true);
     expect(wrapper.firstElementChild).toBe(input);
     const overline = wrapper.querySelector('#e')!;
     expect(overline.getAttribute('aria-hidden')).toBe('true');
@@ -138,13 +122,13 @@ describe('cloneLabel', () => {
   });
 });
 
-describe('createEvaluationSummary', () => {
+describe('createCorrectAnswerSummary', () => {
   it('returns null when there is nothing to show', () => {
-    expect(createEvaluationSummary({ id: 'e', correctAnswer: null })).toBeNull();
+    expect(createCorrectAnswerSummary({ id: 'e', correctAnswer: null })).toBeNull();
   });
 
   it('renders the correct answer with the given id', () => {
-    const summary = createEvaluationSummary({ id: 'e', correctAnswer: 'Paris' })!;
+    const summary = createCorrectAnswerSummary({ id: 'e', correctAnswer: 'Paris' })!;
     expect(summary.id).toBe('e');
     expect(summary.querySelector('.cutie-correct-answer')?.textContent).toBe('Correct answer: Paris');
     expect(summary.hasAttribute('aria-hidden')).toBe(false);

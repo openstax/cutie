@@ -7,7 +7,7 @@ import { addAriaDescribedBy } from '../../../utils/aria.js';
 import { announce } from '../../../utils/liveRegion.js';
 import type { ElementHandler, InteractionState, TransformContext } from '../../types.js';
 import { parseChoicesContainerWidth } from '../../vocabUtils.js';
-import { createCorrectAnswerOverline, parseDirectedPair, readEvaluation } from '../evaluation/index.js';
+import { createCorrectAnswerOverline, parseDirectedPair, readCorrectResponse } from '../evaluation/index.js';
 import { getDefaultValue } from '../responseUtils.js';
 import { GapMatchController } from './controller.js';
 import { GAP_MATCH_INTERACTION_STYLES } from './styles.js';
@@ -188,7 +188,7 @@ export class GapMatchInteractionHandler implements ElementHandler {
     const maxAssociations = parseInt(element.getAttribute('max-associations') ?? '0', 10) || 0;
 
     // The correct response of a finished attempt, when the delivery options show it
-    const evaluation = readEvaluation(element, responseIdentifier, context.styleManager);
+    const correctResponse = readCorrectResponse(element, responseIdentifier, context.styleManager);
 
     // Add constraint message if min-associations > 0
     let constraint: ConstraintMessage | undefined;
@@ -245,11 +245,11 @@ export class GapMatchInteractionHandler implements ElementHandler {
       controller.initializeFromDefaults(defaults);
     }
 
-    // Draw the evaluation: above each gap, in the slot every gap reserves for
+    // Draw the correct answer: above each gap, in the slot every gap reserves for
     // it, the choice that belongs there (described by the gap)
-    if (evaluation) {
+    if (correctResponse) {
       const correctByGap = new Map<string, string[]>();
-      for (const pair of evaluation.correctResponse.map(parseDirectedPair)) {
+      for (const pair of correctResponse.map(parseDirectedPair)) {
         if (!pair) continue;
         correctByGap.set(pair.target, [...(correctByGap.get(pair.target) ?? []), pair.source]);
       }
@@ -263,7 +263,7 @@ export class GapMatchInteractionHandler implements ElementHandler {
           .map((choiceId) => choiceButtons.get(choiceId)?.content ?? choiceId)
           .join(', ');
         const overline = createCorrectAnswerOverline(value);
-        overline.id = `evaluation-${responseIdentifier}-${gapId}`;
+        overline.id = `correct-answer-${responseIdentifier}-${gapId}`;
         gapElement.appendChild(overline);
         addAriaDescribedBy(gapElement, overline.id);
       }

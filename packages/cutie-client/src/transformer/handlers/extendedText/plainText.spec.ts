@@ -1561,7 +1561,7 @@ describe('extendedTextInteraction evaluation', () => {
 
   it('renders nothing when there is no correct response', () => {
     const container = render('', '<qti-default-value><qti-value>hello</qti-value></qti-default-value>');
-    expect(container.querySelector('.cutie-evaluation')).toBeNull();
+    expect(container.querySelector('.cutie-correct-answer-summary')).toBeNull();
   });
 
   it('shows the correct answer below the textarea, describing it', () => {
@@ -1573,7 +1573,7 @@ describe('extendedTextInteraction evaluation', () => {
     const textarea = container.querySelector('textarea')!;
     expect(container.querySelector('#constraint-R1')).toBeNull();
 
-    const summary = container.querySelector('.cutie-evaluation')!;
+    const summary = container.querySelector('.cutie-correct-answer-summary')!;
     expect(summary.querySelector('.cutie-correct-answer')!.textContent).toBe('Correct answer: world');
     expect(textarea.getAttribute('aria-describedby')).toContain(summary.id);
     expect(textarea.value).toBe('hello');

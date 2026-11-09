@@ -8,7 +8,7 @@ import { announce } from '../../utils/liveRegion.js';
 import { registry } from '../registry.js';
 import type { ElementHandler, InteractionState, ResponseAccessorOptions, TransformContext } from '../types.js';
 import { parseInputWidth } from '../vocabUtils.js';
-import { readEvaluation, wrapInlineEvaluation } from './evaluation/index.js';
+import { readCorrectResponse, wrapInlineCorrectAnswer } from './evaluation/index.js';
 import { getDefaultValue } from './responseUtils.js';
 
 /**
@@ -119,9 +119,9 @@ class TextEntryInteractionHandler implements ElementHandler {
 
     // The correct answer of a finished attempt, above the input, describing it
     let placed: HTMLElement = input;
-    const evaluation = readEvaluation(element, responseIdentifier, context.styleManager);
-    if (evaluation) {
-      placed = wrapInlineEvaluation(input, `evaluation-${responseIdentifier}`, evaluation.correctResponse.join(', '));
+    const correctResponse = readCorrectResponse(element, responseIdentifier, context.styleManager);
+    if (correctResponse) {
+      placed = wrapInlineCorrectAnswer(input, `correct-answer-${responseIdentifier}`, correctResponse.join(', '));
     }
 
     // Register response accessor with itemState if available
@@ -193,7 +193,7 @@ class TextEntryInteractionHandler implements ElementHandler {
 }
 
 const TEXT_ENTRY_INTERACTION_STYLES = `
-  /* The top margin reserves the slot for the evaluation overline, above the text line */
+  /* The top margin reserves the slot for the correct-answer overline, above the text line */
   .cutie-text-entry-interaction {
     display: inline-block;
     margin: var(--cutie-overline-slot) 0.25em 0;

@@ -94,15 +94,15 @@ const FEEDBACK_BLOCK_STYLES = `
   }
 
   .cutie-feedback-block[data-feedback-type="correct"] {
-    border-left: var(--cutie-status-rail-width) solid var(--cutie-feedback-correct);
+    border-left: var(--cutie-feedback-rail-width) solid var(--cutie-feedback-correct);
   }
 
   .cutie-feedback-block[data-feedback-type="incorrect"] {
-    border-left: var(--cutie-status-rail-width) solid var(--cutie-feedback-incorrect);
+    border-left: var(--cutie-feedback-rail-width) solid var(--cutie-feedback-incorrect);
   }
 
   .cutie-feedback-block[data-feedback-type="info"] {
-    border-left: var(--cutie-status-rail-width) solid var(--cutie-feedback-info);
+    border-left: var(--cutie-feedback-rail-width) solid var(--cutie-feedback-info);
   }
 
   .cutie-feedback-block > .cutie-feedback-icon + * {

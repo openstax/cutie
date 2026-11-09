@@ -31,7 +31,7 @@ export interface PresentationInput {
 
 /**
  * A drawn presentation of the interaction: its controller, and how to draw
- * the correct-answer key of an evaluation.
+ * the correct-answer key.
  */
 export interface MatchPresentation {
   controller: MatchView;

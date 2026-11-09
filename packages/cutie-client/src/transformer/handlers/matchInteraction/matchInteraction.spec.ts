@@ -1011,7 +1011,7 @@ describe('matchInteraction evaluation', () => {
     const slots = slotsFor(container, 'R');
     expect(slots).toHaveLength(2);
     for (const slot of slots) {
-      expect(slot.getAttribute('aria-describedby')).toContain('evaluation-R1-R');
+      expect(slot.getAttribute('aria-describedby')).toContain('correct-answer-R1-R');
     }
     // New slots go before the key
     expect(column(container, 'R').querySelector('.cutie-match-slots')!.lastElementChild!

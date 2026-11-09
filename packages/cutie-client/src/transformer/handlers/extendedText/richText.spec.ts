@@ -1000,7 +1000,7 @@ describe('richTextInteraction evaluation', () => {
   it('renders nothing when there is no correct response', async () => {
     const container = render('', '');
     await waitForQuill();
-    expect(container.querySelector('.cutie-evaluation')).toBeNull();
+    expect(container.querySelector('.cutie-correct-answer-summary')).toBeNull();
   });
 
   it('shows the sanitized HTML correct answer, linked to the editor once loaded', async () => {
@@ -1009,7 +1009,7 @@ describe('richTextInteraction evaluation', () => {
       '<qti-correct-response><qti-value>&lt;p&gt;&lt;strong&gt;world&lt;/strong&gt;&lt;img src=x onerror="alert(1)"&gt;&lt;/p&gt;</qti-value></qti-correct-response>',
     );
     await waitForQuill();
-    const summary = container.querySelector('.cutie-evaluation')!;
+    const summary = container.querySelector('.cutie-correct-answer-summary')!;
     const value = summary.querySelector('.cutie-correct-answer__value')!;
     expect(value.querySelector('strong')!.textContent).toBe('world');
     expect(value.querySelector('img')!.hasAttribute('onerror')).toBe(false);

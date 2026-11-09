@@ -8,17 +8,17 @@ import { collectAssetReferences } from './collectAssetReferences.js';
  */
 
 /**
- * Removes any authored copy of the markup cutie-core adds for the client
- * (data-cutie-evaluation attributes, data-cutie-retry elements), so the client
- * only ever sees what core computed.
+ * The attributes cutie-core adds for the client (see markItemVerdict).
+ */
+const RESERVED_ATTRIBUTES = ['data-cutie-evaluation', 'data-cutie-retry-message'];
+
+/**
+ * Removes any authored copy of the attributes cutie-core adds for the client,
+ * so the client only ever sees what core computed.
  */
 export function removeReservedMarkup(root: Element): void {
   for (const element of Array.from(root.getElementsByTagName('*'))) {
-    if (element.hasAttribute('data-cutie-retry')) {
-      element.parentNode?.removeChild(element);
-    } else {
-      element.removeAttribute('data-cutie-evaluation');
-    }
+    for (const attribute of RESERVED_ATTRIBUTES) element.removeAttribute(attribute);
   }
 }
 

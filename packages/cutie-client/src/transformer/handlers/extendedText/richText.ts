@@ -3,7 +3,7 @@ import { createMissingAttributeError } from '../../../errors/errorDisplay.js';
 import { addAriaDescribedBy } from '../../../utils/aria.js';
 import { registry } from '../../registry.js';
 import type { ElementHandler, TransformContext } from '../../types.js';
-import { createEvaluationSummary, readEvaluation } from '../evaluation/index.js';
+import { createCorrectAnswerSummary, readCorrectResponse } from '../evaluation/index.js';
 import { getDefaultValue } from '../responseUtils.js';
 import { loadQuill } from './quillLoader.js';
 import {
@@ -131,7 +131,7 @@ class RichTextInteractionHandler implements ElementHandler {
       );
     }
     // The correct response of a finished attempt, when the delivery options show it
-    const evaluation = readEvaluation(element, responseIdentifier, context.styleManager);
+    const correctResponse = readCorrectResponse(element, responseIdentifier, context.styleManager);
 
     const constraintResult = createConstraintElements(
       { minStrings: constraints.minStrings, patternMask: null, patternMessage: null, minCharacters, maxCharacters },
@@ -152,13 +152,13 @@ class RichTextInteractionHandler implements ElementHandler {
     // The correct answer (HTML, sanitized like the learner's own) below the
     // editor. The editor root is created asynchronously, so it is linked via
     // aria-describedby on load.
-    let evaluationSummary: HTMLElement | null = null;
-    if (evaluation) {
-      evaluationSummary = createEvaluationSummary({
-        id: `evaluation-${responseIdentifier}`,
-        correctAnswer: sanitizedFragment(evaluation.correctResponse.join('')),
+    let correctAnswerSummary: HTMLElement | null = null;
+    if (correctResponse) {
+      correctAnswerSummary = createCorrectAnswerSummary({
+        id: `correct-answer-${responseIdentifier}`,
+        correctAnswer: sanitizedFragment(correctResponse.join('')),
       });
-      if (evaluationSummary) container.appendChild(evaluationSummary);
+      if (correctAnswerSummary) container.appendChild(correctAnswerSummary);
     }
 
     fragment.appendChild(container);
@@ -183,8 +183,8 @@ class RichTextInteractionHandler implements ElementHandler {
     if (constraintResult) {
       wireConstraintDescribedBy(readOnlyResponse, constraintResult.constraint.element);
     }
-    if (evaluationSummary) {
-      addAriaDescribedBy(readOnlyResponse, evaluationSummary.id);
+    if (correctAnswerSummary) {
+      addAriaDescribedBy(readOnlyResponse, correctAnswerSummary.id);
     }
 
     // Track active editor root for aria wiring
@@ -305,8 +305,8 @@ class RichTextInteractionHandler implements ElementHandler {
         if (constraintResult) {
           wireConstraintDescribedBy(quill.root, constraintResult.constraint.element);
         }
-        if (evaluationSummary) {
-          addAriaDescribedBy(quill.root, evaluationSummary.id);
+        if (correctAnswerSummary) {
+          addAriaDescribedBy(quill.root, correctAnswerSummary.id);
         }
 
         // Apply expected-lines min-height to .ql-editor

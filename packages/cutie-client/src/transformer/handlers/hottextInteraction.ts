@@ -17,7 +17,7 @@ import {
 } from '../../utils/rovingTabindex.js';
 import { registry } from '../registry.js';
 import type { ElementHandler, InteractionState, ResponseAccessorOptions, TransformContext } from '../types.js';
-import { createSrText, readEvaluation } from './evaluation/index.js';
+import { createSrText, readCorrectResponse } from './evaluation/index.js';
 import { getDefaultValue } from './responseUtils.js';
 
 /**
@@ -291,7 +291,7 @@ class HottextInteractionHandler implements ElementHandler {
     };
 
     // The correct response of a finished attempt, when the delivery options show it
-    const evaluation = readEvaluation(element, responseIdentifier, context.styleManager);
+    const correctResponse = readCorrectResponse(element, responseIdentifier, context.styleManager);
 
     // Constraint message
     const minSelectionsMessage = element.getAttribute('data-min-selections-message');
@@ -342,11 +342,11 @@ class HottextInteractionHandler implements ElementHandler {
     };
     restoreTabStops();
 
-    // Draw the evaluation: a solid underline on each hottext in the correct
+    // Draw the correct answer: a solid underline on each hottext in the correct
     // response, and a wavy underline on each selected hottext that isn't. Each
     // marked hottext's name starts with what its mark means.
-    if (evaluation) {
-      drawAnswerMarks(container, buttons, evaluation.correctResponse, isSelected);
+    if (correctResponse) {
+      drawAnswerMarks(container, buttons, correctResponse, isSelected);
     }
 
     const checkValidity = (): boolean => {

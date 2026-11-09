@@ -49,8 +49,8 @@ export async function renderTemplate(
  *    - Hidden feedback that shouldn't be visible yet
  * 5. Injects current response values as qti-default-value elements
  * 6. Once the attempt can be evaluated, adds the evaluation its delivery options allow
- *    (see applyEvaluation); at the start of a fresh try, the retry message with
- *    the last try's verdict (see applyRetryVerdict)
+ *    (see applyEvaluation); at the start of a fresh try, the last try's verdict
+ *    with the retry message (see applyRetryVerdict)
  *
  * The result depends only on the item and the state, so rendering the same
  * state again produces the same document.
@@ -291,24 +291,15 @@ function addCorrectResponses(root: Element, itemDoc: Document): void {
 /**
  * Shows the verdict of the try that fell short at the start of the fresh try
  * that follows it (before its first submission), whatever showEvaluation
- * allows once the attempt is terminal: the retryMessage leads the item body,
- * in an element with data-cutie-retry set to the verdict.
+ * allows once the attempt is terminal: the item's verdict, as for a terminal
+ * attempt, with the retryMessage ({n} replaced by the tries remaining).
  *
  * Only the item as a whole is judged, so the learner learns how close the try
  * came without learning which responses to change.
  */
 function applyRetryVerdict(root: Element, state: AttemptState, verdict: 'incorrect' | 'partial'): void {
-  const itemBody = root.getElementsByTagName('qti-item-body')[0];
-  if (!itemBody) return;
-
-  const message = itemBody.ownerDocument.createElementNS(itemBody.namespaceURI, 'div');
-  message.setAttribute('data-cutie-retry', verdict);
-  message.appendChild(
-    itemBody.ownerDocument.createTextNode(
-      state.options.retryMessage.split('{n}').join(String(state.triesRemaining))
-    )
-  );
-  itemBody.insertBefore(message, itemBody.firstChild);
+  const message = state.options.retryMessage.split('{n}').join(String(state.triesRemaining));
+  markItemVerdict(root, verdict, message);
 }
 
 /**
@@ -319,12 +310,17 @@ function markPreview(root: Element): void {
 }
 
 /**
- * Adds a data-cutie-evaluation attribute to the item body for the response as a
- * whole, when it can be judged.
+ * Marks the item body with the verdict on the response as a whole, when it can
+ * be judged: a data-cutie-evaluation attribute ("correct", "incorrect" or
+ * "partial") and, on a fresh try, a data-cutie-retry-message attribute holding
+ * the message to show with it.
  */
-function markItemVerdict(root: Element, verdict: ResponseEvaluation | null): void {
+function markItemVerdict(root: Element, verdict: ResponseEvaluation | null, retryMessage?: string): void {
   const itemBody = root.getElementsByTagName('qti-item-body')[0];
-  if (itemBody && verdict) itemBody.setAttribute('data-cutie-evaluation', verdict);
+  if (!itemBody || !verdict) return;
+
+  itemBody.setAttribute('data-cutie-evaluation', verdict);
+  if (retryMessage !== undefined) itemBody.setAttribute('data-cutie-retry-message', retryMessage);
 }
 
 /**

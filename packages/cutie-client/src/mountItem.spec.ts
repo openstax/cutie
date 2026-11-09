@@ -379,7 +379,7 @@ describe('mountItem cleanup lifetimes', () => {
     const container = document.createElement('div');
     document.body.appendChild(container);
     const item = mountItem(container, MATCH_XML);
-    const retry = MATCH_XML.replace('<qti-item-body>', '<qti-item-body><div data-cutie-retry="incorrect">Try again</div>');
+    const retry = MATCH_XML.replace('<qti-item-body>', '<qti-item-body data-cutie-evaluation="incorrect" data-cutie-retry-message="Try again">');
 
     item.update(retry); // queues the retry message's announcement
     item.unmount(); // before the queue flushes
@@ -408,7 +408,7 @@ describe('mountItem cleanup lifetimes', () => {
     const second = document.createElement('div');
     document.body.append(first, second);
     const withRetry = (text: string) =>
-      MATCH_XML.replace('<qti-item-body>', `<qti-item-body><div data-cutie-retry="incorrect">${text}</div>`);
+      MATCH_XML.replace('<qti-item-body>', `<qti-item-body data-cutie-evaluation="incorrect" data-cutie-retry-message="${text}">`);
 
     const a = mountItem(first, MATCH_XML);
     const b = mountItem(second, MATCH_XML);

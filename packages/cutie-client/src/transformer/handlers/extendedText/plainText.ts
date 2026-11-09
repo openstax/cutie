@@ -2,7 +2,7 @@ import { createMissingAttributeError } from '../../../errors/errorDisplay.js';
 import { addAriaDescribedBy } from '../../../utils/aria.js';
 import { registry } from '../../registry.js';
 import type { ElementHandler, TransformContext } from '../../types.js';
-import { createEvaluationSummary, readEvaluation } from '../evaluation/index.js';
+import { createCorrectAnswerSummary, readCorrectResponse } from '../evaluation/index.js';
 import { getDefaultValue } from '../responseUtils.js';
 import {
   createCharacterCounter,
@@ -162,11 +162,11 @@ class ExtendedTextInteractionHandler implements ElementHandler {
 
     // The correct answer of a finished attempt, when the delivery options show
     // it, below the textarea, described by it
-    const evaluation = readEvaluation(element, responseIdentifier, context.styleManager);
-    if (evaluation) {
-      const summary = createEvaluationSummary({
-        id: `evaluation-${responseIdentifier}`,
-        correctAnswer: evaluation.correctResponse.join(', '),
+    const correctResponse = readCorrectResponse(element, responseIdentifier, context.styleManager);
+    if (correctResponse) {
+      const summary = createCorrectAnswerSummary({
+        id: `correct-answer-${responseIdentifier}`,
+        correctAnswer: correctResponse.join(', '),
       });
       if (summary) {
         container.appendChild(summary);

@@ -222,7 +222,8 @@ Interactions get no verdict of their own: response processing can combine respon
 item scores nothing unless the cause is right), so a response judged on its own can mislead.
 
 `cutie-client` draws the item's verdict as a feedback block leading the item, with an icon and text (never
-color alone), announced to screen readers on renders after the first. It draws the correct response alongside
+color alone), announced to screen readers on renders after the first. On a fresh try the text is the retry
+message, and the icon carries the verdict as its accessible label. It draws the correct response alongside
 the learner's response, per interaction type. Interactions that mark options (choice, hottext, match tables)
 mark the correct options, and the selected options that aren't; inline interactions (inline choice, text
 entry, gap match) show the correct answer above each blank, without saying whether the response matches it.
@@ -248,9 +249,9 @@ item's rules (e.g. a hint after the second submission) start over too.
     Template variables and shuffle orders carry over, so it is the same variant.
   - `score` stays the last try's until the fresh try ends, including through an adaptive item's steps. There
     is no penalty per try.
-  - The item is led by `retryMessage` (`{n}` replaced by the tries remaining), in a `div` whose
-    `data-cutie-retry` holds the last try's verdict on the item as a whole, whatever `showEvaluation` says.
-    `cutie-client` draws it as a feedback block and announces it. No interaction is marked, so the learner
+  - The item carries the last try's verdict on the item as a whole, as a terminal attempt does, whatever
+    `showEvaluation` says, with `retryMessage` (`{n}` replaced by the tries remaining) to show with it.
+    `cutie-client` draws them as one feedback block and announces it. No interaction is marked, so the learner
     learns how close the try came without learning which responses to change.
   - A **non-adaptive** item keeps the learner's responses; an **adaptive** item starts over.
 - Feedback and evaluation wait for the attempt to be terminal, then follow `showFeedback` and
@@ -311,9 +312,9 @@ its own, so the client only ever sees what core computed:
 
 | Markup | Where | When |
 |---|---|---|
-| `data-cutie-evaluation="correct\|incorrect\|partial"` | interaction elements, `qti-item-body` | terminal under `showEvaluation` `'correctness'` or above; a fresh try of a non-adaptive item |
+| `data-cutie-evaluation="correct\|incorrect\|partial"` | `qti-item-body` | terminal under `showEvaluation` `'correctness'` or above; a fresh try |
+| `data-cutie-retry-message` | `qti-item-body` | a fresh try: the `retryMessage`, `{n}` replaced |
 | `qti-correct-response` | `qti-response-declaration` | terminal under `showEvaluation: 'correctResponse'`; every `renderPreview` |
-| `<div data-cutie-retry="incorrect\|partial">` | first child of `qti-item-body` | a fresh try of an adaptive item |
 | `data-cutie-preview="true"` | `qti-item-body` | every `renderPreview` |
 
 ### Response changes (`onResponseChange`)
