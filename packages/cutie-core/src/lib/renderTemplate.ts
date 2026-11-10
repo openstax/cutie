@@ -1,7 +1,13 @@
 /* spell-checker: ignore inlines */
 import { AttemptState, FeedbackIdentity, ProcessingOptions } from '../types.js';
 import { createValueContainer } from '../utils/valueContainer.js';
-import { finishContent, removeReservedMarkup, RETRY_MESSAGE_ATTRIBUTE, VERDICT_ATTRIBUTE } from './content.js';
+import {
+  finishContent,
+  PREVIEW_ATTRIBUTE,
+  removeReservedMarkup,
+  RETRY_MESSAGE_ATTRIBUTE,
+  VERDICT_ATTRIBUTE,
+} from './content.js';
 import { canEvaluate } from './deliveryOptions.js';
 import { ResponseEvaluation } from './evaluateResponses.js';
 import { getCorrectResponse } from './responseDeclarations.js';
@@ -306,7 +312,7 @@ function applyRetryVerdict(root: Element, state: AttemptState, verdict: 'incorre
  * Adds a data-cutie-preview attribute to the item body (see buildPreviewDocument).
  */
 function markPreview(root: Element): void {
-  root.getElementsByTagName('qti-item-body')[0]?.setAttribute('data-cutie-preview', 'true');
+  root.getElementsByTagName('qti-item-body')[0]?.setAttribute(PREVIEW_ATTRIBUTE, 'true');
 }
 
 /**

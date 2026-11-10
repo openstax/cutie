@@ -536,6 +536,14 @@ describe('tries', () => {
       expect(root.hasAttribute('data-cutie-evaluation')).toBe(false);
       expect(root.hasAttribute('data-cutie-retry-message')).toBe(false);
     });
+
+    test('an authored preview mark never reaches a learner', async () => {
+      const item = choiceItem.replace('<qti-item-body>', '<qti-item-body data-cutie-preview="true">');
+      const { template } = await beginAttempt(item);
+      const itemBody = parseTemplate(template).getElementsByTagName('qti-item-body')[0];
+
+      expect(itemBody?.hasAttribute('data-cutie-preview')).toBe(false);
+    });
   });
 
   describe('a finished attempt', () => {

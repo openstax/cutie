@@ -19,9 +19,14 @@ export const VERDICT_ATTRIBUTE = 'data-cutie-evaluation';
 export const RETRY_MESSAGE_ATTRIBUTE = 'data-cutie-retry-message';
 
 /**
+ * Marks a preview (see renderPreview), on the item body.
+ */
+export const PREVIEW_ATTRIBUTE = 'data-cutie-preview';
+
+/**
  * The attributes cutie-core adds for the client.
  */
-const RESERVED_ATTRIBUTES = [VERDICT_ATTRIBUTE, RETRY_MESSAGE_ATTRIBUTE];
+const RESERVED_ATTRIBUTES = [VERDICT_ATTRIBUTE, RETRY_MESSAGE_ATTRIBUTE, PREVIEW_ATTRIBUTE];
 
 /**
  * Removes any authored copy of the attributes cutie-core adds for the client,

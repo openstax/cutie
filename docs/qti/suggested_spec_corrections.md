@@ -390,8 +390,8 @@ whole, on a terminal attempt and on a fresh try), `data-cutie-retry-message`
 (the retry message, on a fresh try) and `data-cutie-preview` (from
 `renderPreview`). The README documents these as cutie template markup, so the
 template is a cutie profile of QTI, not schema-valid QTI 3, at the item body.
-Authored items are unaffected: core removes any authored copy of the verdict
-and retry message attributes.
+Authored items are unaffected: core removes any authored copy of these
+attributes.
 
 **When this matters:** Only if something other than cutie-client reads the
 sanitized template, such as another QTI renderer or a schema validator.
