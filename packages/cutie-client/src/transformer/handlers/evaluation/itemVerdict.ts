@@ -42,7 +42,8 @@ export function createItemVerdict(itemBody: Element, context: TransformContext):
   const verdict = getVerdict(itemBody);
   if (!verdict) return null;
 
-  const retryMessage = itemBody.getAttribute('data-cutie-retry-message');
+  // An empty retry message would leave the verdict to the icon alone
+  const retryMessage = itemBody.getAttribute('data-cutie-retry-message') || null;
   const verdictText = VERDICT_TEXT[verdict];
   registerFeedbackBlockStyles(context);
 

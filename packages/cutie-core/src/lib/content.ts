@@ -8,16 +8,28 @@ import { collectAssetReferences } from './collectAssetReferences.js';
  */
 
 /**
- * The attributes cutie-core adds for the client (see markItemVerdict).
+ * The verdict on the item as a whole: "correct", "incorrect" or "partial", on
+ * the item body.
  */
-const RESERVED_ATTRIBUTES = ['data-cutie-evaluation', 'data-cutie-retry-message'];
+export const VERDICT_ATTRIBUTE = 'data-cutie-evaluation';
+
+/**
+ * The message shown with the verdict on a fresh try, on the item body.
+ */
+export const RETRY_MESSAGE_ATTRIBUTE = 'data-cutie-retry-message';
+
+/**
+ * The attributes cutie-core adds for the client.
+ */
+const RESERVED_ATTRIBUTES = [VERDICT_ATTRIBUTE, RETRY_MESSAGE_ATTRIBUTE];
 
 /**
  * Removes any authored copy of the attributes cutie-core adds for the client,
- * so the client only ever sees what core computed.
+ * from the root and everything in it, so the client only ever sees what core
+ * computed.
  */
 export function removeReservedMarkup(root: Element): void {
-  for (const element of Array.from(root.getElementsByTagName('*'))) {
+  for (const element of [root, ...Array.from(root.getElementsByTagName('*'))]) {
     for (const attribute of RESERVED_ATTRIBUTES) element.removeAttribute(attribute);
   }
 }

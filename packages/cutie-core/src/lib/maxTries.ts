@@ -46,6 +46,9 @@ export function deriveSmartMaxTries(itemDoc: Document, variables: Record<string,
   const authoredBody = itemDoc.getElementsByTagName('qti-item-body')[0];
   if (!authoredBody) return 1;
 
+  // Every interaction this variant can show counts, including those inside
+  // feedback an adaptive item reveals in later steps: which steps a learner
+  // reaches can't be known in advance, and a fresh try starts the item over
   const itemBody = authoredBody.cloneNode(true) as Element;
   processTemplateConditionals(itemBody, variables);
 

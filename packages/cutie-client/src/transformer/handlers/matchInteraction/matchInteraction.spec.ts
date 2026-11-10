@@ -959,6 +959,12 @@ describe('matchInteraction evaluation', () => {
     expect(container.querySelector('.cutie-correct-answer')).toBeNull();
   });
 
+  it('restores a response without announcing its placements', () => {
+    vi.mocked(announce).mockClear();
+    render(BASIC_MATCH_QTI, '', '<qti-default-value><qti-value>S1 T1</qti-value></qti-default-value>');
+    expect(announce).not.toHaveBeenCalledWith(expect.anything(), expect.stringContaining('placed'));
+  });
+
   it('shows each column the sources that belong in it, by displayed labels', () => {
     const container = render(
       BASIC_MATCH_QTI,

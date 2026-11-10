@@ -1,7 +1,7 @@
 /* spell-checker: ignore inlines */
 import { AttemptState, FeedbackIdentity, ProcessingOptions } from '../types.js';
 import { createValueContainer } from '../utils/valueContainer.js';
-import { finishContent, removeReservedMarkup } from './content.js';
+import { finishContent, removeReservedMarkup, RETRY_MESSAGE_ATTRIBUTE, VERDICT_ATTRIBUTE } from './content.js';
 import { canEvaluate } from './deliveryOptions.js';
 import { ResponseEvaluation } from './evaluateResponses.js';
 import { getCorrectResponse } from './responseDeclarations.js';
@@ -319,8 +319,8 @@ function markItemVerdict(root: Element, verdict: ResponseEvaluation | null, retr
   const itemBody = root.getElementsByTagName('qti-item-body')[0];
   if (!itemBody || !verdict) return;
 
-  itemBody.setAttribute('data-cutie-evaluation', verdict);
-  if (retryMessage !== undefined) itemBody.setAttribute('data-cutie-retry-message', retryMessage);
+  itemBody.setAttribute(VERDICT_ATTRIBUTE, verdict);
+  if (retryMessage !== undefined) itemBody.setAttribute(RETRY_MESSAGE_ATTRIBUTE, retryMessage);
 }
 
 /**

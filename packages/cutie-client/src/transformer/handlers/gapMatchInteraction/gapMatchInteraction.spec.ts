@@ -1,7 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ItemStateImpl } from '../../../state/itemState.js';
+import { announce } from '../../../utils/liveRegion.js';
 import { registry } from '../../registry.js';
 import type { TransformContext } from '../../types.js';
+
+vi.mock('../../../utils/liveRegion.js', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../../../utils/liveRegion.js')>();
+  return { ...original, announce: vi.fn(original.announce) };
+});
 
 // Side-effect import to register the handlers (includes gap handler)
 import './index.js';
@@ -577,6 +583,13 @@ describe('gapMatchInteraction evaluation', () => {
   it('renders nothing when there is no correct response', () => {
     const container = render('', '<qti-default-value><qti-value>C1 G1</qti-value></qti-default-value>');
     expect(container.querySelector('.cutie-correct-answer-overline')).toBeNull();
+  });
+
+  it('restores a response without announcing its placements', () => {
+    vi.mocked(announce).mockClear();
+    const container = render('', '<qti-default-value><qti-value>C1 G1</qti-value></qti-default-value>');
+    expect(container.querySelector('[data-identifier="G1"]')!.textContent).not.toBe('');
+    expect(announce).not.toHaveBeenCalled();
   });
 
   it('shows the correct choice above each gap, described by the gap', () => {

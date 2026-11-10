@@ -171,7 +171,7 @@ Every operation returns an `AttemptResult`:
 |---|---|
 | `state` | The `AttemptState` to persist and pass to the next operation |
 | `template` | Sanitized QTI XML for `cutie-client` |
-| `hasNewFeedback` | The template shows something the previous one didn't: a feedback element, a verdict, or a correct response. Always `false` from `beginAttempt` and `resumeAttempt`. Hosts use it to decide whether to hold after a submission. |
+| `hasNewFeedback` | The template shows something the previous one didn't: a feedback element, a verdict, or a correct response. Always `false` from `beginAttempt` and `resumeAttempt`. Always `true` when a submission ends a try and the template shows a verdict, even one that repeats the last. Hosts use it to decide whether to hold after a submission. |
 | `tryConsumed` | The operation ended a try (see [Multiple tries](#multiple-tries)). Only `submitResponse` ends tries. |
 
 - Options are accepted only by `beginAttempt`, recorded with defaults filled in as `state.options`, and fixed

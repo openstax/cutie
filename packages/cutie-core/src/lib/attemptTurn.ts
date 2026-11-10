@@ -1,4 +1,5 @@
 import { AttemptState, FeedbackIdentity, ProcessingOptions } from '../types.js';
+import { VERDICT_ATTRIBUTE } from './content.js';
 import { isTerminal } from './deliveryOptions.js';
 import {
   buildTemplateDocument,
@@ -28,8 +29,9 @@ export interface AttemptResult {
    * Whether this template shows the learner something the prior state's
    * template did not: a feedback element, a verdict, or a correct response.
    * Always false when nothing was submitted (beginning or resuming an attempt).
-   * Always true when a submission ended a try that fell short and started a
-   * fresh one, which shows the learner the verdict.
+   * Always true when a submission ended a try and the template shows a
+   * verdict (a fresh try's, or a terminal attempt's), even one that repeats
+   * the last: it judges the try that just ended.
    */
   hasNewFeedback: boolean;
 
@@ -61,7 +63,9 @@ export async function presentState(
  *
  * Decides which feedback the attempt withholds, renders the next template, and
  * reports whether it shows the learner anything the prior template did not.
- * A fresh try's verdict is always new: it judges the try that just ended.
+ * A verdict shown as a try ends (a fresh try's, or a terminal attempt's) is
+ * always new, even when it repeats the last one: it judges the try that just
+ * ended.
  */
 export async function completeTurn(
   itemDoc: Document,
@@ -74,8 +78,8 @@ export async function completeTurn(
   const state = decideWithheldFeedback(itemDoc, priorState, priorDoc, nextState);
   const nextDoc = buildTemplateDocument(itemDoc, state);
 
-  const startsFreshTry = tryConsumed && !!state.retryVerdict;
-  const hasNewFeedback = startsFreshTry || hasNewReveals(priorDoc, nextDoc);
+  const judgesEndedTry = tryConsumed && hasItemVerdict(nextDoc.documentElement);
+  const hasNewFeedback = judgesEndedTry || hasNewReveals(priorDoc, nextDoc);
   const template = await serializeTemplate(nextDoc, processing);
 
   return { state, template, hasNewFeedback, tryConsumed };
@@ -131,10 +135,18 @@ function hasNewReveals(priorDoc: Document, nextDoc: Document): boolean {
   return collectReveals(nextDoc.documentElement).some((reveal) => !priorReveals.includes(reveal));
 }
 
+function itemVerdict(root: Element): string | null {
+  return root.getElementsByTagName('qti-item-body')[0]?.getAttribute(VERDICT_ATTRIBUTE) || null;
+}
+
+function hasItemVerdict(root: Element): boolean {
+  return itemVerdict(root) !== null;
+}
+
 function collectReveals(root: Element): string[] {
   const feedback = collectVisibleFeedback(root).map((identity) => `feedback:${feedbackKey(identity)}`);
 
-  const verdict = root.getElementsByTagName('qti-item-body')[0]?.getAttribute('data-cutie-evaluation');
+  const verdict = itemVerdict(root);
   const evaluations = verdict ? [`evaluation:${verdict}`] : [];
 
   const correctResponses = Array.from(root.getElementsByTagName('qti-correct-response')).map(

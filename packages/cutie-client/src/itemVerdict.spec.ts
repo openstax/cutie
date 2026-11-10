@@ -136,6 +136,14 @@ describe('verdicts on the item as a whole', () => {
         .toBe('Partially correct:');
     });
 
+    it('shows the verdict when the retry message is empty', () => {
+      mount(retryXml('partial').replace(/data-cutie-retry-message="[^"]*"/, 'data-cutie-retry-message=""'));
+      const block = q(container, '.cutie-item-verdict');
+
+      expect(block.querySelector('p')!.textContent).toBe('Partially correct');
+      expect(block.querySelector('.cutie-feedback-sr-text')).toBeNull();
+    });
+
     it('is announced with its verdict when it arrives, not when the attempt is resumed', () => {
       const item = mount(retryXml('partial'));
       expect(announce).not.toHaveBeenCalled();

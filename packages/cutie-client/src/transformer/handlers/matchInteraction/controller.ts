@@ -547,8 +547,10 @@ export class MatchController implements MatchView {
    * Place `sourceId` into `slot`, replacing any current occupant and freeing the
    * source's previous slot when moving. Returns whether it was placed; nothing
    * is changed when the placement isn't allowed.
+   *
+   * @param silent - Don't announce the placement (restoring a response)
    */
-  private placeInSlot(slot: HTMLElement, sourceId: string, fromSlot: HTMLElement | null): boolean {
+  private placeInSlot(slot: HTMLElement, sourceId: string, fromSlot: HTMLElement | null, silent = false): boolean {
     const targetId = slot.getAttribute('data-target-id');
     if (!targetId || !this.canPlaceInSlot(slot, sourceId, fromSlot)) return false;
 
@@ -577,7 +579,7 @@ export class MatchController implements MatchView {
     this.syncSlots(targetId);
     if (fromTargetId && fromTargetId !== targetId) this.syncSlots(fromTargetId);
 
-    announce(this.context, `${this.model.content(sourceId)} placed.`);
+    if (!silent) announce(this.context, `${this.model.content(sourceId)} placed.`);
     return true;
   }
 
@@ -797,7 +799,7 @@ export class MatchController implements MatchView {
       if (!pair) continue;
 
       const slot = this.targets.get(pair.target)?.slots.find((s) => !this.slotOccupant.has(s));
-      if (slot) this.placeInSlot(slot, pair.source, null);
+      if (slot) this.placeInSlot(slot, pair.source, null, true);
     }
   }
 }

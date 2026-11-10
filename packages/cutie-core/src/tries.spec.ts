@@ -1,7 +1,7 @@
 /* spell-checker: ignore hottext hottexts */
 import { DOMParser } from '@xmldom/xmldom';
 import { describe, expect, test } from 'vitest';
-import { deriveSmartMaxTries } from './lib/maxTries.js';
+import { deriveSmartMaxTries, SMART_MAX_TRIES_CAP } from './lib/maxTries.js';
 import {
   type AttemptResult,
   beginAttempt,
@@ -375,6 +375,19 @@ describe('tries', () => {
       expect(second.hasNewFeedback).toBe(true);
       expect(defaultValueOf(second.template, 'RESPONSE')).toEqual(['C']);
     });
+
+    test('reports the last try\'s verdict as new, even when it repeats the fresh try\'s', async () => {
+      const begun = await begin(mappedItem, { maxTries: 2, showEvaluation: 'correctness' });
+      const retry = await submitResponse({ RESPONSE: ['A'] }, begun.state, mappedItem);
+      const result = await submitResponse({ RESPONSE: ['A'] }, retry.state, mappedItem);
+
+      // The same verdict, and nothing else new: the attempt has ended
+      expect(itemVerdictOf(retry.template)).toBe('partial');
+      expect(result.state.completionStatus).toBe('completed');
+      expect(itemVerdictOf(result.template)).toBe('partial');
+      expect(feedbackIdentifiers(result.template)).toEqual([]);
+      expect(result.hasNewFeedback).toBe(true);
+    });
   });
 
   describe('an adaptive item', () => {
@@ -510,6 +523,18 @@ describe('tries', () => {
       expect(itemVerdictOf(template)).toBeNull();
       expect(evaluationOf(template, 'RESPONSE')).toBeNull();
       expect(retryMessageOf(template)).toBeNull();
+    });
+
+    test('authored verdicts on the item element never reach the client', async () => {
+      const item = choiceItem.replace(
+        '<qti-assessment-item ',
+        '<qti-assessment-item data-cutie-evaluation="correct" data-cutie-retry-message="Fake" '
+      );
+      const { template } = await beginAttempt(item);
+      const root = parseTemplate(template).documentElement;
+
+      expect(root.hasAttribute('data-cutie-evaluation')).toBe(false);
+      expect(root.hasAttribute('data-cutie-retry-message')).toBe(false);
     });
   });
 
@@ -661,9 +686,10 @@ describe('tries', () => {
       expect(deriveSmartMaxTries(parser.parseFromString(item, 'text/xml'), {})).toBe(3);
     });
 
-    test('allows at most 4 tries, however many options', () => {
+    test('allows at most SMART_MAX_TRIES_CAP tries, however many options', () => {
       const item = itemWithBody(`<qti-choice-interaction response-identifier="R">${choices(20)}</qti-choice-interaction>`);
-      expect(deriveSmartMaxTries(parser.parseFromString(item, 'text/xml'), {})).toBe(4);
+      expect(SMART_MAX_TRIES_CAP).toBe(4);
+      expect(deriveSmartMaxTries(parser.parseFromString(item, 'text/xml'), {})).toBe(SMART_MAX_TRIES_CAP);
     });
 
     test('counts only the choices this variant shows', () => {
