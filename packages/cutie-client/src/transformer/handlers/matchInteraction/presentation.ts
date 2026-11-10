@@ -30,12 +30,10 @@ export interface PresentationInput {
 }
 
 /**
- * A drawn presentation of the interaction: its controller, how to draw the
- * correct-answer key of an evaluation, and how to clear the marks of the key
- * that describe the response, once the learner edits it.
+ * A drawn presentation of the interaction: its controller, and how to draw
+ * the correct-answer key.
  */
 export interface MatchPresentation {
   controller: MatchView;
   drawKey(pairs: DirectedPair[]): void;
-  clearResponseMarks(): void;
 }

@@ -24,7 +24,6 @@ export class ItemStateImpl implements ItemState {
   private observers: Set<StateObserver> = new Set();
   private _interactionState: InteractionState;
   private readonly onResponseChange?: ResponseChangeListener;
-  private readonly editListeners: Map<string, Array<() => void>> = new Map();
 
   constructor(previousState?: ItemState, options?: ItemStateOptions) {
     this._interactionState = previousState?.interactionState ?? options?.interactionState ?? 'enabled';
@@ -86,21 +85,10 @@ export class ItemStateImpl implements ItemState {
   }
 
   /**
-   * Report a learner edit to the response's edit listeners, then to the
-   * response change listener, if any.
+   * Report a learner edit to the response change listener, if any.
    */
-  notifyResponseChange(responseIdentifier: string): void {
-    for (const listener of this.editListeners.get(responseIdentifier) ?? []) {
-      listener();
-    }
+  notifyResponseChange(): void {
     this.onResponseChange?.(this.peekAll());
-  }
-
-  /**
-   * Call `listener` on each learner edit to the given response
-   */
-  onResponseEdit(responseIdentifier: string, listener: () => void): void {
-    this.editListeners.set(responseIdentifier, [...(this.editListeners.get(responseIdentifier) ?? []), listener]);
   }
 
   /**
@@ -165,6 +153,5 @@ export class ItemStateImpl implements ItemState {
   clear(): void {
     this.responseAccessors.clear();
     this.observers.clear();
-    this.editListeners.clear();
   }
 }

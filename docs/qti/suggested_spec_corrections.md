@@ -370,3 +370,32 @@ unanswered.
 response processing (`qti-is-null` → 0, or an intermediate `<responseId>_SCORE`
 outcome as unmapped responses use). Keep returning 0 from `mapResponse`, which
 matches the templates.
+
+## 18. Template markup puts `data-cutie-*` attributes on `qti-item-body`
+
+**Files:** `packages/cutie-core/src/lib/renderTemplate.ts` (`markItemVerdict`,
+`markPreview`), `packages/cutie-core/src/lib/content.ts` (the reserved
+attribute names)
+
+**Spec:** QTI 3 Information Model, ItemBody §5.79: the characteristics are
+exactly `id`, `class`, `language`, `label`, `dir` and `data-catalog-idref`.
+Unlike the body content classes (`div` and the other BaseSequence classes,
+interactions, `qti-modal-feedback`), ItemBody has no `dataExtension`, so it
+takes no other `data-*` attributes; `ItemBodyDType` in the ASI XSD has no
+`anyAttribute` either.
+
+**Cutie:** The sanitized template core sends to the client marks
+`qti-item-body` with `data-cutie-evaluation` (the verdict on the item as a
+whole, on a terminal attempt and on a fresh try), `data-cutie-retry-message`
+(the retry message, on a fresh try) and `data-cutie-preview` (from
+`renderPreview`). The README documents these as cutie template markup, so the
+template is a cutie profile of QTI, not schema-valid QTI 3, at the item body.
+Authored items are unaffected: core removes any authored copy of these
+attributes.
+
+**When this matters:** Only if something other than cutie-client reads the
+sanitized template, such as another QTI renderer or a schema validator.
+
+**Suggested fix:** If schema validity of the template becomes a goal, carry
+the markup on an element the schema allows `data-*` on, such as a `div` core
+inserts as the item body's first child.

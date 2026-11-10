@@ -8,7 +8,7 @@ import { announce } from '../../utils/liveRegion.js';
 import { registry } from '../registry.js';
 import type { ElementHandler, InteractionState, ResponseAccessorOptions, TransformContext } from '../types.js';
 import { parseInputWidth } from '../vocabUtils.js';
-import { clearInlineVerdict, clearVerdictOnEdit, readEvaluation, wrapInlineEvaluation } from './evaluation/index.js';
+import { readCorrectResponse, wrapInlineCorrectAnswer } from './evaluation/index.js';
 import { getDefaultValue } from './responseUtils.js';
 
 /**
@@ -117,17 +117,12 @@ class TextEntryInteractionHandler implements ElementHandler {
       input.setAttribute('aria-describedby', constraintId);
     }
 
-    // Evaluation of a finished attempt or a fresh try: the verdict icon and
-    // the correct answer above the input, describing it
+    // The correct answer of a finished attempt, above the input, describing it
     let placed: HTMLElement = input;
-    const evaluation = readEvaluation(element, responseIdentifier, context.styleManager);
-    if (evaluation) {
-      const correctText = evaluation.correctResponse.join(', ');
-      placed = wrapInlineEvaluation(input, `evaluation-${responseIdentifier}`, evaluation, correctText || null);
+    const correctResponse = readCorrectResponse(element, responseIdentifier, context.styleManager);
+    if (correctResponse) {
+      placed = wrapInlineCorrectAnswer(input, `correct-answer-${responseIdentifier}`, correctResponse.join(', '));
     }
-    clearVerdictOnEdit(context, responseIdentifier, evaluation, () =>
-      clearInlineVerdict(input, `evaluation-${responseIdentifier}`)
-    );
 
     // Register response accessor with itemState if available
     if (context.itemState) {
@@ -177,7 +172,7 @@ class TextEntryInteractionHandler implements ElementHandler {
       input.addEventListener('input', () => {
         // Clear the error in real time once the field is already in an error state.
         if (input.hasAttribute('aria-invalid')) validate();
-        context.itemState?.notifyResponseChange(responseIdentifier);
+        context.itemState?.notifyResponseChange();
       });
 
       // Observe interaction enabled state to enable/disable input
@@ -198,7 +193,7 @@ class TextEntryInteractionHandler implements ElementHandler {
 }
 
 const TEXT_ENTRY_INTERACTION_STYLES = `
-  /* The top margin reserves the slot for the evaluation overline, above the text line */
+  /* The top margin reserves the slot for the correct-answer overline, above the text line */
   .cutie-text-entry-interaction {
     display: inline-block;
     margin: var(--cutie-overline-slot) 0.25em 0;

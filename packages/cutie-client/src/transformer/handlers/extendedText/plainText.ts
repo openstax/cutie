@@ -2,17 +2,9 @@ import { createMissingAttributeError } from '../../../errors/errorDisplay.js';
 import { addAriaDescribedBy } from '../../../utils/aria.js';
 import { registry } from '../../registry.js';
 import type { ElementHandler, TransformContext } from '../../types.js';
-import {
-  clearEvaluated,
-  clearVerdictOnEdit,
-  createEvaluationSummary,
-  getVerdictText,
-  markEvaluated,
-  readEvaluation,
-} from '../evaluation/index.js';
+import { createCorrectAnswerSummary, readCorrectResponse } from '../evaluation/index.js';
 import { getDefaultValue } from '../responseUtils.js';
 import {
-  clearConstraintResultVerdict,
   createCharacterCounter,
   createConstraintElements,
   createInteractionContainer,
@@ -150,16 +142,8 @@ class ExtendedTextInteractionHandler implements ElementHandler {
     });
     container.appendChild(readOnlyResponse);
 
-    // Evaluation of a finished attempt when the delivery options show one, or
-    // the last try's verdict on a fresh try. Its verdict takes the constraint
-    // text's place.
-    const evaluation = readEvaluation(element, responseIdentifier, context.styleManager);
-    const verdictText = evaluation?.verdict ? getVerdictText(evaluation.verdict) : null;
-
     // Create constraint elements
-    const constraintResult = createConstraintElements(
-      constraints, responseIdentifier, context.styleManager, verdictText,
-    );
+    const constraintResult = createConstraintElements(constraints, responseIdentifier, context.styleManager);
 
     if (constraintResult) {
       wireConstraintDescribedBy(textarea, constraintResult.constraint.element);
@@ -176,25 +160,20 @@ class ExtendedTextInteractionHandler implements ElementHandler {
       container.appendChild(footer);
     }
 
-    // The correct answer below the textarea, described by it; the status rail
-    // is the visual verdict
-    if (evaluation) {
-      const summary = createEvaluationSummary({
-        id: `evaluation-${responseIdentifier}`,
-        verdict: null,
-        correctAnswer: evaluation.correctResponse.join(', ') || null,
+    // The correct answer of a finished attempt, when the delivery options show
+    // it, below the textarea, described by it
+    const correctResponse = readCorrectResponse(element, responseIdentifier, context.styleManager);
+    if (correctResponse) {
+      const summary = createCorrectAnswerSummary({
+        id: `correct-answer-${responseIdentifier}`,
+        correctAnswer: correctResponse.join(', '),
       });
       if (summary) {
         container.appendChild(summary);
         addAriaDescribedBy(textarea, summary.id);
         addAriaDescribedBy(readOnlyResponse, summary.id);
       }
-      markEvaluated(container, evaluation.verdict);
     }
-    clearVerdictOnEdit(context, responseIdentifier, evaluation, () => {
-      clearEvaluated(container);
-      clearConstraintResultVerdict(constraintResult, textarea);
-    });
 
     // Register response accessor with itemState
     if (context.itemState) {
@@ -254,7 +233,7 @@ class ExtendedTextInteractionHandler implements ElementHandler {
         if (textarea.hasAttribute('aria-invalid')) {
           validate();
         }
-        context.itemState?.notifyResponseChange(responseIdentifier);
+        context.itemState?.notifyResponseChange();
       });
 
       // Observe interaction state changes to enable/disable textarea

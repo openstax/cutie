@@ -8,17 +8,34 @@ import { collectAssetReferences } from './collectAssetReferences.js';
  */
 
 /**
- * Removes any authored copy of the markup cutie-core adds for the client
- * (data-cutie-evaluation attributes, data-cutie-retry elements), so the client
- * only ever sees what core computed.
+ * The verdict on the item as a whole: "correct", "incorrect" or "partial", on
+ * the item body.
+ */
+export const VERDICT_ATTRIBUTE = 'data-cutie-evaluation';
+
+/**
+ * The message shown with the verdict on a fresh try, on the item body.
+ */
+export const RETRY_MESSAGE_ATTRIBUTE = 'data-cutie-retry-message';
+
+/**
+ * Marks a preview (see renderPreview), on the item body.
+ */
+export const PREVIEW_ATTRIBUTE = 'data-cutie-preview';
+
+/**
+ * The attributes cutie-core adds for the client.
+ */
+const RESERVED_ATTRIBUTES = [VERDICT_ATTRIBUTE, RETRY_MESSAGE_ATTRIBUTE, PREVIEW_ATTRIBUTE];
+
+/**
+ * Removes any authored copy of the attributes cutie-core adds for the client,
+ * from the root and everything in it, so the client only ever sees what core
+ * computed.
  */
 export function removeReservedMarkup(root: Element): void {
-  for (const element of Array.from(root.getElementsByTagName('*'))) {
-    if (element.hasAttribute('data-cutie-retry')) {
-      element.parentNode?.removeChild(element);
-    } else {
-      element.removeAttribute('data-cutie-evaluation');
-    }
+  for (const element of [root, ...Array.from(root.getElementsByTagName('*'))]) {
+    for (const attribute of RESERVED_ATTRIBUTES) element.removeAttribute(attribute);
   }
 }
 

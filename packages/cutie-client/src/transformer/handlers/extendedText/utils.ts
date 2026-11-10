@@ -5,7 +5,6 @@ import {
 import { addAriaDescribedBy } from '../../../utils/aria.js';
 import { announce } from '../../../utils/liveRegion.js';
 import type { StyleManager, TransformContext } from '../../types.js';
-import { clearConstraintVerdict } from '../evaluation/index.js';
 
 /**
  * Create the outer container div for an extended-text interaction variant.
@@ -19,8 +18,8 @@ export function createInteractionContainer(
   const container = document.createElement('div');
   const sourceClasses = element.getAttribute('class');
   container.className = sourceClasses
-    ? `${className} cutie-status-rail ${sourceClasses}`
-    : `${className} cutie-status-rail`;
+    ? `${className} ${sourceClasses}`
+    : className;
   container.setAttribute('data-response-identifier', responseIdentifier);
   return container;
 }
@@ -104,10 +103,8 @@ export function getPatternText(
 
 export interface ConstraintResult {
   constraint: ConstraintMessage;
-  /** The text the message shows at rest: the verdict, if any, else the hint */
+  /** The text the message shows at rest: the constraint hint */
   initialText: string;
-  /** The constraint hint, shown in place of a verdict once it is cleared */
-  hintText: string | null;
   minStringsText: string | null;
   minCharactersText: string | null;
   patternText: string | null;
@@ -117,16 +114,11 @@ export interface ConstraintResult {
 /**
  * Create constraint message element if min-strings > 0 or pattern-mask is present.
  * Returns the constraint message and derived text, or null if no constraints apply.
- *
- * A finished attempt with a verdict passes its text as verdictText: the message
- * then shows it in place of the constraint hint (whether or not there are
- * constraints), so it is announced with the input.
  */
 export function createConstraintElements(
   constraints: ParsedConstraints,
   responseIdentifier: string,
   styleManager?: StyleManager,
-  verdictText: string | null = null,
 ): ConstraintResult | null {
   const { minStrings, patternMask, patternMessage, minCharacters, maxCharacters } = constraints;
   const minStringsText = getMinStringsText(minStrings);
@@ -135,12 +127,9 @@ export function createConstraintElements(
   const maxCharactersText = getMaxCharactersText(maxCharacters);
 
   const hasConstraints = minStrings > 0 || !!patternMask || minCharacters !== null || maxCharacters !== null;
-  if (!hasConstraints && !verdictText) return null;
+  if (!hasConstraints) return null;
 
-  const hintText = hasConstraints
-    ? minCharactersText ?? minStringsText ?? patternText ?? maxCharactersText
-    : null;
-  const initialText = verdictText ?? hintText!;
+  const initialText = (minCharactersText ?? minStringsText ?? patternText ?? maxCharactersText)!;
 
   const constraint = createConstraintMessage(
     `constraint-${responseIdentifier}`,
@@ -148,17 +137,7 @@ export function createConstraintElements(
     styleManager,
   );
 
-  return { constraint, initialText, hintText, minStringsText, minCharactersText, patternText, maxCharactersText };
-}
-
-/**
- * Put the constraint hint back in place of a verdict the message showed (see
- * clearConstraintVerdict), once the learner edits the response.
- */
-export function clearConstraintResultVerdict(result: ConstraintResult | null, described: Element | null): void {
-  if (!result) return;
-  clearConstraintVerdict(result.constraint, described, result.hintText);
-  if (result.hintText) result.initialText = result.hintText;
+  return { constraint, initialText, minStringsText, minCharactersText, patternText, maxCharactersText };
 }
 
 /**

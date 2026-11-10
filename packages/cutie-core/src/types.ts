@@ -176,7 +176,7 @@ export interface DeliveryOptions {
    * What the learner is told about how their response was judged, once the
    * attempt is terminal. Each level includes the one before it:
    * - `'none'`: nothing beyond what the item renders
-   * - `'correctness'`: each interaction is marked correct, incorrect or partial
+   * - `'correctness'`: the item as a whole is marked correct, incorrect or partial
    * - `'correctResponse'`: the verdict, plus each interaction's correct response
    *
    * Defaults to `'none'`.
@@ -200,9 +200,9 @@ export interface DeliveryOptions {
    *
    * A try that ends short of fully correct, with tries left, starts a fresh try:
    * the item's outcomes are reset, and its feedback waits for the attempt to be
-   * terminal. A non-adaptive item keeps the learner's responses, each
-   * interaction marked with its verdict; an adaptive item starts over, with the
-   * `adaptiveRetryMessage` at the top.
+   * terminal. The `retryMessage` leads the item, with the last try's verdict
+   * for the item as a whole. A non-adaptive item keeps the learner's responses;
+   * an adaptive item starts over.
    *
    * The attempt is terminal once a try is fully correct, the tries run out, or
    * a try awaits manual scoring. `'smart'` derives the number from the item's
@@ -211,11 +211,11 @@ export interface DeliveryOptions {
   maxTries?: number | 'smart';
 
   /**
-   * Shown at the top of an adaptive item when it starts a fresh try, with `{n}`
+   * Shown at the top of an item when it starts a fresh try, with `{n}`
    * replaced by the tries remaining. Defaults to
    * `"That wasn't quite right. Tries remaining: {n}"`.
    */
-  adaptiveRetryMessage?: string;
+  retryMessage?: string;
 }
 
 /**

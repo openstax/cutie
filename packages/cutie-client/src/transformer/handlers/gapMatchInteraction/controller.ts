@@ -551,8 +551,10 @@ export class GapMatchController {
 
   /**
    * Place a choice in a gap
+   *
+   * @param silent - Don't announce the placement (restoring a response)
    */
-  placeChoiceInGap(gapId: string, choiceId: string): void {
+  placeChoiceInGap(gapId: string, choiceId: string, silent = false): void {
     // If gap already has a choice, remove it first
     if (this.gapAssignments.has(gapId)) {
       this.removeChoiceFromGap(gapId, true);
@@ -595,8 +597,10 @@ export class GapMatchController {
     // Update choice exhaustion state
     this.updateChoiceExhaustion(choiceId);
 
-    const content = this.choiceContents.get(choiceId) ?? '';
-    announce(this.context,`${content} placed in gap.`);
+    if (!silent) {
+      const content = this.choiceContents.get(choiceId) ?? '';
+      announce(this.context,`${content} placed in gap.`);
+    }
   }
 
   /**
@@ -723,7 +727,7 @@ export class GapMatchController {
    * reported once to the item state (see reportResponseChanges).
    */
   private reportingEdits<E extends Event>(listener: (event: E) => void): (event: E) => void {
-    return reportResponseChanges(this.context, this.responseIdentifier, () => this.getResponse(), listener);
+    return reportResponseChanges(this.context, () => this.getResponse(), listener);
   }
 
   /**
@@ -744,7 +748,7 @@ export class GapMatchController {
     for (const pair of defaults) {
       const [choiceId, gapId] = pair.split(' ');
       if (choiceId && gapId && this.gapElements.has(gapId) && this.choiceElements.has(choiceId)) {
-        this.placeChoiceInGap(gapId, choiceId);
+        this.placeChoiceInGap(gapId, choiceId, true);
       }
     }
   }

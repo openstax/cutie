@@ -9,7 +9,7 @@ import { announce } from '../../utils/liveRegion.js';
 import { registry } from '../registry.js';
 import type { ElementHandler, InteractionState, ResponseAccessorOptions, TransformContext } from '../types.js';
 import { parseInputWidth } from '../vocabUtils.js';
-import { clearInlineVerdict, clearVerdictOnEdit, readEvaluation, wrapInlineEvaluation } from './evaluation/index.js';
+import { readCorrectResponse, wrapInlineCorrectAnswer } from './evaluation/index.js';
 import { getDefaultValue } from './responseUtils.js';
 
 /**
@@ -127,19 +127,16 @@ class InlineChoiceInteractionHandler implements ElementHandler {
       select.setAttribute('aria-describedby', constraintId);
     }
 
-    // Evaluation of a finished attempt or a fresh try: the verdict icon and
-    // the correct answer (the choice's displayed text) above the select, describing it
+    // The correct answer of a finished attempt (the choice's displayed text),
+    // above the select, describing it
     let placed: HTMLElement = select;
-    const evaluation = readEvaluation(element, responseIdentifier, context.styleManager);
-    if (evaluation) {
-      const correctText = evaluation.correctResponse
+    const correctResponse = readCorrectResponse(element, responseIdentifier, context.styleManager);
+    if (correctResponse) {
+      const correctText = correctResponse
         .map((id) => Array.from(select.options).find((option) => option.value === id)?.textContent ?? id)
         .join(', ');
-      placed = wrapInlineEvaluation(select, `evaluation-${responseIdentifier}`, evaluation, correctText || null);
+      placed = wrapInlineCorrectAnswer(select, `correct-answer-${responseIdentifier}`, correctText);
     }
-    clearVerdictOnEdit(context, responseIdentifier, evaluation, () =>
-      clearInlineVerdict(select, `evaluation-${responseIdentifier}`)
-    );
 
     // Register response accessor with itemState if available
     if (context.itemState) {
@@ -171,7 +168,7 @@ class InlineChoiceInteractionHandler implements ElementHandler {
           select.removeAttribute('aria-invalid');
           indicator?.setError(false);
         }
-        context.itemState?.notifyResponseChange(responseIdentifier);
+        context.itemState?.notifyResponseChange();
       });
 
       // Observe interaction enabled state to enable/disable select
@@ -192,7 +189,7 @@ class InlineChoiceInteractionHandler implements ElementHandler {
 }
 
 const INLINE_CHOICE_INTERACTION_STYLES = `
-  /* The top margin reserves the slot for the evaluation overline, above the text line */
+  /* The top margin reserves the slot for the correct-answer overline, above the text line */
   .cutie-inline-choice-interaction {
     display: inline-block;
     margin: var(--cutie-overline-slot) 0.25em 0;

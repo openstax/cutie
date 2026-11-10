@@ -2,18 +2,10 @@ import { createMissingAttributeError } from '../../../errors/errorDisplay.js';
 import { addAriaDescribedBy } from '../../../utils/aria.js';
 import { registry } from '../../registry.js';
 import type { ElementHandler, TransformContext } from '../../types.js';
-import {
-  clearEvaluated,
-  clearVerdictOnEdit,
-  createEvaluationSummary,
-  getVerdictText,
-  markEvaluated,
-  readEvaluation,
-} from '../evaluation/index.js';
+import { createCorrectAnswerSummary, readCorrectResponse } from '../evaluation/index.js';
 import { getDefaultValue } from '../responseUtils.js';
 import { loadMathLive } from './mathFieldLoader.js';
 import {
-  clearConstraintResultVerdict,
   createConstraintElements,
   createInteractionContainer,
   createReadOnlyResponse,
@@ -95,41 +87,33 @@ class FormulaInteractionHandler implements ElementHandler {
 
     container.appendChild(mathFieldWrapper);
 
-    // Evaluation of a finished attempt when the delivery options show one, or
-    // the last try's verdict on a fresh try. Its verdict takes the constraint
-    // text's place.
-    const evaluation = readEvaluation(element, responseIdentifier, context.styleManager);
-    const verdictText = evaluation?.verdict ? getVerdictText(evaluation.verdict) : null;
+    // The correct response of a finished attempt, when the delivery options show it
+    const correctResponse = readCorrectResponse(element, responseIdentifier, context.styleManager);
 
     // Parse constraints and create constraint elements
     const constraints = parseConstraints(element);
-    const constraintResult = constraints.minStrings > 0 || verdictText
-      ? createConstraintElements(constraints, responseIdentifier, context.styleManager, verdictText)
+    const constraintResult = constraints.minStrings > 0
+      ? createConstraintElements(constraints, responseIdentifier, context.styleManager)
       : null;
 
     if (constraintResult) {
       container.appendChild(constraintResult.constraint.element);
     }
 
-    // The correct answer below the field; the status rail is the visual
-    // verdict. The LaTeX goes in a MathLive <math-span>, which renders it once
-    // MathLive loads (and shows the raw LaTeX otherwise). The math-field is
-    // created asynchronously, so it is linked via aria-describedby on load.
-    let evaluationSummary: HTMLElement | null = null;
-    if (evaluation) {
-      let correctAnswer: HTMLElement | null = null;
-      if (evaluation.correctResponse.length > 0) {
-        correctAnswer = document.createElement('math-span');
-        correctAnswer.className = 'cutie-formula-correct-answer';
-        correctAnswer.textContent = evaluation.correctResponse.join(', ');
-      }
-      evaluationSummary = createEvaluationSummary({
-        id: `evaluation-${responseIdentifier}`,
-        verdict: null,
+    // The correct answer below the field. The LaTeX goes in a MathLive
+    // <math-span>, which renders it once MathLive loads (and shows the raw
+    // LaTeX otherwise). The math-field is created asynchronously, so it is
+    // linked via aria-describedby on load.
+    let correctAnswerSummary: HTMLElement | null = null;
+    if (correctResponse) {
+      const correctAnswer = document.createElement('math-span');
+      correctAnswer.className = 'cutie-formula-correct-answer';
+      correctAnswer.textContent = correctResponse.join(', ');
+      correctAnswerSummary = createCorrectAnswerSummary({
+        id: `correct-answer-${responseIdentifier}`,
         correctAnswer,
       });
-      if (evaluationSummary) container.appendChild(evaluationSummary);
-      markEvaluated(container, evaluation.verdict);
+      if (correctAnswerSummary) container.appendChild(correctAnswerSummary);
     }
 
     fragment.appendChild(container);
@@ -163,17 +147,12 @@ class FormulaInteractionHandler implements ElementHandler {
     if (constraintResult) {
       wireConstraintDescribedBy(readOnlyResponse, constraintResult.constraint.element);
     }
-    if (evaluationSummary) {
-      addAriaDescribedBy(readOnlyResponse, evaluationSummary.id);
+    if (correctAnswerSummary) {
+      addAriaDescribedBy(readOnlyResponse, correctAnswerSummary.id);
     }
 
     // Track active input element for aria-describedby/aria-invalid
     let activeInputElement: HTMLElement | null = null;
-
-    clearVerdictOnEdit(context, responseIdentifier, evaluation, () => {
-      clearEvaluated(container);
-      clearConstraintResultVerdict(constraintResult, activeInputElement);
-    });
 
     // Check the required (min-strings) constraint and decorate the error state.
     const validate = (): boolean => {
@@ -243,7 +222,7 @@ class FormulaInteractionHandler implements ElementHandler {
           currentValue = mathField.value;
           // Clear the error in real time once already in an error state.
           if (activeInputElement?.hasAttribute('aria-invalid')) validate();
-          context.itemState?.notifyResponseChange(responseIdentifier);
+          context.itemState?.notifyResponseChange();
         });
 
         // Handle interaction state
@@ -259,8 +238,8 @@ class FormulaInteractionHandler implements ElementHandler {
         if (constraintResult) {
           wireConstraintDescribedBy(mathField, constraintResult.constraint.element);
         }
-        if (evaluationSummary) {
-          addAriaDescribedBy(mathField, evaluationSummary.id);
+        if (correctAnswerSummary) {
+          addAriaDescribedBy(mathField, correctAnswerSummary.id);
         }
 
         mathFieldWrapper.appendChild(mathField);

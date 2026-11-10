@@ -11,16 +11,7 @@ import { announce } from '../../utils/liveRegion.js';
 import { initializeRovingTabindex, updateRovingTabindex } from '../../utils/rovingTabindex.js';
 import { registry } from '../registry.js';
 import type { ElementHandler, InteractionState, ResponseAccessorOptions, TransformContext } from '../types.js';
-import {
-  clearConstraintVerdict,
-  clearEvaluated,
-  clearVerdictOnEdit,
-  createCorrectAnswerOverline,
-  createIncorrectAnswerOverline,
-  getVerdictText,
-  markEvaluated,
-  readEvaluation,
-} from './evaluation/index.js';
+import { createCorrectAnswerOverline, createIncorrectAnswerOverline, readCorrectResponse } from './evaluation/index.js';
 import { getDefaultValue } from './responseUtils.js';
 
 /**
@@ -143,8 +134,8 @@ class ChoiceInteractionHandler implements ElementHandler {
     const container = document.createElement('div');
     const sourceClasses = element.getAttribute('class');
     container.className = sourceClasses
-      ? `cutie-choice-interaction cutie-status-rail ${sourceClasses}`
-      : 'cutie-choice-interaction cutie-status-rail';
+      ? `cutie-choice-interaction ${sourceClasses}`
+      : 'cutie-choice-interaction';
     container.setAttribute('data-response-identifier', responseIdentifier);
     container.setAttribute('data-max-choices', maxChoicesAttr);
 
@@ -244,19 +235,14 @@ class ChoiceInteractionHandler implements ElementHandler {
 
     container.appendChild(choicesContainer);
 
-    // Evaluation of a finished attempt when the delivery options show one,
-    // or the last try's verdict on a fresh try
-    const evaluation = readEvaluation(element, responseIdentifier, context.styleManager);
+    // The correct response of a finished attempt, when the delivery options show it
+    const correctResponse = readCorrectResponse(element, responseIdentifier, context.styleManager);
 
-    // Add constraint text if applicable. A finished attempt with a verdict
-    // describes the response in its place, so it is announced with the
-    // fieldset; the status rail is the visual verdict.
+    // Add constraint text if applicable
     let constraint: NoticeConstraintMessage | undefined;
     const minSelectionsMessage = element.getAttribute('data-min-selections-message');
     const maxSelectionsMessage = element.getAttribute('data-max-selections-message');
-    const verdict = evaluation?.verdict ?? null;
-    const constraintText = buildConstraintText(minChoices, maxChoices, isSingleSelect);
-    let hintText = verdict ? getVerdictText(verdict) : constraintText;
+    const hintText = buildConstraintText(minChoices, maxChoices, isSingleSelect);
     if (hintText) {
       constraint = createConstraintMessage(
         `constraint-${responseIdentifier}`,
@@ -286,30 +272,20 @@ class ChoiceInteractionHandler implements ElementHandler {
       }
     }
 
-    // Draw the evaluation: the status rail, a "correct answer" overline on
+    // Draw the correct answer: a "correct answer" overline on
     // each correct choice, and an "incorrect answer" overline on each selected
     // choice that isn't correct, on its own line above the choice text (first
     // in the choice's content, so its name reads "Correct answer <choice>").
-    // The verdict is in the constraint text.
-    if (evaluation) {
-      const hasCorrectResponse = evaluation.correctResponse.length > 0;
+    if (correctResponse) {
       for (const input of inputElements) {
         const content = input.parentElement?.querySelector('.cutie-simple-choice-content');
-        if (evaluation.correctResponse.includes(input.value)) {
+        if (correctResponse.includes(input.value)) {
           content?.prepend(createCorrectAnswerOverline());
-        } else if (hasCorrectResponse && input.checked) {
+        } else if (input.checked) {
           content?.prepend(createIncorrectAnswerOverline());
         }
       }
-      markEvaluated(container, evaluation.verdict);
     }
-    clearVerdictOnEdit(context, responseIdentifier, evaluation, () => {
-      clearEvaluated(container);
-      // Incorrect-answer marks describe the response, so they go with the verdict
-      container.querySelectorAll('.cutie-correct-answer-overline--incorrect').forEach((mark) => mark.remove());
-      clearConstraintVerdict(constraint, choicesContainer, constraintText);
-      hintText = constraintText;
-    });
 
     // For single-select (radio), use roving tabindex to ensure Tab always
     // enters the group at the correct radio. Without this, browsers remember
@@ -402,9 +378,7 @@ class ChoiceInteractionHandler implements ElementHandler {
       // Real-time validation on user interaction
       inputElements.forEach((input) => {
         input.addEventListener('change', () => {
-          // Report the edit first: it clears a verdict the constraint message
-          // may be showing, so validation below uses the constraint's own text
-          context.itemState?.notifyResponseChange(responseIdentifier);
+          context.itemState?.notifyResponseChange();
           if (checkValidity()) {
             clearErrors();
           } else {

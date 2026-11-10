@@ -93,13 +93,7 @@ export interface ItemState {
    * from learner-edit event paths only — never when restoring values
    * programmatically (e.g. from qti-default-value).
    */
-  notifyResponseChange(responseIdentifier: string): void;
-
-  /**
-   * Call `listener` on each learner edit that changes the given response
-   * (as reported by notifyResponseChange).
-   */
-  onResponseEdit(responseIdentifier: string, listener: () => void): void;
+  notifyResponseChange(): void;
 
   // State management with observer pattern
   readonly interactionState: InteractionState;

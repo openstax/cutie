@@ -24,14 +24,16 @@ function feedbackIdentifiers(template: string): string[] {
   );
 }
 
-function evaluationOf(template: string, responseIdentifier: string): string | null {
-  const doc = parseTemplate(template);
-  const interaction = Array.from(doc.getElementsByTagName('*')).find(
-    (el) => el.getAttribute('response-identifier') === responseIdentifier
+function itemVerdict(template: string): string | null {
+  const itemBody = parseTemplate(template).getElementsByTagName('qti-item-body')[0];
+  return itemBody?.getAttribute('data-cutie-evaluation') || null;
+}
+
+/** Every element other than the item body that carries a verdict */
+function interactionVerdicts(template: string): Element[] {
+  return Array.from(parseTemplate(template).getElementsByTagName('*')).filter(
+    (el) => el.tagName !== 'qti-item-body' && el.hasAttribute('data-cutie-evaluation')
   );
-  return interaction?.hasAttribute('data-cutie-evaluation')
-    ? interaction.getAttribute('data-cutie-evaluation')
-    : null;
 }
 
 function correctResponseOf(template: string, responseIdentifier: string): string[] | null {
@@ -286,7 +288,7 @@ describe('delivery options', () => {
         showEvaluation: 'none',
         shuffleOverride: 'none',
         maxTries: 1,
-        adaptiveRetryMessage: 'That wasn\'t quite right. Tries remaining: {n}',
+        retryMessage: 'That wasn\'t quite right. Tries remaining: {n}',
       });
     });
 
@@ -299,7 +301,7 @@ describe('delivery options', () => {
         showEvaluation: 'correctness',
         shuffleOverride: 'none',
         maxTries: 1,
-        adaptiveRetryMessage: 'That wasn\'t quite right. Tries remaining: {n}',
+        retryMessage: 'That wasn\'t quite right. Tries remaining: {n}',
       });
     });
 
@@ -309,7 +311,7 @@ describe('delivery options', () => {
         showEvaluation: 'correctResponse',
         shuffleOverride: 'never',
         maxTries: 2,
-        adaptiveRetryMessage: 'Try again ({n} left)',
+        retryMessage: 'Try again ({n} left)',
       };
       const begun = await beginAttempt(externalScoredItem, undefined, options);
       const submitted = await submitResponse({ CHOICE: 'A', ESSAY: 'Text' }, begun.state, externalScoredItem);
@@ -437,20 +439,21 @@ describe('delivery options', () => {
     test('\'none\' adds no evaluation', async () => {
       const begun = await beginAttempt(feedbackChoiceItem);
       const result = await submitResponse({ RESPONSE: 'B' }, begun.state, feedbackChoiceItem);
-      expect(evaluationOf(result.template, 'RESPONSE')).toBeNull();
+      expect(itemVerdict(result.template)).toBeNull();
       expect(correctResponseOf(result.template, 'RESPONSE')).toBeNull();
     });
 
-    test('\'correctness\' marks each interaction without revealing the correct response', async () => {
+    test('\'correctness\' marks the item without revealing the correct response', async () => {
       const begun = await beginAttempt(feedbackChoiceItem, undefined, { showEvaluation: 'correctness' });
-      expect(evaluationOf(begun.template, 'RESPONSE')).toBeNull();
+      expect(itemVerdict(begun.template)).toBeNull();
 
       const wrong = await submitResponse({ RESPONSE: 'B' }, begun.state, feedbackChoiceItem);
-      expect(evaluationOf(wrong.template, 'RESPONSE')).toBe('incorrect');
+      expect(itemVerdict(wrong.template)).toBe('incorrect');
+      expect(interactionVerdicts(wrong.template)).toEqual([]);
       expect(correctResponseOf(wrong.template, 'RESPONSE')).toBeNull();
 
       const right = await submitResponse({ RESPONSE: 'A' }, begun.state, feedbackChoiceItem);
-      expect(evaluationOf(right.template, 'RESPONSE')).toBe('correct');
+      expect(itemVerdict(right.template)).toBe('correct');
     });
 
     test('\'correctResponse\' adds the correct response alongside the verdict', async () => {
@@ -458,7 +461,7 @@ describe('delivery options', () => {
       expect(correctResponseOf(begun.template, 'RESPONSE')).toBeNull();
 
       const result = await submitResponse({ RESPONSE: 'B' }, begun.state, feedbackChoiceItem);
-      expect(evaluationOf(result.template, 'RESPONSE')).toBe('incorrect');
+      expect(itemVerdict(result.template)).toBe('incorrect');
       expect(correctResponseOf(result.template, 'RESPONSE')).toEqual(['A']);
     });
 
@@ -466,11 +469,11 @@ describe('delivery options', () => {
       const begun = await beginAttempt(adaptiveItem, undefined, { showEvaluation: 'correctResponse' });
 
       const first = await submitResponse({ RESPONSE: 'B' }, begun.state, adaptiveItem);
-      expect(evaluationOf(first.template, 'RESPONSE')).toBeNull();
+      expect(itemVerdict(first.template)).toBeNull();
       expect(correctResponseOf(first.template, 'RESPONSE')).toBeNull();
 
       const second = await submitResponse({ RESPONSE: 'A' }, first.state, adaptiveItem);
-      expect(evaluationOf(second.template, 'RESPONSE')).toBe('correct');
+      expect(itemVerdict(second.template)).toBe('correct');
       expect(correctResponseOf(second.template, 'RESPONSE')).toEqual(['A']);
     });
 
@@ -486,7 +489,7 @@ describe('delivery options', () => {
       ];
       for (const [response, expected] of cases) {
         const result = await submitResponse({ RESPONSE: response }, begun.state, mappedMultipleItem);
-        expect(evaluationOf(result.template, 'RESPONSE')).toBe(expected);
+        expect(itemVerdict(result.template)).toBe(expected);
       }
 
       const result = await submitResponse({ RESPONSE: ['A'] }, begun.state, mappedMultipleItem);
@@ -515,39 +518,25 @@ describe('delivery options', () => {
 
       const both = await submitResponse({ RESPONSE: ['100 100', '200 200'] }, begun.state, itemXml);
       expect(both.state.score?.max).toBe(4);
-      expect(evaluationOf(both.template, 'RESPONSE')).toBe('correct');
+      expect(itemVerdict(both.template)).toBe('correct');
 
       const one = await submitResponse({ RESPONSE: ['200 200', '205 195'] }, begun.state, itemXml);
-      expect(evaluationOf(one.template, 'RESPONSE')).toBe('partial');
+      expect(itemVerdict(one.template)).toBe('partial');
     });
 
-    test('judges each interaction by its own declaration, as response processing compares', async () => {
+    test('marks only the item, judged by its score, even when each interaction is correct', async () => {
       const begun = await beginAttempt(multiInteractionItem, undefined, { showEvaluation: 'correctResponse' });
-      const result = await submitResponse({ CITY: 'paris', COUNT: '5', NOTES: 'x' }, begun.state, multiInteractionItem);
-
-      // The mapping is case-insensitive, and takes precedence over the correct response
-      expect(evaluationOf(result.template, 'CITY')).toBe('correct');
-      // Submitted as a string, compared as the declared integer
-      expect(evaluationOf(result.template, 'COUNT')).toBe('incorrect');
-      // Neither a mapping nor a correct response: no verdict, no correct response
-      expect(evaluationOf(result.template, 'NOTES')).toBeNull();
-      expect(correctResponseOf(result.template, 'NOTES')).toBeNull();
-
-      expect(correctResponseOf(result.template, 'CITY')).toEqual(['Paris']);
-      expect(correctResponseOf(result.template, 'COUNT')).toEqual(['4']);
-    });
-
-    test('judges the response as a whole on the item body, by its score', async () => {
-      const begun = await beginAttempt(multiInteractionItem, undefined, { showEvaluation: 'correctness' });
-      const itemVerdict = (template: string) =>
-        parseTemplate(template).getElementsByTagName('qti-item-body')[0]?.getAttribute('data-cutie-evaluation') || null;
       expect(itemVerdict(begun.template)).toBeNull();
 
       // Each interaction is correct, but the item's processing only awards CITY: 1 of 2
       const result = await submitResponse({ CITY: 'Paris', COUNT: '4' }, begun.state, multiInteractionItem);
-      expect(evaluationOf(result.template, 'CITY')).toBe('correct');
-      expect(evaluationOf(result.template, 'COUNT')).toBe('correct');
       expect(itemVerdict(result.template)).toBe('partial');
+      expect(interactionVerdicts(result.template)).toEqual([]);
+
+      // A response with neither a mapping nor a correct response gets no correct response
+      expect(correctResponseOf(result.template, 'NOTES')).toBeNull();
+      expect(correctResponseOf(result.template, 'CITY')).toEqual(['Paris']);
+      expect(correctResponseOf(result.template, 'COUNT')).toEqual(['4']);
     });
 
     test('uses this attempt\'s correct response when template processing sets it', async () => {
@@ -557,7 +546,7 @@ describe('delivery options', () => {
       expect(Object.keys(begun.state.variables)).toEqual(expect.not.arrayContaining(['__correct_RESPONSE']));
       const result = await submitResponse({ RESPONSE: 'B' }, begun.state, templatedCorrectItem);
 
-      expect(evaluationOf(result.template, 'RESPONSE')).toBe('correct');
+      expect(itemVerdict(result.template)).toBe('correct');
       expect(correctResponseOf(result.template, 'RESPONSE')).toEqual(['B']);
     });
 
@@ -579,20 +568,19 @@ describe('delivery options', () => {
       const result = await submitResponse({ RESPONSE: 'null' }, begun.state, item);
 
       expect(result.state.variables.SCORE).toBe(0);
-      expect(evaluationOf(result.template, 'RESPONSE')).toBeNull();
+      expect(itemVerdict(result.template)).toBe('incorrect');
       expect(correctResponseOf(result.template, 'RESPONSE')).toBeNull();
     });
 
     test('shows nothing while manual scoring is pending', async () => {
       const begun = await beginAttempt(externalScoredItem, undefined, { showEvaluation: 'correctResponse' });
       const submitted = await submitResponse({ CHOICE: 'A', ESSAY: 'Text' }, begun.state, externalScoredItem);
-      expect(evaluationOf(submitted.template, 'CHOICE')).toBeNull();
+      expect(itemVerdict(submitted.template)).toBeNull();
       expect(correctResponseOf(submitted.template, 'CHOICE')).toBeNull();
 
       const scored = await setScore(5, 'Good', submitted.state, externalScoredItem);
-      expect(evaluationOf(scored.template, 'CHOICE')).toBe('correct');
+      expect(itemVerdict(scored.template)).toBe('correct');
       expect(correctResponseOf(scored.template, 'CHOICE')).toEqual(['A']);
-      expect(evaluationOf(scored.template, 'ESSAY')).toBeNull();
     });
   });
 

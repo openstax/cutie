@@ -1,7 +1,7 @@
 /* spell-checker: ignore hottext hottexts */
 import { DOMParser } from '@xmldom/xmldom';
 import { describe, expect, test } from 'vitest';
-import { deriveSmartMaxTries } from './lib/maxTries.js';
+import { deriveSmartMaxTries, SMART_MAX_TRIES_CAP } from './lib/maxTries.js';
 import {
   type AttemptResult,
   beginAttempt,
@@ -47,9 +47,12 @@ function defaultValueOf(template: string, responseIdentifier: string): string[] 
 }
 
 function retryMessageOf(template: string): { verdict: string; text: string } | null {
-  const doc = parseTemplate(template);
-  const message = Array.from(doc.getElementsByTagName('div')).find((el) => el.hasAttribute('data-cutie-retry'));
-  return message ? { verdict: message.getAttribute('data-cutie-retry') ?? '', text: message.textContent ?? '' } : null;
+  const itemBody = parseTemplate(template).getElementsByTagName('qti-item-body')[0];
+  if (!itemBody?.hasAttribute('data-cutie-retry-message')) return null;
+  return {
+    verdict: itemBody.getAttribute('data-cutie-evaluation') ?? '',
+    text: itemBody.getAttribute('data-cutie-retry-message') ?? '',
+  };
 }
 
 async function expectResumable(result: AttemptResult, itemXml: string): Promise<void> {
@@ -268,12 +271,16 @@ describe('tries', () => {
       // The last try's score stands until the next try ends
       expect(result.state.score?.raw).toBe(0);
 
-      // Feedback waits; the response stays, marked with its verdict
+      // Feedback waits; the response stays, and the item carries the verdict
+      // for the item as a whole, with the retry message, not the interaction
       expect(feedbackIdentifiers(result.template)).toEqual([]);
       expect(defaultValueOf(result.template, 'RESPONSE')).toEqual(['B']);
-      expect(evaluationOf(result.template, 'RESPONSE')).toBe('incorrect');
+      expect(evaluationOf(result.template, 'RESPONSE')).toBeNull();
       expect(itemVerdictOf(result.template)).toBe('incorrect');
-      expect(retryMessageOf(result.template)).toBeNull();
+      expect(retryMessageOf(result.template)).toEqual({
+        verdict: 'incorrect',
+        text: 'That wasn\'t quite right. Tries remaining: 1',
+      });
 
       await expectResumable(result, choiceItem);
     });
@@ -326,7 +333,7 @@ describe('tries', () => {
       const result = await submitResponse({ RESPONSE: 'A' }, retry.state, choiceItem);
 
       expect(feedbackIdentifiers(result.template)).toEqual([]);
-      expect(evaluationOf(result.template, 'RESPONSE')).toBe('correct');
+      expect(evaluationOf(result.template, 'RESPONSE')).toBeNull();
       expect(itemVerdictOf(result.template)).toBe('correct');
       expect(result.hasNewFeedback).toBe(true);
     });
@@ -337,8 +344,7 @@ describe('tries', () => {
 
       expect(result.state.completionStatus).toBe('incomplete');
       expect(result.state.retryVerdict).toBe('partial');
-      expect(evaluationOf(result.template, 'RESPONSE')).toBe('partial');
-      expect(itemVerdictOf(result.template)).toBe('partial');
+      expect(retryMessageOf(result.template)?.verdict).toBe('partial');
     });
 
     test('ends a try on every submission, even when response processing says incomplete', async () => {
@@ -368,6 +374,19 @@ describe('tries', () => {
       expect(second.state.triesRemaining).toBe(1);
       expect(second.hasNewFeedback).toBe(true);
       expect(defaultValueOf(second.template, 'RESPONSE')).toEqual(['C']);
+    });
+
+    test('reports the last try\'s verdict as new, even when it repeats the fresh try\'s', async () => {
+      const begun = await begin(mappedItem, { maxTries: 2, showEvaluation: 'correctness' });
+      const retry = await submitResponse({ RESPONSE: ['A'] }, begun.state, mappedItem);
+      const result = await submitResponse({ RESPONSE: ['A'] }, retry.state, mappedItem);
+
+      // The same verdict, and nothing else new: the attempt has ended
+      expect(itemVerdictOf(retry.template)).toBe('partial');
+      expect(result.state.completionStatus).toBe('completed');
+      expect(itemVerdictOf(result.template)).toBe('partial');
+      expect(feedbackIdentifiers(result.template)).toEqual([]);
+      expect(result.hasNewFeedback).toBe(true);
     });
   });
 
@@ -399,7 +418,7 @@ describe('tries', () => {
       expect(feedbackIdentifiers(result.template)).toEqual([]);
       expect(defaultValueOf(result.template, 'RESPONSE')).toEqual([]);
       expect(evaluationOf(result.template, 'RESPONSE')).toBeNull();
-      expect(itemVerdictOf(result.template)).toBeNull();
+      expect(itemVerdictOf(result.template)).toBe('partial');
       expect(retryMessageOf(result.template)).toEqual({
         verdict: 'partial',
         text: 'That wasn\'t quite right. Tries remaining: 1',
@@ -475,8 +494,8 @@ describe('tries', () => {
       expect(defaultValueOf(retry.template, 'RESPONSE')).toEqual(['B']);
     });
 
-    test('uses the adaptiveRetryMessage given', async () => {
-      const begun = await begin(adaptiveItem, { maxTries: 3, adaptiveRetryMessage: '{n} left. {n}!' });
+    test('uses the retryMessage given', async () => {
+      const begun = await begin(adaptiveItem, { maxTries: 3, retryMessage: '{n} left. {n}!' });
       const hinted = await submitResponse({ RESPONSE: 'B' }, begun.state, adaptiveItem);
       const result = await submitResponse({ RESPONSE: 'B' }, hinted.state, adaptiveItem);
 
@@ -497,13 +516,33 @@ describe('tries', () => {
   describe('reserved markup', () => {
     test('authored verdicts and retry messages never reach the client', async () => {
       const item = choiceItem
-        .replace('<qti-item-body>', '<qti-item-body data-cutie-evaluation="correct"><div data-cutie-retry="incorrect">Fake</div>')
+        .replace('<qti-item-body>', '<qti-item-body data-cutie-evaluation="correct" data-cutie-retry-message="Fake">')
         .replace('<qti-choice-interaction response-identifier="RESPONSE"', '<qti-choice-interaction data-cutie-evaluation="correct" response-identifier="RESPONSE"');
       const { template } = await beginAttempt(item);
 
       expect(itemVerdictOf(template)).toBeNull();
       expect(evaluationOf(template, 'RESPONSE')).toBeNull();
       expect(retryMessageOf(template)).toBeNull();
+    });
+
+    test('authored verdicts on the item element never reach the client', async () => {
+      const item = choiceItem.replace(
+        '<qti-assessment-item ',
+        '<qti-assessment-item data-cutie-evaluation="correct" data-cutie-retry-message="Fake" '
+      );
+      const { template } = await beginAttempt(item);
+      const root = parseTemplate(template).documentElement;
+
+      expect(root.hasAttribute('data-cutie-evaluation')).toBe(false);
+      expect(root.hasAttribute('data-cutie-retry-message')).toBe(false);
+    });
+
+    test('an authored preview mark never reaches a learner', async () => {
+      const item = choiceItem.replace('<qti-item-body>', '<qti-item-body data-cutie-preview="true">');
+      const { template } = await beginAttempt(item);
+      const itemBody = parseTemplate(template).getElementsByTagName('qti-item-body')[0];
+
+      expect(itemBody?.hasAttribute('data-cutie-preview')).toBe(false);
     });
   });
 
@@ -542,7 +581,7 @@ describe('tries', () => {
 
       // Unknown, so the attempt ends, without claiming the response is correct
       expect(result.state.completionStatus).toBe('completed');
-      expect(evaluationOf(result.template, 'CHOICE')).toBe('correct');
+      expect(evaluationOf(result.template, 'CHOICE')).toBeNull();
       expect(itemVerdictOf(result.template)).toBeNull();
     });
 
@@ -644,43 +683,21 @@ describe('tries', () => {
       expect(deriveSmartMaxTries(parser.parseFromString(item, 'text/xml'), {})).toBe(tries);
     });
 
-    test('takes the fewest any interaction allows', () => {
+    test('pools the options of every interaction in the item', () => {
       const item = itemWithBody(`
-        <qti-choice-interaction response-identifier="R1">${choices(6)}</qti-choice-interaction>
+        <qti-choice-interaction response-identifier="R1">${choices(3)}</qti-choice-interaction>
         <p><qti-inline-choice-interaction response-identifier="R2">
           <qti-inline-choice identifier="a">a</qti-inline-choice><qti-inline-choice identifier="b">b</qti-inline-choice>
           <qti-inline-choice identifier="c">c</qti-inline-choice><qti-inline-choice identifier="d">d</qti-inline-choice>
         </qti-inline-choice-interaction></p>`);
-      expect(deriveSmartMaxTries(parser.parseFromString(item, 'text/xml'), {})).toBe(2);
-    });
-
-    test('counts the target set of a match interaction, and the choices of a gap match', () => {
-      const match = itemWithBody(`
-        <qti-match-interaction response-identifier="R">
-          <qti-simple-match-set>
-            <qti-simple-associable-choice identifier="S1" match-max="1">1</qti-simple-associable-choice>
-            <qti-simple-associable-choice identifier="S2" match-max="1">2</qti-simple-associable-choice>
-          </qti-simple-match-set>
-          <qti-simple-match-set>
-            ${['T1', 'T2', 'T3', 'T4', 'T5', 'T6'].map((id) => `<qti-simple-associable-choice identifier="${id}" match-max="1">${id}</qti-simple-associable-choice>`).join('')}
-          </qti-simple-match-set>
-        </qti-match-interaction>`);
-      expect(deriveSmartMaxTries(parser.parseFromString(match, 'text/xml'), {})).toBe(3);
-
-      const gapMatch = itemWithBody(`
-        <qti-gap-match-interaction response-identifier="R">
-          ${['W1', 'W2', 'W3', 'W4'].map((id) => `<qti-gap-text identifier="${id}" match-max="1">${id}</qti-gap-text>`).join('')}
-          <p>A <qti-gap identifier="G1"/> and <qti-gap identifier="G2"/></p>
-        </qti-gap-match-interaction>`);
-      expect(deriveSmartMaxTries(parser.parseFromString(gapMatch, 'text/xml'), {})).toBe(2);
-    });
-
-    test('counts the hottexts of a hottext interaction', () => {
-      const item = itemWithBody(`
-        <qti-hottext-interaction response-identifier="R" max-choices="0">
-          <p>${['H1', 'H2', 'H3', 'H4', 'H5', 'H6'].map((id) => `<qti-hottext identifier="${id}">${id}</qti-hottext>`).join(' ')}</p>
-        </qti-hottext-interaction>`);
+      // 3 choices and 4 inline choices: 7 options
       expect(deriveSmartMaxTries(parser.parseFromString(item, 'text/xml'), {})).toBe(3);
+    });
+
+    test('allows at most SMART_MAX_TRIES_CAP tries, however many options', () => {
+      const item = itemWithBody(`<qti-choice-interaction response-identifier="R">${choices(20)}</qti-choice-interaction>`);
+      expect(SMART_MAX_TRIES_CAP).toBe(4);
+      expect(deriveSmartMaxTries(parser.parseFromString(item, 'text/xml'), {})).toBe(SMART_MAX_TRIES_CAP);
     });
 
     test('counts only the choices this variant shows', () => {

@@ -17,15 +17,7 @@ import {
 } from '../../utils/rovingTabindex.js';
 import { registry } from '../registry.js';
 import type { ElementHandler, InteractionState, ResponseAccessorOptions, TransformContext } from '../types.js';
-import {
-  clearConstraintVerdict,
-  clearEvaluated,
-  clearVerdictOnEdit,
-  createSrText,
-  getVerdictText,
-  markEvaluated,
-  readEvaluation,
-} from './evaluation/index.js';
+import { createSrText, readCorrectResponse } from './evaluation/index.js';
 import { getDefaultValue } from './responseUtils.js';
 
 /**
@@ -108,16 +100,6 @@ function drawAnswerMarks(
       markAnswer(button, 'incorrect');
     }
   }
-}
-
-/**
- * Remove the incorrect-answer marks.
- */
-function clearIncorrectAnswerMarks(container: HTMLElement): void {
-  container.querySelectorAll(`.${ANSWER_MARKS.incorrect.className}`).forEach((marked) => {
-    marked.classList.remove('cutie-answer-mark', ANSWER_MARKS.incorrect.className);
-    marked.querySelector('[data-answer-mark="incorrect"]')?.remove();
-  });
 }
 
 /**
@@ -223,8 +205,8 @@ class HottextInteractionHandler implements ElementHandler {
     const container = document.createElement('div');
     const sourceClasses = element.getAttribute('class');
     container.className = sourceClasses
-      ? `cutie-hottext-interaction cutie-status-rail ${sourceClasses}`
-      : 'cutie-hottext-interaction cutie-status-rail';
+      ? `cutie-hottext-interaction ${sourceClasses}`
+      : 'cutie-hottext-interaction';
     container.setAttribute('data-response-identifier', responseIdentifier);
     container.setAttribute('role', isSingleSelect ? 'radiogroup' : 'group');
     if (isSingleSelect && minChoices >= 1) {
@@ -308,17 +290,14 @@ class HottextInteractionHandler implements ElementHandler {
       setSelected(button, true);
     };
 
-    // Evaluation of a finished attempt when the delivery options show one,
-    // or the last try's verdict on a fresh try
-    const evaluation = readEvaluation(element, responseIdentifier, context.styleManager);
+    // The correct response of a finished attempt, when the delivery options show it
+    const correctResponse = readCorrectResponse(element, responseIdentifier, context.styleManager);
 
-    // Constraint message. A verdict describes the response in its place, so it
-    // is announced with the group; the status rail is the visual verdict.
+    // Constraint message
     const minSelectionsMessage = element.getAttribute('data-min-selections-message');
     const maxSelectionsMessage = element.getAttribute('data-max-selections-message');
     let constraint: ConstraintMessage | undefined;
-    const constraintText = buildConstraintText(minChoices, maxChoices, isSingleSelect);
-    let hintText = evaluation?.verdict ? getVerdictText(evaluation.verdict) : constraintText;
+    const hintText = buildConstraintText(minChoices, maxChoices, isSingleSelect);
     if (hintText) {
       constraint = createConstraintMessage(
         `constraint-${responseIdentifier}`,
@@ -363,21 +342,12 @@ class HottextInteractionHandler implements ElementHandler {
     };
     restoreTabStops();
 
-    // Draw the evaluation: the status rail, a solid underline on each hottext
-    // in the correct response, and a wavy underline on each selected hottext
-    // that isn't. Each marked hottext's name starts with what its mark means.
-    // The verdict is in the constraint text.
-    if (evaluation) {
-      drawAnswerMarks(container, buttons, evaluation.correctResponse, isSelected);
-      markEvaluated(container, evaluation.verdict);
+    // Draw the correct answer: a solid underline on each hottext in the correct
+    // response, and a wavy underline on each selected hottext that isn't. Each
+    // marked hottext's name starts with what its mark means.
+    if (correctResponse) {
+      drawAnswerMarks(container, buttons, correctResponse, isSelected);
     }
-    clearVerdictOnEdit(context, responseIdentifier, evaluation, () => {
-      clearEvaluated(container);
-      // Incorrect-answer marks describe the response, so they go with the verdict
-      clearIncorrectAnswerMarks(container);
-      clearConstraintVerdict(constraint, container, constraintText);
-      hintText = constraintText;
-    });
 
     const checkValidity = (): boolean => {
       const count = selectedCount();
@@ -416,9 +386,8 @@ class HottextInteractionHandler implements ElementHandler {
         setSelected(button, false);
       } else {
         if (maxChoices > 0 && selectedCount() >= maxChoices) {
-          // The selection is refused, so the response (and any verdict on it)
-          // stands; announce the constraint, not the verdict
-          const msg = maxSelectionsMessage ?? constraintText;
+          // The selection is refused, so the response stands
+          const msg = maxSelectionsMessage ?? hintText;
           if (msg) announce(context, msg, 'assertive');
           return;
         }
@@ -430,7 +399,7 @@ class HottextInteractionHandler implements ElementHandler {
 
     // Learner gestures report the response changes they make to the item state
     const reported = <E extends Event>(listener: (event: E) => void) =>
-      reportResponseChanges(context, responseIdentifier, getResponse, listener);
+      reportResponseChanges(context, getResponse, listener);
 
     for (const button of buttons) {
       button.addEventListener('click', reported(() => activate(button)));

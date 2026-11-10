@@ -5,7 +5,7 @@ import { registerBaseStyles } from './styles/index.js';
 import { applyThemeVars, removeThemeVars, type ThemeOptions } from './theme.js';
 import { labelInteractionsFromContext, SR_ONLY_STYLES } from './transformer/contextLabels/index.js';
 import { createTransformContext, transformChildren, transformNode } from './transformer/elementTransformer.js';
-import { announceItemVerdict } from './transformer/handlers/evaluation/index.js';
+import { createItemVerdict } from './transformer/handlers/evaluation/index.js';
 import { beginFeedbackRender, endFeedbackRender } from './transformer/handlers/feedback/feedbackAnnouncer.js';
 import { DefaultStyleManager } from './transformer/styleManager.js';
 import type { InteractionState, ResponseData, TransformContext } from './transformer/types.js';
@@ -125,11 +125,13 @@ export function mountItem(
     });
     currentContext = context;
 
-    // Announced before the feedback the render announces
-    announceItemVerdict(parsed.itemBody, context);
+    // The item's verdict leads the item, and is announced before the feedback
+    // the render announces
+    const itemVerdict = createItemVerdict(parsed.itemBody, context);
     beginFeedbackRender(state);
 
     const fragment = transformChildren(parsed.itemBody, context);
+    if (itemVerdict) fragment.prepend(itemVerdict);
 
     for (const modalFeedback of parsed.modalFeedbacks) {
       fragment.appendChild(transformNode(modalFeedback, context));

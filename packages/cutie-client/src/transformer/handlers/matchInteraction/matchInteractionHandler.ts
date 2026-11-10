@@ -5,15 +5,7 @@ import {
 } from '../../../errors/validationDisplay.js';
 import { announce } from '../../../utils/liveRegion.js';
 import type { ElementHandler, InteractionState, TransformContext } from '../../types.js';
-import {
-  clearConstraintVerdict,
-  clearEvaluated,
-  clearVerdictOnEdit,
-  getVerdictText,
-  markEvaluated,
-  parseDirectedPair,
-  readEvaluation,
-} from '../evaluation/index.js';
+import { parseDirectedPair, readCorrectResponse } from '../evaluation/index.js';
 import { getDefaultValue } from '../responseUtils.js';
 import { type MatchChoice, readMatchSet, warnDuplicateIdentifiers } from './choices.js';
 import { createColumns } from './columnsPresentation.js';
@@ -108,7 +100,7 @@ export class MatchInteractionHandler implements ElementHandler {
 
     // Create main container
     const container = document.createElement('div');
-    container.className = 'cutie-match-interaction cutie-status-rail';
+    container.className = 'cutie-match-interaction';
     container.setAttribute('data-response-identifier', responseIdentifier);
     container.setAttribute('role', 'group');
 
@@ -158,20 +150,15 @@ export class MatchInteractionHandler implements ElementHandler {
     });
     const { controller } = presentation;
 
-    // Evaluation of a finished attempt when the delivery options show one,
-    // or the last try's verdict on a fresh try
-    const evaluation = readEvaluation(element, responseIdentifier, context.styleManager);
+    // The correct response of a finished attempt, when the delivery options show it
+    const correctResponse = readCorrectResponse(element, responseIdentifier, context.styleManager);
 
-    // Add constraint message for min-associations and match-min. A finished
-    // attempt with a verdict describes the response in its place, so it is
-    // announced with the group; the status rail is the visual verdict.
+    // Add constraint message for min-associations and match-min
     let constraint: ConstraintMessage | undefined;
-    const verdict = evaluation?.verdict ?? null;
     const constraintSentences = buildConstraintSentences(
       minAssociations, maxAssociations, [...sources, ...targets]
     );
-    const associationText = joinSentences(constraintSentences);
-    const constraintText = verdict ? getVerdictText(verdict) : associationText;
+    const constraintText = joinSentences(constraintSentences);
     if (constraintText) {
       constraint = createConstraintMessage(
         `constraint-${responseIdentifier}`,
@@ -199,21 +186,13 @@ export class MatchInteractionHandler implements ElementHandler {
       controller.initializeFromDefaults(defaults);
     }
 
-    // Draw the evaluation: the status rail and the correct answer. The verdict
-    // is in the constraint text.
-    if (evaluation) {
-      const pairs = evaluation.correctResponse
+    // Draw the correct answer
+    if (correctResponse) {
+      const pairs = correctResponse
         .map(parseDirectedPair)
         .filter((pair): pair is DirectedPair => pair !== null);
       presentation.drawKey(pairs);
-      markEvaluated(container, evaluation.verdict);
     }
-    clearVerdictOnEdit(context, responseIdentifier, evaluation, () => {
-      clearEvaluated(container);
-      // Marks that describe the response go with the verdict
-      presentation.clearResponseMarks();
-      clearConstraintVerdict(constraint, container, associationText);
-    });
 
     // Register response accessor with itemState
     if (context.itemState) {

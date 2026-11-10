@@ -1,7 +1,6 @@
-/* spell-checker: ignore hottext */
 import { DeliveryOptions } from '../types.js';
 import { hasExternalScoring } from './externalScoring.js';
-import { isFormulaResponse } from './responseDeclarations.js';
+import { countGuessableOptions } from './guessableOptions.js';
 import { processTemplateConditionals } from './visibility.js';
 
 /**
@@ -26,51 +25,20 @@ export function resolveMaxTries(
 }
 
 /**
- * The option elements each guessable interaction offers the learner, by
- * interaction tag. A learner guessing through the tries works through these.
+ * The most tries `'smart'` allows, however many options an item shows.
  */
-const GUESSABLE_OPTIONS: Record<string, (interaction: Element) => Element[]> = {
-  'qti-choice-interaction': (interaction) => descendants(interaction, 'qti-simple-choice'),
-  'qti-order-interaction': (interaction) => descendants(interaction, 'qti-simple-choice'),
-  'qti-inline-choice-interaction': (interaction) => descendants(interaction, 'qti-inline-choice'),
-  'qti-hotspot-interaction': (interaction) => descendants(interaction, 'qti-hotspot-choice'),
-  'qti-hottext-interaction': (interaction) => descendants(interaction, 'qti-hottext'),
-  'qti-gap-match-interaction': (interaction) => [
-    ...descendants(interaction, 'qti-gap-text'),
-    ...descendants(interaction, 'qti-gap-img'),
-  ],
-  // The target set: the second qti-simple-match-set
-  'qti-match-interaction': (interaction) => {
-    const target = descendants(interaction, 'qti-simple-match-set')[1];
-    return target ? descendants(target, 'qti-simple-associable-choice') : [];
-  },
-};
-
-/**
- * Interactions that are no easier to answer for being retried, so they don't
- * limit the tries: a text entry, and a formula entry (an extended text with a
- * formula response).
- */
-function isUnguessable(itemDoc: Document, interaction: Element): boolean {
-  switch (interaction.tagName) {
-    case 'qti-text-entry-interaction':
-      return true;
-    case 'qti-extended-text-interaction':
-      return isFormulaResponse(itemDoc, interaction.getAttribute('response-identifier') ?? '');
-    default:
-      return false;
-  }
-}
+export const SMART_MAX_TRIES_CAP = 4;
 
 /**
  * The `'smart'` number of tries: enough to correct a mistake, too few to guess
  * through the options.
  *
- * Each guessable interaction allows half the options this variant shows (after
- * template conditionals), rounded down, and at least one; the item allows the
- * fewest any interaction does. A text or formula entry sets no limit. An item
- * with any other interaction, an externally scored item, or an item nothing
- * limits gets one try.
+ * A try is judged for the item as a whole, so the options a learner would
+ * guess through are those of every interaction this variant shows (after
+ * template conditionals), pooled (see countGuessableOptions). The item allows
+ * half of them, rounded down, at least one and at most SMART_MAX_TRIES_CAP.
+ * An item with an interaction whose options can't be counted, an externally
+ * scored item, or an item with no options gets one try.
  */
 export function deriveSmartMaxTries(itemDoc: Document, variables: Record<string, unknown>): number {
   if (hasExternalScoring(itemDoc)) return 1;
@@ -78,25 +46,22 @@ export function deriveSmartMaxTries(itemDoc: Document, variables: Record<string,
   const authoredBody = itemDoc.getElementsByTagName('qti-item-body')[0];
   if (!authoredBody) return 1;
 
+  // Every interaction this variant can show counts, including those inside
+  // feedback an adaptive item reveals in later steps: which steps a learner
+  // reaches can't be known in advance, and a fresh try starts the item over
   const itemBody = authoredBody.cloneNode(true) as Element;
   processTemplateConditionals(itemBody, variables);
 
-  const interactions = descendants(itemBody, '*').filter((element) =>
+  const interactions = Array.from(itemBody.getElementsByTagName('*')).filter((element) =>
     element.tagName.endsWith('-interaction')
   );
 
-  let limit = Infinity;
+  let options = 0;
   for (const interaction of interactions) {
-    if (isUnguessable(itemDoc, interaction)) continue;
-
-    const options = GUESSABLE_OPTIONS[interaction.tagName];
-    const tries = options ? Math.max(1, Math.floor(options(interaction).length / 2)) : 1;
-    limit = Math.min(limit, tries);
+    const count = countGuessableOptions(interaction, itemDoc);
+    if (count === null) return 1;
+    options += count;
   }
 
-  return Number.isFinite(limit) ? limit : 1;
-}
-
-function descendants(element: Element, tagName: string): Element[] {
-  return Array.from(element.getElementsByTagName(tagName));
+  return Math.min(SMART_MAX_TRIES_CAP, Math.max(1, Math.floor(options / 2)));
 }

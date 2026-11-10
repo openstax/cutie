@@ -1,7 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ItemStateImpl } from '../../../state/itemState.js';
+import { announce } from '../../../utils/liveRegion.js';
 import { registry } from '../../registry.js';
 import type { TransformContext } from '../../types.js';
+
+vi.mock('../../../utils/liveRegion.js', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../../../utils/liveRegion.js')>();
+  return { ...original, announce: vi.fn(original.announce) };
+});
 
 // Side-effect import to register the handlers (includes gap handler)
 import './index.js';
@@ -574,26 +580,21 @@ describe('gapMatchInteraction evaluation', () => {
     return container;
   }
 
-  it('renders nothing when there is no verdict or correct response', () => {
+  it('renders nothing when there is no correct response', () => {
     const container = render('', '<qti-default-value><qti-value>C1 G1</qti-value></qti-default-value>');
     expect(container.querySelector('.cutie-correct-answer-overline')).toBeNull();
-    expect(container.querySelector('.cutie-evaluated')).toBeNull();
-    // The rail is reserved regardless, so evaluation shifts nothing
-    expect(container.querySelector('.cutie-gap-match-interaction')!.classList.contains('cutie-status-rail')).toBe(true);
   });
 
-  it('describes the response in the constraint text, announced with the group', () => {
-    const container = render('data-cutie-evaluation="incorrect"', '');
-    const group = container.querySelector('.cutie-gap-match-interaction')!;
-    const constraint = container.querySelector('#constraint-R1')!;
-    expect(constraint.textContent).toBe('Incorrect response');
-    expect(group.getAttribute('aria-describedby')).toContain('constraint-R1');
-    expect(group.classList.contains('cutie-evaluated--incorrect')).toBe(true);
+  it('restores a response without announcing its placements', () => {
+    vi.mocked(announce).mockClear();
+    const container = render('', '<qti-default-value><qti-value>C1 G1</qti-value></qti-default-value>');
+    expect(container.querySelector('[data-identifier="G1"]')!.textContent).not.toBe('');
+    expect(announce).not.toHaveBeenCalled();
   });
 
   it('shows the correct choice above each gap, described by the gap', () => {
     const container = render(
-      'data-cutie-evaluation="incorrect"',
+      '',
       `<qti-default-value><qti-value>C1 G1</qti-value></qti-default-value>
        <qti-correct-response><qti-value>C2 G1</qti-value><qti-value>C1 G2</qti-value></qti-correct-response>`,
     );
@@ -602,7 +603,7 @@ describe('gapMatchInteraction evaluation', () => {
     for (const [gap, label] of [[gaps[0]!, 'Choice 2'], [gaps[1]!, 'Choice 1']] as const) {
       const overline = gap.querySelector('.cutie-correct-answer-overline--value')!;
       // Visible value, with a hidden prefix for the description
-      expect(overline.querySelector('.cutie-evaluation-sr-only')!.textContent).toBe('Correct answer: ');
+      expect(overline.querySelector('.cutie-correct-answer-sr-only')!.textContent).toBe('Correct answer: ');
       expect(overline.textContent).toBe(`Correct answer: ${label}`);
       expect(gap.getAttribute('aria-describedby')).toContain(overline.id);
     }
