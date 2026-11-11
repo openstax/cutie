@@ -148,8 +148,10 @@ export class GapMatchInteractionHandler implements ElementHandler {
     // qti-choices-* class. When the choices span 2+ match-groups (e.g. a
     // flowing sentence whose gaps are scoped by match-group) or a group has a
     // heading, each group gets its own word bank so the visual layout matches
-    // the functional restriction. Choices bucket by their first match-group;
-    // ungrouped choices form their own bucket.
+    // the functional restriction. Ungrouped choices form their own bucket. A
+    // choice in several match-groups fits more than one bank, so per-group
+    // banks would misrepresent where it can go: any such choice keeps the
+    // single shared bank (and its group headings are dropped).
     const groupKey = (choice: ChoiceData): string => choice.matchGroups[0] ?? '';
     // Banks follow the order their gaps appear in the content, so shuffled
     // choices don't reorder them; a group with no gap follows, in choice order
@@ -181,8 +183,11 @@ export class GapMatchInteractionHandler implements ElementHandler {
 
     // The outer element keeps the cutie-gap-match-choices class either way,
     // so the qti-choices-* positioning rules apply to it unchanged
+    const hasMultiGroupChoice = choices.some((choice) => choice.matchGroups.length > 1);
+    const usePerGroupBanks =
+      !hasMultiGroupChoice && (groupKeys.length >= 2 || groupKeys.some((key) => headingForGroup.has(key)));
     let choicesContainer: HTMLElement;
-    if (groupKeys.length >= 2 || groupKeys.some((key) => headingForGroup.has(key))) {
+    if (usePerGroupBanks) {
       // A layout row, not itself a bank: role="group" because its children,
       // not it, are the listboxes
       const row = document.createElement('div');
@@ -323,7 +328,9 @@ export class GapMatchInteractionHandler implements ElementHandler {
 
     // Register choices in DOM order (grouped by bank) so keyboard navigation
     // follows the layout
-    const orderedChoices = groupKeys.flatMap((key) => choices.filter((choice) => groupKey(choice) === key));
+    const orderedChoices = usePerGroupBanks
+      ? groupKeys.flatMap((key) => choices.filter((choice) => groupKey(choice) === key))
+      : choices;
     for (const choice of orderedChoices) {
       const entry = choiceButtons.get(choice.identifier);
       if (!entry) continue;

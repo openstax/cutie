@@ -178,7 +178,9 @@ heading above its group's word bank and uses it to name the bank for screen read
 each group gets its own word bank; otherwise all choices share one. Banks are ordered by where
 their gaps first appear in the content (a group with no gap comes last), so `shuffle` mixes the
 options within each bank without reordering the banks. A bank without a heading is named by
-position ("Word bank 1", "Word bank 2", …).
+position ("Word bank 1", "Word bank 2", …). If any choice belongs to more than one match-group,
+all choices share one bank and group headings are not shown, since that choice fits more than
+one bank.
 
 Other delivery systems show these headings as ordinary content above the sentence.
 

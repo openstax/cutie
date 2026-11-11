@@ -608,6 +608,47 @@ describe('gapMatchInteraction', () => {
       expect(tray.querySelectorAll('.cutie-gap-text').length).toBe(2);
     });
 
+    it('keeps a single word bank, in choice order, when a choice is in several match-groups', () => {
+      const container = transformToContainer(`
+        <qti-gap-match-interaction response-identifier="R1">
+          <qti-gap-text identifier="B1" match-max="1" match-group="effect">Effect A</qti-gap-text>
+          <qti-gap-text identifier="AB" match-max="1" match-group="cause effect">Either</qti-gap-text>
+          <qti-gap-text identifier="A1" match-max="1" match-group="cause">Cause A</qti-gap-text>
+          <p>A <qti-gap identifier="GC" match-group="cause"></qti-gap>,
+             evidenced by <qti-gap identifier="GE" match-group="effect"></qti-gap>.</p>
+        </qti-gap-match-interaction>
+      `);
+
+      expect(container.querySelector('.cutie-gap-match-choices--multi-tray')).toBeNull();
+      const banks = container.querySelectorAll('[role="listbox"]');
+      expect(banks.length).toBe(1);
+      expect(Array.from(banks[0]!.querySelectorAll('.cutie-gap-text')).map((el) =>
+        el.getAttribute('data-identifier')
+      )).toEqual(['B1', 'AB', 'A1']);
+      expect(banks[0]!.querySelectorAll('.cutie-gap-text[tabindex="0"]').length).toBe(1);
+    });
+
+    it('places a choice in several match-groups into a gap of its second group', () => {
+      const container = transformToContainer(`
+        <qti-gap-match-interaction response-identifier="R1">
+          <qti-gap-text identifier="AB" match-max="1" match-group="cause effect">Either</qti-gap-text>
+          <qti-gap-text identifier="A1" match-max="1" match-group="cause">Cause A</qti-gap-text>
+          <p>A <qti-gap identifier="GC" match-group="cause"></qti-gap>,
+             evidenced by <qti-gap identifier="GE" match-group="effect"></qti-gap>.</p>
+        </qti-gap-match-interaction>
+      `);
+      document.body.appendChild(container);
+
+      try {
+        container.querySelector<HTMLElement>('.cutie-gap-text[data-identifier="AB"]')!.click();
+        container.querySelector<HTMLElement>('.cutie-gap[data-identifier="GE"]')!.click();
+
+        expect(itemState.collectAll().responses.R1).toEqual(['AB GE']);
+      } finally {
+        container.remove();
+      }
+    });
+
     it('still places a choice from a non-first bank into its gap correctly', () => {
       const container = transformToContainer(DYAD_QTI);
       document.body.appendChild(container);
@@ -757,6 +798,22 @@ describe('gapMatchInteraction', () => {
 
       expect(container.querySelector('h3')).toBeNull();
       expect(container.querySelector('.cutie-gap-match-choices--multi-tray')).toBeNull();
+    });
+
+    it('drops the headings when a choice in several match-groups keeps the single bank', () => {
+      const container = transformToContainer(`
+        <qti-gap-match-interaction response-identifier="R1">
+          <qti-gap-text identifier="AB" match-max="1" match-group="cause effect">Either</qti-gap-text>
+          <qti-gap-text identifier="B1" match-max="1" match-group="effect">Effect A</qti-gap-text>
+          <h3 data-for-match-group="cause">Condition</h3>
+          <h3 data-for-match-group="effect">Evidence</h3>
+          <p><qti-gap identifier="GC" match-group="cause"></qti-gap> <qti-gap identifier="GE" match-group="effect"></qti-gap></p>
+        </qti-gap-match-interaction>
+      `);
+
+      expect(container.querySelector('h3')).toBeNull();
+      expect(container.querySelector('.cutie-gap-match-bank')).toBeNull();
+      expect(container.querySelector('[role="listbox"]')!.getAttribute('aria-label')).toBe('Available choices');
     });
 
     it('keeps a heading without the data attribute as ordinary content', () => {
