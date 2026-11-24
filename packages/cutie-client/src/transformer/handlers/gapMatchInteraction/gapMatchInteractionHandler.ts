@@ -3,7 +3,6 @@ import {
   type ConstraintMessage,
   createConstraintMessage,
 } from '../../../errors/validationDisplay.js';
-import { addAriaDescribedBy } from '../../../utils/aria.js';
 import { announce } from '../../../utils/liveRegion.js';
 import type { ElementHandler, InteractionState, TransformContext } from '../../types.js';
 import { parseChoicesContainerWidth } from '../../vocabUtils.js';
@@ -156,6 +155,8 @@ export class GapMatchInteractionHandler implements ElementHandler {
     ];
     const choiceBanks: HTMLElement[] = [];
     const bankForGroup = new Map<string, HTMLElement>();
+    // Text of the headings shown on banks, which also name their groups' gaps
+    const headingTextForGroup = new Map<string, string>();
 
     // A bank is a listbox, named either by a referenced element
     // (aria-labelledby — its heading) or a literal string
@@ -203,6 +204,8 @@ export class GapMatchInteractionHandler implements ElementHandler {
             heading.textContent = authoredHeading.textContent;
           }
           section.appendChild(heading);
+          const headingText = heading.textContent?.trim();
+          if (headingText) headingTextForGroup.set(key, headingText);
           bank = createBank({ labelledBy: heading.id });
         } else {
           bank = createBank({ label: `Word bank ${index + 1}` });
@@ -232,7 +235,7 @@ export class GapMatchInteractionHandler implements ElementHandler {
       choiceBtn.setAttribute('data-identifier', choice.identifier);
       choiceBtn.setAttribute('data-match-max', String(choice.matchMax));
       choiceBtn.setAttribute('draggable', 'true');
-      choiceBtn.setAttribute('aria-pressed', 'false');
+      choiceBtn.setAttribute('aria-selected', 'false');
 
       let content: string;
       if (choice.isImage) {
@@ -328,17 +331,18 @@ export class GapMatchInteractionHandler implements ElementHandler {
     // moves between banks and arrow keys move within a bank.
     controller.initRovingTabindex();
 
-    // Find and register all gap elements in the transformed content
+    // Find and register all gap elements in the transformed content. A gap is
+    // named by the heading of the first of its groups that has a headed bank.
     const gapElements = contentContainer.querySelectorAll('.cutie-gap');
-    let gapIndex = 1;
     for (const gapElement of gapElements) {
       const gapId = gapElement.getAttribute('data-identifier');
       if (gapId) {
-        gapElement.setAttribute('aria-label', `Gap ${gapIndex}, empty`);
         const matchGroup = gapElement.getAttribute('data-match-group') ?? '';
         const matchGroups = matchGroup ? matchGroup.split(/\s+/) : [];
-        controller.registerGap(gapId, gapElement as HTMLElement, matchGroups);
-        gapIndex++;
+        const heading = matchGroups
+          .map((key) => headingTextForGroup.get(key))
+          .find((text) => text !== undefined);
+        controller.registerGap(gapId, gapElement as HTMLElement, matchGroups, heading);
       }
     }
 
@@ -369,7 +373,7 @@ export class GapMatchInteractionHandler implements ElementHandler {
         const overline = createCorrectAnswerOverline(value);
         overline.id = `correct-answer-${responseIdentifier}-${gapId}`;
         gapElement.appendChild(overline);
-        addAriaDescribedBy(gapElement, overline.id);
+        controller.describeGap(gapId, overline.id);
       }
     }
 

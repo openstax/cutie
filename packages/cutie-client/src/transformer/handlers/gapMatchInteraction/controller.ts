@@ -1,10 +1,12 @@
 import {
+  addAriaDescribedBy,
   announce,
   clearDropTargetHighlights,
   focusNext,
   focusPrev,
   highlightDropTargets,
   reportResponseChanges,
+  updateRovingTabindex,
 } from '../../../utils/index.js';
 import type { TransformContext } from '../../types.js';
 
@@ -29,6 +31,8 @@ export class GapMatchController {
   private enabled = true;
   private choiceMatchGroups = new Map<string, Set<string>>(); // choice-id -> set of group names
   private gapMatchGroups = new Map<string, Set<string>>(); // gap-id -> set of group names
+  private gapHeadings = new Map<string, string>(); // gap-id -> its word bank's heading text
+  private describedGaps = new Set<string>(); // gaps that show their correct answer
   private documentClickHandler: (e: MouseEvent) => void;
   private maxAssociations: number;
 
@@ -178,15 +182,100 @@ export class GapMatchController {
 
   /**
    * Register a gap element with the controller
+   *
+   * @param heading - The heading of the word bank the gap draws from, if any,
+   *   which names the gap for screen readers
    */
-  registerGap(gapId: string, element: HTMLElement, matchGroups: string[]): void {
+  registerGap(gapId: string, element: HTMLElement, matchGroups: string[], heading?: string): void {
     this.gapElements.set(gapId, element);
 
     if (matchGroups.length > 0) {
       this.gapMatchGroups.set(gapId, new Set(matchGroups));
     }
+    if (heading) {
+      this.gapHeadings.set(gapId, heading);
+    }
 
     this.wireGapEvents(gapId, element);
+    this.syncGap(gapId);
+  }
+
+  /**
+   * Describe a gap with an element, such as its correct answer. A described
+   * gap stays focusable after the attempt ends so the description can be
+   * reached, even when the gap is empty.
+   */
+  describeGap(gapId: string, descriptionId: string): void {
+    const gap = this.gapElements.get(gapId);
+    if (!gap) return;
+    addAriaDescribedBy(gap, descriptionId);
+    this.describedGaps.add(gapId);
+    this.syncGap(gapId);
+  }
+
+  /**
+   * Whether a gap is an active target: while a choice is selected, the gaps
+   * that can take it and the gap it came from; otherwise, the filled gaps
+   */
+  private isGapActionable(gapId: string): boolean {
+    if (!this.enabled) return false;
+    if (this.selectedChoice) {
+      return this.canPlaceInGap(gapId, this.selectedChoice) || gapId === this.selectedFromGap;
+    }
+    return this.gapAssignments.has(gapId);
+  }
+
+  /**
+   * Bring a gap's Tab stop, disabled state and name up to date. Actionable gaps
+   * are Tab stops; the rest are taken out of the Tab order. After the attempt
+   * ends, filled and described gaps stay Tab stops (marked disabled) so the
+   * answer and its evaluation can be reviewed.
+   */
+  private syncGap(gapId: string): void {
+    const gap = this.gapElements.get(gapId);
+    if (!gap) return;
+
+    const actionable = this.isGapActionable(gapId);
+    const reviewable = !this.enabled && (this.gapAssignments.has(gapId) || this.describedGaps.has(gapId));
+    if (actionable || reviewable) {
+      gap.setAttribute('tabindex', '0');
+    } else {
+      gap.removeAttribute('tabindex');
+    }
+    gap.setAttribute('aria-disabled', String(!actionable));
+    gap.setAttribute('aria-label', this.gapLabel(gapId));
+  }
+
+  private syncGaps(): void {
+    for (const gapId of this.gapElements.keys()) {
+      this.syncGap(gapId);
+    }
+  }
+
+  /**
+   * A gap's own name: its word bank heading and what it holds, plus how to
+   * change it while the attempt is open. The surrounding sentence is added
+   * around it by the context labeler (aria-labelledby includes the gap itself).
+   */
+  private gapLabel(gapId: string): string {
+    const choiceId = this.gapAssignments.get(gapId);
+    let state = 'empty';
+    if (choiceId) {
+      const hint = this.enabled ? ' Press Enter to pick up, or Backspace to remove.' : '';
+      state = `contains ${this.choiceContents.get(choiceId) ?? ''}.${hint}`;
+    }
+    const heading = this.gapHeadings.get(gapId);
+    return heading ? `${heading}, ${state}` : state;
+  }
+
+  /**
+   * Focus a choice in its word bank, making it the bank's Tab stop
+   */
+  private focusChoice(choiceId: string): void {
+    const element = this.choiceElements.get(choiceId);
+    if (!element) return;
+    updateRovingTabindex(this.bankChoices(choiceId), element);
+    element.focus();
   }
 
   /**
@@ -322,9 +411,22 @@ export class GapMatchController {
         e.preventDefault();
         if (currentChoiceInGap) {
           this.removeChoiceFromGap(gapId);
+          this.clearSelection();
+          this.focusChoice(currentChoiceInGap);
         }
       } else if (e.key === 'Escape') {
+        // Return focus to where the selection began when this gap is no
+        // longer a Tab stop
+        const held = this.selectedChoice;
+        const fromGap = this.selectedFromGap;
         this.clearSelection();
+        if (held && !element.hasAttribute('tabindex')) {
+          if (fromGap) {
+            this.gapElements.get(fromGap)?.focus();
+          } else {
+            this.focusChoice(held);
+          }
+        }
       }
     }));
 
@@ -525,7 +627,7 @@ export class GapMatchController {
       const element = this.choiceElements.get(choiceId);
       if (element) {
         element.classList.add('cutie-gap-text--selected');
-        element.setAttribute('aria-pressed', 'true');
+        element.setAttribute('aria-selected', 'true');
       }
     }
 
@@ -544,15 +646,15 @@ export class GapMatchController {
       this.bankFor(choiceId)?.classList.add('cutie-gap-match-choices--drop-target');
     }
 
-    // Make only the gaps that can accept this choice focusable, so keyboard and
-    // screen-reader users Tab through the valid targets only — the same
-    // match-group restriction the visual drop-target highlight uses. Invalid
-    // gaps stay out of the tab order rather than silently rejecting Enter.
+    // Make only the gaps that can accept this choice (and the gap it came
+    // from) Tab stops, so keyboard and screen-reader users Tab through the
+    // valid targets only — the same match-group restriction the visual
+    // drop-target highlight uses. Invalid gaps stay out of the tab order rather
+    // than silently rejecting Enter.
+    this.syncGaps();
     let availableGaps = 0;
-    for (const [gapId, gapElement] of this.gapElements) {
-      const canPlace = this.canPlaceInGap(gapId, choiceId);
-      gapElement.setAttribute('tabindex', canPlace ? '0' : '-1');
-      if (canPlace) availableGaps++;
+    for (const gapId of this.gapElements.keys()) {
+      if (this.canPlaceInGap(gapId, choiceId)) availableGaps++;
     }
 
     const content = this.choiceContents.get(choiceId) ?? '';
@@ -579,7 +681,7 @@ export class GapMatchController {
         const element = this.choiceElements.get(this.selectedChoice);
         if (element) {
           element.classList.remove('cutie-gap-text--selected');
-          element.setAttribute('aria-pressed', 'false');
+          element.setAttribute('aria-selected', 'false');
         }
       }
 
@@ -592,10 +694,8 @@ export class GapMatchController {
         bank.classList.remove('cutie-gap-match-choices--drop-target');
       }
 
-      // Remove tabindex from gaps when no selection
-      for (const gapElement of this.gapElements.values()) {
-        gapElement.setAttribute('tabindex', '-1');
-      }
+      // With no selection, only the filled gaps are Tab stops
+      this.syncGaps();
     }
   }
 
@@ -628,10 +728,6 @@ export class GapMatchController {
       gapElement.setAttribute('draggable', 'true');
 
       const content = this.choiceContents.get(choiceId) ?? '';
-      const gapIndex = Array.from(this.gapElements.keys()).indexOf(gapId) + 1;
-
-      // Update ARIA label
-      gapElement.setAttribute('aria-label', `Gap ${gapIndex}, contains: ${content}. Drag or click to move.`);
 
       // Update gap content
       const contentSpan = gapElement.querySelector('.cutie-gap-content');
@@ -644,8 +740,9 @@ export class GapMatchController {
       }
     }
 
-    // Update choice exhaustion state
+    // Update choice exhaustion state, and the gaps' Tab stops and names
     this.updateChoiceExhaustion(choiceId);
+    this.syncGaps();
 
     if (!silent) {
       const content = this.choiceContents.get(choiceId) ?? '';
@@ -672,9 +769,6 @@ export class GapMatchController {
       gapElement.removeAttribute('data-choice-identifier');
       gapElement.setAttribute('draggable', 'false');
 
-      const gapIndex = Array.from(this.gapElements.keys()).indexOf(gapId) + 1;
-      gapElement.setAttribute('aria-label', `Gap ${gapIndex}, empty`);
-
       // Update gap content
       const contentSpan = gapElement.querySelector('.cutie-gap-content');
       const placeholderSpan = gapElement.querySelector('.cutie-gap-placeholder');
@@ -686,8 +780,9 @@ export class GapMatchController {
       }
     }
 
-    // Update choice exhaustion state
+    // Update choice exhaustion state, and the gaps' Tab stops and names
     this.updateChoiceExhaustion(choiceId);
+    this.syncGaps();
 
     if (!silent) {
       const content = this.choiceContents.get(choiceId) ?? '';
@@ -754,22 +849,19 @@ export class GapMatchController {
       this.initRovingTabindex();
     }
 
-    // Update gap elements
+    // Update gap elements: draggable only while enabled and filled
     for (const [gapId, element] of this.gapElements) {
-      if (enabled) {
-        element.setAttribute('tabindex', '-1');
-        // Restore draggable state based on whether gap is filled
-        element.setAttribute('draggable', this.gapAssignments.has(gapId) ? 'true' : 'false');
-      } else {
-        element.setAttribute('tabindex', '-1');
-        element.setAttribute('draggable', 'false');
-      }
+      element.setAttribute('draggable', enabled && this.gapAssignments.has(gapId) ? 'true' : 'false');
     }
 
     // Clear any selection when disabled
     if (!enabled) {
       this.clearSelection();
     }
+
+    // Filled gaps stay Tab stops either way; their names drop the keyboard
+    // hint while disabled
+    this.syncGaps();
   }
 
   /**

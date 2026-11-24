@@ -288,6 +288,136 @@ describe('gapMatchInteraction', () => {
     });
   });
 
+  describe('keyboard and screen reader access', () => {
+    // BASIC_GAP_MATCH_QTI: choices C1, C2; gaps G1, G2
+    let container: HTMLElement;
+
+    beforeEach(() => {
+      container = document.createElement('div');
+      container.appendChild(transformInteraction(createQtiDocument(BASIC_GAP_MATCH_QTI), itemState));
+      document.body.appendChild(container);
+    });
+
+    afterEach(() => {
+      container.remove();
+    });
+
+    const choice = (id: string) => container.querySelector<HTMLElement>(`.cutie-gap-text[data-identifier="${id}"]`)!;
+    const gap = (id: string) => container.querySelector<HTMLElement>(`.cutie-gap[data-identifier="${id}"]`)!;
+    const press = (element: HTMLElement, key: string) =>
+      element.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+
+    it('keeps a filled gap as a Tab stop when nothing is selected', () => {
+      choice('C1').click();
+      gap('G1').click();
+
+      expect(gap('G1').getAttribute('tabindex')).toBe('0');
+      expect(gap('G1').getAttribute('aria-disabled')).toBe('false');
+      expect(gap('G2').hasAttribute('tabindex')).toBe(false);
+      expect(gap('G2').getAttribute('aria-disabled')).toBe('true');
+    });
+
+    it('keeps the gap a choice came from as a Tab stop while it is held', () => {
+      choice('C1').click();
+      gap('G1').click();
+      press(gap('G1'), 'Enter');
+
+      expect(gap('G1').classList.contains('cutie-gap--selected')).toBe(true);
+      expect(gap('G1').getAttribute('tabindex')).toBe('0');
+      expect(gap('G2').getAttribute('tabindex')).toBe('0');
+    });
+
+    it('names a gap by what it holds, with how to change it', () => {
+      expect(gap('G1').getAttribute('aria-label')).toBe('empty');
+
+      choice('C1').click();
+      gap('G1').click();
+
+      expect(gap('G1').getAttribute('aria-label')).toBe(
+        'contains Choice 1. Press Enter to pick up, or Backspace to remove.'
+      );
+    });
+
+    it('returns a choice with Backspace and focuses it in its bank', () => {
+      choice('C1').click();
+      gap('G1').click();
+      gap('G1').focus();
+      press(gap('G1'), 'Backspace');
+
+      expect(gap('G1').classList.contains('cutie-gap--filled')).toBe(false);
+      expect(gap('G1').hasAttribute('tabindex')).toBe(false);
+      expect(document.activeElement).toBe(choice('C1'));
+      expect(choice('C1').getAttribute('tabindex')).toBe('0');
+      expect(choice('C2').getAttribute('tabindex')).toBe('-1');
+    });
+
+    it('clears a held choice when Delete returns it from the gap it came from', () => {
+      choice('C1').click();
+      gap('G1').click();
+      press(gap('G1'), 'Enter');
+      press(gap('G1'), 'Delete');
+
+      expect(gap('G1').classList.contains('cutie-gap--selected')).toBe(false);
+      expect(gap('G2').hasAttribute('tabindex')).toBe(false);
+    });
+
+    it('returns focus to the bank choice where the selection began on Escape', () => {
+      choice('C1').click();
+      gap('G1').focus();
+      press(gap('G1'), 'Escape');
+
+      expect(document.activeElement).toBe(choice('C1'));
+      expect(choice('C1').getAttribute('aria-selected')).toBe('false');
+    });
+
+    it('returns focus to the gap where the selection began on Escape', () => {
+      choice('C1').click();
+      gap('G1').click();
+      press(gap('G1'), 'Enter');
+      gap('G2').focus();
+      press(gap('G2'), 'Escape');
+
+      expect(document.activeElement).toBe(gap('G1'));
+      expect(gap('G1').classList.contains('cutie-gap--filled')).toBe(true);
+    });
+
+    it('leaves focus on a gap that stays a Tab stop after Escape', () => {
+      choice('C1').click();
+      gap('G1').click();
+      choice('C2').click();
+      gap('G1').focus();
+      press(gap('G1'), 'Escape');
+
+      expect(document.activeElement).toBe(gap('G1'));
+    });
+
+    it('marks the selected choice with aria-selected, not aria-pressed', () => {
+      expect(choice('C1').getAttribute('aria-selected')).toBe('false');
+
+      choice('C1').click();
+      expect(choice('C1').getAttribute('aria-selected')).toBe('true');
+      expect(choice('C1').hasAttribute('aria-pressed')).toBe(false);
+
+      choice('C1').click();
+      expect(choice('C1').getAttribute('aria-selected')).toBe('false');
+    });
+
+    it('keeps filled gaps focusable but disabled, without the keyboard hint, after the attempt ends', () => {
+      choice('C1').click();
+      gap('G1').click();
+      itemState.setInteractionState('disabled');
+
+      expect(gap('G1').getAttribute('tabindex')).toBe('0');
+      expect(gap('G1').getAttribute('aria-disabled')).toBe('true');
+      expect(gap('G1').getAttribute('aria-label')).toBe('contains Choice 1.');
+      expect(gap('G2').hasAttribute('tabindex')).toBe(false);
+
+      itemState.setInteractionState('enabled');
+      expect(gap('G1').getAttribute('aria-disabled')).toBe('false');
+      expect(gap('G1').getAttribute('aria-label')).toContain('Press Enter to pick up');
+    });
+  });
+
   describe('QTI shared vocabulary', () => {
     it('passes source classes through to the container', () => {
       const doc = createQtiDocument(`
@@ -413,21 +543,21 @@ describe('gapMatchInteraction', () => {
         const actionGap = container.querySelector<HTMLElement>('.cutie-gap[data-identifier="GA1"]')!;
         const parameterGap = container.querySelector<HTMLElement>('.cutie-gap[data-identifier="GP1"]')!;
 
-        // Before selection, no gap is in the tab order.
-        expect(actionGap.getAttribute('tabindex')).toBe('-1');
-        expect(parameterGap.getAttribute('tabindex')).toBe('-1');
+        // Before selection, no gap is filled, so none is in the tab order.
+        expect(actionGap.hasAttribute('tabindex')).toBe(false);
+        expect(parameterGap.hasAttribute('tabindex')).toBe(false);
 
         actionChoice.click();
 
         // Only the gap sharing the choice's match-group becomes focusable.
         expect(actionGap.getAttribute('tabindex')).toBe('0');
-        expect(parameterGap.getAttribute('tabindex')).toBe('-1');
+        expect(parameterGap.hasAttribute('tabindex')).toBe(false);
       } finally {
         container.remove();
       }
     });
 
-    it('removes all gaps from the tab order when the selection is cleared', () => {
+    it('takes empty gaps out of the tab order when the selection is cleared', () => {
       const container = transformToContainer(LAYOUT_COLUMNS_QTI);
       document.body.appendChild(container);
 
@@ -440,7 +570,7 @@ describe('gapMatchInteraction', () => {
 
         // Toggling the same choice off clears the selection.
         actionChoice.click();
-        expect(actionGap.getAttribute('tabindex')).toBe('-1');
+        expect(actionGap.hasAttribute('tabindex')).toBe(false);
       } finally {
         container.remove();
       }
@@ -820,6 +950,17 @@ describe('gapMatchInteraction', () => {
       expect(container.querySelector('h3')).toBeNull();
       expect(container.querySelector('.cutie-gap-match-bank')).toBeNull();
       expect(container.querySelector('[role="listbox"]')!.getAttribute('aria-label')).toBe('Available choices');
+      // With no headed bank, the gaps aren't named by a heading either
+      expect(container.querySelector('.cutie-gap[data-identifier="GC"]')!.getAttribute('aria-label')).toBe('empty');
+    });
+
+    it('names each gap with the heading of its word bank', () => {
+      const container = transformToContainer(HEADINGS_QTI);
+
+      expect(container.querySelector('.cutie-gap[data-identifier="GC"]')!.getAttribute('aria-label'))
+        .toBe('Condition, empty');
+      expect(container.querySelector('.cutie-gap[data-identifier="GE"]')!.getAttribute('aria-label'))
+        .toBe('Evidence found, empty');
     });
 
     it('keeps a heading without the data attribute as ordinary content', () => {
@@ -979,6 +1120,20 @@ describe('gapMatchInteraction evaluation', () => {
     // The learner's placement is untouched
     expect(gaps[0]!.getAttribute('data-choice-identifier')).toBe('C1');
     expect(gaps[0]!.querySelector('.cutie-gap-content')!.textContent).toBe('Choice 1');
+  });
+
+  it('keeps an empty gap with a correct answer focusable after the attempt ends', () => {
+    const container = render(
+      '',
+      `<qti-default-value><qti-value>C1 G1</qti-value></qti-default-value>
+       <qti-correct-response><qti-value>C2 G1</qti-value><qti-value>C1 G2</qti-value></qti-correct-response>`,
+    );
+    itemState.setInteractionState('disabled');
+
+    const emptyGap = container.querySelector<HTMLElement>('.cutie-gap[data-identifier="G2"]')!;
+    expect(emptyGap.getAttribute('tabindex')).toBe('0');
+    expect(emptyGap.getAttribute('aria-disabled')).toBe('true');
+    expect(emptyGap.getAttribute('aria-label')).toBe('empty');
   });
 });
 

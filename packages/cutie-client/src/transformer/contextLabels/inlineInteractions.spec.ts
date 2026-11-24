@@ -863,3 +863,73 @@ describe('interactions in table cells', () => {
     expect(fragment.querySelector('select')!.getAttribute('aria-label')).toBe('blank');
   });
 });
+
+describe('gap-match gaps', () => {
+  beforeEach(() => {
+    resetIds();
+  });
+
+  /** A gap as the gap-match controller renders it: named by what it holds */
+  function gapHtml(id: string, label = 'empty'): string {
+    return `<span class="cutie-gap" id="${id}" role="button" aria-label="${label}">`
+      + '<span class="cutie-gap-placeholder" aria-hidden="true"></span>'
+      + '<span class="cutie-gap-content">Hidden content</span></span>';
+  }
+
+  it('labels a gap by its sentence, keeping its own name in the middle', () => {
+    const fragment = fragmentFromHtml(`<p>At risk for ${gapHtml('g1')} today.</p>`);
+
+    labelInlineInteractions(fragment, testIdGenerator);
+
+    const gap = fragment.getElementById('g1')!;
+    const parts = gap.getAttribute('aria-labelledby')!.split(' ');
+    expect(parts).toHaveLength(3);
+    expect(parts[1]).toBe('g1');
+    expect(normalizeHtml(fragment.getElementById(parts[0]!)!.textContent!)).toBe('At risk for');
+    expect(normalizeHtml(fragment.getElementById(parts[2]!)!.textContent!)).toBe('today.');
+    expect(gap.getAttribute('aria-label')).toBe('empty');
+  });
+
+  it('gives each of several gaps in a sentence its position', () => {
+    const fragment = fragmentFromHtml(`<p>At risk for ${gapHtml('g1')}, evidenced by ${gapHtml('g2')}.</p>`);
+
+    labelInlineInteractions(fragment, testIdGenerator);
+
+    const description = fragment.getElementById(fragment.getElementById('g2')!.getAttribute('aria-describedby')!);
+    expect(description!.textContent).toBe('blank 2 of 2');
+  });
+
+  it('never reads what is inside a gap as context', () => {
+    const fragment = fragmentFromHtml(`<p>Before ${gapHtml('g1')} after.</p>`);
+
+    labelInlineInteractions(fragment, testIdGenerator);
+
+    const gap = fragment.getElementById('g1')!;
+    expect(gap.querySelector('.cutie-gap-content')!.textContent).toBe('Hidden content');
+    expect(gap.querySelector('[id^="s"]')).toBeNull();
+  });
+
+  it('keeps a bare gap named by what it holds', () => {
+    const fragment = fragmentFromHtml(`<p>${gapHtml('g1', 'contains Water.')}</p>`);
+
+    labelInlineInteractions(fragment, testIdGenerator);
+
+    const gap = fragment.getElementById('g1')!;
+    expect(gap.getAttribute('aria-label')).toBe('contains Water.');
+    expect(gap.hasAttribute('aria-labelledby')).toBe(false);
+  });
+
+  it('labels a gap in a table cell by its headers, then by what it holds', () => {
+    const fragment = fragmentFromHtml(`<table>
+      <tr><th>Finding</th><th>Status</th></tr>
+      <tr><th>Temperature</th><td>${gapHtml('g1')}</td></tr>
+    </table>`);
+
+    labelInlineInteractions(fragment, testIdGenerator);
+
+    const parts = fragment.getElementById('g1')!.getAttribute('aria-labelledby')!.split(' ');
+    expect(parts.slice(0, 2).map((id) => normalizeHtml(fragment.getElementById(id)!.textContent!)))
+      .toEqual(['Temperature', 'Status']);
+    expect(parts[2]).toBe('g1');
+  });
+});

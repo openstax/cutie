@@ -107,10 +107,6 @@ export const GAP_STYLES = `
     border-color: var(--cutie-border);
   }
 
-  .cutie-gap-match-interaction--disabled .cutie-gap:focus {
-    outline: none;
-  }
-
   .cutie-gap-match-interaction--disabled .cutie-gap:not(.cutie-gap--filled) {
     cursor: default;
   }

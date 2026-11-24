@@ -1,7 +1,7 @@
 ---
 name: Gap Match — Validation
 route: /
-tags: [gap-match, interaction, validation, accessibility, rationale, partial-credit]
+tags: [gap-match, interaction, validation, accessibility, keyboard, rationale, partial-credit]
 examples:
   - Gap Match
   - Gap Match - Rationale (Dyad)
@@ -11,7 +11,8 @@ examples:
 # Gap Match — Validation
 
 Covers `min-associations` constraint validation on a gap-match interaction, verifies that
-constraint errors are announced to screen readers (not just shown visually), and covers
+constraint errors are announced to screen readers (not just shown visually), covers keyboard
+use, gap names and review after submitting, and covers
 gap-match's cause/effect rationale scoring pattern (an all-or-nothing dyad and a cause-gated
 partial-credit triad).
 
@@ -49,6 +50,69 @@ partial-credit triad).
    - [ ] Constraint text exits error state (warning icon disappears)
    - [ ] The interaction container no longer has `aria-invalid`
    - [ ] Draggable choices become disabled
+
+## Keyboard
+
+**Setup:** Load "Gap Match - Rationale (Dyad)" from the Supported Examples group (or reset state
+if already loaded). Use only the keyboard.
+
+1. Press Tab from the top of the item.
+   - [ ] Focus lands on the first option in the "Event" bank, then Tab moves to the "Reading"
+     bank; arrow keys move between options within one bank
+   - [ ] No gap is in the Tab order while every gap is empty and nothing is selected
+
+2. Focus **warm front** and press Enter.
+   - [ ] The option is marked selected (`aria-selected="true"`, no `aria-pressed`)
+   - [ ] Tab now reaches the cause gap, but not the effect gap
+
+3. Tab to the cause gap and press Enter.
+   - [ ] **warm front** is placed; focus stays on the filled gap, which keeps `tabindex="0"`
+
+4. Shift+Tab away, then Tab back, with nothing selected.
+   - [ ] The filled cause gap is a Tab stop; the empty effect gap is not
+
+5. On the filled cause gap, press Enter.
+   - [ ] **warm front** is picked up (the gap shows as selected)
+
+6. Press Escape.
+   - [ ] The selection is cleared and focus stays on the cause gap
+
+7. Select **a rising temperature** in the "Reading" bank, Tab to the empty effect gap, and press
+   Escape.
+   - [ ] The selection is cleared and focus returns to **a rising temperature** in its bank
+
+8. Focus the filled cause gap and press Backspace (or Delete).
+   - [ ] **warm front** returns to the "Event" bank, and focus moves to it there
+   - [ ] The cause gap is empty and out of the Tab order
+
+## Screen Reader Names
+
+**Setup:** Load "Gap Match - Rationale (Dyad)". Take an accessibility snapshot (or use VoiceOver).
+
+1. Inspect the cause gap while it is empty.
+   - [ ] Its name includes the sentence text before and after it, the heading "Event", and
+     "empty"
+   - [ ] It is described as "blank 1 of 2"
+
+2. Place **warm front** in the cause gap and inspect it again.
+   - [ ] Its name includes "Event, contains warm front. Press Enter to pick up, or Backspace to
+     remove."
+
+3. Load "Gap Match" (no word bank headings) and inspect any gap.
+   - [ ] Its name includes the surrounding sentence text and "empty", with no heading
+
+## Review After Submitting
+
+**Setup:** Load "Gap Match" with the evaluation option set to show the correct response.
+
+1. Fill all three gaps (at least one wrong) using the keyboard, then submit.
+   - [ ] Each filled gap is still a Tab stop, with `aria-disabled="true"`
+   - [ ] Each gap's name says what it contains, with no "Press Enter…" hint
+   - [ ] Each gap is described by its correct answer ("Correct answer: …")
+   - [ ] Focused gaps show a visible focus ring
+
+2. Press Enter, Backspace and Delete on a filled gap.
+   - [ ] Nothing changes
 
 ## Accessibility (VoiceOver required — manual, macOS)
 

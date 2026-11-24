@@ -36,8 +36,8 @@ export class GapHandler implements ElementHandler {
     gap.className = 'cutie-gap';
     gap.setAttribute('data-identifier', identifier);
     gap.setAttribute('role', 'button');
-    gap.setAttribute('tabindex', '-1'); // Will be managed by controller
-    gap.setAttribute('aria-label', 'Gap, empty');
+    // Tab stop and name are managed by the controller once it registers the gap
+    gap.setAttribute('aria-label', 'empty');
     gap.setAttribute('draggable', 'false'); // Initially not draggable, becomes draggable when filled
 
     if (matchGroup) {

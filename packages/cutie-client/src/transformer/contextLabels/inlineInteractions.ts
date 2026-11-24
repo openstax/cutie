@@ -2,8 +2,9 @@
 /**
  * Inline Interaction Labels
  *
- * Labels inline interactions (textEntryInteraction, inlineChoiceInteraction)
- * with aria-labelledby referencing spans wrapped around surrounding visible text.
+ * Labels inline interactions (textEntryInteraction, inlineChoiceInteraction,
+ * gap-match gaps) with aria-labelledby referencing spans wrapped around
+ * surrounding visible text.
  * An interaction with no surrounding text is labelled by the headers of the
  * table cell it's in, if any. This provides accessible labels per WCAG 4.1.2
  * and 3.3.2.
@@ -20,7 +21,7 @@ import { defaultGenerateId } from './ids.js';
 import { labelByTableHeaders } from './tableHeaders.js';
 
 const INTERACTION_SELECTOR =
-  'input.cutie-text-entry-interaction, select.cutie-inline-choice-interaction';
+  'input.cutie-text-entry-interaction, select.cutie-inline-choice-interaction, span.cutie-gap';
 
 const SENTENCE_BOUNDARY = /[.!?]\s+/;
 
@@ -56,7 +57,8 @@ function isInteraction(node: Node): node is HTMLElement {
   const el = node as HTMLElement;
   return (
     (el.tagName === 'INPUT' && el.classList.contains('cutie-text-entry-interaction')) ||
-    (el.tagName === 'SELECT' && el.classList.contains('cutie-inline-choice-interaction'))
+    (el.tagName === 'SELECT' && el.classList.contains('cutie-inline-choice-interaction')) ||
+    (el.tagName === 'SPAN' && el.classList.contains('cutie-gap'))
   );
 }
 
@@ -504,10 +506,16 @@ export function labelInlineInteractions(
         continue;
       }
 
-      // No surrounding text: label from the table headers of the cell it's in
+      // No surrounding text: label from the table headers of the cell it's in.
+      // A control that names itself (a gap-match gap, whose name is what it
+      // holds) keeps its name: after the headers, or alone.
+      const namesItself = el.hasAttribute('aria-label');
       if (labelByTableHeaders(el, generateId)) {
+        if (namesItself) {
+          el.setAttribute('aria-labelledby', `${el.getAttribute('aria-labelledby')} ${el.id}`);
+        }
         annotated = true;
-      } else {
+      } else if (!namesItself) {
         // Fallback: no surrounding text or headers — no cutie-sr-only spans created,
         // so don't set annotated (avoids unnecessary style injection)
         if (interactions.length > 1) {
